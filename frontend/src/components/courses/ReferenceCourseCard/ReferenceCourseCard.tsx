@@ -104,8 +104,16 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
   const facultyName = useMemo(() => {
     if ((course as any).instructor) return (course as any).instructor;
     if (course.taughtByIitians) return 'DK Sir & Kota Senior Faculty';
-    return 'DK Sir (Ex-Kota Senior Faculty)';
+    return 'Dharmendra Kumar (DK Sir)';
   }, [course.taughtByIitians, (course as any).instructor]);
+
+  const facultyAvatar = useMemo(() => {
+    const isDk = facultyName.toLowerCase().includes('dharmendra') || facultyName.toLowerCase().includes('dk');
+    if (isDk) return '/img/dk-sir.jpg';
+    const first = course.facultyAvatars?.[0];
+    if (first && !first.includes('student')) return first;
+    return '/img/dk-sir.jpg';
+  }, [facultyName, course.facultyAvatars]);
 
   // 7. Rating and Review Count
   const ratingValue = (course as any).rating || (course.isPopular ? 4.9 : 4.8);
@@ -315,11 +323,11 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
         <div className={styles.facultyRow}>
           <div className={styles.facultyAvatarWrap}>
             <img
-              src={course.facultyAvatars?.[0] || '/img/founder.jpeg'}
+              src={facultyAvatar}
               alt={facultyName}
               className={styles.facultyAvatar}
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/img/founder.jpeg';
+                (e.target as HTMLImageElement).src = '/img/dk-sir.jpg';
               }}
             />
           </div>

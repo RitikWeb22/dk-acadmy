@@ -2219,7 +2219,7 @@ export const CourseLmsPage: React.FC = () => {
                 <div className={styles.facultyMentorCard}>
                   <div className={styles.facultyAvatarWrapper}>
                     <img
-                      src="/img/founder.jpeg"
+                      src="/img/dk-sir.jpg"
                       alt="Dharmendra Kumar (DK Sir)"
                       className={styles.facultyAvatar}
                     />

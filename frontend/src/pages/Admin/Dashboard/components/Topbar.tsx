@@ -288,7 +288,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             aria-expanded={isUserDropdownOpen}
           >
             <img
-              src="/img/logo.jpeg"
+              src="/img/dk-sir.jpg"
               alt="Dharmendra Kumar"
               className={styles.userAvatarImg}
             />

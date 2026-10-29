@@ -99,7 +99,7 @@ export const FREE_COURSES_CATALOG: Course[] = [
     isPopular: true,
     isBestValue: true,
     enrolledCount: 4890,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     coverImage: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&auto=format&fit=crop&q=80',
     description: 'Master DK Sir’s proprietary 20-to-30-second inspection shortcuts for Calculus, definite integrals, and symmetric curves. First 5 masterclasses unlocked free with downloadable DPPs.',
     features: [
@@ -135,7 +135,7 @@ export const FREE_COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 3620,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     coverImage: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=800&auto=format&fit=crop&q=80',
     description: 'Unpack tricky free-body diagrams, pseudo-forces, rotational dynamics, and work-energy theorem without cumbersome multi-page algebra.',
     features: [
@@ -171,7 +171,7 @@ export const FREE_COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 3150,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     coverImage: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop&q=80',
     description: 'General Organic Chemistry (GOC), carbocation stability, aromaticity rules, and electrophilic aromatic substitution mechanisms explained visually.',
     features: [
@@ -207,7 +207,7 @@ export const FREE_COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 4210,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     coverImage: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80',
     description: 'Master the test-taking psychology of top AIR rankers: eliminating 2 options in multi-correct questions using boundary values and dimensional constraints.',
     features: [
@@ -248,7 +248,7 @@ export const COURSES_CATALOG: Course[] = [
     isPopular: true,
     isBestValue: true,
     enrolledCount: 6420,
-    facultyAvatars: ['/img/founder.jpeg', '/images/students/aarav.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Complete deconstruction of 10+ years JEE Main & Advanced Previous Year Questions with DK Sir YouTube video solutions and downloadable Kota PDF solutions. First 5 questions are 100% free preview.',
     features: [
       'First 5 Chapter-wise PYQ questions 100% free for all students',
@@ -287,7 +287,7 @@ export const COURSES_CATALOG: Course[] = [
     isPopular: true,
     isBestValue: true,
     enrolledCount: 3820,
-    facultyAvatars: ['/images/students/rohan.jpg', '/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Complete 2-year live interactive coaching covering Class 11 & 12 PCM syllabus aligned with NTA and IIT JEE Advanced standards.',
     features: [
       '1200+ hrs. of LIVE interactive classes with DK Academy Kota-pedagogy faculty',
@@ -325,7 +325,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: false,
     enrolledCount: 2450,
-    facultyAvatars: ['/images/students/aarav.jpg', '/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Specialized 1-year live coaching building unshakeable mathematical rigor, mechanics, and physical chemistry foundations for Class 11 aspirants.',
     features: [
       '600+ hrs. of LIVE interactive classes covering complete Class 11 PCM syllabus',
@@ -363,7 +363,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 3120,
-    facultyAvatars: ['/images/students/rohan.jpg', '/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Exclusive IIT JEE Mathematics program mentored directly by DK Sir (Dharmendra Kumar). Master concept clarity, time-saving graphical tricks, and 20-to-30-second problem-solving challenges.',
     features: [
       'Personally taught by DK Sir (Dharmendra Kumar) – Renowned IIT JEE Math Mentor',
@@ -401,7 +401,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 4190,
-    facultyAvatars: ['/images/students/rohan.jpg', '/images/students/aarav.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Comprehensive distance learning program with complete video modules, printed study material delivered home, and full computer-based test series.',
     features: [
       'Complete Class 11 & 12 structured video lecture archive (760+ HD videos)',
@@ -437,7 +437,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: false,
     enrolledCount: 1680,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Targeted self-study program for students seeking mastery over Calculus, Coordinate Geometry, Rotational Motion, and Classical Mechanics.',
     features: [
       'Flagship 112-video Calculus & Definite Integration deep-dive series',
@@ -472,7 +472,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 3950,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Master 15+ years of JEE Main and Advanced Mathematics questions deconstructed chapter-by-chapter with DK Sir’s proprietary 20-to-30-second shortcut techniques.',
     features: [
       'Over 2,200+ Math PYQs solved with DK Sir’s concept clarity & shortcut methods',
@@ -509,7 +509,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 6540,
-    facultyAvatars: ['/images/students/rohan.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'High-fidelity NTA CBT simulation matching real exam screen, palette, and marking rules with detailed question-wise analytics.',
     features: [
       '30 Full syllabus mock tests + 45 chapter-wise tests matching 2028 pattern',
@@ -545,7 +545,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: false,
     enrolledCount: 2890,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Specialized timed CBT testing targeting speed, eliminating calculation errors, and mastering time-saving techniques under strict NTA exam conditions.',
     features: [
       '40 Topic-wise speed tests designed for 20-30s problem solving',
@@ -583,7 +583,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 3100,
-    facultyAvatars: ['/images/students/rohan.jpg', '/images/students/aarav.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Advanced multi-concept problem solving, rigorous subjective analysis, and high-difficulty comprehension questions tailored for top IIT rank aspirants.',
     features: [
       '750+ hrs. of LIVE advanced problem-solving & tricky derivations',
@@ -620,7 +620,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 2870,
-    facultyAvatars: ['/img/founder.jpeg', '/images/students/rohan.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Master Differential & Integral Calculus, Vectors, 3D Geometry, and Probability with DK Sir’s proprietary 20-30s shortcuts and deep graphical visualization.',
     features: [
       'Personally taught by DK Sir (Dharmendra Kumar) – Renowned IIT JEE Math Mentor',
@@ -658,7 +658,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 1540,
-    facultyAvatars: ['/images/students/rohan.jpg', '/images/students/aarav.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Exclusive 30-student cohort with personalized daily milestone targets, 1:1 DK Sir doubt clinic, and top-1000 rank targeted test series.',
     features: [
       'Strictly capped at 30 students with dedicated daily mentor tracking',
@@ -694,7 +694,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: false,
     enrolledCount: 2280,
-    facultyAvatars: ['/img/founder.jpeg', '/images/students/aarav.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Intensive single-year live sprint covering both Class 11 & 12 syllabus with high-tempo problem shortcuts, error analysis, and time-management drills.',
     features: [
       '900+ hrs. high-tempo PCM revision with speed inspection tricks',
@@ -732,7 +732,7 @@ export const COURSES_CATALOG: Course[] = [
     isPopular: true,
     isBestValue: true,
     enrolledCount: 2940,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'DK Sir’s dedicated dropper program designed to boost Mathematics scores from 40 to 90+ percentile using proprietary 20-30s speed hacks and intense PYQ breakdowns.',
     features: [
       'Personally taught by DK Sir – High-speed concept clarity & graphical shortcut methods',
@@ -767,7 +767,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: false,
     enrolledCount: 1850,
-    facultyAvatars: ['/images/students/rohan.jpg', '/images/students/aarav.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Complete high-yield dropper library with printed theory books, chapter worksheets, and full-length CBT mock exams replicating real NTA interface.',
     features: [
       'Complete Class 11 & 12 video archives tailored for repeaters (800+ videos)',
@@ -804,7 +804,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 1680,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Develop supreme mathematical intuition, number theory, geometry visualization, and algebraic dexterity under DK Sir’s direct coaching.',
     features: [
       'DK Sir’s foundational mathematical trick sessions and Olympiad training (IOQM/PRMO)',
@@ -839,7 +839,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: false,
     enrolledCount: 1120,
-    facultyAvatars: ['/images/students/aarav.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Ignite curious minds with intuitive science and mathematics problem-solving techniques before high school.',
     features: [
       'Interactive visual experiments & creative mathematics puzzle breakdowns',
@@ -874,7 +874,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: false,
     enrolledCount: 1450,
-    facultyAvatars: ['/images/students/rohan.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Strong foundation building in Mathematics, Mechanics, and Chemical Bonding to ease the transition from Class 10 to competitive JEE preparation.',
     features: [
       'Fundamental concept visualization and algebraic intuition',
@@ -909,7 +909,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: false,
     enrolledCount: 1890,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Fast-paced structured revision targeting high-weightage topics across PCM, quick problem shortcuts, and 500+ curated questions.',
     features: [
       'Condensed high-yield concept summaries for top 35 chapters',
@@ -944,7 +944,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 2150,
-    facultyAvatars: ['/images/students/aarav.jpg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Foundational video library and printed modules for building early mathematical aptitude, science concepts, and Olympiad problem-solving skills.',
     features: [
       'Complete Class 8, 9 & 10 conceptual video lecture library (350+ videos)',
@@ -978,7 +978,7 @@ export const COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: false,
     enrolledCount: 1820,
-    facultyAvatars: ['/img/founder.jpeg'],
+    facultyAvatars: ['/img/dk-sir.jpg'],
     description: 'Timed online CBT tests tailored for IOQM, PRMO, NSEJS, and early competitive test-taking speed.',
     features: [
       '20 Olympiad-pattern online tests with detailed video hint solutions',
