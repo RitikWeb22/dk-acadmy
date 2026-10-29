@@ -1,0 +1,349 @@
+@use '../../styles/variables' as *;
+
+.section {
+  padding-top: $space-16;
+  padding-bottom: $space-16;
+  background-color: var(--color-surface-muted);
+  position: relative;
+}
+
+/* Category Filter Tabs */
+.categoryTabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-bottom: $space-10;
+  flex-wrap: wrap;
+}
+
+.catBtn {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 0.45rem 1rem;
+  border-radius: $radius-full;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: var(--color-text-primary);
+    border-color: #cbd5e1;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.activeCat {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: $shadow-xs;
+
+  &:hover {
+    color: #ffffff;
+    background-color: var(--color-primary-hover);
+  }
+}
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-8;
+  align-items: flex-start;
+
+  @include desktop {
+    grid-template-columns: 380px 1fr;
+    gap: $space-10;
+  }
+}
+
+/* Side Mascot Help Card */
+.mascotCard {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-2xl;
+  padding: $space-6;
+  box-shadow: $shadow-sm;
+  position: relative;
+  overflow: hidden;
+
+  @include tablet {
+    padding: $space-8;
+  }
+}
+
+.mascotCardInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.mascotAvatarWrap {
+  position: relative;
+  width: 180px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $space-4;
+}
+
+.avatarAmbientGlow {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(37, 99, 235, 0) 70%);
+  border-radius: 50%;
+  filter: blur(20px);
+}
+
+.mascotImage {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.15));
+  animation: floatMascotSoft 4.5s ease-in-out infinite alternate;
+}
+
+@keyframes floatMascotSoft {
+  0% {
+    transform: translateY(0px);
+  }
+  100% {
+    transform: translateY(-8px);
+  }
+}
+
+.mascotText {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mascotBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1e40af;
+  background-color: #dbeafe;
+  border: 1px solid #bfdbfe;
+  padding: 0.25rem 0.65rem;
+  border-radius: $radius-full;
+  margin-bottom: $space-3;
+}
+
+.sparkle {
+  color: #2563eb;
+}
+
+.mascotTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: $space-2;
+}
+
+.mascotDesc {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: $space-6;
+}
+
+.mascotActions {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  width: 100%;
+  margin-bottom: $space-4;
+}
+
+.telegramBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  background-color: #0088cc;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.65rem 1.2rem;
+  border-radius: $radius-lg;
+  text-decoration: none;
+  transition: all $transition-fast;
+  box-shadow: 0 4px 12px rgba(0, 136, 204, 0.25);
+
+  &:hover {
+    background-color: #0077b5;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 136, 204, 0.35);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.aboutLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  background-color: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.65rem 1.2rem;
+  border-radius: $radius-lg;
+  text-decoration: none;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: var(--color-text-primary);
+    border-color: #94a3b8;
+    background-color: var(--color-surface-muted);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.mascotFooterNote {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.activeDot {
+  color: #10b981;
+}
+
+/* Accordion Column */
+.accordionList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.accordionItem {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  transition: all $transition-fast;
+  overflow: hidden;
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+}
+
+.itemOpen {
+  border-color: var(--color-primary);
+  box-shadow: $shadow-sm;
+}
+
+.accordionHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-4 $space-6;
+  background-color: transparent;
+  text-align: left;
+  gap: $space-4;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba(248, 250, 252, 0.8);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.questionMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+
+.catTag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+  background-color: var(--color-primary-subtle);
+  padding: 0.15rem 0.45rem;
+  border-radius: $radius-sm;
+}
+
+.questionText {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+
+.chevronWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-full;
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: transform $transition-normal, background-color $transition-fast, color $transition-fast;
+}
+
+.chevronRotated {
+  transform: rotate(180deg);
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.accordionBody {
+  padding: 0 $space-6 $space-6 $space-6;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.answerText {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+  margin: 0;
+  padding-top: $space-2;
+  border-top: 1px solid var(--color-border);
+}

@@ -1,0 +1,648 @@
+@use '../../../styles/variables' as *;
+
+.section {
+  background: radial-gradient(80% 50% at 50% -10%, rgba(239, 246, 255, 0.75) 0%, #ffffff 100%);
+  padding-top: 48px;
+  padding-bottom: 56px;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  position: relative;
+  overflow: hidden;
+
+  @include desktop {
+    padding-top: 64px;
+    padding-bottom: 72px;
+  }
+}
+
+.ambientGlow {
+  position: absolute;
+  top: 20%;
+  left: 10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.twoColGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+
+  @include desktop {
+    grid-template-columns: 0.95fr 1.05fr;
+    gap: 60px;
+  }
+}
+
+// Left Column: Portrait
+.mediaCol {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.portraitWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+
+  @include desktop {
+    max-width: 460px;
+  }
+}
+
+.ambientBackdrop {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.16) 0%, rgba(59, 130, 246, 0.05) 50%, transparent 75%);
+  filter: blur(24px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+// Floating Badges on Portrait
+.floatingExpBadge {
+  position: absolute;
+  top: 16px;
+  right: -14px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.775rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    right: 12px;
+    top: 12px;
+  }
+}
+
+.expSparkle {
+  color: #fbbf24;
+}
+
+.floatingShortcutBadge {
+  position: absolute;
+  bottom: 80px;
+  left: -16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  padding: 8px 14px;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12), 0 2px 4px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    left: 12px;
+    bottom: 74px;
+  }
+}
+
+.shortcutIconWrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background-color: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shortcutText {
+  display: flex;
+  flex-direction: column;
+
+  strong {
+    font-size: 0.8125rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+  }
+
+  span {
+    font-size: 0.725rem;
+    color: #64748b;
+    margin-top: 1px;
+  }
+}
+
+.photoFrame {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  aspect-ratio: 4 / 4.8;
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.12), 0 2px 4px rgba(15, 23, 42, 0.03);
+}
+
+.portraitImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  transition: transform 400ms ease;
+
+  .photoFrame:hover & {
+    transform: scale(1.02);
+  }
+}
+
+.portraitOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0) 55%, rgba(15, 23, 42, 0.88) 100%);
+  pointer-events: none;
+}
+
+// Fallback Box when no photo is available
+.placeholderBox {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 32px;
+  text-align: center;
+}
+
+.initialsCircle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+  margin-bottom: 16px;
+}
+
+.initialsText {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.replaceNotice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.replaceIcon {
+  color: #2563eb;
+}
+
+.replaceTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.replaceDesc {
+  font-size: 0.775rem;
+  color: #64748b;
+}
+
+// Role caption across bottom of portrait
+.mentorCaption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 18px 20px 16px;
+  background: linear-gradient(180deg, transparent 0%, rgba(15, 23, 42, 0.92) 40%, rgba(15, 23, 42, 0.98) 100%);
+  color: #ffffff;
+  z-index: 5;
+}
+
+.captionNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.captionName {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #34d399;
+}
+
+.captionRole {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  margin-top: 2px;
+  display: block;
+}
+
+// Right Column: Content
+.contentCol {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.eyebrowWrap {
+  display: flex;
+  align-items: center;
+}
+
+.eyebrowBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 9999px;
+  font-size: 0.775rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.eyebrowIcon {
+  color: #2563eb;
+}
+
+.heading {
+  font-size: clamp(2rem, 3.4vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+  margin: 0;
+}
+
+.headingGradient {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+// Bio Paragraphs
+.bioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bioPara {
+  font-size: 0.9375rem;
+  line-height: 1.68;
+  color: #475569;
+  margin: 0;
+}
+
+.leadBioPara {
+  font-size: 1rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.placeholderPara {
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #64748b;
+  font-style: italic;
+}
+
+// Thematic Credential Chips
+.credentialsWrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.credentialChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  }
+}
+
+.chipBlue {
+  background-color: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: #1e40af;
+
+  .chipIcon {
+    color: #2563eb;
+  }
+}
+
+.chipPurple {
+  background-color: #f5f3ff;
+  border: 1px solid #ede9fe;
+  color: #6d28d9;
+
+  .chipIcon {
+    color: #7c3aed;
+  }
+}
+
+.chipEmerald {
+  background-color: #ecfdf5;
+  border: 1px solid #d1fae5;
+  color: #047857;
+
+  .chipIcon {
+    color: #059669;
+  }
+}
+
+.chipAmber {
+  background-color: #fffbeb;
+  border: 1px solid #fef3c7;
+  color: #b45309;
+
+  .chipIcon {
+    color: #d97706;
+  }
+}
+
+.placeholderChip {
+  border-style: dashed;
+  color: #64748b;
+}
+
+.chipIcon {
+  flex-shrink: 0;
+}
+
+// Quote Card in Italics with Left Accent Border
+.quoteCard {
+  position: relative;
+  margin: 4px 0;
+  padding: 18px 22px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  border-left: 4px solid #2563eb;
+  border-radius: 14px;
+  border-top: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.quoteWatermark {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  color: #3b82f6;
+  opacity: 0.12;
+  pointer-events: none;
+  transform: rotate(180deg);
+}
+
+.quoteText {
+  font-size: 0.925rem;
+  line-height: 1.65;
+  font-style: italic;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0 0 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.quoteAuthor {
+  display: block;
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: #2563eb;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  position: relative;
+  z-index: 1;
+}
+
+// 3 Key Facts Row
+.keyFactsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.factCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+    border-color: #cbd5e1;
+  }
+}
+
+.factIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+
+  .factCard:hover & {
+    transform: scale(1.06);
+  }
+}
+
+.iconBlue {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.iconPurple {
+  background-color: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ede9fe;
+}
+
+.iconEmerald {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.factInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.factValue {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.factLabel {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.3;
+  margin-top: 1px;
+}
+
+// CTA Row
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding-top: 4px;
+
+  @include mobile {
+    flex-direction: column;
+    width: 100%;
+  }
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  padding: 13px 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.38);
+  transition: all 0.2s ease;
+  text-decoration: none;
+
+  &:hover {
+    background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+    box-shadow: 0 12px 26px -4px rgba(37, 99, 235, 0.48);
+    transform: translateY(-2px);
+  }
+
+  @include mobile {
+    width: 100%;
+  }
+}
+
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #cbd5e1;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  padding: 12px 22px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+  text-decoration: none;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  }
+
+  .btnArrow {
+    transition: transform 0.2s ease;
+  }
+
+  &:hover .btnArrow {
+    transform: translateX(4px);
+  }
+
+  @include mobile {
+    width: 100%;
+  }
+}

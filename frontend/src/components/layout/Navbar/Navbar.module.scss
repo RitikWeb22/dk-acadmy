@@ -1,0 +1,1479 @@
+@use '../../../styles/variables' as *;
+
+.navbarWrapper {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: background-color 200ms ease, backdrop-filter 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+
+  &.isScrolled {
+    background-color: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  }
+}
+
+.navContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  position: relative;
+
+  @include mobile {
+    height: 60px;
+  }
+}
+
+// 1. Official DK Academy Brand Emblem & Typography
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+  margin-right: 1.5rem;
+
+  @media (max-width: 1200px) {
+    margin-right: 0.875rem;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0052cc;
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+}
+
+.brandLogoImg {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  mix-blend-mode: multiply;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+
+  @media (max-width: 1200px) {
+    height: 36px;
+  }
+
+  @include mobile {
+    height: 34px;
+  }
+}
+
+.mobileBrandWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoBold {
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: #0052cc;
+  font-family: 'Inter', -apple-system, sans-serif;
+  line-height: 1;
+
+  @include mobile {
+    font-size: 1.15rem;
+  }
+}
+
+.brandBadge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  background: #0052cc;
+  padding: 1.5px 5px;
+  border-radius: 3px;
+}
+
+// 2. Desktop Navigation Links Row
+.desktopNav {
+  display: none;
+
+  @include desktop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.navList {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.125rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  @media (max-width: 1360px) {
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 1200px) {
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 1080px) {
+    gap: 0.35rem;
+  }
+}
+
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+  text-decoration: none;
+  transition: color $transition-fast;
+  height: 100%;
+  position: relative;
+  white-space: nowrap;
+  padding: 0 4px;
+
+  @media (max-width: 1200px) {
+    font-size: 0.775rem;
+    padding: 0 2px;
+  }
+
+  &:hover {
+    color: #0052cc;
+  }
+
+  &.dropdownTriggerOpen {
+    color: #0052cc !important;
+    font-weight: 600 !important;
+
+    .dropdownChevron {
+      color: #0052cc !important;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: #0052cc;
+      border-top-left-radius: 2px;
+      border-top-right-radius: 2px;
+    }
+  }
+
+  &.activeLink {
+    color: #0052cc;
+    font-weight: 600;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: #0052cc;
+      border-top-left-radius: 2px;
+      border-top-right-radius: 2px;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0052cc;
+    outline-offset: 2px;
+  }
+}
+
+.navMenuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 28px !important;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 8px;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+  height: auto !important;
+  transition: all $transition-fast;
+
+  &.navMenuButtonPrimary {
+    background: #0052cc;
+    color: #ffffff !important;
+    border: 1.5px solid #0052cc;
+    box-shadow: 0 2px 8px rgba(0, 82, 204, 0.25);
+
+    &:hover {
+      background: #0043a8;
+      border-color: #0043a8;
+      color: #ffffff !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 82, 204, 0.35);
+    }
+  }
+
+  &.navMenuButtonOutline {
+    background: transparent;
+    color: #0052cc !important;
+    border: 1.5px solid #0052cc;
+
+    &:hover {
+      background: #eff6ff;
+      color: #0043a8 !important;
+      border-color: #0043a8;
+      transform: translateY(-1px);
+    }
+  }
+
+  &::after {
+    display: none !important;
+  }
+}
+
+.newBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-soft-border);
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.comingSoonTag {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #475569);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  margin-left: 4px;
+  align-self: center;
+}
+
+.freeBadge {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: var(--color-primary, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  padding: 1px 4px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin-left: 3px;
+  align-self: center;
+}
+
+// Elevated Courses Navigation Dropdown / Mega Menu
+.hasDropdown {
+  cursor: pointer;
+  position: relative;
+}
+
+.coursesDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 360px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 200;
+  transform-origin: top left;
+  animation: dropdownSpring 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  // Seamless invisible hover bridge between the navbar link and dropdown menu
+  &::before {
+    content: '';
+    position: absolute;
+    top: -14px;
+    left: 0;
+    right: 0;
+    height: 14px;
+    background: transparent;
+  }
+}
+
+@keyframes dropdownSpring {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+// Menu Item Anatomy: 3-column split (Icon | Content | Action)
+.dropdownRichItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  text-decoration: none;
+  background-color: transparent;
+  transition: all 0.18s ease;
+  position: relative;
+  outline: none;
+
+  &:hover,
+  &:focus-visible {
+    background-color: #F8FAFC;
+
+    .itemIconWrap {
+      background-color: #EFF6FF;
+      border-color: #BFDBFE;
+      color: #2563EB;
+      transform: scale(1.04);
+    }
+
+    .itemTitle {
+      color: #1E40AF;
+    }
+
+    .itemChevron {
+      color: #2563EB;
+      transform: translateX(3px);
+    }
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px #2563EB;
+  }
+}
+
+.itemIconWrap {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+
+.itemContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.itemTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.itemTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F172A;
+  line-height: 1.25;
+  transition: color 0.15s ease;
+}
+
+.itemSubtitle {
+  font-size: 12px;
+  color: #64748B;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Status Badges
+.popularBadge {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1.5px 7px;
+  border-radius: 6px;
+  border: 1px solid #DBEAFE;
+  line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.newPillBadge {
+  background-color: #EEF2FF;
+  color: #4338CA;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1.5px 7px;
+  border-radius: 6px;
+  border: 1px solid #E0E7FF;
+  line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.highYieldBadge {
+  background-color: #FFFBEB;
+  color: #B45309;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1.5px 7px;
+  border-radius: 6px;
+  border: 1px solid #FDE68A;
+  line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.liveNtaBadge {
+  background-color: #ECFDF5;
+  color: #047857;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1.5px 7px;
+  border-radius: 6px;
+  border: 1px solid #A7F3D0;
+  line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.advancedBadge {
+  background-color: #FAF5FF;
+  color: #7E22CE;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1.5px 7px;
+  border-radius: 6px;
+  border: 1px solid #E9D5FF;
+  line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.customBadge {
+  background-color: #FEF3C7;
+  color: #B45309;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1.5px 7px;
+  border-radius: 6px;
+  border: 1px solid #FDE68A;
+  line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+// Right Action Cue
+.itemActionCue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 2px;
+}
+
+.itemChevron {
+  color: #94A3B8;
+  transition: all 0.2s ease;
+}
+
+// Footer Item ("Explore All Courses Catalog")
+.dropdownFooterItem {
+  border-top: 1px solid #F1F5F9;
+  margin-top: 4px;
+  padding-top: 10px;
+
+  .footerItemTitle {
+    color: #2563EB;
+    font-weight: 600;
+  }
+
+  .footerIconWrap {
+    background-color: #EFF6FF;
+    border-color: #DBEAFE;
+    color: #2563EB;
+  }
+
+  .itemChevron {
+    color: #2563EB;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background-color: #EFF6FF;
+
+    .footerItemTitle {
+      color: #1D4ED8;
+    }
+
+    .footerIconWrap {
+      background-color: #DBEAFE;
+      color: #1D4ED8;
+    }
+  }
+}
+
+.dropdownTriggerBtn {
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.chevronWrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  cursor: pointer;
+  margin-left: 2px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 82, 204, 0.08);
+  }
+}
+
+.dropdownChevron {
+  color: #94A3B8;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease;
+}
+
+.dropdownChevronRotated {
+  transform: rotate(180deg);
+}
+
+// 3. Right Action Area: Circular Phone Button + Pill Login
+.rightActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-left: 1.5rem;
+
+  @media (max-width: 1200px) {
+    gap: 8px;
+    margin-left: 0.875rem;
+  }
+}
+
+.phoneIconBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #0052cc;
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform $transition-fast, box-shadow $transition-fast, background-color $transition-fast;
+  box-shadow: 0 2px 6px rgba(0, 82, 204, 0.25);
+  box-sizing: border-box;
+
+  &:hover {
+    transform: scale(1.04);
+    background-color: #0043a8;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0052cc;
+    outline-offset: 2px;
+  }
+}
+
+.loginPillBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1.5px solid #0052cc;
+  height: 36px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  box-sizing: border-box;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #eff6ff;
+    color: #0052cc;
+  }
+
+  &.activeNavBtn {
+    background: #0052cc;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 82, 204, 0.25);
+
+    &:hover {
+      background: #0043a8;
+      color: #ffffff;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0052cc;
+    outline-offset: 2px;
+  }
+}
+
+.authGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.unauthActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notificationWrapper {
+  position: relative;
+}
+
+.bellNavBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  position: relative;
+  overflow: visible !important;
+  transition: all $transition-fast;
+
+  &:hover,
+  &.bellNavBtnActive {
+    background: #eff6ff;
+    border-color: #0052cc;
+    color: #0052cc;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 82, 204, 0.15);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0052cc;
+    outline-offset: 2px;
+  }
+}
+
+.bellBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.625rem;
+  font-weight: 800;
+  min-width: 17px;
+  height: 17px;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 0 0 2px #ffffff;
+  z-index: 5;
+  line-height: 1;
+}
+
+.notificationDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -40px;
+  width: 340px;
+  max-width: 90vw;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 4px 8px rgba(15, 23, 42, 0.04);
+  padding: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.15s ease-out;
+
+  @include mobile {
+    right: -80px;
+    width: 300px;
+  }
+}
+
+.notifHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.notifTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notifTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notifCountBadge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: #e0e7ff;
+  color: #4338ca;
+  padding: 2px 7px;
+  border-radius: 9999px;
+}
+
+.markAllReadBtn {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0052cc;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.notifList {
+  max-height: 350px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.emptyNotifs {
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 0.8125rem;
+
+  .emptyIcon {
+    opacity: 0.5;
+  }
+}
+
+.notifCard {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: #f8fafc;
+  }
+
+  &.notifUnread {
+    background-color: #f0f7ff;
+
+    &:hover {
+      background-color: #e5f0fe;
+    }
+  }
+}
+
+.notifCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.notifCardTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.unreadDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #0052cc;
+  flex-shrink: 0;
+}
+
+.notifCardMessage {
+  font-size: 0.75rem;
+  color: #475569;
+  line-height: 1.4;
+  margin: 0 0 6px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notifCardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.notifTime {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+}
+
+.notifActionLink {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #0052cc;
+}
+
+// User Avatar Dropdown
+.userMenuWrapper {
+  position: relative;
+}
+
+.avatarMenuBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1.5px var(--color-border);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all $transition-fast;
+
+  &:hover,
+  &.avatarMenuBtnActive {
+    box-shadow: 0 0 0 2px var(--color-primary);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.avatarNavImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarNavInitial {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.userDropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 250px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: $space-2;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+.userDropdownHeader {
+  padding: $space-3 $space-3 $space-2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.userNameText {
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userEmailText {
+  font-size: $font-size-xs;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userIdChip {
+  font-size: 0.6875rem;
+  font-family: $font-family-mono;
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+  padding: 1px 6px;
+  border-radius: $radius-sm;
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: $space-1 0;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+
+    .dropdownItemIcon {
+      color: var(--color-primary);
+    }
+  }
+
+  &.dropdownItemActive {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    font-weight: 700;
+  }
+}
+
+.dropdownItemIcon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: color $transition-fast;
+}
+
+.helpCol {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.helpSub {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.dropdownLogoutItem {
+  color: var(--color-error);
+
+  .dropdownItemIcon {
+    color: var(--color-error);
+  }
+
+  &:hover {
+    background: #fef2f2;
+    color: var(--color-error);
+
+    .dropdownItemIcon {
+      color: var(--color-error);
+    }
+  }
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobileProfileLink {
+  display: block;
+  text-align: center;
+  padding: 10px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  text-decoration: none;
+  margin-top: 8px;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+  }
+}
+
+// 4. Mobile Hamburger Toggle
+.mobileToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 0;
+  box-sizing: border-box;
+
+  @include desktop {
+    display: none;
+  }
+}
+
+// 5. Mobile Drawer
+.mobileDrawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  display: none; // Eliminates 344px layout boundary overflow when inactive
+  width: 85%;
+  max-width: 360px;
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: -8px 0 24px rgba(15, 23, 42, 0.15);
+  z-index: 1000;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+  overflow-y: auto;
+}
+
+.mobileDrawerOpen {
+  display: block;
+  transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.mobileNavInner {
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+}
+
+.mobileHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: $space-4;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mobileCloseBtn {
+  background: #f1f5f9;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #475569;
+}
+
+.mobileNavList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.mobileNavLink {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+
+  &:hover {
+    color: #0052cc;
+  }
+}
+
+.mobileCenterInfo {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: $radius-md;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.centerAddress {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.mobilePhoneRow {
+  display: flex;
+  gap: 12px;
+}
+
+.mobilePhoneLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0052cc;
+  text-decoration: none;
+}
+
+.mobileAuthActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: $space-2;
+}
+
+.mobileLoginBtn {
+  display: block;
+  text-align: center;
+  padding: 10px 18px;
+  min-height: 44px;
+  border-radius: var(--btn-radius, 9999px) !important;
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: var(--font-size-base, 0.875rem);
+}
+
+.mobileExploreBtn {
+  display: block;
+  text-align: center;
+  padding: 10px 18px;
+  min-height: 44px;
+  border-radius: var(--btn-radius, 9999px) !important;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: var(--font-size-base, 0.875rem);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 999;
+}
+
+// 6. Helpline Modal (Triggered by Circular Phone Button)
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4;
+}
+
+.phoneModalCard {
+  background: #ffffff;
+  border-radius: $radius-xl;
+  max-width: 460px;
+  width: 100%;
+  padding: $space-6;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+}
+
+.modalCloseBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+}
+
+.modalHeader {
+  text-align: center;
+  margin-bottom: $space-5;
+}
+
+.modalIconBadge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+
+.modalTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.modalSubtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.helplineNumbersBox {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: $radius-md;
+  padding: 14px;
+  margin-bottom: $space-4;
+}
+
+.boxLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.numberRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.callNumberLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0052cc;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.numTag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.locationDetailsBox {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: $radius-md;
+  padding: 12px;
+  margin-bottom: $space-4;
+}
+
+.locItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: #334155;
+  line-height: 1.4;
+
+  .locIcon {
+    color: #0052cc;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  p {
+    margin: 2px 0 0;
+    color: #64748b;
+  }
+}
+
+.whatsappQuickBox {
+  margin-bottom: $space-4;
+}
+
+.whatsappModalBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #25d366;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: $radius-md;
+  text-decoration: none;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: #128c7e;
+  }
+}
+
+.channelsFooter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #64748b;
+  padding-top: $space-3;
+  border-top: 1px solid #e2e8f0;
+}
+
+.channelLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #0052cc;
+  text-decoration: none;
+  font-weight: 600;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

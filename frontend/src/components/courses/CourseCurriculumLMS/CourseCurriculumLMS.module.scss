@@ -1,0 +1,571 @@
+@use '../../../styles/variables' as *;
+
+.courseContentWrapper {
+  margin: 2rem 0;
+}
+
+// 1. Course Content Header (Udemy style)
+.contentHeader {
+  margin-bottom: 1rem;
+}
+
+.contentTitle {
+  font-size: 1.5rem; // 24px
+  font-weight: 800;
+  color: #2d2f31;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+
+  @include tablet {
+    font-size: 1.625rem;
+  }
+}
+
+.contentMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #6a6f73;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.metaText {
+  color: #6a6f73;
+  font-weight: 400;
+
+  span {
+    color: #2d2f31;
+    font-weight: 500;
+  }
+}
+
+.expandAllBtn {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  transition: color 150ms ease;
+
+  &:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+  }
+}
+
+// 5 Free Trial Notice Banner
+.freeNoticeBanner {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  color: #166534;
+  font-weight: 500;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.freeNoticeLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  strong {
+    color: #15803d;
+    font-weight: 700;
+  }
+}
+
+.freeSparkleIcon {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.enrolledBadge {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+// 2. Sections Accordion Group (Udemy exact border and background styling)
+.accordionGroup {
+  border: 1px solid #d1d7dc;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.sectionItem {
+  border-bottom: 1px solid #d1d7dc;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.sectionHeaderBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.95rem 1.25rem;
+  background-color: #f7f9fa;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 150ms ease;
+  user-select: none;
+  gap: 1rem;
+
+  &:hover {
+    background-color: #f0f2f5;
+  }
+}
+
+.sectionHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-grow: 1;
+}
+
+.chevronIcon {
+  color: #2d2f31;
+  transition: transform 200ms ease;
+  flex-shrink: 0;
+}
+
+.sectionTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #2d2f31;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.sectionHeaderRight {
+  font-size: 0.8125rem;
+  color: #6a6f73;
+  white-space: nowrap;
+  font-weight: 400;
+  flex-shrink: 0;
+}
+
+// 3. Section Lectures List
+.lecturesList {
+  background-color: #ffffff;
+}
+
+.lectureRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem 0.75rem 2.75rem;
+  border-top: 1px solid #f2f3f5;
+  transition: background-color 150ms ease;
+  font-size: 0.875rem;
+  cursor: pointer;
+  gap: 1rem;
+
+  &:hover {
+    background-color: #f8fafc;
+
+    .previewLink {
+      color: #1d4ed8;
+      text-decoration: underline;
+    }
+
+    .lectureTitleText {
+      color: #2563eb;
+    }
+  }
+
+  &.isLockedRow {
+    &:hover {
+      background-color: #fafaf9;
+    }
+  }
+}
+
+.lectureRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.videoIcon {
+  color: #6a6f73;
+  flex-shrink: 0;
+}
+
+.lectureTitleText {
+  color: #2d2f31;
+  font-weight: 400;
+  line-height: 1.4;
+  transition: color 150ms ease;
+}
+
+.lectureRowRight {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-shrink: 0;
+}
+
+// Udemy-style "Preview" link (Purple/Blue text with play icon)
+.previewLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #2563eb; // Udemy uses purple (#5624d0), we match brand royal blue
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 150ms ease;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.previewPlayIcon {
+  fill: currentColor;
+}
+
+.lectureDuration {
+  font-size: 0.8125rem;
+  color: #6a6f73;
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  text-align: right;
+}
+
+.lockIndicator {
+  display: inline-flex;
+  align-items: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+// 4. Video Player & Paywall Modals
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4;
+  z-index: 250;
+  animation: fadeIn 200ms ease;
+}
+
+.videoModalCard {
+  background-color: #ffffff;
+  border-radius: $radius-2xl;
+  max-width: 720px;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.paywallModalCard {
+  background-color: #ffffff;
+  border-radius: $radius-2xl;
+  max-width: 540px;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.closeBtn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background-color: rgba(15, 23, 42, 0.65);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+
+  &:hover {
+    background-color: rgba(15, 23, 42, 0.95);
+  }
+}
+
+.screenArea {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.5rem;
+}
+
+.screenTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.screenBadge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.2rem 0.6rem;
+  border-radius: $radius-sm;
+}
+
+.screenCenter {
+  text-align: center;
+}
+
+.playCircle {
+  width: 3.75rem;
+  height: 3.75rem;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.screenTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+}
+
+.screenSub {
+  font-size: 0.8125rem;
+  color: #93c5fd;
+}
+
+.screenBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+}
+
+.modalBody {
+  padding: 1.5rem;
+}
+
+.modalTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+}
+
+.modalDesc {
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.resourcesRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: $radius-lg;
+  margin-bottom: 1rem;
+}
+
+.resourceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Paywall Modal
+.paywallHeader {
+  background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+  padding: 2.25rem 2rem 1.75rem;
+  text-align: center;
+  color: #ffffff;
+}
+
+.lockCircle {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.15);
+  border: 2px solid #f59e0b;
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.paywallTitle {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.35rem;
+}
+
+.paywallSub {
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.paywallBody {
+  padding: 1.75rem;
+}
+
+.perksList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #334155;
+    font-weight: 500;
+  }
+}
+
+.perkCheckIcon {
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.pricingCallout {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: $radius-lg;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.calloutPrice {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.calloutEmi {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.paywallActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.enrollNowBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  padding: 0.85rem;
+  border-radius: $radius-md;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  transition: all 150ms ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  }
+}
+
+.counselorWaBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 0.75rem;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

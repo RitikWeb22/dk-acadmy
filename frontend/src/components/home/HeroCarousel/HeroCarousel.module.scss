@@ -1,0 +1,539 @@
+@use '../../../styles/variables' as *;
+
+.heroSection {
+  position: relative;
+  padding: $space-6 0 $space-10;
+  overflow: hidden;
+
+  @include mobile {
+    padding: $space-3 0 $space-6;
+  }
+}
+
+.carouselContainer {
+  position: relative;
+  border-radius: $radius-xl;
+  overflow: hidden;
+  box-shadow: 0 16px 36px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  background: #0f172a;
+}
+
+.slidesWrapper {
+  position: relative;
+  width: 100%;
+  min-height: 480px;
+
+  @include tablet {
+    min-height: 460px;
+  }
+
+  @include mobile {
+    min-height: 520px;
+  }
+}
+
+.slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 500ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: translateX(20px);
+  z-index: 1;
+
+  &.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    z-index: 2;
+  }
+
+  // Theme Gradients
+  &.theme_blue {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #2563eb 100%);
+  }
+
+  &.theme_indigo {
+    background: linear-gradient(135deg, #090d16 0%, #31104b 45%, #4f46e5 100%);
+  }
+
+  &.theme_emerald {
+    background: linear-gradient(135deg, #061a14 0%, #064e3b 45%, #059669 100%);
+  }
+
+  &.theme_navy {
+    background: linear-gradient(135deg, #0b1120 0%, #172554 50%, #1d4ed8 100%);
+  }
+}
+
+.slideInner {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: center;
+  height: 100%;
+  padding: $space-10 $space-12;
+  gap: $space-8;
+  position: relative;
+  z-index: 2;
+
+  @include tablet {
+    grid-template-columns: 1.1fr 0.9fr;
+    padding: $space-8 $space-8;
+    gap: $space-6;
+  }
+
+  @include mobile {
+    grid-template-columns: 1fr;
+    padding: $space-6 $space-5 $space-12;
+    gap: $space-6;
+    height: auto;
+  }
+}
+
+// Left Content
+.contentCol {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  color: #ffffff;
+}
+
+.campaignBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  align-self: flex-start;
+  padding: 6px 14px;
+  border-radius: $radius-full;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: $font-size-xs;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  .badgeDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+    animation: pulseGlow 2s infinite ease-in-out;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+.slideTitle {
+  font-size: $font-size-2xl;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.slideSubtitle {
+  font-size: $font-size-base;
+  line-height: 1.6;
+  color: rgba(241, 245, 249, 0.9);
+  max-width: 580px;
+}
+
+.featuresList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: $font-size-sm;
+  color: #f8fafc;
+
+  .checkIcon {
+    color: #4ade80;
+    flex-shrink: 0;
+  }
+}
+
+.actionsGroup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $space-3;
+  margin-top: $space-2;
+}
+
+.primaryCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #ffffff;
+  color: #0f172a;
+  padding: 10px 22px;
+  border-radius: $radius-md;
+  font-weight: 600;
+  font-size: $font-size-sm;
+  transition: all $transition-normal;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+
+  &:hover {
+    background-color: #f1f5f9;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    color: var(--color-primary);
+  }
+}
+
+.secondaryCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: $radius-md;
+  font-weight: 600;
+  font-size: $font-size-sm;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  transition: all $transition-normal;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+// Right Visual Column
+.visualCol {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.graphicCard {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: $radius-lg;
+  padding: $space-6;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 60%);
+    pointer-events: none;
+  }
+}
+
+.cardTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cardIconBox {
+  width: 48px;
+  height: 48px;
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.highlightPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: $radius-full;
+  background: rgba(34, 197, 94, 0.25);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  color: #ffffff;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.graphicStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $space-3;
+  padding-top: $space-3;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .statValue {
+    font-size: $font-size-md;
+    font-weight: 800;
+    color: #ffffff;
+  }
+
+  .statLabel {
+    font-size: $font-size-xs;
+    color: rgba(226, 232, 240, 0.85);
+  }
+}
+
+.decorativeMesh {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 50%;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.75) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+// Carousel Controls
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.65);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba(15, 23, 42, 0.9);
+    border-color: #ffffff;
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+  }
+
+  &.prevBtn {
+    left: 16px;
+  }
+
+  &.nextBtn {
+    right: 16px;
+  }
+
+  @include mobile {
+    width: 36px;
+    height: 36px;
+    background: rgba(15, 23, 42, 0.8);
+
+    &.prevBtn { left: 8px; }
+    &.nextBtn { right: 8px; }
+  }
+}
+
+// Indicators (Fix Issue 11: increased size and hit area)
+.indicators {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 8px 16px;
+  border-radius: $radius-full;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.indicatorDot {
+  width: 12px;
+  height: 12px;
+  border-radius: $radius-full;
+  background: rgba(255, 255, 255, 0.45);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all $transition-fast;
+
+  // Accessible click/touch target
+  &::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -6px;
+    right: -6px;
+    bottom: -8px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.85);
+    transform: scale(1.15);
+  }
+
+  &.activeDot {
+    width: 32px;
+    border-radius: 6px;
+    background: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 3px;
+  }
+}
+
+// ----------------------------------------------------
+// Graphic Image Banner Slide
+// ----------------------------------------------------
+.imageBannerWrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #080d1a;
+  overflow: hidden;
+}
+
+.imageBannerLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  text-decoration: none;
+  cursor: pointer;
+  background: radial-gradient(circle at center, #0f1c3f 0%, #060913 100%);
+}
+
+.imageBannerImg {
+  width: 100%;
+  height: 100%;
+  max-height: 540px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.5));
+
+  @include mobile {
+    max-height: 440px;
+  }
+}
+
+.imageBannerLink:hover .imageBannerImg {
+  transform: scale(1.012);
+}
+
+.imageBannerFloatingBadge {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 8px 16px;
+  border-radius: 30px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: all 0.2s ease;
+
+  @include mobile {
+    top: 10px;
+    right: 10px;
+    padding: 6px 12px;
+    font-size: 11px;
+    gap: 6px;
+  }
+}
+
+.imageBannerLink:hover .imageBannerFloatingBadge {
+  background: var(--color-primary, #2563eb);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.4);
+}
+
+.pulseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4);
+  animation: pulseGreen 2s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulseGreen {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+

@@ -1,0 +1,264 @@
+@use '../../../styles/variables' as *;
+
+.section {
+  padding: $space-10 0;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+
+  @include mobile {
+    padding: $space-6 0;
+  }
+}
+
+.headerRow {
+  margin-bottom: $space-6;
+}
+
+.carouselWrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: $radius-lg;
+  background: #0f172a;
+  box-shadow: $shadow-lg;
+}
+
+.slidesTrack {
+  position: relative;
+  min-height: 280px;
+  width: 100%;
+
+  @include mobile {
+    min-height: 340px;
+  }
+}
+
+.slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 400ms ease, transform 400ms ease;
+  transform: scale(0.98);
+  display: flex;
+  align-items: center;
+  padding: $space-8 $space-16;
+  box-sizing: border-box;
+
+  &.active {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+    z-index: 2;
+  }
+
+  // Themes
+  &.theme_cyan {
+    background: linear-gradient(135deg, #082f49 0%, #0369a1 60%, #0284c7 100%);
+  }
+
+  &.theme_purple {
+    background: linear-gradient(135deg, #2e1065 0%, #6b21a8 60%, #9333ea 100%);
+  }
+
+  &.theme_amber {
+    background: linear-gradient(135deg, #451a03 0%, #b45309 60%, #d97706 100%);
+  }
+
+  &.theme_emerald {
+    background: linear-gradient(135deg, #022c22 0%, #047857 60%, #059669 100%);
+  }
+
+  @include mobile {
+    padding: $space-6 $space-5 $space-10;
+  }
+}
+
+.slideContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: $space-8;
+  color: #ffffff;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $space-4;
+  }
+}
+
+.infoSide {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  max-width: 680px;
+}
+
+.badgeRow {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.trendingPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 4px 10px;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  text-transform: none; // Fixes uppercase
+  letter-spacing: 0.02em;
+  color: #ffffff;
+}
+
+.tagText {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+.slideTitle {
+  font-size: $font-size-lg;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #ffffff;
+}
+
+.slideDesc {
+  font-size: $font-size-sm;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.statHighlight {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 10px;
+  border-radius: $radius-sm;
+  width: fit-content;
+}
+
+.actionSide {
+  flex-shrink: 0;
+
+  @include mobile {
+    width: 100%;
+  }
+}
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #ffffff;
+  color: var(--color-text-primary);
+  padding: 10px 20px;
+  border-radius: $radius-md;
+  font-weight: 600;
+  font-size: $font-size-sm;
+  transition: all $transition-normal;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+
+  &:hover {
+    background-color: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    color: var(--color-primary);
+  }
+
+  @include mobile {
+    width: 100%;
+  }
+}
+
+// Controls: Vertically centered on the sides of the carousel
+.navBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-full;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(15, 23, 42, 0.7);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba(15, 23, 42, 0.95);
+    border-color: #ffffff;
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+  }
+
+  &.prevBtn {
+    left: 12px;
+  }
+
+  &.nextBtn {
+    right: 12px;
+  }
+
+  @include mobile {
+    width: 34px;
+    height: 34px;
+
+    &.prevBtn { left: 6px; }
+    &.nextBtn { right: 6px; }
+  }
+}
+
+.paginationDots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+  background: rgba(15, 23, 42, 0.4);
+  padding: 4px 10px;
+  border-radius: $radius-full;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: $radius-full;
+  background: rgba(255, 255, 255, 0.4);
+  border: none;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &.activeDot {
+    width: 24px;
+    border-radius: 5px;
+    background: #ffffff;
+  }
+}

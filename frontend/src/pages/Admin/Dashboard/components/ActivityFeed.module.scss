@@ -1,0 +1,372 @@
+.feedCard {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: fit-content;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+  }
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #F1F5F9;
+
+  :global(.darkMode) & {
+    border-bottom-color: #334155;
+  }
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heading {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #F0FDF4;
+  color: #16A34A;
+  border: 1px solid #DCFCE7;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  white-space: nowrap;
+
+  :global(.darkMode) & {
+    background-color: rgba(22, 163, 74, 0.2);
+    color: #4ADE80;
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+}
+
+.pulseDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #16A34A;
+}
+
+.filterPillsRow {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background-color: #F1F5F9;
+  padding: 2px;
+  border-radius: 6px;
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+  }
+}
+
+.pillBtn {
+  background: transparent;
+  border: none;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #64748B;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+
+  &:hover {
+    color: #0F172A;
+  }
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+
+    &:hover {
+      color: #F8FAFC;
+    }
+  }
+}
+
+.pillActive {
+  background-color: #FFFFFF !important;
+  color: #1D4ED8 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+
+  :global(.darkMode) & {
+    background-color: #334155 !important;
+    color: #93C5FD !important;
+  }
+}
+
+.feedScrollArea {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 2px;
+
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 3px;
+  }
+  :global(.darkMode) &::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
+}
+
+.groupBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #94A3B8;
+  letter-spacing: 0.05em;
+  padding-left: 2px;
+
+  :global(.darkMode) & {
+    color: #64748B;
+  }
+}
+
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feedItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  background-color: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 8px;
+  transition: all 0.12s ease;
+
+  &:hover {
+    background-color: #FFFFFF;
+    border-color: #E2E8F0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  }
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #1E293B;
+
+    &:hover {
+      background-color: #1E293B;
+      border-color: #334155;
+    }
+  }
+}
+
+.iconWrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.iconBlue {
+  background-color: #EFF6FF;
+  color: #2563EB;
+
+  :global(.darkMode) & {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: #93C5FD;
+  }
+}
+
+.iconEmerald {
+  background-color: #ECFDF5;
+  color: #059669;
+
+  :global(.darkMode) & {
+    background-color: rgba(5, 150, 105, 0.2);
+    color: #6EE7B7;
+  }
+}
+
+.iconPurple {
+  background-color: #FAF5FF;
+  color: #9333EA;
+
+  :global(.darkMode) & {
+    background-color: rgba(147, 51, 234, 0.2);
+    color: #D8B4FE;
+  }
+}
+
+.iconAmber {
+  background-color: #FFFBEB;
+  color: #D97706;
+
+  :global(.darkMode) & {
+    background-color: rgba(217, 119, 6, 0.2);
+    color: #FCD34D;
+  }
+}
+
+.contentCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.topMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.studentName {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0F172A;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.relativeTime {
+  font-size: 0.65rem;
+  color: #94A3B8;
+  font-weight: 500;
+  cursor: help;
+}
+
+.actionParagraph {
+  font-size: 0.72rem;
+  color: #475569;
+  margin: 0;
+  line-height: 1.3;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.actionWord {
+  color: #64748B;
+}
+
+.subjectTitle {
+  color: #1E293B;
+
+  :global(.darkMode) & {
+    color: #E2E8F0;
+  }
+}
+
+.bottomPillsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.metaNoteTag {
+  font-size: 0.625rem;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.emptyFeed {
+  padding: 24px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #94A3B8;
+}
+
+.feedFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+  font-size: 0.72rem;
+
+  :global(.darkMode) & {
+    border-top-color: #334155;
+  }
+}
+
+.footerTelemetry {
+  color: #16A34A;
+  font-weight: 600;
+}
+
+.viewAllLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #2563EB;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    color: #1D4ED8;
+  }
+
+  :global(.darkMode) & {
+    color: #60A5FA;
+
+    &:hover {
+      color: #93C5FD;
+    }
+  }
+}

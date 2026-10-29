@@ -1,0 +1,116 @@
+@use '../../styles/variables' as *;
+
+.section {
+  padding-top: $space-16;
+  padding-bottom: $space-16;
+  background-color: var(--color-bg);
+}
+
+.stepsContainer {
+  position: relative;
+  margin-top: $space-8;
+}
+
+.connectorLine {
+  display: none;
+
+  @include desktop {
+    display: block;
+    position: absolute;
+    top: 52px;
+    left: 12%;
+    right: 12%;
+    height: 2px;
+    background: repeating-linear-gradient(
+      to right,
+      var(--color-primary) 0,
+      var(--color-primary) 8px,
+      transparent 8px,
+      transparent 16px
+    );
+    z-index: 1;
+    opacity: 0.35;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-6;
+  position: relative;
+  z-index: 2;
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include desktop {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stepCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-xl;
+  padding: $space-6;
+  box-shadow: $shadow-card;
+  transition: all $transition-normal;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-card-hover;
+    border-color: rgba(37, 99, 235, 0.3);
+
+    .iconCircle {
+      background-color: var(--color-primary);
+      color: #FFFFFF;
+      transform: scale(1.05);
+    }
+  }
+}
+
+.stepNumberBadge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  padding: 0.15rem 0.5rem;
+  border-radius: $radius-full;
+}
+
+.iconCircle {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $space-4;
+  transition: all $transition-fast;
+  box-shadow: $shadow-xs;
+}
+
+.stepTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.35;
+  margin-bottom: $space-2;
+}
+
+.stepDesc {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}

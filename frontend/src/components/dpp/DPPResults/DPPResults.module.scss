@@ -1,0 +1,316 @@
+@use '../../../styles/variables' as *;
+
+.resultsCard {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-2xl;
+  padding: $space-8;
+  max-width: 780px;
+  margin: $space-4 auto;
+  box-shadow: $shadow-md;
+
+  @media (max-width: $bp-tablet) {
+    padding: $space-6 $space-4;
+  }
+}
+
+.topHeader {
+  text-align: center;
+  border-bottom: 1px solid $color-border-subtle;
+  padding-bottom: $space-6;
+  margin-bottom: $space-6;
+}
+
+.setMeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  margin-bottom: $space-2;
+}
+
+.subjectBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.6rem;
+  border-radius: $radius-sm;
+
+  &.physics {
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #DBEAFE;
+  }
+
+  &.chemistry {
+    background-color: #F0FDF4;
+    color: #15803D;
+    border: 1px solid #DCFCE7;
+  }
+
+  &.mathematics {
+    background-color: #FAF5FF;
+    color: #7E22CE;
+    border: 1px solid #F3E8FF;
+  }
+}
+
+.chapterBadge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: $color-text-muted;
+  background-color: $color-surface-muted;
+  border: 1px solid $color-border;
+  padding: 0.2rem 0.6rem;
+  border-radius: $radius-sm;
+}
+
+.setTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: $color-text-primary;
+  margin-bottom: $space-1;
+
+  @media (max-width: $bp-tablet) {
+    font-size: 1.25rem;
+  }
+}
+
+.setTopic {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  margin: 0;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: center;
+  gap: $space-8;
+  background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%);
+  border: 1px solid $color-primary-soft-border;
+  border-radius: $radius-xl;
+  padding: $space-6;
+  margin-bottom: $space-6;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    text-align: center;
+    gap: $space-4;
+  }
+}
+
+.scoreCircle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 140px;
+  border-radius: $radius-full;
+  background-color: $color-surface;
+  border: 4px solid $color-primary;
+  box-shadow: $shadow-card;
+  flex-shrink: 0;
+}
+
+.scoreNumber {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: $color-primary;
+  line-height: 1;
+}
+
+.scoreDivider {
+  font-size: 0.75rem;
+  color: $color-text-muted;
+  margin-top: 0.15rem;
+}
+
+.scorePercent {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: $color-accent;
+  margin-top: 0.25rem;
+}
+
+.feedbackSection {
+  flex: 1;
+}
+
+.awardIconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: $radius-lg;
+  background-color: #FEF3C7;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $space-2;
+
+  @media (max-width: 640px) {
+    margin: 0 auto $space-2 auto;
+  }
+}
+
+.feedbackTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  margin-bottom: $space-1;
+}
+
+.feedbackMsg {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $space-3;
+  margin-bottom: $space-8;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.metricItem {
+  background-color: #F8FAFC;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-4;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.metricIconWrap {
+  margin-bottom: $space-2;
+}
+
+.accuracyIcon {
+  color: $color-primary;
+}
+
+.correctIcon {
+  color: $color-success;
+}
+
+.incorrectIcon {
+  color: $color-error;
+}
+
+.unattemptedIcon {
+  color: $color-text-muted;
+}
+
+.metricValue {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: $color-text-primary;
+  line-height: 1.2;
+}
+
+.metricLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 0.25rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+  }
+}
+
+.reviewBtn {
+  flex: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-3 $space-6;
+  background-color: $color-primary;
+  color: #FFFFFF;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
+}
+
+.retryBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-3 $space-4;
+  background-color: $color-surface-muted;
+  color: $color-text-primary;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-border;
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
+}
+
+.backBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-3 $space-4;
+  background-color: transparent;
+  color: $color-text-secondary;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-text-primary;
+    border-color: $color-text-muted;
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
+}

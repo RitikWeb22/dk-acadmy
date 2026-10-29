@@ -1,0 +1,127 @@
+@use '../../styles/variables' as *;
+
+.section {
+  padding-top: $space-12;
+  padding-bottom: $space-16;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-4;
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $space-6;
+  }
+
+  @include desktop {
+    grid-template-columns: repeat(3, 1fr);
+    gap: $space-6;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  padding: $space-4;
+  text-decoration: none;
+  transition: all $transition-normal;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-4px);
+    background-color: #FFFFFF;
+    border-color: rgba(37, 99, 235, 0.3);
+    box-shadow: $shadow-card-hover;
+
+    .iconWrap {
+      background-color: var(--color-primary);
+      color: #ffffff;
+    }
+
+    .actionIcon {
+      transform: translateX(4px);
+      color: var(--color-primary);
+    }
+
+    .actionText {
+      color: var(--color-primary);
+    }
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $space-4;
+}
+
+.iconWrap {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: $radius-md;
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-fast;
+}
+
+.badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  padding: 0.2rem 0.5rem;
+  border-radius: $radius-full;
+}
+
+.cardTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.35;
+  margin-bottom: $space-2;
+}
+
+.cardDesc {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: $space-4;
+  flex-grow: 1;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding-top: $space-3;
+  border-top: 1px solid var(--color-border);
+  transition: color $transition-fast;
+}
+
+.actionText {
+  transition: color $transition-fast;
+}
+
+.actionIcon {
+  transition: transform $transition-fast, color $transition-fast;
+}

@@ -1,0 +1,145 @@
+@use '../../../styles/variables' as *;
+
+.heroCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px; // 18px radius
+  padding: 28px; // 28px padding
+  box-shadow: $shadow-card;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  position: relative;
+  overflow: hidden;
+
+  // Subtle brand highlight accent bar
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--color-primary);
+  }
+
+  @include tablet-down {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem; // 13px
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.eyebrowIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 1.25rem; // 20px
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.contextText {
+  font-size: 0.9375rem; // 15px (>= 14px)
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.progressContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  max-width: 420px;
+}
+
+.progressBarTrack {
+  flex: 1;
+  height: 6px;
+  background: var(--color-surface-muted);
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: $radius-full;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  font-size: 0.8125rem; // 13px
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.heroAction {
+  flex-shrink: 0;
+
+  @include mobile {
+    width: 100%;
+  }
+}
+
+.primaryHeroBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--color-primary);
+  color: #ffffff;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-size: 1rem; // 16px body
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all $transition-fast;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  @include mobile {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,261 @@
+.engineChartsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.telemetryRibbon {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 540px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.telemetryCard {
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #334155;
+  }
+}
+
+.telemetryIconBox {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: #EFF6FF;
+  color: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  :global(.darkMode) & {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: #93C5FD;
+  }
+}
+
+.iconEmerald {
+  background-color: #ECFDF5;
+  color: #059669;
+
+  :global(.darkMode) & {
+    background-color: rgba(5, 150, 105, 0.2);
+    color: #6EE7B7;
+  }
+}
+
+.iconIndigo {
+  background-color: #EEF2FF;
+  color: #4F46E5;
+
+  :global(.darkMode) & {
+    background-color: rgba(79, 70, 229, 0.2);
+    color: #A5B4FC;
+  }
+}
+
+.iconPurple {
+  background-color: #FAF5FF;
+  color: #9333EA;
+
+  :global(.darkMode) & {
+    background-color: rgba(147, 51, 234, 0.2);
+    color: #D8B4FE;
+  }
+}
+
+.telemetryText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.telemetryLabel {
+  font-size: 0.6875rem;
+  color: #64748B;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.telemetryValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.telemetryValue {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #0F172A;
+  font-variant-numeric: tabular-nums;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.telemetrySub {
+  font-size: 0.72rem;
+  color: #64748B;
+  white-space: nowrap;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.telemetryBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #059669;
+  background-color: #ECFDF5;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chartPanel {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+  }
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panelTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.panelSubtitle {
+  font-size: 0.6875rem;
+  color: #64748B;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.liveTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #059669;
+  background-color: #ECFDF5;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.pulseGreen {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #10B981;
+}
+
+.cohortTag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #4F46E5;
+  background-color: #EEF2FF;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.chartArea {
+  width: 100%;
+  min-height: 180px;
+}
+
+.clusterStatusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #334155;
+  }
+}
+
+.clusterStatusItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+
+  :global(.darkMode) & {
+    color: #CBD5E1;
+  }
+}
+
+.statusSuccess {
+  color: #10B981;
+}
+
+.statusMuted {
+  color: #94A3B8;
+}

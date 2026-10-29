@@ -1,0 +1,181 @@
+@use '../../../styles/variables' as *;
+
+.wrapper {
+  width: 100%;
+}
+
+.googleBtn {
+  width: 100%;
+  height: 48px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-family: $font-family-base;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all $transition-fast;
+  position: relative;
+  padding: 0 16px;
+
+  &:hover:not(:disabled) {
+    background: var(--color-surface-muted);
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: $shadow-xs;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.googleIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.btnLabel {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+// Modal dialog
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: $space-4;
+}
+
+.noticeModal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  padding: $space-5;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  animation: modalEnter 0.2s ease-out;
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.noticeHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.alertIconBox {
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-full;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.noticeTitle {
+  font-size: $font-size-base;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: $radius-sm;
+
+  &:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface-muted);
+  }
+}
+
+.noticeContent {
+  font-size: $font-size-xs;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.configInstructions {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  padding: $space-3;
+
+  strong {
+    color: var(--color-text-primary);
+  }
+
+  ul {
+    margin: 6px 0 0 16px;
+    padding: 0;
+    list-style: disc;
+  }
+
+  li {
+    margin-top: 4px;
+  }
+}
+
+.noticeActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dismissBtn {
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: $radius-md;
+  padding: 8px 16px;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: var(--color-primary-hover);
+  }
+}

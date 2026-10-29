@@ -1,0 +1,606 @@
+@use '../../styles/variables' as *;
+
+// Quick Evaluation Access (Development Only)
+.demoBar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+}
+
+.demoBarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.demoBarLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.devTag {
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.demoButtonsGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.demoActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+  }
+}
+
+.freshActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #dcfce7;
+    border-color: #86efac;
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #15803d;
+    outline-offset: 1px;
+  }
+}
+
+// Social Slot
+.socialSlot {
+  margin-bottom: 4px;
+}
+
+// Divider
+.orDivider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 16px 0 20px 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  span {
+    padding: 0 12px;
+  }
+}
+
+// Tabs Switcher (Email vs Mobile OTP)
+.tabSwitcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--color-surface-muted);
+  padding: 4px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid var(--color-border);
+}
+
+.tabBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: var(--color-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+  }
+}
+
+.tabBtnActive {
+  background: #ffffff;
+  color: var(--color-primary);
+  font-weight: 700;
+  box-shadow: $shadow-xs;
+}
+
+// Form Layout
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px; // Strictly 20px between fields per prompt
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.fieldLabel {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.requiredAsterisk {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+// Phone Input with +91 prefix
+.phoneInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  height: 48px;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+
+  &:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  &.hasError {
+    border-color: var(--color-error);
+
+    &:focus-within {
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+    }
+  }
+}
+
+.countryPrefix {
+  padding: 0 12px 0 16px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  border-right: 1px solid var(--color-border);
+  user-select: none;
+}
+
+.phoneInput {
+  flex: 1;
+  height: 100%;
+  padding: 0 14px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: $font-family-base;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  letter-spacing: 0.05em;
+
+  &::placeholder {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    letter-spacing: normal;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    color: var(--color-text-secondary);
+  }
+}
+
+.changePhoneBtn {
+  margin-right: 10px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-primary-soft);
+  }
+}
+
+// Security note near mobile field
+.securityNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.securityIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.inlineLink {
+  color: var(--color-primary);
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--color-primary-hover);
+  }
+}
+
+.fieldErrorText {
+  font-size: 0.875rem;
+  color: var(--color-error);
+  font-weight: 500;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+// Send OTP Button
+.sendOtpBtn {
+  width: 100%;
+  height: 48px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-family: $font-family-base;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all $transition-fast;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+// OTP Code Entry
+.otpHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cooldownText {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.resendBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.otpInputWrapper {
+  position: relative;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  height: 48px;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+
+  &:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  &.hasError {
+    border-color: var(--color-error);
+
+    &:focus-within {
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+    }
+  }
+}
+
+.otpInput {
+  width: 100%;
+  height: 100%;
+  padding: 0 16px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: $font-family-mono;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: 0.35em;
+  text-align: center;
+  border-radius: 12px;
+
+  &::placeholder {
+    color: var(--color-text-muted);
+    letter-spacing: 0.2em;
+    font-size: 1rem;
+    font-weight: 400;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    background: var(--color-surface-muted);
+  }
+}
+
+.devOtpHint {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin: 4px 0 0 0;
+
+  strong {
+    color: var(--color-primary);
+  }
+}
+
+.forgotLink {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.optionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rememberMeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px; // 44px tap target
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submitSlot {
+  margin-top: 4px;
+}
+
+.footerNav {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 8px;
+}
+
+.signupLink {
+  color: var(--color-primary);
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+// Active session state
+.activeSessionCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+  padding: 12px 0;
+}
+
+.avatarCircle {
+  width: 72px;
+  height: 72px;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+
+.activeMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.studentName {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.studentEmail {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.studentRole {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-soft-border);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  display: inline-block;
+  margin-top: 6px;
+}
+
+.activeActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.switchAccountBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  height: 44px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: var(--color-surface-muted);
+    color: var(--color-error);
+    border-color: #fca5a5;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}

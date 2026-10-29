@@ -1,0 +1,102 @@
+@use '../../../styles/variables' as *;
+
+.section {
+  padding: $space-12 0;
+  background-color: var(--color-bg);
+
+  @include mobile {
+    padding: $space-8 0;
+  }
+}
+
+.chipsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $space-4;
+  margin-top: $space-8;
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include mobile {
+    grid-template-columns: 1fr;
+    gap: $space-3;
+  }
+}
+
+.chipCard {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  padding: $space-4;
+  transition: all $transition-normal;
+  box-shadow: $shadow-xs;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-card;
+    border-color: rgba(37, 99, 235, 0.3);
+
+    .iconBox {
+      background-color: var(--color-primary);
+      color: #ffffff;
+      transform: scale(1.05);
+    }
+
+    .arrowIcon {
+      opacity: 1;
+      transform: translateX(3px);
+      color: var(--color-primary);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.iconBox {
+  width: 44px;
+  height: 44px;
+  border-radius: $radius-md;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all $transition-fast;
+}
+
+.chipInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+}
+
+.chipTitle {
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.chipDescription {
+  font-size: $font-size-xs;
+  color: var(--color-text-secondary);
+}
+
+.arrowIcon {
+  opacity: 0.35;
+  color: var(--color-text-muted);
+  transition: all $transition-fast;
+  flex-shrink: 0;
+}

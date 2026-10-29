@@ -1,0 +1,198 @@
+@use '../../../styles/variables' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4;
+  z-index: 1000;
+  animation: fadeIn $transition-fast ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  background-color: $color-surface;
+  border-radius: $radius-2xl;
+  max-width: 480px;
+  width: 100%;
+  padding: $space-6;
+  position: relative;
+  box-shadow: $shadow-lg;
+  animation: slideUp $transition-fast ease-out;
+
+  @media (min-width: 640px) {
+    padding: $space-8;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.closeBtn {
+  position: absolute;
+  top: $space-4;
+  right: $space-4;
+  background: none;
+  border: none;
+  color: $color-text-muted;
+  cursor: pointer;
+  padding: $space-1;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-text-primary;
+    background-color: $color-surface-muted;
+  }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: $space-6;
+}
+
+.iconWrap {
+  width: 52px;
+  height: 52px;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto $space-3 auto;
+
+  &.warningIcon {
+    background-color: #FEF3C7;
+    color: #D97706;
+  }
+
+  &.successIcon {
+    background-color: #DCFCE7;
+    color: #16A34A;
+  }
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  margin-bottom: $space-2;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.statusBreakdown {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $space-2;
+  background-color: #F8FAFC;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-3;
+  margin-bottom: $space-6;
+  text-align: center;
+}
+
+.statusItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.statusCount {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: $color-text-primary;
+
+  &.countWarning {
+    color: $color-warning;
+  }
+}
+
+.markedNumber {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #7E22CE;
+}
+
+.statusLabel {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.actions {
+  display: flex;
+  gap: $space-3;
+
+  @media (max-width: 480px) {
+    flex-direction: column-reverse;
+  }
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: $space-3 $space-4;
+  background-color: $color-surface-muted;
+  color: $color-text-secondary;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-border;
+    color: $color-text-primary;
+  }
+}
+
+.confirmBtn {
+  flex: 1;
+  padding: $space-3 $space-4;
+  background-color: $color-primary;
+  color: #FFFFFF;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+}

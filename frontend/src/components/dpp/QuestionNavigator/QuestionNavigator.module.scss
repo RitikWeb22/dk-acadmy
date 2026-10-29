@@ -1,0 +1,206 @@
+@use '../../../styles/variables' as *;
+
+.navigatorCard {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  padding: $space-4;
+  box-shadow: $shadow-xs;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $space-3;
+  padding-bottom: $space-2;
+  border-bottom: 1px solid $color-border-subtle;
+}
+
+.navTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.currentPosition {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $color-primary;
+  background-color: $color-primary-soft;
+  padding: 0.15rem 0.5rem;
+  border-radius: $radius-full;
+}
+
+.paletteGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $space-2;
+  margin-bottom: $space-4;
+
+  @media (min-width: 640px) and (max-width: 991px) {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+.navBtn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border-radius: $radius-full;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border: 1.5px solid transparent;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
+  }
+
+  &.active {
+    box-shadow: 0 0 0 2.5px #2563EB;
+    outline: 2px solid #FFFFFF;
+    outline-offset: -1px;
+    font-weight: 800;
+    transform: scale(1.05);
+  }
+
+  &.unanswered {
+    background-color: #F8FAFC;
+    color: #475569;
+    border-color: #E2E8F0;
+
+    &:hover {
+      background-color: #F1F5F9;
+      border-color: #94A3B8;
+    }
+  }
+
+  &.answered {
+    background-color: #10B981;
+    color: #FFFFFF;
+    border-color: #059669;
+
+    &:hover {
+      background-color: #059669;
+    }
+  }
+
+  &.marked {
+    background-color: #8B5CF6;
+    color: #FFFFFF;
+    border-color: #7C3AED;
+
+    &:hover {
+      background-color: #7C3AED;
+    }
+  }
+
+  &.markedAndAnswered {
+    background-color: #F59E0B;
+    color: #FFFFFF;
+    border-color: #D97706;
+
+    &:hover {
+      background-color: #D97706;
+    }
+  }
+
+  &.correct {
+    background-color: #10B981;
+    color: #FFFFFF;
+    border-color: #059669;
+
+    &:hover {
+      background-color: #059669;
+    }
+  }
+
+  &.incorrect {
+    background-color: #EF4444;
+    color: #FFFFFF;
+    border-color: #DC2626;
+
+    &:hover {
+      background-color: #DC2626;
+    }
+  }
+}
+
+.qNum {
+  line-height: 1;
+}
+
+.markedIcon {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #FFFFFF;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+
+.evalIcon {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #FFFFFF;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-2 $space-3;
+  padding-top: $space-3;
+  border-top: 1px solid $color-border-subtle;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legendDot {
+  width: 9px;
+  height: 9px;
+  border-radius: $radius-full;
+  display: inline-block;
+
+  &.answeredDot {
+    background-color: #10B981;
+  }
+
+  &.markedDot {
+    background-color: #8B5CF6;
+  }
+
+  &.markedAndAnsweredDot {
+    background-color: #F59E0B;
+  }
+
+  &.unansweredDot {
+    background-color: #F8FAFC;
+    border: 1.5px solid #CBD5E1;
+  }
+
+  &.correctDot {
+    background-color: #10B981;
+  }
+
+  &.incorrectDot {
+    background-color: #EF4444;
+  }
+}

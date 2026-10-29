@@ -1,0 +1,645 @@
+@use '../../../styles/variables' as *;
+
+.testContainer {
+  padding: $space-4 0 $space-12;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  padding: $space-3 $space-6;
+  margin-bottom: $space-4;
+  box-shadow: $shadow-xs;
+  flex-wrap: wrap;
+
+  @media (max-width: $bp-tablet) {
+    padding: $space-3 $space-4;
+  }
+}
+
+.topBarLeft {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  flex-wrap: wrap;
+}
+
+.exitBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-error;
+    border-color: rgba(220, 38, 38, 0.4);
+    background-color: rgba(220, 38, 38, 0.05);
+  }
+}
+
+.testTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  flex-wrap: wrap;
+}
+
+.testTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  margin: 0;
+}
+
+.badgeGroup {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+}
+
+.examTag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: $color-primary;
+  background-color: $color-primary-soft;
+  border: 1px solid $color-primary-soft-border;
+  padding: 0.15rem 0.45rem;
+  border-radius: $radius-sm;
+  text-transform: uppercase;
+}
+
+.formatTag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: $color-text-muted;
+  background-color: $color-surface-muted;
+  border: 1px solid $color-border;
+  padding: 0.15rem 0.45rem;
+  border-radius: $radius-sm;
+}
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.headerSubmitBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  background-color: $color-primary;
+  color: #FFFFFF;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+  }
+}
+
+.subjectTabsBar {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-2 $space-4;
+  margin-bottom: $space-4;
+  overflow-x: auto;
+}
+
+.subjectTabsLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: $space-1;
+}
+
+.subjectTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: $color-surface-muted;
+    color: $color-text-primary;
+  }
+
+  &.subjectTabActive {
+    background-color: $color-primary-soft;
+    color: $color-primary;
+    border-color: $color-primary-soft-border;
+    font-weight: 700;
+  }
+}
+
+.subCount {
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+}
+
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-6;
+
+  @media (min-width: 992px) {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
+.questionPanel {
+  min-width: 0;
+}
+
+.questionCard {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-2xl;
+  padding: $space-6;
+  box-shadow: $shadow-xs;
+
+  @media (min-width: 640px) {
+    padding: $space-8;
+  }
+}
+
+.questionMetaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid $color-border-subtle;
+  padding-bottom: $space-4;
+  margin-bottom: $space-6;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.questionNumGroup {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  flex-wrap: wrap;
+}
+
+.qNumber {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: $color-text-primary;
+}
+
+.qTotal {
+  font-size: 0.8125rem;
+  color: $color-text-muted;
+}
+
+.subjectBadge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: $color-primary;
+  background-color: $color-primary-soft;
+  border: 1px solid $color-primary-soft-border;
+  padding: 0.15rem 0.45rem;
+  border-radius: $radius-sm;
+}
+
+.chapterBadge {
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+  background-color: $color-surface-muted;
+  border: 1px solid $color-border;
+  padding: 0.15rem 0.45rem;
+  border-radius: $radius-sm;
+}
+
+.marksBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #15803D;
+  background-color: #DCFCE7;
+  border: 1px solid #BBF7D0;
+  padding: 0.2rem 0.55rem;
+  border-radius: $radius-full;
+}
+
+.statementArea {
+  margin-bottom: $space-6;
+}
+
+.statementText {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: $color-text-primary;
+  margin: 0;
+  font-weight: 500;
+}
+
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  margin-bottom: $space-6;
+}
+
+.optionBtn {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  width: 100%;
+  padding: $space-3 $space-4;
+  background-color: #FAFCFF;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  text-align: left;
+  cursor: pointer;
+  transition: all $transition-fast;
+  position: relative;
+
+  &:hover {
+    background-color: #FFFFFF;
+    border-color: $color-primary;
+    box-shadow: $shadow-xs;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  }
+
+  &.selectedOption {
+    background-color: $color-primary-soft;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 1px $color-primary;
+
+    .radioLetter {
+      background-color: $color-primary;
+      color: #FFFFFF;
+      border-color: $color-primary;
+    }
+
+    .optionText {
+      color: $color-primary;
+      font-weight: 600;
+    }
+  }
+}
+
+.radioLetter {
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-md;
+  background-color: $color-surface-muted;
+  border: 1px solid $color-border;
+  color: $color-text-secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all $transition-fast;
+}
+
+.optionText {
+  flex: 1;
+  font-size: 0.9375rem;
+  color: $color-text-primary;
+  line-height: 1.5;
+}
+
+.selectedCheckWrap {
+  color: $color-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  padding-top: $space-4;
+  border-top: 1px solid $color-border-subtle;
+  flex-wrap: wrap;
+}
+
+.actionLeft {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.markBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: #7E22CE;
+    border-color: #D8B4FE;
+    background-color: #FAF5FF;
+  }
+
+  &.markActive {
+    color: #7E22CE;
+    background-color: #FAF5FF;
+    border-color: #C084FC;
+  }
+}
+
+.clearBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-text-primary;
+    background-color: $color-surface-muted;
+  }
+}
+
+.actionRight {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  margin-left: auto;
+}
+
+.navBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: $color-surface-muted;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover:not(:disabled) {
+    background-color: $color-border;
+    color: $color-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.nextBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: $color-primary;
+  border: 1px solid $color-primary;
+  border-radius: $radius-md;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    border-color: $color-primary-hover;
+  }
+}
+
+.submitFinalBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: $color-accent;
+  border: 1px solid $color-accent;
+  border-radius: $radius-md;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-accent-hover;
+    border-color: $color-accent-hover;
+    box-shadow: 0 4px 10px rgba(34, 197, 94, 0.25);
+  }
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.progressCard {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  padding: $space-4;
+  box-shadow: $shadow-xs;
+}
+
+.progressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $space-2;
+}
+
+.progressLabel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.progressScore {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: $color-primary;
+}
+
+.progressBarBg {
+  width: 100%;
+  height: 6px;
+  background-color: $color-surface-muted;
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background-color: $color-primary;
+  border-radius: $radius-full;
+  transition: width $transition-normal;
+}
+
+.sidebarSubmitBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-3 $space-4;
+  background-color: $color-primary;
+  color: #FFFFFF;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+}
+
+.exitModalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4;
+  z-index: 1000;
+  animation: fadeIn $transition-fast ease-out;
+}
+
+.exitModalCard {
+  background-color: $color-surface;
+  border-radius: $radius-2xl;
+  max-width: 440px;
+  width: 100%;
+  padding: $space-6;
+  text-align: center;
+  box-shadow: $shadow-lg;
+}
+
+.warnIconWrap {
+  width: 52px;
+  height: 52px;
+  border-radius: $radius-full;
+  background-color: #FEF3C7;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto $space-3 auto;
+}
+
+.exitModalTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  margin-bottom: $space-2;
+}
+
+.exitModalText {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  margin-bottom: $space-6;
+}
+
+.exitModalActions {
+  display: flex;
+  gap: $space-3;
+}
+
+.stayBtn {
+  flex: 1;
+  padding: $space-3 $space-4;
+  background-color: $color-primary;
+  color: #FFFFFF;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+  }
+}
+
+.leaveBtn {
+  flex: 1;
+  padding: $space-3 $space-4;
+  background-color: $color-surface-muted;
+  color: $color-text-secondary;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-error;
+    background-color: rgba(220, 38, 38, 0.08);
+  }
+}

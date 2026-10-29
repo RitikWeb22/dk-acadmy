@@ -1,0 +1,892 @@
+@use '../../styles/variables' as *;
+
+.checkoutPageRoot {
+  min-height: 100vh;
+  background-color: #f6f7fb;
+  color: #0f172a;
+  padding: 24px 16px 64px;
+  font-family: inherit;
+
+  @media (min-width: 640px) {
+    padding: 32px 24px 80px;
+  }
+}
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+// ─── Top Header Bar ───
+.topBar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.brandBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brandLogoSquare {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -0.5px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.brandName {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+// 3-Step Progress Bar
+.progressNav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.stepInactive {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+}
+
+.stepNumberInactive {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stepActive {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.stepNumberActive {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.stepArrow {
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.secureBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 6px 12px;
+  border-radius: 9999px;
+
+  svg {
+    color: #16a34a;
+  }
+}
+
+// ─── Main Two-Column Layout ───
+.layoutGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: flex-start;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+    gap: 24px;
+  }
+}
+
+.leftColumn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @media (min-width: 1024px) {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.rightColumn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @media (min-width: 1024px) {
+    width: 380px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+  }
+}
+
+// ─── Generic White Card ───
+.whiteCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+
+  @media (max-width: 640px) {
+    padding: 18px 16px;
+  }
+}
+
+// ─── Left Card 1: Course Summary Card ───
+.courseSummaryHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.courseIconBox {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.courseInfoBox {
+  flex: 1;
+  min-width: 0;
+}
+
+.courseTagBadge {
+  display: inline-block;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.courseTitleHeading {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.35;
+  margin: 0 0 6px 0;
+}
+
+.courseDescriptionLine {
+  font-size: 0.8125rem;
+  color: #475569;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0;
+}
+
+// ─── Left Card 2: Your Details Card ───
+.cardHeaderStrip {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cardHeading {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 16px 0;
+}
+
+.cardHeadingNote {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.errorAlertBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.formFieldsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.fieldLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+
+.requiredStar {
+  color: #ef4444;
+}
+
+.inputField {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #0f172a;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+
+  &:focus {
+    outline: none;
+    background: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+}
+
+.inputFieldError {
+  border-color: #f87171 !important;
+  background: #fffafa !important;
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+  }
+}
+
+.phoneInputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.countryCodeBox {
+  height: 44px;
+  padding: 0 14px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.phoneInputField {
+  flex: 1;
+}
+
+.fieldHint {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin: 5px 0 0 0;
+}
+
+.fieldErrorText {
+  font-size: 0.75rem;
+  color: #dc2626;
+  font-weight: 600;
+  margin: 4px 0 0 0;
+}
+
+.emailLmsHint {
+  font-size: 0.75rem;
+  color: #2563eb;
+  font-weight: 700;
+  margin: 5px 0 0 0;
+}
+
+.selectDropdown {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:focus {
+    outline: none;
+    background: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+}
+
+// GSTIN Toggle
+.gstinSection {
+  padding-top: 6px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  user-select: none;
+}
+
+.checkboxInput {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.gstinInputWrapper {
+  margin-top: 12px;
+  padding-left: 26px;
+}
+
+.gstinField {
+  text-transform: uppercase;
+  font-family: monospace;
+  font-weight: 700;
+}
+
+// ─── Left Card 3: Payment Card ───
+.paymentChipsGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.paymentChip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+}
+
+.paymentChipActive {
+  background: #eff6ff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 1px #2563eb;
+
+  .chipIcon {
+    color: #2563eb;
+  }
+
+  .chipLabel {
+    color: #1d4ed8;
+  }
+}
+
+.chipIcon {
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.chipLabel {
+  font-size: 0.78125rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.chipDesc {
+  font-size: 0.65rem;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.termsWrapper {
+  margin-bottom: 20px;
+}
+
+.termsText {
+  font-size: 0.8125rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.termsLink {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: underline;
+
+  &:hover {
+    color: #1d4ed8;
+  }
+}
+
+.payNowButton {
+  width: 100%;
+  height: 52px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+  }
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+.payNowButtonDisabled {
+  background: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.buttonSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.razorpaySecurityNotice {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  margin: 12px 0 0 0;
+}
+
+// ─── Right Column (Sticky 380px) ───
+.summaryTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  margin: 0;
+}
+
+.summaryRowsList {
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.84rem;
+  color: #475569;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.summaryValue {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.couponDiscountRow {
+  color: #16a34a !important;
+  font-weight: 700;
+}
+
+.totalPayableContainer {
+  padding-top: 14px;
+  padding-bottom: 6px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.totalPayableRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.totalLabel {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.totalAmountNumber {
+  font-size: 30px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.allTaxesNote {
+  text-align: right;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 600;
+  margin: 4px 0 0 0;
+}
+
+// Coupon Module in Sidebar
+.couponModuleWrapper {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.couponTriggerLink {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 0.78125rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.couponFormStack {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.couponInputBar {
+  display: flex;
+  gap: 8px;
+}
+
+.couponCodeInput {
+  flex: 1;
+  height: 38px;
+  padding: 0 10px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #0f172a;
+  letter-spacing: 0.05em;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: #ffffff;
+  }
+}
+
+.couponSubmitBtn {
+  height: 38px;
+  padding: 0 14px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+}
+
+.couponErrorText {
+  font-size: 0.72rem;
+  color: #dc2626;
+  font-weight: 600;
+  margin: 0;
+}
+
+.popularCouponsHint {
+  font-size: 0.6875rem;
+  color: #64748b;
+  margin: 0;
+
+  strong {
+    color: #334155;
+  }
+}
+
+.appliedCouponPill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: #166534;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.appliedCouponText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  svg {
+    color: #16a34a;
+  }
+}
+
+.removeCouponBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+
+  &:hover {
+    color: #dc2626;
+  }
+}
+
+// Light Blue EMI Box
+.emiNoticeBox {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.78125rem;
+  color: #1e40af;
+  line-height: 1.4;
+}
+
+.emiClockIcon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+// ─── Right Card 2: Aapko Kya Milega ───
+.inclusionsTitle {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #334155;
+  letter-spacing: 0.04em;
+  margin: 0 0 14px 0;
+}
+
+.inclusionsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.8125rem;
+    color: #334155;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+}
+
+.inclusionCheck {
+  color: #16a34a;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.instantLmsStrip {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78125rem;
+  font-weight: 800;
+  color: #15803d;
+
+  svg {
+    color: #16a34a;
+    fill: #16a34a;
+    flex-shrink: 0;
+  }
+}
+
+// ─── Right Card 3: Help Card ───
+.helpCardCenter {
+  text-align: center;
+}
+
+.helpHeading {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+}
+
+.whatsappOutlineBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 42px;
+  border: 1.5px solid #16a34a;
+  color: #15803d;
+  background: #ffffff;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f0fdf4;
+    border-color: #15803d;
+  }
+
+  svg {
+    color: #16a34a;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

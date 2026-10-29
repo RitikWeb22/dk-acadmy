@@ -1,0 +1,202 @@
+@use '../../../styles/variables' as *;
+
+.header {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  border-bottom: 1px solid $color-border;
+  padding: $space-6 0 $space-10;
+
+  @media (max-width: $bp-tablet) {
+    padding: $space-4 0 $space-6;
+  }
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: 0.8125rem;
+  color: $color-text-muted;
+  margin-bottom: $space-4;
+  flex-wrap: wrap;
+}
+
+.breadcrumbLink {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  color: $color-text-muted;
+  text-decoration: none;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $color-primary;
+  }
+}
+
+.breadcrumbSeparator {
+  color: $color-border;
+}
+
+.breadcrumbCurrent {
+  color: $color-text-primary;
+  font-weight: 500;
+}
+
+.headerContent {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+
+  @media (min-width: 992px) {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+}
+
+.textContent {
+  max-width: 680px;
+}
+
+.badgeRow {
+  margin-bottom: $space-2;
+}
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $color-primary;
+  background-color: $color-primary-soft;
+  border: 1px solid $color-primary-soft-border;
+  padding: 0.25rem 0.625rem;
+  border-radius: $radius-full;
+  letter-spacing: 0.02em;
+}
+
+.pulseDot {
+  width: 6px;
+  height: 6px;
+  border-radius: $radius-full;
+  background-color: $color-accent;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: $color-text-primary;
+  line-height: 1.2;
+  margin-bottom: $space-3;
+  letter-spacing: -0.02em;
+
+  @media (max-width: $bp-tablet) {
+    font-size: 1.75rem;
+  }
+}
+
+.description {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: $color-text-secondary;
+  margin: 0;
+}
+
+.hubTabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: $space-4;
+}
+
+.hubTab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.9rem;
+  border-radius: $radius-full;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: $color-text-secondary;
+  background-color: #fff;
+  border: 1px solid $color-border;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-primary;
+    border-color: $color-primary;
+    background-color: $color-primary-soft;
+  }
+}
+
+.hubTabActive {
+  background-color: $color-primary;
+  color: #fff !important;
+  border-color: $color-primary;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 82, 204, 0.2);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $space-3;
+  width: 100%;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (min-width: 992px) {
+    width: auto;
+    display: flex;
+    gap: $space-3;
+  }
+}
+
+.statCard {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-3 $space-4;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  box-shadow: $shadow-xs;
+  min-width: 140px;
+}
+
+.statIconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: $radius-md;
+  background-color: $color-primary-soft;
+  color: $color-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 500;
+}

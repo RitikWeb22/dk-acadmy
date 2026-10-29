@@ -1,0 +1,781 @@
+@use '../../../styles/variables' as *;
+
+.heroSection {
+  background: radial-gradient(100% 70% at 50% 0%, rgba(239, 246, 255, 0.75) 0%, #ffffff 100%);
+  padding-top: 24px;
+  padding-bottom: 48px;
+  position: relative;
+  overflow: hidden;
+
+  @include desktop {
+    padding-top: 48px;
+    padding-bottom: 56px;
+  }
+}
+
+.heroBackgroundGlow {
+  position: absolute;
+  top: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 450px;
+  background: radial-gradient(ellipse at center, rgba(37, 99, 235, 0.08) 0%, rgba(59, 130, 246, 0.03) 50%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+// 2-Column Hero Grid
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+
+  @include desktop {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 52px;
+  }
+}
+
+// Left Content Column
+.contentCol {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @include tablet-down {
+    text-align: left;
+  }
+}
+
+.badgeWrap {
+  display: flex;
+  align-items: center;
+}
+
+.admissionsBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 8px;
+  background: #ffffff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.pulseContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+}
+
+.pulseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #16a34a;
+}
+
+.pulseRing {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: rgba(22, 163, 74, 0.35);
+  animation: pulseRadar 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseRadar {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.sparkleIcon {
+  color: #2563eb;
+}
+
+.badgeMainText {
+  color: #1e3a8a;
+  font-weight: 700;
+}
+
+.badgePillAccent {
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.725rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  border: 1px solid #dbeafe;
+}
+
+.headline {
+  font-size: clamp(2.15rem, 3.8vw, 3.35rem);
+  line-height: 1.16;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  margin: 0;
+}
+
+.highlightText {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  position: relative;
+}
+
+.subtitle {
+  font-size: clamp(1rem, 1.4vw, 1.125rem);
+  line-height: 1.65;
+  color: #475569;
+  margin: 0;
+  max-width: 580px;
+}
+
+// Key Value Props Deck
+.benefitsDeck {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 8px;
+}
+
+.benefitCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 540px;
+
+  &:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    transform: translateX(4px);
+  }
+}
+
+.benefitIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.iconWrapAmber {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.iconWrapBlue {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.iconWrapEmerald {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.benefitText {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8875rem;
+  line-height: 1.4;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  strong {
+    color: #0f172a;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  span {
+    color: #64748b;
+    font-size: 0.835rem;
+  }
+}
+
+// Buttons Group
+.ctaGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+
+  @include mobile {
+    flex-direction: column;
+    width: 100%;
+  }
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 13px 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.38);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+
+  &:hover {
+    background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+    box-shadow: 0 12px 26px -4px rgba(37, 99, 235, 0.48);
+    transform: translateY(-2px);
+  }
+
+  .btnArrow {
+    transition: transform 0.2s ease;
+  }
+
+  &:hover .btnArrow {
+    transform: translateX(4px);
+  }
+
+  @include mobile {
+    width: 100%;
+  }
+}
+
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #cbd5e1;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 12px 22px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+  text-decoration: none;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  }
+
+  .phoneIcon {
+    color: #2563eb;
+  }
+
+  @include mobile {
+    width: 100%;
+  }
+}
+
+.ctaMicroNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.775rem;
+  color: #64748b;
+  margin-top: -6px;
+
+  .microShield {
+    color: #059669;
+    flex-shrink: 0;
+  }
+}
+
+// Social Proof Row
+.socialProofRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.studentAvatarStack {
+  display: flex;
+  align-items: center;
+}
+
+.avatarImg {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ffffff;
+  margin-left: -8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+
+  &:first-child {
+    margin-left: 0;
+  }
+}
+
+.avatarMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  border: 2px solid #ffffff;
+  margin-left: -8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+}
+
+.ratingBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.starsGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ratingText {
+  display: flex;
+  flex-direction: column;
+
+  strong {
+    font-size: 0.85rem;
+    color: #0f172a;
+    line-height: 1.2;
+  }
+
+  span {
+    font-size: 0.735rem;
+    color: #64748b;
+  }
+}
+
+.proofDivider {
+  width: 1px;
+  height: 26px;
+  background-color: #cbd5e1;
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.centersPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.centerDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #16a34a;
+}
+
+.mapIcon {
+  color: #2563eb;
+}
+
+// Right Visual Column (Mentor Showcase Card)
+.visualCol {
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.cardContainer {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+}
+
+.cardGlowAura {
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  right: -12px;
+  bottom: -12px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.22) 0%, rgba(59, 130, 246, 0.08) 50%, rgba(37, 99, 235, 0) 75%);
+  filter: blur(28px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+// Floating Badges that float naturally
+.floatingPill {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  padding: 8px 14px;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12), 0 2px 4px rgba(15, 23, 42, 0.04);
+  z-index: 10;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.16);
+  }
+}
+
+.pillTopLeft {
+  top: 18px;
+  left: -20px;
+
+  @media (max-width: 768px) {
+    top: 12px;
+    left: 8px;
+  }
+}
+
+.pillBottomRight {
+  bottom: 96px;
+  right: -24px;
+
+  @media (max-width: 768px) {
+    bottom: 84px;
+    right: 8px;
+  }
+}
+
+.pedagogyPill {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.725rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.pedagogySparkle {
+  color: #fbbf24;
+}
+
+.pillIconZap {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background-color: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pillIconTrophy {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pillContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.pillHeading {
+  font-size: 0.835rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.pillSub {
+  font-size: 0.725rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.mentorCard {
+  position: relative;
+  z-index: 2;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  padding: 12px;
+  box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.12), 0 2px 4px rgba(15, 23, 42, 0.03);
+}
+
+.portraitWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 4.7;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.portraitImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+.portraitOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0) 55%, rgba(15, 23, 42, 0.88) 100%);
+  pointer-events: none;
+}
+
+.mentorInfoTag {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 60px 16px 18px;
+  background: linear-gradient(180deg, transparent 0%, rgba(15, 23, 42, 0.92) 50%, rgba(15, 23, 42, 0.98) 100%);
+  color: #ffffff;
+  z-index: 5;
+}
+
+.mentorTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mentorName {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.mentorVerifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #34d399;
+}
+
+.mentorRole {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+// Verified Mentorship Strip at bottom of card
+.mentorFooterStrip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px 4px;
+}
+
+.footerPill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.footerDot {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+}
+
+// Clean Modern 4-Column Stats Ribbon
+.statsRibbon {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 20px 28px;
+  margin-top: 48px;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.03);
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 18px 16px;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+.statCard {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 6px 14px;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.statIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+
+  .statCard:hover & {
+    transform: scale(1.06);
+  }
+}
+
+.statIconBlue {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+}
+
+.statIconPurple {
+  background-color: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ede9fe;
+}
+
+.statIconEmerald {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #d1fae5;
+}
+
+.statIconAmber {
+  background-color: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fef3c7;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.statLabel {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.statSubtext {
+  font-size: 0.725rem;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+.statDivider {
+  width: 1px;
+  height: 42px;
+  background-color: #e2e8f0;
+  align-self: center;
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+}

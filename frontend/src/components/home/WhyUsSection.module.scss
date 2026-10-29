@@ -1,0 +1,378 @@
+@use '../../styles/variables' as *;
+
+.section {
+  padding-top: 56px;
+  padding-bottom: 64px;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  position: relative;
+  overflow: hidden;
+
+  @include desktop {
+    padding-top: 72px;
+    padding-bottom: 80px;
+  }
+}
+
+.ambientGlow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+// Centered Section Header
+.headerBlock {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrowBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.775rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.sparkleIcon {
+  color: #2563eb;
+}
+
+.heading {
+  font-size: clamp(1.85rem, 3.2vw, 2.6rem);
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.headingGradient {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #475569;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 680px;
+}
+
+// 4-Column Grid
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  position: relative;
+  z-index: 1;
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include desktop {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 26px 22px 20px;
+  box-shadow: 0 4px 18px -4px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.02);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 36px -8px rgba(37, 99, 235, 0.12), 0 4px 12px rgba(15, 23, 42, 0.03);
+  }
+}
+
+.numberWatermark {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  font-size: 2.25rem;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0.07;
+  pointer-events: none;
+  font-family: inherit;
+  letter-spacing: -0.04em;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  position: relative;
+  z-index: 2;
+}
+
+.iconBox {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+
+  .card:hover & {
+    transform: scale(1.06);
+  }
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  letter-spacing: 0.02em;
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.35;
+  margin: 0 0 10px 0;
+  letter-spacing: -0.01em;
+  position: relative;
+  z-index: 2;
+}
+
+.description {
+  font-size: 0.8875rem;
+  color: #475569;
+  line-height: 1.62;
+  margin: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background-color: #f1f5f9;
+  margin: 18px 0 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.pointsList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  position: relative;
+  z-index: 2;
+}
+
+.pointItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.pointIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+// Impact Footer Pill
+.impactFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-top: auto;
+  position: relative;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.impactVal {
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.impactLabel {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+// THEMATIC STYLES
+// 1. Amber / Gold (Shortcuts)
+.themeAmber {
+  &:hover {
+    border-color: #fcd34d;
+  }
+
+  .numberWatermark {
+    color: #d97706;
+  }
+
+  .iconBox {
+    background-color: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fde68a;
+  }
+
+  .badge {
+    background-color: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fef3c7;
+  }
+
+  .pointIcon {
+    color: #d97706;
+  }
+
+  .impactFooter {
+    background-color: #fffbeb;
+    border: 1px solid #fef3c7;
+    color: #b45309;
+  }
+}
+
+// 2. Electric Blue (Concept First)
+.themeBlue {
+  &:hover {
+    border-color: #93c5fd;
+  }
+
+  .numberWatermark {
+    color: #2563eb;
+  }
+
+  .iconBox {
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+  }
+
+  .badge {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #dbeafe;
+  }
+
+  .pointIcon {
+    color: #2563eb;
+  }
+
+  .impactFooter {
+    background-color: #eff6ff;
+    border: 1px solid #dbeafe;
+    color: #1d4ed8;
+  }
+}
+
+// 3. Emerald (Max 25 Students)
+.themeEmerald {
+  &:hover {
+    border-color: #86efac;
+  }
+
+  .numberWatermark {
+    color: #059669;
+  }
+
+  .iconBox {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+  }
+
+  .badge {
+    background-color: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+  }
+
+  .pointIcon {
+    color: #059669;
+  }
+
+  .impactFooter {
+    background-color: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #047857;
+  }
+}
+
+// 4. Purple (Complete CBT Bank)
+.themePurple {
+  &:hover {
+    border-color: #d8b4fe;
+  }
+
+  .numberWatermark {
+    color: #7c3aed;
+  }
+
+  .iconBox {
+    background-color: #f5f3ff;
+    color: #7c3aed;
+    border: 1px solid #ede9fe;
+  }
+
+  .badge {
+    background-color: #faf5ff;
+    color: #6b21a8;
+    border: 1px solid #f3e8ff;
+  }
+
+  .pointIcon {
+    color: #7c3aed;
+  }
+
+  .impactFooter {
+    background-color: #f5f3ff;
+    border: 1px solid #ede9fe;
+    color: #6b21a8;
+  }
+}

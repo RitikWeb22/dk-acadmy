@@ -1,0 +1,277 @@
+@use '../../../styles/variables' as *;
+
+.card {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  padding: 20px 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-height: 104px;
+  text-decoration: none;
+  cursor: pointer;
+  position: relative;
+  transition: transform $transition-fast, box-shadow $transition-fast, border-color $transition-fast, background-color $transition-fast;
+
+  &:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+  }
+
+  // Keyboard navigation focus ring
+  &:focus-visible {
+    outline: 2px solid var(--color-primary, #2563eb);
+    outline-offset: 2px;
+  }
+
+  // ONE unread signal: light blue background tint (#f3f7ff) + 8px blue dot before title
+  // No border-left so alignment is identical to read cards without 4px shift or crescent corners
+  &.unread {
+    background-color: #f3f7ff;
+    border-color: #bfdbfe;
+
+    &:hover {
+      background-color: #eaf1ff;
+      border-color: #93c5fd;
+    }
+  }
+
+  @include mobile {
+    padding: 16px;
+    gap: 12px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+// 1. 40px Icon Tile
+.iconTile {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.catAnnouncement {
+    background: #eff6ff;
+    color: var(--color-primary, #2563eb);
+    border: 1px solid #bfdbfe;
+  }
+
+  &.catCourse {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+  }
+
+  &.catPractice {
+    background: #f5f3ff;
+    color: #7c3aed;
+    border: 1px solid #ddd6fe;
+  }
+
+  &.catGeneral {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+}
+
+// 2. Content Column: Title (16px/600), clamped description (14.5px), ONE chip
+.contentCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unreadDot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 1rem; // 16px
+  font-weight: 600;
+  color: var(--color-text-primary, #0f172a);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.description {
+  font-size: 0.90625rem; // 14.5px
+  color: #334155; // high contrast grey (≥ 4.5:1)
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.chipRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.subtypeChip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8125rem; // 13px
+  font-weight: 600;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+// 3. Right Column: Time + Actions (40x40 hit area) + CTA
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+
+  @include mobile {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+  }
+}
+
+.topRightRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.timestamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8125rem; // 13px
+  color: #64748b; // high contrast
+  white-space: nowrap;
+  cursor: help;
+}
+
+.iconActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iconBtn {
+  width: 40px; // 40x40px hit area
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+    color: var(--color-text-primary, #0f172a);
+  }
+
+  &.deleteBtn:hover {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary, #2563eb);
+    outline-offset: 2px;
+  }
+}
+
+.ctaRow {
+  display: flex;
+  align-items: center;
+}
+
+.timeSensitiveBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--color-primary, #2563eb);
+  color: #ffffff;
+  border: 1px solid var(--color-primary, #2563eb);
+  border-radius: 6px;
+  font-size: 0.8125rem; // 13px
+  font-weight: 700;
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+
+  &:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary, #2563eb);
+    outline-offset: 2px;
+  }
+}
+
+// Highlighted search matches
+.highlight {
+  background-color: #fef08a;
+  color: #854d0e;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 700;
+}
+
+// Reduced motion accessibility
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .iconBtn,
+  .timeSensitiveBtn {
+    transition: none !important;
+    transform: none !important;
+  }
+}

@@ -1,0 +1,669 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalContainer {
+  position: relative;
+  width: 100%;
+  max-width: 880px;
+  height: 90vh;
+  max-height: 740px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+  from { transform: translateY(20px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ─── 1. FIXED MODAL HEADER & META STRIP ─── */
+.modalHeader {
+  padding: 16px 24px 12px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.headerTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tagGroup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.examTag {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid rgba(191, 219, 254, 0.6);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.ntaTag {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid rgba(167, 243, 208, 0.6);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tagIcon {
+  color: #059669;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #334155;
+  }
+}
+
+.titleBlock {
+  margin-top: 6px;
+}
+
+.modalTitle {
+  font-size: 19px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+  line-height: 1.3;
+}
+
+.modalSubtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ─── 2. 4-COLUMN COMPACT DELIVERABLES RIBBON ─── */
+.deliverablesRibbon {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 9px 24px;
+  background: rgba(248, 250, 252, 0.75);
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+
+  @media (max-width: 720px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.deliverableTile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #ffffff;
+  padding: 7px 11px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.tileIconWrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.blueIcon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.emeraldIcon {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.purpleIcon {
+  background: #faf5ff;
+  color: #9333ea;
+}
+
+.amberIcon {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.tileValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+.highlightSpeed {
+  color: #2563eb;
+}
+
+.tileLabel {
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+/* ─── 3. SEGMENTED SUBJECT FILTER TABS ─── */
+.filterStrip {
+  padding: 9px 24px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.segmentedSwitcher {
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 10px;
+  display: inline-flex;
+  gap: 3px;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  flex-wrap: wrap;
+}
+
+.segmentBtn {
+  border: none;
+  background: transparent;
+  padding: 5px 13px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    color: #0f172a;
+  }
+}
+
+.segmentActive {
+  background: #ffffff;
+  color: #2563eb;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.roadmapStatus {
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ─── 4. SCROLLABLE CHAPTER CURRICULUM ACCORDIONS ─── */
+.curriculumBody {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 180px;
+  padding: 14px 24px;
+  background: rgba(248, 250, 252, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  /* Custom Thin Scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+
+    &:hover {
+      background: #94a3b8;
+    }
+  }
+}
+
+.chapterCard {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.15s ease;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.06);
+  }
+}
+
+.chapterCardExpanded {
+  border-color: #bfdbfe;
+  box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.08);
+}
+
+.chapterHeaderTrigger {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.chapterIndexBadge {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chapterTitleBlock {
+  flex: 1;
+  min-width: 0;
+}
+
+.chapterName {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 2px 0;
+  line-height: 1.3;
+}
+
+.metricsStrip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.metricItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.metricDot {
+  color: #cbd5e1;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.demoUnlockedBadge {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2.5px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.enrolledBadge {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 2.5px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chevronWrap {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Collapsible Content Area */
+.chapterDetailsArea {
+  padding: 0 16px 16px 16px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.subtopicsBlock {
+  margin-bottom: 12px;
+}
+
+.subtopicsTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.subtopicPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.subtopicPill {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 11.5px;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bulletDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #3b82f6;
+  flex-shrink: 0;
+}
+
+.algorithmCallout {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+}
+
+.algorithmHeader {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+
+.zapIconWrap {
+  color: #d97706;
+  display: flex;
+  align-items: center;
+}
+
+.algorithmTitle {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.algorithmText {
+  font-size: 12px;
+  color: #78350f;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.chapterDeliverablesRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.deliverableTag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.deliverableCheck {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.watchMasterclassInlineBtn {
+  margin-left: auto;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+  }
+}
+
+/* ─── 5. FIXED HIGH-CONVERSION ALIGNED FOOTER ─── */
+.modalFooter {
+  padding: 10px 24px;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-shrink: 0;
+
+  @media (max-width: 720px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.footerPricing {
+  display: flex;
+  flex-direction: column;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.priceAmount {
+  font-size: 20px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+}
+
+.priceBadge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.priceSubtext {
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  @media (max-width: 720px) {
+    justify-content: flex-end;
+  }
+}
+
+.downloadSyllabusBtn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+}
+
+.watchDemoBtn {
+  border: 1px solid #bfdbfe;
+  background: rgba(239, 246, 255, 0.6);
+  color: #1d4ed8;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #eff6ff;
+  }
+}
+
+.enrollNowBtn {
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+  color: #ffffff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.35);
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px -2px rgba(37, 99, 235, 0.45);
+  }
+}

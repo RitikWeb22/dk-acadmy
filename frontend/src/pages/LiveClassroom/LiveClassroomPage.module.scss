@@ -1,0 +1,779 @@
+.liveClassroomRoot {
+  min-height: calc(100vh - 80px);
+  background-color: #f8fafc;
+  padding: 24px 0 64px 0;
+  color: #0f172a;
+}
+
+/* ─── Breadcrumb Navigation ─── */
+.breadcrumbStrip {
+  margin-bottom: 24px;
+}
+
+.breadcrumbList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.breadcrumbLink {
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: #2563eb;
+  }
+}
+
+.breadcrumbSeparator {
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumbActive {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* ══════════════════════════════════════════════════
+   HERO COMING SOON BLOCK
+   ══════════════════════════════════════════════════ */
+.heroSection {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 40px 32px;
+  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.06);
+  text-align: center;
+  margin-bottom: 32px;
+
+  @media (max-width: 640px) {
+    padding: 28px 18px;
+  }
+}
+
+.liveStatusRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.livePulsePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid rgba(254, 202, 202, 0.8);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.1);
+}
+
+.livePulseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  box-shadow: 0 0 0 rgba(239, 68, 68, 0.6);
+  animation: pulseDot 1.8s infinite;
+}
+
+@keyframes pulseDot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.radioIcon {
+  color: #dc2626;
+}
+
+.sessionPill {
+  display: inline-flex;
+  align-items: center;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid rgba(191, 219, 254, 0.8);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 9999px;
+}
+
+.heroHeading {
+  font-size: 34px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.8px;
+  margin: 0 0 14px 0;
+  line-height: 1.25;
+
+  @media (max-width: 640px) {
+    font-size: 26px;
+  }
+}
+
+.heroSubheading {
+  font-size: 16px;
+  color: #475569;
+  max-width: 720px;
+  margin: 0 auto 32px auto;
+  line-height: 1.6;
+
+  @media (max-width: 640px) {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+}
+
+/* ─── Launch Countdown Timer ─── */
+.countdownContainer {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.countdownHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.6px;
+  margin-bottom: 16px;
+
+  .clockIcon {
+    color: #2563eb;
+  }
+}
+
+.countdownGrid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  @media (max-width: 480px) {
+    gap: 6px;
+  }
+}
+
+.timeCard {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 12px 18px;
+  min-width: 76px;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: 480px) {
+    min-width: 58px;
+    padding: 8px 10px;
+  }
+}
+
+.timeNumber {
+  font-size: 32px;
+  font-weight: 900;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+
+  @media (max-width: 480px) {
+    font-size: 24px;
+  }
+}
+
+.timeLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.timeColon {
+  font-size: 24px;
+  font-weight: 900;
+  color: #94a3b8;
+  margin-bottom: 14px;
+}
+
+.targetDateNote {
+  font-size: 12px;
+  color: #64748b;
+
+  strong {
+    color: #0f172a;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   VIP PRIORITY WAITLIST FORM
+   ══════════════════════════════════════════════════ */
+.waitlistSection {
+  margin-bottom: 40px;
+}
+
+.waitlistCard {
+  background: #ffffff;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 32px 36px;
+  box-shadow: 0 12px 36px -10px rgba(37, 99, 235, 0.12);
+  max-width: 840px;
+  margin: 0 auto;
+
+  @media (max-width: 640px) {
+    padding: 24px 18px;
+  }
+}
+
+.formHeader {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.formMiniTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.formTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.formDesc {
+  font-size: 13.5px;
+  color: #64748b;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.formBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inputGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.inputLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.textInput,
+.selectInput {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.15s ease;
+
+  &:focus {
+    background: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+}
+
+.submitWaitlistBtn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.15s ease;
+  margin-top: 4px;
+
+  &:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.privacyNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #64748b;
+  text-align: center;
+
+  .shieldIcon {
+    color: #059669;
+    flex-shrink: 0;
+  }
+}
+
+/* ─── VIP Confirmed Pass Card ─── */
+.vipPassCard {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.passHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.passBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid rgba(167, 243, 208, 0.8);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 9999px;
+}
+
+.ticketBadge {
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.passTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.passSubtitle {
+  font-size: 13.5px;
+  color: #475569;
+  max-width: 580px;
+  margin: 0 auto 20px auto;
+  line-height: 1.5;
+}
+
+.passPerksRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.passPerk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+
+  .perkIcon {
+    color: #059669;
+  }
+}
+
+.passActions {
+  display: flex;
+  justify-content: center;
+}
+
+.exploreExistingBtn {
+  background: #f8fafc;
+  color: #2563eb;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   FEATURE SNEAK PEEK GRID
+   ══════════════════════════════════════════════════ */
+.featuresSection {
+  margin-bottom: 40px;
+}
+
+.sectionHeadingBlock {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.sectionPill {
+  display: inline-block;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  margin-bottom: 8px;
+}
+
+.sectionTitle {
+  font-size: 26px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+  margin: 0 0 8px 0;
+}
+
+.sectionSub {
+  font-size: 14.5px;
+  color: #64748b;
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+
+  @media (max-width: 992px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 580px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.featureCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px 20px;
+  box-shadow: 0 4px 14px -3px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08);
+    border-color: #cbd5e1;
+  }
+}
+
+.iconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.blueIcon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.emeraldIcon {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.purpleIcon {
+  background: #faf5ff;
+  color: #9333ea;
+}
+
+.amberIcon {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.featureTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  line-height: 1.35;
+}
+
+.featureDesc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  flex: 1;
+}
+
+.featureBadge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* ══════════════════════════════════════════════════
+   QUOTE FROM DK SIR
+   ══════════════════════════════════════════════════ */
+.quoteSection {
+  margin-bottom: 36px;
+}
+
+.quoteCard {
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 28px 36px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 12px 30px -8px rgba(15, 23, 42, 0.3);
+
+  @media (max-width: 680px) {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 20px;
+    gap: 16px;
+  }
+}
+
+.quoteMonogram {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.quoteContent {
+  flex: 1;
+}
+
+.quoteText {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  line-height: 1.6;
+  font-style: italic;
+  color: #f1f5f9;
+}
+
+.authorRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 680px) {
+    justify-content: center;
+  }
+}
+
+.authorName {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.authorTitle {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ══════════════════════════════════════════════════
+   STUDY ALTERNATIVES BAR
+   ══════════════════════════════════════════════════ */
+.alternativesSection {
+  margin-bottom: 20px;
+}
+
+.alternativesCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 18px;
+  }
+}
+
+.altText {
+  flex: 1;
+}
+
+.altTitle {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.altDesc {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.altButtons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.primaryAltBtn {
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+}
+
+.secondaryAltBtn {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #2563eb;
+  }
+}

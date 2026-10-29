@@ -1,0 +1,65 @@
+@use '../../../styles/variables' as *;
+
+.ctaSection {
+  padding-bottom: $space-20;
+}
+
+.ctaCard {
+  background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%);
+  border-radius: $radius-2xl;
+  padding: $space-10 $space-6;
+  text-align: center;
+  color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.25);
+
+  @include desktop {
+    padding: $space-12 $space-10;
+  }
+}
+
+.decorCircle {
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+
+.topIconBox {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto $space-4 auto;
+}
+
+.title {
+  font-size: clamp(1.75rem, 3.5vw, 2rem);
+  font-weight: 800;
+  color: #FFFFFF;
+  margin-bottom: $space-3;
+  letter-spacing: -0.02em;
+}
+
+.description {
+  font-size: 1rem;
+  color: #DBEAFE;
+  line-height: 1.6;
+  max-width: 620px;
+  margin: 0 auto $space-6 auto;
+}
+
+.btnRow {
+  display: flex;
+  justify-content: center;
+}

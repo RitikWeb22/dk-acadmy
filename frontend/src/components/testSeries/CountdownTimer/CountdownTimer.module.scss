@@ -1,0 +1,86 @@
+@use '../../../styles/variables' as *;
+
+.timerContainer {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  background-color: #F8FAFC;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: 0.35rem 0.75rem;
+  transition: all $transition-fast;
+
+  &.lowTime {
+    background-color: #FEF3C7;
+    border-color: #FDE68A;
+    color: #92400E;
+
+    .timerIcon {
+      color: #D97706;
+    }
+
+    .timeDigits {
+      color: #B45309;
+    }
+  }
+
+  &.criticalTime {
+    background-color: #FEE2E2;
+    border-color: #FCA5A5;
+    color: #991B1B;
+    animation: urgentPulse 1s infinite alternate;
+
+    .timerIconPulse {
+      color: #DC2626;
+      animation: shake 0.5s infinite alternate;
+    }
+
+    .timeDigits {
+      color: #DC2626;
+      font-weight: 800;
+    }
+  }
+}
+
+@keyframes urgentPulse {
+  from {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.3);
+  }
+  to {
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
+  }
+}
+
+@keyframes shake {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+.timerIcon {
+  color: $color-primary;
+  flex-shrink: 0;
+}
+
+.timeDisplay {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.timeLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: $color-text-muted;
+}
+
+.timeDigits {
+  font-family: $font-family-mono;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  letter-spacing: 0.05em;
+}
