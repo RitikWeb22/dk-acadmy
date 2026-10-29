@@ -75,6 +75,43 @@ export function getDynamicBatchBadge(course: Course): {
 
 export const FREE_COURSES_CATALOG: Course[] = [
   {
+    id: 'free-math-coordinate-geometry-masterclass',
+    title: 'DK Sir Masterclass: Straight Lines & Parabola Conic Sections (PYQs + Shortcuts)',
+    targetExam: 'JEE Main & Advanced',
+    category: 'JEE Main',
+    targetClass: 'Class 11th & 12th',
+    targetYear: 'Target JEE 2026-2027',
+    badge: '100% Free Video & PDF',
+    badgeUrgency: 'instant',
+    tier: 'Free',
+    price: '₹0 Free',
+    originalPrice: '₹4,999',
+    numericPrice: 0,
+    discountPercentage: 100,
+    includesGst: true,
+    emiText: '100% Free Access • Official Kota PYQs & Walkthrough',
+    courseType: 'dlp',
+    mode: 'Self-Paced',
+    duration: '2 Masterclasses + 2 Full PDF Booklets',
+    language: 'Hinglish (Hindi + Eng)',
+    validity: 'Lifetime Validity',
+    taughtByIitians: true,
+    isPopular: true,
+    isBestValue: true,
+    enrolledCount: 5240,
+    facultyAvatars: ['/images/faculty/dk-sir.jpg'],
+    coverImage: '/images/pyq-straight-lines-banner.jpg',
+    description: 'Learn DK Sir’s proprietary speed shortcuts on Straight Lines & Parabola. Includes 2 high-definition video walkthroughs and authentic downloadable Kota JEE Main PYQ booklets.',
+    features: [
+      'Official Straight Lines PYQ Booklet (PDF Included)',
+      'Parabola Conic Sections Latus Rectum Booklet (PDF Included)',
+      'HD Video Walkthrough by DK Sir (18+ Yrs Kota Experience)',
+      'Instant access in interactive LMS with 0.5x–2x speed controls'
+    ],
+    schedule: 'Self-Paced • Instant Streaming & PDF Download',
+    subjects: ['Mathematics']
+  },
+  {
     id: 'free-math-calculus-shortcuts',
     title: 'DK Sir Special: 20-30s Math Shortcuts & Calculus Foundations',
     targetExam: 'JEE Main & Advanced',

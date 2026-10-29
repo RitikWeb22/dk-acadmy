@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Home, BookOpen, Layers, CheckCircle2, Clock } from 'lucide-react';
+import { ChevronRight, Home, BookOpen, Layers, CheckCircle2, Clock, FileText, Zap, ListOrdered } from 'lucide-react';
 import { Container } from '../../ui/Container/Container';
 import styles from './DPPPageHeader.module.scss';
 
@@ -49,13 +49,16 @@ export const DPPPageHeader: React.FC<DPPPageHeaderProps> = ({
             {/* Quick Practice Hub Switcher */}
             <div className={styles.hubTabs} role="navigation" aria-label="Practice modes">
               <Link to="/pyq" className={styles.hubTab}>
-                Chapter-Wise PYQs
+                <FileText size={15} aria-hidden="true" />
+                <span>Chapter-Wise PYQs</span>
               </Link>
               <span className={`${styles.hubTab} ${styles.hubTabActive}`}>
-                Daily Practice Problems (DPP)
+                <Zap size={15} aria-hidden="true" />
+                <span>Daily Practice Problems (DPP)</span>
               </span>
               <Link to="/test-series" className={styles.hubTab}>
-                Full CBT Test Series
+                <ListOrdered size={15} aria-hidden="true" />
+                <span>Full CBT Test Series</span>
               </Link>
             </div>
           </div>

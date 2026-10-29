@@ -34,8 +34,14 @@ import { apiClient } from '../../services/apiClient';
 import type { Course } from '../../types';
 import styles from './FreeLecturesPage.module.scss';
 
-// Mock curriculum details for the 5 unlocked demo masterclasses
+// Mock curriculum details for the unlocked demo masterclasses
 const DEMO_SYLLABUS_DETAILS: Record<string, { lectures: { title: string; duration: string; isFree: boolean; dppName: string }[] }> = {
+  'free-math-coordinate-geometry-masterclass': {
+    lectures: [
+      { title: 'Lecture 1: Straight Lines Speed Shortcuts & JEE Main PYQ Breakdown', duration: '5 min', isFree: true, dppName: 'PYQ Booklet: Straight Lines Chapter Practice Sheet (PDF)' },
+      { title: 'Lecture 2: Parabola Conic Sections, Latus Rectum & Normal Chords', duration: '14 min', isFree: true, dppName: 'PYQ Booklet: Parabola Mastery Problem Sheet (PDF)' }
+    ]
+  },
   'free-math-calculus-shortcuts': {
     lectures: [
       { title: 'Lecture 1: Limits & Indeterminate Forms — 20s Inspection Rule', duration: '54 min', isFree: true, dppName: 'DPP-01: Limits & L-Hopital Shortcuts' },

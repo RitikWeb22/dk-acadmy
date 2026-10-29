@@ -11,7 +11,9 @@ import {
   Zap,
   Video,
   FileText,
-  ShieldCheck
+  ShieldCheck,
+  Download,
+  Play
 } from 'lucide-react';
 import type { PYQExam, Subject, PYQUserResponse } from '../../types';
 import { Container } from '../../components/ui/Container/Container';
@@ -468,6 +470,63 @@ export const PYQPage: React.FC = () => {
                           ? 'All questions unlocked • Click any question to practice'
                           : 'First 5 questions are 100% Free • Remaining require course enrollment'}
                       </span>
+                    </div>
+
+                    {/* Featured Chapter-Wise PYQ Booklets & Video Solutions Spotlight */}
+                    <div className={styles.spotlightBanner}>
+                      <div className={styles.spotlightMedia}>
+                        <img
+                          src="/images/pyq-straight-lines-banner.jpg"
+                          alt="JEE Main PYQs Straight Lines by DK Sir"
+                          className={styles.spotlightImg}
+                        />
+                      </div>
+                      <div className={styles.spotlightDetails}>
+                        <div className={styles.spotlightBadge}>
+                          <Sparkles size={14} />
+                          <span>Official DK Academy PYQ Release</span>
+                        </div>
+                        <h3 className={styles.spotlightTitle}>
+                          JEE Main Mathematics: Straight Lines &amp; Parabola PYQs
+                        </h3>
+                        <p className={styles.spotlightDesc}>
+                          Download verified Kota classroom chapter-wise PYQ sheets with complete answer keys, concept-based speed shortcuts, and HD video walkthroughs by DK Sir.
+                        </p>
+                        
+                        <div className={styles.spotlightActions}>
+                          <a
+                            href="/assets/downloads/st line-2.pdf"
+                            download="JEE_Main_Straight_Lines_PYQ_DK_Academy.pdf"
+                            className={styles.downloadPillBtn}
+                            title="Download Straight Lines PYQs PDF"
+                          >
+                            <FileText size={15} />
+                            <span>Straight Lines PYQs (PDF)</span>
+                            <Download size={14} />
+                          </a>
+                          <a
+                            href="/assets/downloads/parabola -1.pdf"
+                            download="JEE_Main_Parabola_PYQ_DK_Academy.pdf"
+                            className={styles.downloadPillBtn}
+                            title="Download Parabola PYQs PDF"
+                          >
+                            <FileText size={15} />
+                            <span>Parabola PYQs (PDF)</span>
+                            <Download size={14} />
+                          </a>
+                          <button
+                            type="button"
+                            className={styles.watchMasterclassBtn}
+                            onClick={() => {
+                              const targetQ = filteredQuestions.find(q => q.chapter === 'Straight Lines' || q.chapter === 'Parabola') || filteredQuestions[0] || pyqList[0];
+                              setActiveVideoQuestion(targetQ);
+                            }}
+                          >
+                            <Play size={14} fill="currentColor" />
+                            <span>Watch Video Walkthrough</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     <div className={styles.cardsGrid}>

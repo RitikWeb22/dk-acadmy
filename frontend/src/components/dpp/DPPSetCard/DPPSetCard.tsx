@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, HelpCircle, ArrowRight, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Clock, HelpCircle, ArrowRight, CheckCircle2, RotateCcw, FileText, Download } from 'lucide-react';
 import type { DPPSet, DPPAttempt } from '../../../types';
 import { Badge } from '../../ui/Badge/Badge';
 import styles from './DPPSetCard.module.scss';
@@ -112,6 +112,23 @@ export const DPPSetCard: React.FC<DPPSetCardProps> = ({
             <span>{set.estimatedMinutes} mins</span>
           </div>
         </div>
+
+        {/* Authentic Kota DPP PDF Download Button */}
+        {set.pdfUrl && (
+          <a
+            href={set.pdfUrl}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.pdfDownloadPill}
+            onClick={(e) => e.stopPropagation()}
+            title="Download authentic Kota DPP problem sheet PDF"
+          >
+            <FileText size={14} />
+            <span>Download DPP Sheet (PDF)</span>
+            <Download size={13} />
+          </a>
+        )}
 
         {/* Action Button */}
         {status === 'Completed' ? (

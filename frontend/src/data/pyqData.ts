@@ -1,6 +1,61 @@
 import type { PYQQuestion } from '../types';
 
 export const PYQ_QUESTIONS: PYQQuestion[] = [
+  // --- FEATURED OFFICIAL JEE MAIN MATHEMATICS QUESTIONS ---
+  {
+    id: 'pyq-main-math-straight-lines-featured',
+    exam: 'JEE Main',
+    year: 2024,
+    subject: 'Mathematics',
+    chapter: 'Straight Lines',
+    topic: 'Coordinate Geometry & Family of Lines',
+    type: 'Single Choice MCQ',
+    marks: '+4 / -1',
+    statement: 'A straight line L passing through the point P(2, 3) cuts the coordinate axes at A and B such that P divides AB internally in the ratio 1 : 2. If the equation of a line perpendicular to L passing through the origin is y = mx, then the value of m is:',
+    options: [
+      { id: 'A', text: '1/3' },
+      { id: 'B', text: '4/3' },
+      { id: 'C', text: '3/4' },
+      { id: 'D', text: '-3/4' }
+    ],
+    correctAnswer: 'A',
+    formulaKey: 'Intercept form: x/a + y/b = 1; Section Formula: (x, y) = ((m x₂ + n x₁)/(m + n), (m y₂ + n y₁)/(m + n))',
+    explanation: 'Let A = (a, 0) and B = (0, b). Using the section formula with ratio AP:PB = 1:2: (2·a + 1·0)/3 = 2 ⇒ a = 3, and (2·0 + 1·b)/3 = 3 ⇒ b = 9. The line equation is x/3 + y/9 = 1 ⇒ 3x + y = 9. The slope of line L is -3. The slope of the line perpendicular to L is m = -1/(-3) = 1/3.',
+    isFree: true,
+    youtubeUrl: '/videos/1.mp4',
+    videoUrl: '/videos/1.mp4',
+    pdfUrl: '/assets/downloads/st line-2.pdf',
+    courseId: 'jee-pyq-archive-mastery',
+    courseName: '10-Year JEE Chapter-Wise PYQ Mastery Course',
+    videoDuration: '05:12'
+  },
+  {
+    id: 'pyq-main-math-parabola-featured',
+    exam: 'JEE Main',
+    year: 2024,
+    subject: 'Mathematics',
+    chapter: 'Parabola',
+    topic: 'Conic Sections & Latus Rectum',
+    type: 'Single Choice MCQ',
+    marks: '+4 / -1',
+    statement: 'Let O be the vertex of the parabola y² = 4ax and its chords OP and OQ are perpendicular to each other. If the locus of the midpoint of the line segment PQ is a conic, then the length of its latus rectum is:',
+    options: [
+      { id: 'A', text: '2a' },
+      { id: 'B', text: '4a' },
+      { id: 'C', text: '8a' },
+      { id: 'D', text: 'a' }
+    ],
+    correctAnswer: 'A',
+    formulaKey: 'Parametric points: P(at₁², 2at₁), Q(at₂², 2at₂). For OP ⊥ OQ: t₁ t₂ = -4',
+    explanation: 'Since OP is perpendicular to OQ, the product of parametric parameters is t₁ t₂ = -4. Let the midpoint of PQ be (h, k). Then 2h = a(t₁² + t₂²) and 2k = 2a(t₁ + t₂). Since (t₁ + t₂)² = t₁² + t₂² + 2t₁t₂ = (2h/a) - 8. From 2k = 2a(t₁ + t₂), we have (t₁ + t₂)² = k²/a². Equating both yields k²/a² = 2h/a - 8 ⇒ y² = 2a(x - 4a). This is a parabola with latus rectum equal to 2a.',
+    isFree: true,
+    youtubeUrl: '/videos/2.mp4',
+    videoUrl: '/videos/2.mp4',
+    pdfUrl: '/assets/downloads/parabola -1.pdf',
+    courseId: 'jee-pyq-archive-mastery',
+    courseName: '10-Year JEE Chapter-Wise PYQ Mastery Course',
+    videoDuration: '14:20'
+  },
   // --- JEE MAIN QUESTIONS ---
   // [1] Free Question 1 of 5
   {

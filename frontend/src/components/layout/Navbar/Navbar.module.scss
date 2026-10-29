@@ -6,15 +6,13 @@
   left: 0;
   right: 0;
   z-index: 100;
-  background-color: rgba(255, 255, 255, 0.96);
+  background-color: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-  transition: background-color 200ms ease, backdrop-filter 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  transition: box-shadow 200ms ease, border-color 200ms ease;
 
   &.isScrolled {
-    background-color: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background-color: #ffffff;
     border-bottom: 1px solid rgba(226, 232, 240, 0.9);
     box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
   }
@@ -630,6 +628,10 @@
   &:focus-visible {
     outline: 2px solid #0052cc;
     outline-offset: 2px;
+  }
+
+  @include mobile {
+    display: none; // Removes navbar crowding on phones; mobile users have persistent bottom dialer and full center details in drawer
   }
 }
 

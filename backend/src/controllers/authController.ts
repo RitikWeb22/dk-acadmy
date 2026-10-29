@@ -464,32 +464,120 @@ export const createStudentByAdmin = async (req: Request, res: Response): Promise
 
 export const createStaffByAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, phone, role = 'TEACHER', department, specialization } = req.body;
+    const { name, email, phone, role = 'TEACHER', department, specialization, password } = req.body;
     if (!name || !email) {
       res.status(400).json({ success: false, message: 'Name and email are required' });
       return;
     }
 
-    const existing = await User.findOne({ email: email.trim().toLowerCase() });
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = await User.findOne({ email: cleanEmail });
     if (existing) {
       res.status(400).json({ success: false, message: 'Staff member with this email already exists' });
       return;
     }
 
+    const initialPassword = password && password.trim().length >= 6 ? password.trim() : 'staffpassword123';
+
+    const normalizedRole = role.toUpperCase() === 'ADMIN'
+      ? 'ADMIN'
+      : role.toUpperCase() === 'SUPER_ADMIN'
+      ? 'SUPER_ADMIN'
+      : 'TEACHER';
+
     const staff = await User.create({
-      name,
-      email: email.trim().toLowerCase(),
-      password: 'staffpassword123',
-      phone: phone || '+91 98112 34567',
-      role: role.toUpperCase() === 'ADMIN' ? 'ADMIN' : role.toUpperCase() === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'TEACHER',
+      name: name.trim(),
+      email: cleanEmail,
+      password: initialPassword,
+      phone: phone?.trim() || '+91 98112 34567',
+      role: normalizedRole,
       teacherId: generateTeacherId()
     });
 
+    const staffObj = staff.toObject();
+    delete (staffObj as any).password;
+
     res.status(201).json({
       success: true,
-      message: 'Faculty/Staff created successfully',
-      data: staff
+      message: 'Faculty/Staff created successfully with configured login credentials',
+      data: {
+        ...staffObj,
+        initialPassword
+      }
     });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateStaffPasswordByAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id || '').trim();
+    const { password } = req.body;
+
+    if (!password || password.trim().length < 6) {
+      res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+      return;
+    }
+
+    // Support lookup by MongoDB _id or custom teacherId
+    let staff = null;
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      staff = await User.findById(id).select('+password');
+    }
+    if (!staff) {
+      staff = await User.findOne({ teacherId: id }).select('+password');
+    }
+    if (!staff) {
+      staff = await User.findOne({ email: id.toLowerCase() }).select('+password');
+    }
+
+    if (!staff) {
+      res.status(404).json({ success: false, message: 'Faculty member not found' });
+      return;
+    }
+
+    staff.password = password.trim();
+    await staff.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Password successfully updated for ${staff.name}. They can now login at /admin/login with their new password.`
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateStaffByAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id || '').trim();
+    const { name, phone, role, password } = req.body;
+
+    let staff = null;
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      staff = await User.findById(id).select('+password');
+    }
+    if (!staff) {
+      staff = await User.findOne({ teacherId: id }).select('+password');
+    }
+
+    if (!staff) {
+      res.status(404).json({ success: false, message: 'Staff member not found' });
+      return;
+    }
+
+    if (name) staff.name = name.trim();
+    if (phone) staff.phone = phone.trim();
+    if (role) {
+      staff.role = role.toUpperCase() === 'ADMIN' ? 'ADMIN' : role.toUpperCase() === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'TEACHER';
+    }
+    if (password && password.trim().length >= 6) {
+      staff.password = password.trim();
+    }
+
+    await staff.save();
+    res.status(200).json({ success: true, message: 'Staff details updated successfully', data: staff });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
