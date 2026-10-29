@@ -148,11 +148,11 @@ export const HomePage: React.FC = () => {
 
           {/* Banner Type */}
           {sec.type === 'banner' && (
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '28px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: 'clamp(16px, 3.5vw, 28px)', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
               {sec.imageUrl && (
-                <img src={sec.imageUrl} alt={sec.title} style={{ width: '300px', maxHeight: '200px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
+                <img src={sec.imageUrl} alt={sec.title} style={{ width: '100%', maxWidth: '300px', maxHeight: '200px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
               )}
-              <div style={{ flex: 1, minWidth: '280px' }}>
+              <div style={{ flex: 1, minWidth: '260px' }}>
                 {sec.content && <p style={{ fontSize: '1.05rem', color: '#334155', lineHeight: 1.65, margin: '0 0 18px' }}>{sec.content}</p>}
                 {sec.buttonText && (
                   <a href={sec.buttonUrl || '/courses'} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', fontWeight: 600 }}>
