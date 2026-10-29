@@ -461,13 +461,13 @@ export const LiveClassroomPage: React.FC = () => {
             <div className={styles.quoteAuthorWrap}>
               <div className={styles.authorAvatarBox}>
                 <img
-                  src="/img/founder.jpeg"
+                  src="/img/dk-sir.jpg"
                   alt="Dharmendra Kumar (DK Sir)"
                   className={styles.authorImage}
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
-                    if (!img.src.includes('founder-profile')) {
-                      img.src = '/img/founder-profile.jpeg';
+                    if (!img.src.includes('founder')) {
+                      img.src = '/img/founder.jpeg';
                     }
                   }}
                 />
