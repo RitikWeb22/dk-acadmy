@@ -308,7 +308,14 @@ export const PaymentPage: React.FC = () => {
                     {course.description || 'Video classes + DPP + CBT Test Series · Full academic session · English & Hinglish'}
                   </p>
                   <div className={styles.mentorBadge}>
-                    <img src="/img/dk-sir-real.jpg" alt="Dharmendra Kumar (DK Sir)" className={styles.mentorAvatar} />
+                    <img
+                      src="/img/dk-sir.jpg"
+                      alt="Dharmendra Kumar (DK Sir)"
+                      className={styles.mentorAvatar}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/img/founder.jpeg';
+                      }}
+                    />
                     <span>Mentor: Dharmendra Kumar (DK Sir)</span>
                   </div>
                 </div>
