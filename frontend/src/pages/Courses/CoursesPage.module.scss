@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   background-color: #ffffff;
   min-height: 100vh;
   color: #0f172a;
@@ -15,8 +17,8 @@
     padding-right: 24px;
 
     @include mobile {
-      padding-left: 16px;
-      padding-right: 16px;
+      padding-left: 14px;
+      padding-right: 14px;
     }
   }
 }
@@ -1121,9 +1123,9 @@
   position: relative;
   z-index: 1;
 
-  @include tablet {
+  @include tablet-down {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 28px;
   }
 }
 
