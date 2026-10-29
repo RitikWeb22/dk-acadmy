@@ -69,18 +69,17 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         if (googleBtnContainerRef.current) {
           googleBtnContainerRef.current.innerHTML = '';
 
-          // Accurately determine available parent width
-          const parentWidth = googleBtnContainerRef.current.parentElement?.clientWidth;
-          const containerWidth = googleBtnContainerRef.current.clientWidth;
-          const measuredWidth = parentWidth || containerWidth;
-          const availableWidth = measuredWidth && measuredWidth > 60
-            ? measuredWidth
-            : typeof window !== 'undefined'
-            ? window.innerWidth - 64
-            : 300;
+          // Accurately determine available container width
+          const container = googleBtnContainerRef.current;
+          const rectWidth = container.getBoundingClientRect()?.width || container.clientWidth;
+          const parentWidth = container.parentElement?.clientWidth;
+          const measuredWidth = (rectWidth && rectWidth > 50) ? rectWidth : (parentWidth && parentWidth > 50 ? parentWidth : 0);
+          const fallbackWidth = typeof window !== 'undefined' ? Math.max(200, window.innerWidth - 64) : 280;
+          const availableWidth = measuredWidth || fallbackWidth;
 
           // Google Identity Services renderButton strictly enforces [200, 400]
-          const targetWidth = Math.floor(Math.min(Math.max(200, availableWidth), 380));
+          // Subtract a small buffer (4px) so borders never clip the container
+          const targetWidth = Math.max(200, Math.min(380, Math.floor(availableWidth - 4)));
 
           window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
             type: 'standard',

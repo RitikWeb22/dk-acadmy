@@ -52,7 +52,12 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
     return url;
   };
 
-  const embedUrl = getEmbedUrl(question.youtubeUrl);
+  const isDirectVideo = Boolean(
+    (question.videoUrl && (question.videoUrl.endsWith('.mp4') || question.videoUrl.startsWith('/videos/') || question.videoUrl.startsWith('/assets/'))) ||
+    (question.youtubeUrl && (question.youtubeUrl.endsWith('.mp4') || question.youtubeUrl.startsWith('/videos/') || question.youtubeUrl.startsWith('/assets/')))
+  );
+  const directVideoSrc = question.videoUrl || (question.youtubeUrl?.endsWith('.mp4') ? question.youtubeUrl : '');
+  const embedUrl = isDirectVideo ? '' : getEmbedUrl(question.youtubeUrl);
   const rawYoutubeUrl = question.youtubeUrl || 'https://www.youtube.com';
 
   return (
@@ -61,7 +66,7 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="YouTube Video Solution"
+      aria-label="Video Solution Player"
     >
       <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -69,7 +74,7 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
           <div className={styles.titleInfo}>
             <div className={styles.brandBadge}>
               <YoutubeIcon size={16} className={styles.ytIcon} />
-              <span>DK Academy Video Solution</span>
+              <span>{isDirectVideo ? 'DK Sir Masterclass Video Walkthrough' : 'DK Academy Video Solution'}</span>
             </div>
             <h3 className={styles.modalHeading}>
               {question.exam} {question.year} • {question.subject}: {question.chapter}
@@ -89,13 +94,25 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
 
         {/* Video Player Container */}
         <div className={styles.playerContainer}>
-          <iframe
-            src={embedUrl}
-            title={`${question.exam} ${question.chapter} Solution Video`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className={styles.iframe}
-          />
+          {isDirectVideo ? (
+            <video
+              src={directVideoSrc}
+              controls
+              autoPlay
+              playsInline
+              controlsList="nodownload"
+              className={styles.iframe}
+              style={{ objectFit: 'contain', backgroundColor: '#000000', width: '100%', height: '100%' }}
+            />
+          ) : (
+            <iframe
+              src={embedUrl}
+              title={`${question.exam} ${question.chapter} Solution Video`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className={styles.iframe}
+            />
+          )}
         </div>
 
         {/* Resource Action Bar */}
@@ -112,26 +129,29 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
             {question.pdfUrl && (
               <a
                 href={question.pdfUrl}
+                download
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.pdfDownloadBtn}
               >
                 <FileText size={15} />
-                <span>Download PDF Solution</span>
+                <span>Download PYQ PDF</span>
                 <Download size={14} />
               </a>
             )}
 
-            <a
-              href={rawYoutubeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.openYoutubeBtn}
-            >
-              <YoutubeIcon size={15} />
-              <span>Open in YouTube</span>
-              <ExternalLink size={13} />
-            </a>
+            {!isDirectVideo && (
+              <a
+                href={rawYoutubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.openYoutubeBtn}
+              >
+                <YoutubeIcon size={15} />
+                <span>Open in YouTube</span>
+                <ExternalLink size={13} />
+              </a>
+            )}
           </div>
         </div>
       </div>

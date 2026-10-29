@@ -2,6 +2,102 @@ import type { DPPSet } from '../types';
 
 export const DPP_SETS: DPPSet[] = [
   {
+    id: 'dpp-math-straight-lines',
+    title: 'DPP-05: Straight Lines & Coordinate Geometry Shortcuts',
+    subject: 'Mathematics',
+    chapter: 'Straight Lines',
+    topic: 'Lines, Slopes, Intercepts & Distance Shortcuts',
+    difficulty: 'Medium',
+    estimatedMinutes: 30,
+    pdfUrl: '/assets/downloads/st line-2.pdf',
+    videoWalkthroughUrl: '/videos/1.mp4',
+    questions: [
+      {
+        id: 'dpp-math-st-q1',
+        questionNumber: 1,
+        statement: 'A straight line passing through P(2, 3) cuts the coordinate axes at A and B such that P divides AB internally in the ratio 1 : 2. If the equation of a line perpendicular to AB passing through the origin is y = mx, then m is:',
+        options: [
+          { id: 'A', text: '1/3' },
+          { id: 'B', text: '4/3' },
+          { id: 'C', text: '3/4' },
+          { id: 'D', text: '-3/4' }
+        ],
+        correctAnswer: 'A',
+        formulaKey: 'Intercept Form: x/a + y/b = 1; Section Formula',
+        explanation: 'Coordinates of A and B on the axes are A(3, 0) and B(0, 9). Line AB slope = -3. The perpendicular line slope m = -1/(-3) = 1/3.'
+      },
+      {
+        id: 'dpp-math-st-q2',
+        questionNumber: 2,
+        statement: 'The distance between the two parallel lines 3x + 4y - 9 = 0 and 6x + 8y + 15 = 0 is:',
+        options: [
+          { id: 'A', text: '33/10' },
+          { id: 'B', text: '33/5' },
+          { id: 'C', text: '6/5' },
+          { id: 'D', text: '12/5' }
+        ],
+        correctAnswer: 'A',
+        formulaKey: 'Distance between parallel lines: d = |c₁ - c₂| / √(a² + b²)',
+        explanation: 'Multiply the first line by 2: 6x + 8y - 18 = 0. Comparing with 6x + 8y + 15 = 0, distance d = |15 - (-18)| / √(36 + 64) = 33 / 10.'
+      },
+      {
+        id: 'dpp-math-st-q3',
+        questionNumber: 3,
+        statement: 'If the lines 2x + y - 3 = 0, 5x + ky - 3 = 0 and 3x - y - 2 = 0 are concurrent, then the value of k is:',
+        options: [
+          { id: 'A', text: '-2' },
+          { id: 'B', text: '3' },
+          { id: 'C', text: '2' },
+          { id: 'D', text: '-3' }
+        ],
+        correctAnswer: 'A',
+        formulaKey: 'Condition of concurrency: Determinant of coefficients = 0',
+        explanation: 'Solving 2x + y = 3 and 3x - y = 2 gives 5x = 5 ⇒ x = 1, y = 1. Substitute (1, 1) into 5x + ky - 3 = 0: 5(1) + k(1) - 3 = 0 ⇒ k = -2.'
+      }
+    ]
+  },
+  {
+    id: 'dpp-math-parabola',
+    title: 'DPP-06: Parabola Conic Sections & Latus Rectum Mastery',
+    subject: 'Mathematics',
+    chapter: 'Parabola',
+    topic: 'Chords, Normals, Tangents & Vertex Properties',
+    difficulty: 'Hard',
+    estimatedMinutes: 35,
+    pdfUrl: '/assets/downloads/parabola -1.pdf',
+    videoWalkthroughUrl: '/videos/2.mp4',
+    questions: [
+      {
+        id: 'dpp-math-pb-q1',
+        questionNumber: 1,
+        statement: 'Let O be the vertex of the parabola y² = 4ax and chords OP and OQ are perpendicular. If the locus of the midpoint of PQ is a conic, then the length of its latus rectum is:',
+        options: [
+          { id: 'A', text: '2a' },
+          { id: 'B', text: '4a' },
+          { id: 'C', text: '8a' },
+          { id: 'D', text: 'a' }
+        ],
+        correctAnswer: 'A',
+        formulaKey: 'Parametric points: P(at₁², 2at₁), Q(at₂², 2at₂); OP ⊥ OQ ⇒ t₁ t₂ = -4',
+        explanation: 'Let midpoint of PQ be (h, k). 2h = a(t₁² + t₂²), 2k = 2a(t₁ + t₂). Since (t₁ + t₂)² = (t₁² + t₂²) + 2t₁t₂ = 2h/a - 8. From 2k/2a = t₁ + t₂ ⇒ k²/a² = 2h/a - 8 ⇒ y² = 2a(x - 4a). The latus rectum of this new parabola is 2a.'
+      },
+      {
+        id: 'dpp-math-pb-q2',
+        questionNumber: 2,
+        statement: 'The equation of the common tangent to the circle x² + y² = 2a² and the parabola y² = 8ax is:',
+        options: [
+          { id: 'A', text: 'y = ± (x + 2a)' },
+          { id: 'B', text: 'y = ± (x + a)' },
+          { id: 'C', text: 'y = ± (2x + a)' },
+          { id: 'D', text: 'y = ± (x + 4a)' }
+        ],
+        correctAnswer: 'A',
+        formulaKey: 'Tangent to y² = 4Ax is y = mx + A/m; perpendicular distance from (0,0) to line = R',
+        explanation: 'For y² = 8ax, A = 2a. Tangent: y = mx + 2a/m ⇒ m²x - my + 2a = 0. Perpendicular distance from (0, 0) = |2a| / √(m⁴ + m²) = a√2 ⇒ 4a² / (m²(m² + 1)) = 2a² ⇒ m²(m² + 1) = 2 ⇒ m² = 1 ⇒ m = ±1. Equation: y = ±(x + 2a).'
+      }
+    ]
+  },
+  {
     id: 'dpp-phy-01',
     title: 'DPP-01: Rotational Dynamics & Pure Rolling',
     subject: 'Physics',

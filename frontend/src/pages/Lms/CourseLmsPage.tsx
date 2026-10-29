@@ -359,31 +359,31 @@ const generateDefaultCurriculum = (course: Course): CourseCurriculumSection[] =>
       lectures: [
         {
           id: 'lec-1-1',
-          title: 'Lesson 1: Introduction to DK Sir 20s Inspection Method & Principles',
-          duration: '38:40',
+          title: 'Lesson 1: Straight Lines Speed Inspection & 20s Shortcuts (DK Sir)',
+          duration: '05:12',
           isPreview: true,
-          videoUrl: '/videos/dk-sir-lecture-calculus.mp4',
+          videoUrl: '/videos/1.mp4',
           description:
-            'Fundamental orientation on identifying symmetric properties in JEE calculus, eliminating wrong options via boundary analysis, and establishing 20-30s speed solutions.',
-          notesPdfUrl: '/downloads/dk-calculus-handout-01.pdf',
-          notesTitle: 'DK_Sir_Calculus_Foundations_Lecture_Notes.pdf',
-          dppPdfUrl: '/downloads/dpp-calculus-01.pdf',
-          dppTitle: 'Daily_Practice_Problem_Set_01_With_Solutions.pdf',
+            'Fundamental Kota orientation by DK Sir: Deconstructing straight line family equations, intercepts, and perpendicular slope inspection in 20-30 seconds without multi-page algebra.',
+          notesPdfUrl: '/assets/downloads/st line-2.pdf',
+          notesTitle: 'DK_Sir_Straight_Lines_JEE_Main_PYQ_Booklet.pdf',
+          dppPdfUrl: '/assets/downloads/st line-2.pdf',
+          dppTitle: 'Official_Straight_Lines_PYQ_Practice_Sheet.pdf',
           externalDocLink: 'https://jeemain.nta.nic.in',
           externalDocTitle: 'NTA JEE Master Syllabus & Marking Scheme.pdf'
         },
         {
           id: 'lec-1-2',
-          title: 'Lesson 2: King’s Property & Symmetric Definite Integrals',
-          duration: '45:15',
+          title: 'Lesson 2: Parabola Conic Sections, Latus Rectum & Normal Chords',
+          duration: '14:20',
           isPreview: true,
-          videoUrl: '/videos/story-aarav.mp4',
+          videoUrl: '/videos/2.mp4',
           description:
-            'Comprehensive derivation of King’s Property (f(a+b-x)) with 12 classic JEE Advanced past exam problems solved in 25 seconds without multi-step integration by parts.',
-          notesPdfUrl: '/downloads/kings-property-notes.pdf',
-          notesTitle: 'Kings_Property_Symmetry_CheatSheet.pdf',
-          dppPdfUrl: '/downloads/dpp-calculus-02.pdf',
-          dppTitle: 'Daily_Practice_Problem_Set_02_Kings_Rule.pdf'
+            'In-depth masterclass by DK Sir on Parabola parametric chords, focal properties, perpendicular chords through vertex, and finding locus of midpoints.',
+          notesPdfUrl: '/assets/downloads/parabola -1.pdf',
+          notesTitle: 'DK_Sir_Parabola_Conic_Sections_Mastery_Sheet.pdf',
+          dppPdfUrl: '/assets/downloads/parabola -1.pdf',
+          dppTitle: 'Official_Parabola_PYQ_With_Solutions.pdf'
         },
         {
           id: 'lec-1-3',

@@ -168,6 +168,7 @@ export interface PYQQuestion {
   marks: string; // e.g. '+4 / -1'
   isFree?: boolean; // First 5 questions free preview; remaining questions unlocked upon course purchase
   youtubeUrl?: string; // YouTube video solution walkthrough link
+  videoUrl?: string; // Direct MP4 video walkthrough link
   pdfUrl?: string; // Solution & question paper PDF download link
   courseId?: string; // Associated course ID (e.g., 'jee-pyq-archive-mastery')
   courseName?: string; // Associated course display title
@@ -206,6 +207,8 @@ export interface DPPSet {
   topic: string;
   difficulty: DPPDifficulty;
   estimatedMinutes: number;
+  pdfUrl?: string;
+  videoWalkthroughUrl?: string;
   questions: DPPQuestion[];
 }
 

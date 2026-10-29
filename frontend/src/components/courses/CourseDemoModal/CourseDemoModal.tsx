@@ -159,8 +159,8 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
   const handleDownloadNotes = (e: React.MouseEvent) => {
     e.preventDefault();
     const link = document.createElement('a');
-    link.href = '/notes/dk-sir-limits-notes-dpp1.pdf';
-    link.download = 'DK-Sir-Limits-Handwritten-Notes-DPP01.pdf';
+    link.href = '/assets/downloads/st line-2.pdf';
+    link.download = 'DK-Sir-Straight-Lines-JEE-Main-PYQs.pdf';
     link.target = '_blank';
     document.body.appendChild(link);
     link.click();
@@ -196,8 +196,8 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
             <div className={styles.videoPlayerContainer}>
               <video
                 ref={videoRef}
-                src="/videos/dk-sir-lecture-calculus.mp4"
-                poster="/img/hero.jpg"
+                src="/videos/1.mp4"
+                poster="/images/pyq-straight-lines-banner.jpg"
                 className={styles.videoElement}
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
@@ -303,16 +303,16 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
                   Lecture 1 (Free Preview)
                 </span>
                 <span className={styles.lectureDuration}>
-                  ⏱️ 54 Mins Full Masterclass
+                  ⏱️ 5 Mins Video Walkthrough
                 </span>
               </div>
 
               <h4 className={styles.lectureTitle}>
-                Limits &amp; 20-30s Inspection Rule by Dharmendra Kumar (DK Sir)
+                Straight Lines Speed Shortcuts &amp; JEE Main PYQ Breakdown by DK Sir
               </h4>
 
               <p className={styles.lectureExcerpt}>
-                Learn how Kota top-100 rankers solve indeterminate (0/0) forms and boundary cusps in 20 seconds without pages of standard expansion. Includes downloadable DPP-01 and blackboard handwritten notes PDF.
+                Learn how Kota top rankers solve Coordinate Geometry and Straight Lines PYQs in 20-30 seconds with DK Sir’s visual inspection shortcuts. Includes official downloadable JEE Main Chapter PYQ booklet.
               </p>
 
               <button
@@ -321,7 +321,7 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
                 onClick={handleDownloadNotes}
               >
                 <FileDown size={14} />
-                <span>Download Class Notes PDF (Free Handout)</span>
+                <span>Download Straight Lines PYQs PDF (Free Handout)</span>
               </button>
             </div>
           </div>

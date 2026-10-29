@@ -11,6 +11,8 @@ import {
   getStaffList,
   createStudentByAdmin,
   createStaffByAdmin,
+  updateStaffByAdmin,
+  updateStaffPasswordByAdmin,
   deleteUserByAdmin
 } from '../controllers/authController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
@@ -44,6 +46,9 @@ router.get('/students', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'
 router.post('/students', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStudentByAdmin);
 router.get('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), getStaffList);
 router.post('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStaffByAdmin);
+router.put('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), updateStaffByAdmin);
+router.put('/staff/:id/password', protect, authorize('SUPER_ADMIN', 'ADMIN'), updateStaffPasswordByAdmin);
+router.delete('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), deleteUserByAdmin);
 router.delete('/users/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), deleteUserByAdmin);
 
 export default router;
