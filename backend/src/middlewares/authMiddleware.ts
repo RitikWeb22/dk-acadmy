@@ -5,6 +5,8 @@ import { User, type IUser } from '../models/User.js';
 
 export interface AuthRequest extends Request {
   user?: IUser;
+  file?: any;
+  files?: any;
 }
 
 interface DecodedToken {
