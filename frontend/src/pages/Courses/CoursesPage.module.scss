@@ -15,10 +15,17 @@
     max-width: 1360px;
     padding-left: 24px;
     padding-right: 24px;
+    width: 100%;
+    box-sizing: border-box;
 
     @include mobile {
-      padding-left: 14px;
-      padding-right: 14px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    @media (max-width: 380px) {
+      padding-left: 8px;
+      padding-right: 8px;
     }
   }
 }
@@ -267,9 +274,16 @@
   letter-spacing: -0.03em;
   margin: 0 0 14px 0;
   line-height: 1.2;
+  word-break: break-word;
 
   @include mobile {
-    font-size: 26px;
+    font-size: 24px;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 400px) {
+    font-size: 21px;
   }
 }
 
@@ -282,7 +296,8 @@
   font-weight: 400;
 
   @include mobile {
-    font-size: 14px;
+    font-size: 13.5px;
+    line-height: 1.5;
     margin-bottom: 18px;
   }
 }
@@ -294,6 +309,7 @@
   gap: 12px;
   max-width: 680px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .heroSearchWrap {
@@ -301,6 +317,8 @@
   align-items: center;
   position: relative;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background: #ffffff;
   border-radius: 12px;
   border: 1.5px solid #cbd5e1;
@@ -316,13 +334,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-left: 16px;
+    padding-left: 14px;
     padding-right: 4px;
     color: #64748b;
+    flex-shrink: 0;
   }
 
   .heroSearchInput {
     flex: 1;
+    min-width: 0;
     height: 50px;
     border: none;
     background: transparent;
@@ -330,16 +350,25 @@
     color: #0f172a;
     outline: none;
     font-family: inherit;
-    padding: 0 12px 0 6px;
+    padding: 0 10px 0 6px;
+
+    @media (max-width: 480px) {
+      height: 44px;
+      font-size: 13.5px;
+    }
 
     &::placeholder {
       color: #94a3b8;
       font-size: 14px;
+
+      @media (max-width: 480px) {
+        font-size: 13px;
+      }
     }
   }
 
   .clearSearchBtn {
-    margin-right: 12px;
+    margin-right: 10px;
     background: #f1f5f9;
     border: none;
     color: #64748b;
@@ -350,6 +379,7 @@
     width: 26px;
     height: 26px;
     border-radius: 9999px;
+    flex-shrink: 0;
     transition: all 0.15s ease;
 
     &:hover {
@@ -368,6 +398,12 @@
     padding: 3px 8px;
     border-radius: 6px;
     pointer-events: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    @media (max-width: 480px) {
+      display: none;
+    }
   }
 }
 
@@ -427,6 +463,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   width: 100%;
+  box-sizing: border-box;
 
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
@@ -434,7 +471,7 @@
 
   @include mobile {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 }
 
@@ -448,6 +485,9 @@
   gap: 14px;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 
   &:hover {
     transform: translateY(-2px);
@@ -456,8 +496,9 @@
   }
 
   @include mobile {
-    padding: 14px 16px;
+    padding: 12px 14px;
     gap: 12px;
+    border-radius: 12px;
   }
 }
 
@@ -552,9 +593,11 @@
   padding: 12px 0;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
   overflow: visible;
+  width: 100%;
+  box-sizing: border-box;
 
   @include mobile {
-    top: 60px; // Under navbar on mobile
+    top: 56px; // Under navbar on mobile
     padding: 8px 0;
     z-index: 95;
   }
@@ -564,8 +607,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
+  box-sizing: border-box;
   overflow: visible;
   position: relative;
 }
@@ -577,13 +621,16 @@
   flex-wrap: wrap;
   overflow: visible;
   flex-grow: 1;
+  width: 100%;
+  box-sizing: border-box;
 
   @media (max-width: 900px) {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
-    padding-bottom: 4px;
-    padding-right: 16px;
+    padding-bottom: 6px;
+    padding-left: 2px;
+    padding-right: 14px;
     -webkit-overflow-scrolling: touch;
 
     &::-webkit-scrollbar {
@@ -948,6 +995,7 @@
   gap: 16px;
   align-items: stretch;
   width: 100%;
+  box-sizing: border-box;
 
   @media (max-width: 1240px) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -961,7 +1009,7 @@
 
   @media (max-width: 600px) {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 }
 
@@ -1038,12 +1086,16 @@
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  width: 100%;
+  box-sizing: border-box;
 
   @media (max-width: 640px) {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 14px;
+    gap: 12px;
+    padding: 14px 10px;
+    margin-top: 24px;
   }
 }
 
@@ -1171,6 +1223,11 @@
   @include mobile {
     padding: 24px 18px;
     border-radius: 18px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 18px 12px;
+    border-radius: 14px;
   }
 }
 
@@ -1325,6 +1382,7 @@
   gap: 6px;
   font-size: 13.5px;
   font-weight: 700;
+  flex-wrap: wrap;
 }
 
 .phoneLink {
@@ -1356,6 +1414,14 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+
+  @media (max-width: 480px) {
+    padding: 18px 14px;
+    border-radius: 14px;
+    gap: 14px;
+  }
 }
 
 .callbackBoxHeader {
@@ -1403,6 +1469,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .countryCodeBadge {
@@ -1422,6 +1490,8 @@
 
 .callbackTextInput {
   flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
   height: 44px;
   padding: 0 14px;
   background: #f8fafc;
