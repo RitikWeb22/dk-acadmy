@@ -6,6 +6,9 @@
 
 .googleBtn {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
   height: 48px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);

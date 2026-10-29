@@ -7,9 +7,15 @@
   justify-content: center;
   align-items: flex-start;
   padding: 40px 24px 64px 24px;
+  box-sizing: border-box;
 
   @include mobile {
-    padding: 16px 16px 40px 16px;
+    padding: 16px 14px 40px 14px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px 10px 32px 10px;
+    min-height: auto;
   }
 }
 
@@ -19,13 +25,19 @@
   gap: 32px;
   max-width: 1120px;
   width: 100%;
+  box-sizing: border-box;
   align-items: flex-start; // Align left panel and form card at the same top offset
 
   @include tablet-down {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     max-width: 520px;
+  }
+
+  @media (max-width: 480px) {
+    max-width: 100%;
+    gap: 12px;
   }
 }
 
@@ -237,10 +249,14 @@
 // -------------------------------------------------------------
 .rightPanel {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .formCard {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
@@ -251,7 +267,14 @@
   gap: 24px;
 
   @include mobile {
-    padding: 24px; // 24px padding mobile per prompt
+    padding: 24px;
+    gap: 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 18px 14px;
+    gap: 16px;
+    border-radius: 12px;
   }
 }
 
@@ -268,6 +291,10 @@
   color: var(--color-text-primary);
   letter-spacing: -0.015em;
   margin: 0;
+
+  @media (max-width: 480px) {
+    font-size: 1.2rem;
+  }
 }
 
 .formSubtitle {
@@ -275,6 +302,11 @@
   color: var(--color-text-secondary);
   line-height: 1.5;
   margin: 0;
+
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
 }
 
 .formBody {
