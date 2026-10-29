@@ -8,12 +8,17 @@ import {
   Brain,
   Award,
   Clock,
-  CheckCircle,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   MessageSquare,
   ShieldCheck,
   Send,
+  Sparkles,
+  ArrowRight,
+  BookOpen,
+  Calendar,
+  Users,
   Flame,
   Check
 } from 'lucide-react';
@@ -73,41 +78,47 @@ export const BitsatPage: React.FC = () => {
   return (
     <div className={styles.bitsatPageWrapper}>
       {/* 1. Breadcrumb Bar */}
-      <div className={styles.breadcrumbBar}>
+      <nav className={styles.breadcrumbBar} aria-label="Breadcrumb">
         <Container size="wide">
           <div className={styles.breadcrumbInner}>
             <Link to="/" className={styles.breadcrumbLink}>
               <Home size={14} />
               <span>Home</span>
             </Link>
-            <span className={styles.breadcrumbSep}><ChevronRight size={14} /></span>
-            <span className={styles.breadcrumbCurrent}>BITSAT 2026/2027 Mastery</span>
+            <span className={styles.breadcrumbSep}><ChevronRight size={13} /></span>
+            <span className={styles.breadcrumbCurrent}>BITSAT Speed Math &amp; CBT Mastery</span>
           </div>
         </Container>
-      </div>
+      </nav>
 
-      {/* 2. Hero Section */}
+      {/* 2. Hero Section - Executive Light Design matching site styling */}
       <section className={styles.heroSection}>
+        <div className={styles.ambientGlow} aria-hidden="true" />
         <Container size="wide">
           <div className={styles.heroContent}>
+            {/* Urgency Eyebrow Badge */}
             <div className={styles.heroBadge}>
-              <Flame size={14} />
+              <Flame size={14} className={styles.flameIcon} />
               <span>BITSAT 2026 &amp; 2027 • ADMISSIONS OPEN</span>
             </div>
 
+            {/* Main Page Headline */}
             <h1 className={styles.heroHeading}>
-              Conquer BITSAT with DK Sir's
+              Conquer BITSAT with DK Sir's <br />
               <span className={styles.highlightText}>20–30s Speed Math &amp; CBT Mastery</span>
             </h1>
 
+            {/* Subtitle */}
             <p className={styles.heroSubtext}>
-              <strong>130 Questions in 180 Minutes</strong> gives you just 83 seconds per question. Learn rapid option elimination, master English &amp; Logical Reasoning (60 marks), and train with our exact <strong>12-Bonus Questions CBT simulation engine</strong> to score 330+ for BITS Pilani CS.
+              <strong>130 Questions in 180 Minutes</strong> gives you just 83 seconds per question. Learn rapid option elimination, master English &amp; Logical Reasoning (90 marks), and train with our exact <strong>12-Bonus Questions CBT simulation engine</strong> to score 330+ for BITS Pilani CS.
             </p>
 
+            {/* Action CTAs */}
             <div className={styles.heroCtas}>
               <a href="#batches" className={styles.primaryCtaBtn}>
                 <Zap size={16} />
                 <span>Explore BITSAT Batches</span>
+                <ArrowRight size={15} />
               </a>
               <a href="#diagnostic-form" className={styles.secondaryCtaBtn}>
                 <Target size={16} />
@@ -115,22 +126,43 @@ export const BitsatPage: React.FC = () => {
               </a>
             </div>
 
-            {/* Hero Quick Stats */}
+            {/* Reassurance Micro-copy */}
+            <div className={styles.heroMicroNote}>
+              <ShieldCheck size={14} className={styles.microShield} />
+              <span>Strictly Max 25 Students/Batch • 1-on-1 Speed Diagnostic Included</span>
+            </div>
+
+            {/* 4 Elevated Quick KPI Stat Cards */}
             <div className={styles.statsGrid}>
               <div className={styles.statCard}>
-                <span className={styles.statValue}>83 Sec</span>
+                <div className={styles.statIconWrap}>
+                  <Clock size={18} />
+                </div>
+                <div className={styles.statValue}>83 Sec</div>
                 <p className={styles.statLabel}>Avg. Speed per Question Target</p>
               </div>
+
               <div className={styles.statCard}>
-                <span className={styles.statValue}>330+</span>
+                <div className={styles.statIconWrap}>
+                  <Award size={18} />
+                </div>
+                <div className={styles.statValue}>330+</div>
                 <p className={styles.statLabel}>Target Score for BITS Pilani CS</p>
               </div>
+
               <div className={styles.statCard}>
-                <span className={styles.statValue}>+36 Marks</span>
+                <div className={styles.statIconWrap}>
+                  <Sparkles size={18} />
+                </div>
+                <div className={styles.statValue}>+36 Marks</div>
                 <p className={styles.statLabel}>12 Bonus Questions Strategy</p>
               </div>
+
               <div className={styles.statCard}>
-                <span className={styles.statValue}>90 Marks</span>
+                <div className={styles.statIconWrap}>
+                  <Brain size={18} />
+                </div>
+                <div className={styles.statValue}>90 Marks</div>
                 <p className={styles.statLabel}>English &amp; Logical Reasoning Focus</p>
               </div>
             </div>
@@ -139,21 +171,28 @@ export const BitsatPage: React.FC = () => {
       </section>
 
       {/* 3. BITSAT Exam Pattern Blueprint */}
-      <section className={`${styles.section} ${styles.sectionLight}`} id="pattern">
+      <section className={styles.section} id="pattern">
         <Container size="wide">
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>Exam Architecture</span>
-            <h2 className={styles.sectionTitle}>BITSAT Blueprint: 130 Questions, 390 Marks, 180 Mins</h2>
+            <div className={styles.sectionBadge}>
+              <Sparkles size={12} />
+              <span>EXAM ARCHITECTURE</span>
+            </div>
+            <h2 className={styles.sectionTitle}>
+              BITSAT Blueprint: <span className={styles.titleGradient}>130 Questions, 390 Marks, 180 Mins</span>
+            </h2>
             <p className={styles.sectionDescription}>
               Mathematics carries the highest weightage (40 questions), while English &amp; Logic (30 questions) form the make-or-break scoring zone.
             </p>
           </div>
 
           <div className={styles.patternGrid}>
+            {/* Part IV - Mathematics */}
             <div className={styles.patternCard}>
+              <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #d97706, #f59e0b)' }} />
               <div className={styles.patternTop}>
                 <span className={`${styles.subjectBadge} ${styles.mathBadge}`}>Part IV</span>
-                <Clock size={16} color="#b45309" />
+                <Clock size={16} className={styles.accentClock} />
               </div>
               <h3 className={styles.patternTitle}>Mathematics</h3>
               <div className={styles.patternStatsRow}>
@@ -165,10 +204,12 @@ export const BitsatPage: React.FC = () => {
               </p>
             </div>
 
+            {/* Part III - English & Logic */}
             <div className={styles.patternCard}>
+              <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #4f46e5, #818cf8)' }} />
               <div className={styles.patternTop}>
                 <span className={`${styles.subjectBadge} ${styles.lrBadge}`}>Part III</span>
-                <Brain size={16} color="#4338ca" />
+                <Brain size={16} className={styles.accentBrain} />
               </div>
               <h3 className={styles.patternTitle}>English &amp; Logical Reasoning</h3>
               <div className={styles.patternStatsRow}>
@@ -180,10 +221,12 @@ export const BitsatPage: React.FC = () => {
               </p>
             </div>
 
+            {/* Part I - Physics */}
             <div className={styles.patternCard}>
+              <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #2563eb, #38bdf8)' }} />
               <div className={styles.patternTop}>
-                <span className={styles.subjectBadge}>Part I</span>
-                <Zap size={16} color="#2563eb" />
+                <span className={`${styles.subjectBadge} ${styles.phyBadge}`}>Part I</span>
+                <Zap size={16} className={styles.accentZap} />
               </div>
               <h3 className={styles.patternTitle}>Physics</h3>
               <div className={styles.patternStatsRow}>
@@ -195,10 +238,12 @@ export const BitsatPage: React.FC = () => {
               </p>
             </div>
 
+            {/* Part II - Chemistry */}
             <div className={styles.patternCard}>
+              <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #059669, #34d399)' }} />
               <div className={styles.patternTop}>
-                <span className={styles.subjectBadge}>Part II</span>
-                <Award size={16} color="#059669" />
+                <span className={`${styles.subjectBadge} ${styles.chemBadge}`}>Part II</span>
+                <Award size={16} className={styles.accentAward} />
               </div>
               <h3 className={styles.patternTitle}>Chemistry</h3>
               <div className={styles.patternStatsRow}>
@@ -213,9 +258,10 @@ export const BitsatPage: React.FC = () => {
 
           {/* 12 Bonus Questions Round Highlight Banner */}
           <div className={styles.bonusBanner}>
+            <div className={styles.bonusGlowAura} aria-hidden="true" />
             <div className={styles.bonusLeft}>
               <span className={styles.bonusPill}>
-                <SparkleIcon /> THE BITSAT ADVANTAGE
+                <Sparkles size={12} /> THE BITSAT ADVANTAGE
               </span>
               <h3 className={styles.bonusTitle}>Unlock the 12 Bonus Questions Engine</h3>
               <p className={styles.bonusDesc}>
@@ -233,11 +279,16 @@ export const BitsatPage: React.FC = () => {
       </section>
 
       {/* 4. Why DK Sir's Pedagogy Outperforms in BITSAT */}
-      <section className={styles.section} id="pedagogy">
+      <section className={`${styles.section} ${styles.sectionAlt}`} id="pedagogy">
         <Container size="wide">
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>Speed-First Methodology</span>
-            <h2 className={styles.sectionTitle}>Why JEE Main Coaching Fails in BITSAT Without Speed Conditioning</h2>
+            <div className={styles.sectionBadge}>
+              <Zap size={12} />
+              <span>SPEED-FIRST METHODOLOGY</span>
+            </div>
+            <h2 className={styles.sectionTitle}>
+              Why JEE Main Coaching Fails in BITSAT <span className={styles.titleGradient}>Without Speed Conditioning</span>
+            </h2>
             <p className={styles.sectionDescription}>
               In JEE, you have time to derive from fundamentals. In BITSAT, a 3-minute solution is equivalent to a failure. Here is how DK Sir rewires your exam reflexes.
             </p>
@@ -245,44 +296,73 @@ export const BitsatPage: React.FC = () => {
 
           <div className={styles.methodsGrid}>
             <div className={styles.methodCard}>
-              <div className={styles.methodIcon}>
-                <Zap size={28} />
+              <div className={styles.methodTop}>
+                <span className={styles.methodNumber}>01</span>
+                <div className={`${styles.methodIcon} ${styles.iconAmber}`}>
+                  <Zap size={22} />
+                </div>
               </div>
+              <span className={styles.methodTag}>Signature Technique</span>
               <h3 className={styles.methodTitle}>20–30 Second Option Elimination</h3>
               <p className={styles.methodText}>
                 Substitute boundary values, test dimensional symmetry, and evaluate extreme cases. In 70% of BITSAT math problems, 2 options are mathematically impossible within 15 seconds.
               </p>
+              <div className={styles.methodMetric}>
+                <Clock size={13} />
+                <span>Eliminates 6-7 lines of algebra</span>
+              </div>
             </div>
 
             <div className={styles.methodCard}>
-              <div className={styles.methodIcon}>
-                <Brain size={28} />
+              <div className={styles.methodTop}>
+                <span className={styles.methodNumber}>02</span>
+                <div className={`${styles.methodIcon} ${styles.iconIndigo}`}>
+                  <Brain size={22} />
+                </div>
               </div>
+              <span className={styles.methodTag}>Scoring Multiplier</span>
               <h3 className={styles.methodTitle}>English &amp; Logic Score Maximization</h3>
               <p className={styles.methodText}>
                 30 questions (90 marks) can elevate your rank from an MSc branch to Computer Science. We teach systematic verbal analogy algorithms, high-frequency root words, and pattern recognition.
               </p>
+              <div className={styles.methodMetric}>
+                <Award size={13} />
+                <span>Target: 75+ / 90 Marks</span>
+              </div>
             </div>
 
             <div className={styles.methodCard}>
-              <div className={styles.methodIcon}>
-                <Target size={28} />
+              <div className={styles.methodTop}>
+                <span className={styles.methodNumber}>03</span>
+                <div className={`${styles.methodIcon} ${styles.iconBlue}`}>
+                  <Target size={22} />
+                </div>
               </div>
+              <span className={styles.methodTag}>NTA &amp; TCS-iON Clone</span>
               <h3 className={styles.methodTitle}>CBT Simulation with Bonus Trigger</h3>
               <p className={styles.methodText}>
                 Practice on an interface identical to the official BITSAT TCS-iON engine with the live question palette, section jumper, and official bonus prompt.
               </p>
+              <div className={styles.methodMetric}>
+                <Sparkles size={13} />
+                <span>15 Authentic CBT Tests</span>
+              </div>
             </div>
           </div>
         </Container>
       </section>
 
-      {/* 5. Active BITSAT Batches */}
-      <section className={`${styles.section} ${styles.sectionLight}`} id="batches">
+      {/* 5. Active BITSAT Batches - Matching PopularCourses Award-Winning Design */}
+      <section className={styles.section} id="batches">
         <Container size="wide">
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>Enrollment Open 2026–27</span>
-            <h2 className={styles.sectionTitle}>Active BITSAT Batches &amp; Pricing</h2>
+            <div className={styles.sectionBadge}>
+              <Flame size={12} />
+              <span>ENROLLMENT OPEN 2026–27</span>
+            </div>
+            <h2 className={styles.sectionTitle}>
+              Active BITSAT Batches &amp; <span className={styles.titleGradient}>Tuition Plans</span>
+            </h2>
             <p className={styles.sectionDescription}>
               Target BITS Pilani, Goa, and Hyderabad with targeted crash courses, speed math boosters, and full-length CBT test series.
             </p>
@@ -290,119 +370,243 @@ export const BitsatPage: React.FC = () => {
 
           <div className={styles.batchesGrid}>
             {/* Batch 1: Complete Crash Course (Most Popular) */}
-            <div className={`${styles.batchCard} ${styles.popularBatch}`}>
-              <div className={styles.popularRibbon}>MOST POPULAR BITSAT BATCH</div>
-              <div className={styles.batchTop}>
-                <span className={styles.batchTypeBadge}>Full 5-Subject Crash Course</span>
-                <h3 className={styles.batchTitle}>BITSAT 2026 Speed Master Crash Program</h3>
-                <span className={styles.batchTargetYear}>Target BITSAT Sessions 1 &amp; 2 • Class 12th &amp; Droppers</span>
+            <article className={`${styles.batchCard} ${styles.popularBatch}`}>
+              <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #2563eb, #38bdf8)' }} />
+              
+              <div className={styles.batchTopBadgeRow}>
+                <span className={styles.batchFlagshipBadge}>
+                  <Sparkles size={11} /> MOST POPULAR BITSAT BATCH
+                </span>
+                <span className={styles.batchTargetYear}>
+                  <Calendar size={12} /> Target 2026/27
+                </span>
               </div>
 
+              <h3 className={styles.batchTitle}>BITSAT 2026 Speed Master Crash Program</h3>
+
+              {/* Rigor Meta Pills */}
+              <div className={styles.metaPillsRow}>
+                <div className={styles.metaPillBatch}>
+                  <Users size={12} />
+                  <span>Strictly Max 25 / Batch</span>
+                </div>
+                <div className={styles.metaPillMode}>
+                  <Zap size={12} />
+                  <span>Online Live • Sessions 1 &amp; 2</span>
+                </div>
+              </div>
+
+              {/* Key Deliverables */}
+              <ul className={styles.featuresList}>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>120+ Live Interactive Speed Hack Sessions</strong> by DK Sir &amp; Team</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>Full Math (40 Qs), Physics, Chem, English &amp; LR</strong> covered end-to-end</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>15 Full-length BITSAT CBT Mocks</strong> with Bonus 12 Questions simulator</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>BITSAT Formula Handbooks</strong> &amp; High-Frequency English Vocab Bank</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>Daily 1:1 Live Doubt Counter</strong> &amp; BITS Pilani Alumni Mentorship</span>
+                </li>
+              </ul>
+
+              {/* Pricing Box */}
               <div className={styles.pricingBlock}>
                 <div className={styles.priceRow}>
                   <span className={styles.currentPrice}>₹14,999</span>
                   <span className={styles.originalPrice}>₹24,999</span>
-                  <span className={styles.discountBadge}>40% OFF</span>
+                  <span className={styles.discountBadge}>Save 40%</span>
                 </div>
-                <p className={styles.priceNote}>Complete 5-subject course + 15 Full BITSAT Mocks</p>
+                <div className={styles.taxSubtext}>Incl. 18% GST • 5 Subjects + 15 Mocks</div>
               </div>
 
-              <ul className={styles.featuresList}>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> 120+ Live Interactive Speed Hack Sessions by DK Sir &amp; Team</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> Full Math (40 Qs), Physics, Chem, English &amp; Logical Reasoning</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> 15 Full-length BITSAT CBT Mocks with Bonus 12 Questions simulator</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> BITSAT Formula Handbooks &amp; High-Frequency English Vocab Bank</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> Daily 1:1 Live Doubt Counters &amp; BITS Pilani Alumni Mentorship</li>
-              </ul>
-
-              <a
-                href="#diagnostic-form"
-                className={`${styles.batchActionBtn} ${styles.enrollBtnPrimary}`}
-              >
-                <span>Enroll in Speed Master Batch</span>
-                <ChevronRight size={16} />
-              </a>
-            </div>
+              {/* Action Buttons */}
+              <div className={styles.cardActionsRow}>
+                <a href="#diagnostic-form" className={styles.enrollPrimaryBtn}>
+                  <span>Enroll in Speed Master</span>
+                  <ArrowRight size={14} />
+                </a>
+                <Link to="/courses" className={styles.syllabusSecondaryBtn}>
+                  <BookOpen size={13} />
+                  <span>Syllabus</span>
+                </Link>
+              </div>
+            </article>
 
             {/* Batch 2: Math + LR & English Super Booster */}
-            <div className={styles.batchCard}>
-              <div className={styles.batchTop}>
-                <span className={styles.batchTypeBadge}>Targeted Scoring Booster (210 Marks)</span>
-                <h3 className={styles.batchTitle}>BITSAT Math + LR &amp; English Super Booster</h3>
-                <span className={styles.batchTargetYear}>For students confident in Physics &amp; Chemistry</span>
+            <article className={styles.batchCard}>
+              <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #4f46e5, #818cf8)' }} />
+              
+              <div className={styles.batchTopBadgeRow}>
+                <span className={styles.batchBoosterBadge}>
+                  <Brain size={11} /> 210 MARKS SCORING BOOSTER
+                </span>
+                <span className={styles.batchTargetYear}>
+                  <Calendar size={12} /> Target 2026/27
+                </span>
               </div>
 
+              <h3 className={styles.batchTitle}>BITSAT Math + LR &amp; English Super Booster</h3>
+
+              {/* Rigor Meta Pills */}
+              <div className={styles.metaPillsRow}>
+                <div className={styles.metaPillBatch}>
+                  <Users size={12} />
+                  <span>Strictly Max 25 / Batch</span>
+                </div>
+                <div className={styles.metaPillMode}>
+                  <Zap size={12} />
+                  <span>Online Live • 70/130 Qs Focus</span>
+                </div>
+              </div>
+
+              {/* Key Deliverables */}
+              <ul className={styles.featuresList}>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>Complete BITSAT Mathematics (40 Qs)</strong> with DK Sir's 20-30s techniques</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>40+ Hours English &amp; Logical Reasoning drills</strong> for 75+ mark score</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>10 Targeted Math + LR Subject Mocks</strong> with timer diagnostics</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>Daily Speed Practice Sheets (DPS)</strong> with video solution keys</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>Full access to recorded lecture library</strong> till BITSAT Session 2</span>
+                </li>
+              </ul>
+
+              {/* Pricing Box */}
               <div className={styles.pricingBlock}>
                 <div className={styles.priceRow}>
                   <span className={styles.currentPrice}>₹8,999</span>
                   <span className={styles.originalPrice}>₹14,999</span>
-                  <span className={styles.discountBadge}>40% OFF</span>
+                  <span className={styles.discountBadge}>Save 40%</span>
                 </div>
-                <p className={styles.priceNote}>Covers 70 out of 130 Questions (210 Marks)</p>
+                <div className={styles.taxSubtext}>Incl. 18% GST • Math, English &amp; LR Special</div>
               </div>
 
-              <ul className={styles.featuresList}>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> Complete BITSAT Mathematics (40 Qs) with DK Sir's 20-30s techniques</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> 40+ Hours of dedicated English &amp; Logical Reasoning drills</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> 10 Targeted Math + LR Subject Mocks</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> Daily Speed Practice Sheets (DPS) with Video Solutions</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> Full access to recorded lecture library till BITSAT Session 2</li>
-              </ul>
-
-              <a
-                href="#diagnostic-form"
-                className={`${styles.batchActionBtn} ${styles.enrollBtnOutline}`}
-              >
-                <span>Enroll in Math &amp; LR Booster</span>
-                <ChevronRight size={16} />
-              </a>
-            </div>
+              {/* Action Buttons */}
+              <div className={styles.cardActionsRow}>
+                <a href="#diagnostic-form" className={styles.enrollPrimaryBtn}>
+                  <span>Enroll in Booster</span>
+                  <ArrowRight size={14} />
+                </a>
+                <Link to="/courses" className={styles.syllabusSecondaryBtn}>
+                  <BookOpen size={13} />
+                  <span>Syllabus</span>
+                </Link>
+              </div>
+            </article>
 
             {/* Batch 3: All-India BITSAT CBT Test Series */}
-            <div className={styles.batchCard}>
-              <div className={styles.batchTop}>
-                <span className={styles.batchTypeBadge}>Computer-Based Simulation</span>
-                <h3 className={styles.batchTitle}>All India BITSAT CBT Online Test Series</h3>
-                <span className={styles.batchTargetYear}>15 Full Mocks with Exact TCS-iON Interface</span>
+            <article className={styles.batchCard}>
+              <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #059669, #34d399)' }} />
+              
+              <div className={styles.batchTopBadgeRow}>
+                <span className={styles.batchTestBadge}>
+                  <Target size={11} /> CBT ENGINE SIMULATION
+                </span>
+                <span className={styles.batchTargetYear}>
+                  <Calendar size={12} /> Target 2026/27
+                </span>
               </div>
 
+              <h3 className={styles.batchTitle}>All India BITSAT CBT Online Test Series</h3>
+
+              {/* Rigor Meta Pills */}
+              <div className={styles.metaPillsRow}>
+                <div className={styles.metaPillBatch}>
+                  <Users size={12} />
+                  <span>10,000+ Rank Pool</span>
+                </div>
+                <div className={styles.metaPillMode}>
+                  <Zap size={12} />
+                  <span>Self-Paced • 15 Full CBT Mocks</span>
+                </div>
+              </div>
+
+              {/* Key Deliverables */}
+              <ul className={styles.featuresList}>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>15 Full-length BITSAT mock tests</strong> strictly aligned with 2026 pattern</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>Authentic Bonus Question trigger</strong> when all 130 Qs are completed</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>Question-wise time analytics</strong> (Time spent per question vs topper)</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>All India Rank (AIR) &amp; BITS Campus cutoff predictor</strong> algorithms</span>
+                </li>
+                <li>
+                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                  <span><strong>Detailed step-by-step video solutions</strong> for every math question</span>
+                </li>
+              </ul>
+
+              {/* Pricing Box */}
               <div className={styles.pricingBlock}>
                 <div className={styles.priceRow}>
                   <span className={styles.currentPrice}>₹3,499</span>
                   <span className={styles.originalPrice}>₹6,999</span>
-                  <span className={styles.discountBadge}>50% OFF</span>
+                  <span className={styles.discountBadge}>Save 50%</span>
                 </div>
-                <p className={styles.priceNote}>Includes 12 Bonus Questions algorithm simulation</p>
+                <div className={styles.taxSubtext}>Incl. 18% GST • Full TCS-iON Interface Simulator</div>
               </div>
 
-              <ul className={styles.featuresList}>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> 15 Full-length BITSAT mock tests strictly aligned with 2026 pattern</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> Authentic Bonus Question trigger when all 130 Qs are completed</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> Question-wise time analytics (Time spent per question vs topper)</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> All India Rank (AIR) and BITS Campus cutoff predictor</li>
-                <li><CheckCircle size={15} className={styles.checkIcon} /> Detailed step-by-step video solutions for every math problem</li>
-              </ul>
-
-              <a
-                href="#diagnostic-form"
-                className={`${styles.batchActionBtn} ${styles.enrollBtnOutline}`}
-              >
-                <span>Join BITSAT Test Series</span>
-                <ChevronRight size={16} />
-              </a>
-            </div>
+              {/* Action Buttons */}
+              <div className={styles.cardActionsRow}>
+                <a href="#diagnostic-form" className={styles.enrollPrimaryBtn}>
+                  <span>Join Test Series</span>
+                  <ArrowRight size={14} />
+                </a>
+                <Link to="/test-series" className={styles.syllabusSecondaryBtn}>
+                  <BookOpen size={13} />
+                  <span>Details</span>
+                </Link>
+              </div>
+            </article>
           </div>
         </Container>
       </section>
 
       {/* 6. BITSAT Campus Cutoffs & Target Score Benchmarks */}
-      <section className={styles.section} id="cutoffs">
+      <section className={`${styles.section} ${styles.sectionAlt}`} id="cutoffs">
         <Container size="wide">
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>Campus Benchmarks</span>
-            <h2 className={styles.sectionTitle}>Target Scores for Top BITS Campuses (Out of 390)</h2>
+            <div className={styles.sectionBadge}>
+              <Award size={12} />
+              <span>CAMPUS BENCHMARKS</span>
+            </div>
+            <h2 className={styles.sectionTitle}>
+              Target Scores for Top BITS Campuses <span className={styles.titleGradient}>(Out of 390)</span>
+            </h2>
             <p className={styles.sectionDescription}>
-              Reference cutoffs to determine the score threshold required for your dream branch.
+              Reference cutoffs from previous official admissions to help you target your score threshold.
             </p>
           </div>
 
@@ -412,21 +616,40 @@ export const BitsatPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th>Branch / Discipline</th>
-                    <th>BITS Pilani (Main)</th>
-                    <th>BITS K.K. Birla Goa</th>
-                    <th>BITS Hyderabad</th>
+                    <th>
+                      <div className={styles.thCampus}>
+                        <span>BITS Pilani</span>
+                        <span className={styles.campusFlagshipBadge}>Flagship Campus</span>
+                      </div>
+                    </th>
+                    <th>
+                      <div className={styles.thCampus}>
+                        <span>BITS K.K. Birla Goa</span>
+                      </div>
+                    </th>
+                    <th>
+                      <div className={styles.thCampus}>
+                        <span>BITS Hyderabad</span>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td className={styles.branchCell}>Computer Science &amp; Engineering (CSE)</td>
-                    <td><span className={styles.scorePill}>331 Marks</span></td>
+                  <tr className={styles.highlightRow}>
+                    <td className={styles.branchCell}>
+                      <span className={styles.branchDot} />
+                      <strong>Computer Science &amp; Engineering (CSE)</strong>
+                    </td>
+                    <td><span className={`${styles.scorePill} ${styles.scorePillTop}`}>331 Marks</span></td>
                     <td><span className={styles.scorePill}>301 Marks</span></td>
                     <td><span className={styles.scorePill}>298 Marks</span></td>
                   </tr>
-                  <tr>
-                    <td className={styles.branchCell}>Mathematics &amp; Computing (MnC)</td>
-                    <td><span className={styles.scorePill}>310 Marks</span></td>
+                  <tr className={styles.highlightRow}>
+                    <td className={styles.branchCell}>
+                      <span className={styles.branchDot} />
+                      <strong>Mathematics &amp; Computing (MnC)</strong>
+                    </td>
+                    <td><span className={`${styles.scorePill} ${styles.scorePillTop}`}>310 Marks</span></td>
                     <td><span className={styles.scorePill}>288 Marks</span></td>
                     <td><span className={styles.scorePill}>285 Marks</span></td>
                   </tr>
@@ -448,8 +671,19 @@ export const BitsatPage: React.FC = () => {
                     <td><span className={styles.scorePill}>223 Marks</span></td>
                     <td><span className={styles.scorePill}>221 Marks</span></td>
                   </tr>
+                  <tr>
+                    <td className={styles.branchCell}>Chemical Engineering</td>
+                    <td><span className={styles.scorePill}>224 Marks</span></td>
+                    <td><span className={styles.scorePill}>207 Marks</span></td>
+                    <td><span className={styles.scorePill}>204 Marks</span></td>
+                  </tr>
                 </tbody>
               </table>
+            </div>
+
+            <div className={styles.cutoffTableFooter}>
+              <ShieldCheck size={14} className={styles.footerShield} />
+              <span>Cutoffs reflect Round 1–5 Iteration standards. Safe target for Pilani CS is 330+ with bonus question conditioning.</span>
             </div>
           </div>
         </Container>
@@ -460,31 +694,54 @@ export const BitsatPage: React.FC = () => {
         <Container size="wide">
           <div className={styles.bookingWrapper}>
             <div className={styles.bookingRow}>
+              {/* Left Column: Value Proposition & Reassurance */}
               <div className={styles.bookingLeft}>
                 <span className={styles.bookingBadge}>
-                  <ShieldCheck size={14} /> ZERO COST DIAGNOSTIC
+                  <ShieldCheck size={13} /> ZERO COST SPEED DIAGNOSTIC
                 </span>
                 <h2 className={styles.bookingTitle}>
-                  Book Free BITSAT Speed Diagnostic &amp; Strategy Consultation
+                  Book Free BITSAT Speed Diagnostic &amp; <span className={styles.titleGradient}>Strategy Consultation</span>
                 </h2>
                 <p className={styles.bookingDesc}>
-                  Take our 45-minute mini BITSAT Diagnostic Speed Test. DK Sir and our academic team will evaluate your question inspection speed, option elimination accuracy, and recommend your personalized preparation schedule.
+                  Take our 45-minute mini BITSAT Diagnostic Speed Test. DK Sir and our senior academic mentors will evaluate your question inspection speed, option elimination accuracy, and recommend your personalized preparation schedule.
                 </p>
 
                 <ul className={styles.bookingPerks}>
-                  <li><Check size={16} className={styles.perkCheck} /> Full Speed &amp; Accuracy Diagnostic Report</li>
-                  <li><Check size={16} className={styles.perkCheck} /> 1-on-1 Strategy Call with DK Sir or Senior Mentor</li>
-                  <li><Check size={16} className={styles.perkCheck} /> Free BITSAT Speed Math Formula Sheet PDF</li>
-                  <li><Check size={16} className={styles.perkCheck} /> Instant WhatsApp counseling support</li>
+                  <li>
+                    <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
+                    <span><strong>Full Speed &amp; Accuracy Diagnostic Report</strong> with percentile benchmarking</span>
+                  </li>
+                  <li>
+                    <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
+                    <span><strong>1-on-1 Strategy Call</strong> with DK Sir or senior Kota academic mentor</span>
+                  </li>
+                  <li>
+                    <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
+                    <span><strong>Free BITSAT Speed Math Formula Sheet PDF</strong> &amp; English vocab bank</span>
+                  </li>
+                  <li>
+                    <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
+                    <span><strong>Direct WhatsApp Guidance</strong> for batch allotment &amp; diagnostic test slot</span>
+                  </li>
                 </ul>
+
+                {/* Mentor Quick Note Card */}
+                <div className={styles.mentorBriefCard}>
+                  <img src="/img/founder.jpeg" alt="Dharmendra Kumar (DK Sir)" className={styles.mentorMiniAvatar} />
+                  <div className={styles.mentorMiniText}>
+                    <strong>Dharmendra Kumar (DK Sir)</strong>
+                    <span>"In BITSAT, a 3-minute correct solution is an exam failure. Speed conditioning makes all the difference."</span>
+                  </div>
+                </div>
               </div>
 
+              {/* Right Column: Lead Form Card with Clean Floating Styling */}
               <div className={styles.bookingRight}>
                 <div className={styles.bookingFormCard}>
                   {isSubmitted ? (
                     <div className={styles.successCard}>
                       <div className={styles.successIcon}>
-                        <CheckCircle size={36} />
+                        <CheckCircle2 size={40} />
                       </div>
                       <h3 className={styles.successTitle}>Diagnostic Test Booked!</h3>
                       <p className={styles.successText}>
@@ -498,12 +755,13 @@ export const BitsatPage: React.FC = () => {
                       >
                         <MessageSquare size={16} />
                         <span>Confirm on WhatsApp Instantly</span>
+                        <ArrowRight size={14} />
                       </a>
                     </div>
                   ) : (
                     <>
                       <h3 className={styles.formTitle}>Register for Free Diagnostic Test</h3>
-                      <p className={styles.formSubtitle}>Zero fees • No credit card required</p>
+                      <p className={styles.formSubtitle}>Zero fees • No credit card required • Instant Slot Allocation</p>
 
                       <form onSubmit={handleSubmit} className={styles.formGrid}>
                         <div className={styles.formGroup}>
@@ -511,7 +769,7 @@ export const BitsatPage: React.FC = () => {
                           <input
                             id="student-name"
                             type="text"
-                            placeholder="Enter student name"
+                            placeholder="Enter student's name"
                             required
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -520,15 +778,18 @@ export const BitsatPage: React.FC = () => {
 
                         <div className={styles.formGroup}>
                           <label htmlFor="student-phone">Mobile / WhatsApp Number *</label>
-                          <input
-                            id="student-phone"
-                            type="tel"
-                            placeholder="10-digit mobile number"
-                            pattern="[0-9]{10}"
-                            required
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          />
+                          <div className={styles.phoneInputWrap}>
+                            <span className={styles.phonePrefix}>🇮🇳 +91</span>
+                            <input
+                              id="student-phone"
+                              type="tel"
+                              placeholder="10-digit mobile number"
+                              pattern="[0-9]{10}"
+                              required
+                              value={formData.phone}
+                              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            />
+                          </div>
                         </div>
 
                         <div className={styles.formGroup}>
@@ -559,8 +820,9 @@ export const BitsatPage: React.FC = () => {
                         </div>
 
                         <button type="submit" className={styles.submitBtn}>
-                          <Send size={15} style={{ display: 'inline', marginRight: '6px' }} />
+                          <Send size={15} />
                           <span>Reserve My Free Diagnostic Test</span>
+                          <ArrowRight size={15} />
                         </button>
                       </form>
                     </>
@@ -573,13 +835,18 @@ export const BitsatPage: React.FC = () => {
       </section>
 
       {/* 8. FAQs Accordion */}
-      <section className={`${styles.section} ${styles.sectionLight}`} id="faq">
+      <section className={`${styles.section} ${styles.sectionAlt}`} id="faq">
         <Container size="wide">
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>Got Questions?</span>
-            <h2 className={styles.sectionTitle}>Frequently Asked Questions about BITSAT</h2>
+            <div className={styles.sectionBadge}>
+              <Brain size={12} />
+              <span>FREQUENTLY ASKED QUESTIONS</span>
+            </div>
+            <h2 className={styles.sectionTitle}>
+              Everything You Need to Know <span className={styles.titleGradient}>About BITSAT</span>
+            </h2>
             <p className={styles.sectionDescription}>
-              Everything you need to know about exam pattern, bonus questions, and preparation with DK Academy.
+              Exam pattern, 12 bonus questions engine, cutoffs, and speed preparation methodology with DK Sir.
             </p>
           </div>
 
@@ -598,10 +865,14 @@ export const BitsatPage: React.FC = () => {
                     aria-expanded={isOpen}
                   >
                     <span>{faq.question}</span>
-                    {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    <span className={styles.faqChevronWrap}>
+                      {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </span>
                   </button>
                   {isOpen && (
-                    <p className={styles.faqAnswer}>{faq.answer}</p>
+                    <div className={styles.faqAnswer}>
+                      <p>{faq.answer}</p>
+                    </div>
                   )}
                 </div>
               );
@@ -612,14 +883,5 @@ export const BitsatPage: React.FC = () => {
     </div>
   );
 };
-
-// Mini Sparkle Icon component
-function SparkleIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
-    </svg>
-  );
-}
 
 export default BitsatPage;
