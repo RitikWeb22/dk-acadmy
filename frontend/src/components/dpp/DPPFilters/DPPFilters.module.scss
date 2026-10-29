@@ -82,6 +82,28 @@
   align-items: center;
   gap: $space-2;
   flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+
+    .selectWrapper {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .selectControl {
+      width: 100%;
+    }
+
+    .clearAllBtn {
+      grid-column: 1 / -1;
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }
 
 .selectWrapper {
