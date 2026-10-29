@@ -8,6 +8,11 @@
   flex-direction: column;
   gap: 20px;
   animation: fadeIn 0.2s ease-out;
+  overflow-x: hidden;
+
+  @media (max-width: 640px) {
+    gap: 16px;
+  }
 }
 
 // 1. Breadcrumb & Back Navigation
@@ -394,6 +399,18 @@
 
   @media (max-width: 600px) {
     grid-template-columns: repeat(2, 1fr);
+
+    .bentoTile:last-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 380px) {
+    grid-template-columns: 1fr;
+
+    .bentoTile:last-child {
+      grid-column: auto;
+    }
   }
 }
 
