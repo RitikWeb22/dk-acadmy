@@ -135,7 +135,7 @@ export const FREE_COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 3620,
-    facultyAvatars: ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'],
+    facultyAvatars: ['/img/founder.jpeg'],
     coverImage: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=800&auto=format&fit=crop&q=80',
     description: 'Unpack tricky free-body diagrams, pseudo-forces, rotational dynamics, and work-energy theorem without cumbersome multi-page algebra.',
     features: [
@@ -171,7 +171,7 @@ export const FREE_COURSES_CATALOG: Course[] = [
     taughtByIitians: true,
     isPopular: true,
     enrolledCount: 3150,
-    facultyAvatars: ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80'],
+    facultyAvatars: ['/img/founder.jpeg'],
     coverImage: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop&q=80',
     description: 'General Organic Chemistry (GOC), carbocation stability, aromaticity rules, and electrophilic aromatic substitution mechanisms explained visually.',
     features: [

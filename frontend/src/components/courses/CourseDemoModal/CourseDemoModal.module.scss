@@ -137,7 +137,8 @@
 .videoElement {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #000000;
   display: block;
 }
 
@@ -152,6 +153,17 @@
   align-items: center;
   pointer-events: none;
   z-index: 10;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.headerAutoHide {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.videoPlayerContainer:hover .headerAutoHide {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .masterclassBadge {
@@ -237,6 +249,17 @@
   align-items: center;
   gap: 10px;
   z-index: 14;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.controlsAutoHide {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.videoPlayerContainer:hover .controlsAutoHide {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .mediaIconBtn {
