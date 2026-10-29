@@ -295,57 +295,123 @@ export const BitsatPage: React.FC = () => {
           </div>
 
           <div className={styles.methodsGrid}>
+            {/* Card 01 */}
             <div className={styles.methodCard}>
-              <div className={styles.methodTop}>
-                <span className={styles.methodNumber}>01</span>
+              <span className={styles.numberWatermark} aria-hidden="true">01</span>
+              <div className={styles.methodHeader}>
                 <div className={`${styles.methodIcon} ${styles.iconAmber}`}>
                   <Zap size={22} />
                 </div>
+                <span className={`${styles.methodBadge} ${styles.badgeAmber}`}>Signature Technique</span>
               </div>
-              <span className={styles.methodTag}>Signature Technique</span>
-              <h3 className={styles.methodTitle}>20–30 Second Option Elimination</h3>
+              <h3 className={styles.methodTitle}>20–30s Option Elimination</h3>
               <p className={styles.methodText}>
                 Substitute boundary values, test dimensional symmetry, and evaluate extreme cases. In 70% of BITSAT math problems, 2 options are mathematically impossible within 15 seconds.
               </p>
-              <div className={styles.methodMetric}>
-                <Clock size={13} />
-                <span>Eliminates 6-7 lines of algebra</span>
+
+              <div className={styles.methodDivider} />
+
+              <ul className={styles.methodPointsList}>
+                <li className={styles.methodPointItem}>
+                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkAmber}`} />
+                  <span>Boundary value &amp; extreme-case substitution</span>
+                </li>
+                <li className={styles.methodPointItem}>
+                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkAmber}`} />
+                  <span>Eliminate 2 choices in under 15 seconds</span>
+                </li>
+                <li className={styles.methodPointItem}>
+                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkAmber}`} />
+                  <span>Bypasses 6–7 lines of lengthy algebraic derivations</span>
+                </li>
+              </ul>
+
+              <div className={`${styles.methodFooter} ${styles.footerAmber}`}>
+                <div className={styles.methodMetricBox}>
+                  <Clock size={15} />
+                  <span className={styles.methodMetricVal}>15–20 Mins Saved</span>
+                </div>
+                <span className={styles.methodMetricLabel}>Per BITSAT Paper</span>
               </div>
             </div>
 
+            {/* Card 02 */}
             <div className={styles.methodCard}>
-              <div className={styles.methodTop}>
-                <span className={styles.methodNumber}>02</span>
+              <span className={styles.numberWatermark} aria-hidden="true">02</span>
+              <div className={styles.methodHeader}>
                 <div className={`${styles.methodIcon} ${styles.iconIndigo}`}>
                   <Brain size={22} />
                 </div>
+                <span className={`${styles.methodBadge} ${styles.badgeIndigo}`}>Scoring Multiplier</span>
               </div>
-              <span className={styles.methodTag}>Scoring Multiplier</span>
-              <h3 className={styles.methodTitle}>English &amp; Logic Score Maximization</h3>
+              <h3 className={styles.methodTitle}>English &amp; Logic Maximization</h3>
               <p className={styles.methodText}>
                 30 questions (90 marks) can elevate your rank from an MSc branch to Computer Science. We teach systematic verbal analogy algorithms, high-frequency root words, and pattern recognition.
               </p>
-              <div className={styles.methodMetric}>
-                <Award size={13} />
-                <span>Target: 75+ / 90 Marks</span>
+
+              <div className={styles.methodDivider} />
+
+              <ul className={styles.methodPointsList}>
+                <li className={styles.methodPointItem}>
+                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkIndigo}`} />
+                  <span>30 questions (90 marks) rank multiplier strategy</span>
+                </li>
+                <li className={styles.methodPointItem}>
+                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkIndigo}`} />
+                  <span>Verbal analogies, roots &amp; contextual deduction</span>
+                </li>
+                <li className={styles.methodPointItem}>
+                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkIndigo}`} />
+                  <span>Syllogisms, pattern sequences &amp; logic algorithms</span>
+                </li>
+              </ul>
+
+              <div className={`${styles.methodFooter} ${styles.footerIndigo}`}>
+                <div className={styles.methodMetricBox}>
+                  <Award size={15} />
+                  <span className={styles.methodMetricVal}>Target: 75+ / 90</span>
+                </div>
+                <span className={styles.methodMetricLabel}>English &amp; LR Score</span>
               </div>
             </div>
 
+            {/* Card 03 */}
             <div className={styles.methodCard}>
-              <div className={styles.methodTop}>
-                <span className={styles.methodNumber}>03</span>
+              <span className={styles.numberWatermark} aria-hidden="true">03</span>
+              <div className={styles.methodHeader}>
                 <div className={`${styles.methodIcon} ${styles.iconBlue}`}>
                   <Target size={22} />
                 </div>
+                <span className={`${styles.methodBadge} ${styles.badgeBlue}`}>TCS-iON Clone</span>
               </div>
-              <span className={styles.methodTag}>NTA &amp; TCS-iON Clone</span>
-              <h3 className={styles.methodTitle}>CBT Simulation with Bonus Trigger</h3>
+              <h3 className={styles.methodTitle}>CBT Simulation &amp; Bonus Trigger</h3>
               <p className={styles.methodText}>
-                Practice on an interface identical to the official BITSAT TCS-iON engine with the live question palette, section jumper, and official bonus prompt.
+                Practice on an interface identical to the official BITSAT TCS-iON engine with the live question palette, section jumper, and authentic 12 bonus questions prompt.
               </p>
-              <div className={styles.methodMetric}>
-                <Sparkles size={13} />
-                <span>15 Authentic CBT Tests</span>
+
+              <div className={styles.methodDivider} />
+
+              <ul className={styles.methodPointsList}>
+                <li className={styles.methodPointItem}>
+                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkBlue}`} />
+                  <span>Authentic TCS-iON UI test simulation environment</span>
+                </li>
+                <li className={styles.methodPointItem}>
+                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkBlue}`} />
+                  <span>Official 12 Bonus Questions trigger algorithm</span>
+                </li>
+                <li className={styles.methodPointItem}>
+                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkBlue}`} />
+                  <span>Time-budgeting &amp; negative mark mitigation</span>
+                </li>
+              </ul>
+
+              <div className={`${styles.methodFooter} ${styles.footerBlue}`}>
+                <div className={styles.methodMetricBox}>
+                  <Sparkles size={15} />
+                  <span className={styles.methodMetricVal}>15 Full Mocks</span>
+                </div>
+                <span className={styles.methodMetricLabel}>CBT with AIR Ranking</span>
               </div>
             </div>
           </div>
