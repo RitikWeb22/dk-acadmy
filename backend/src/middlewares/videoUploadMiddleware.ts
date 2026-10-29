@@ -15,10 +15,10 @@ if (!fs.existsSync(chunkStorageDir)) {
 
 // Storage engine saving directly to private storage (never exposed publicly)
 const videoDiskStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
+  destination: (_req: any, _file: any, cb: any) => {
     cb(null, rawStorageDir);
   },
-  filename: (_req, file, cb) => {
+  filename: (_req: any, file: any, cb: any) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const uniqueName = `raw_${uuidv4()}${ext}`;
     cb(null, uniqueName);
@@ -26,11 +26,11 @@ const videoDiskStorage = multer.diskStorage({
 });
 
 // File filter: accept only video containers
-const videoFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const videoFilter = (_req: any, file: any, cb: any) => {
   const allowedExts = ['.mp4', '.mkv', '.mov', '.webm', '.avi', '.m4v'];
   const ext = path.extname(file.originalname).toLowerCase();
   
-  if (allowedExts.includes(ext) || file.mimetype.startsWith('video/')) {
+  if (allowedExts.includes(ext) || file.mimetype?.startsWith('video/')) {
     cb(null, true);
   } else {
     cb(new Error('Invalid video format. Supported formats: MP4, MKV, MOV, WEBM.'));
@@ -47,10 +47,10 @@ export const uploadRawVideo = multer({
 
 // Chunks storage for resumable uploads
 const chunkDiskStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
+  destination: (_req: any, _file: any, cb: any) => {
     cb(null, chunkStorageDir);
   },
-  filename: (_req, _file, cb) => {
+  filename: (_req: any, _file: any, cb: any) => {
     cb(null, `part_${Date.now()}_${uuidv4()}`);
   }
 });
