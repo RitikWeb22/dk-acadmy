@@ -13,7 +13,6 @@ import {
   ArrowLeft,
   Volume2,
   VolumeX,
-  Clock,
   Award,
   User,
   Search,
@@ -35,6 +34,7 @@ import {
   AlertCircle,
   RotateCcw,
   RotateCw,
+  ChevronLeft,
   ChevronRight,
   BadgeCheck,
   ShieldCheck
@@ -641,6 +641,16 @@ export const CourseLmsPage: React.FC = () => {
   }, [allLectures, activeLecture.id]);
   const currentLessonNumber = currentLessonIndex >= 0 ? currentLessonIndex + 1 : 1;
 
+  const prevLesson = useMemo(() => {
+    return currentLessonIndex > 0 ? allLectures[currentLessonIndex - 1] : null;
+  }, [allLectures, currentLessonIndex]);
+
+  const nextLesson = useMemo(() => {
+    return currentLessonIndex >= 0 && currentLessonIndex < allLectures.length - 1
+      ? allLectures[currentLessonIndex + 1]
+      : null;
+  }, [allLectures, currentLessonIndex]);
+
   // 4. Progress Tracking (Completed Lectures in localStorage)
   const progressStorageKey = `dk_lms_progress_${student?.id || 'guest'}_${activeCourseId || course?.id || 'default'}`;
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>(() => {
@@ -1179,6 +1189,18 @@ export const CourseLmsPage: React.FC = () => {
       videoRef.current.currentTime = 0;
     }
     setIsMobileCurriculumOpen(false);
+  };
+
+  const handlePrevLesson = () => {
+    if (prevLesson) {
+      handleSelectLecture(prevLesson.id);
+    }
+  };
+
+  const handleNextLesson = () => {
+    if (nextLesson) {
+      handleSelectLecture(nextLesson.id);
+    }
   };
 
   // 6. Notes Feature (Per-lecture auto-saved notes)
@@ -1971,7 +1993,7 @@ export const CourseLmsPage: React.FC = () => {
         </div>
       </div>
 
-        {/* ─── 2. Action Bar: Metadata & Fast Actions (Clean Sibling Card) ─── */}
+        {/* ─── 2. Action Bar: Metadata & Fast Actions (Clean Executive Sibling Card) ─── */}
         <div className={styles.actionBarContainer}>
           <div className={styles.actionBarLeft}>
             <div className={styles.chapterLessonPills}>
@@ -1982,30 +2004,62 @@ export const CourseLmsPage: React.FC = () => {
               <span className={styles.lessonBadge}>
                 Lesson {currentLessonNumber} of {allLectures.length}
               </span>
+              {activeLecture.isFree ? (
+                <span className={styles.freePreviewBadge}>
+                  <Sparkles size={11} /> Free Masterclass
+                </span>
+              ) : isUnlockedFull ? (
+                <span className={styles.verifiedEnrollmentBadge}>
+                  <ShieldCheck size={11} /> Batch Enrolled
+                </span>
+              ) : null}
             </div>
+
             <h1 className={styles.activeLectureTitle}>
               {activeLecture.title}
             </h1>
-          </div>
 
-          <div className={styles.actionBarCenter}>
-            <div className={styles.metaTagChip}>
-              <Clock size={14} className={styles.metaIcon} />
-              <span>{activeLecture.duration || '38:40'} mins</span>
+            <div className={styles.lectureSubtextRow}>
+              <span>Dharmendra Kumar (DK Sir)</span>
+              <span className={styles.subtextDot}>•</span>
+              <span>Kota Speed Inspection Method</span>
+              {currentSection?.title && (
+                <>
+                  <span className={styles.subtextDot}>•</span>
+                  <span>{currentSection.title}</span>
+                </>
+              )}
             </div>
-            <button
-              type="button"
-              className={styles.ratingTagBtn}
-              onClick={() => setActiveTab('reviews')}
-              title="View course ratings & reviews"
-            >
-              <Star size={14} fill="#f59e0b" color="#f59e0b" />
-              <strong>4.9</strong>
-              <span>(450+ reviews)</span>
-            </button>
           </div>
 
           <div className={styles.actionBarRight}>
+            {/* Quick Prev / Next Lesson Navigation Toolbar */}
+            <div className={styles.lessonNavGroup}>
+              <button
+                type="button"
+                className={styles.lessonNavBtn}
+                onClick={handlePrevLesson}
+                disabled={!prevLesson}
+                title={prevLesson ? `Previous: ${prevLesson.title}` : 'Beginning of course'}
+                aria-label="Previous lesson"
+              >
+                <ChevronLeft size={16} />
+                <span className={styles.navBtnLabel}>Prev</span>
+              </button>
+              <button
+                type="button"
+                className={styles.lessonNavBtn}
+                onClick={handleNextLesson}
+                disabled={!nextLesson}
+                title={nextLesson ? `Next: ${nextLesson.title}` : 'End of course'}
+                aria-label="Next lesson"
+              >
+                <span className={styles.navBtnLabel}>Next</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Primary Action Button: Lock or Complete */}
             {isLectureLocked(activeLecture.id) ? (
               <button
                 type="button"
@@ -2020,9 +2074,9 @@ export const CourseLmsPage: React.FC = () => {
               <button
                 type="button"
                 className={styles.completedDisabledBtn}
-                disabled
-                aria-disabled="true"
-                title="Lesson completed"
+                onClick={() => toggleLessonCompleted(activeLecture.id)}
+                title="Lesson completed. Click to toggle."
+                aria-label="Lesson completed"
               >
                 <CheckCircle2 size={16} className={styles.completedCheckIcon} />
                 <span>Completed</span>
@@ -2036,7 +2090,7 @@ export const CourseLmsPage: React.FC = () => {
                 title="Click to mark this lesson as completed"
               >
                 <Circle size={16} className={styles.incompleteCircleIcon} />
-                <span>Mark as Complete</span>
+                <span>Mark Complete</span>
               </button>
             )}
           </div>
