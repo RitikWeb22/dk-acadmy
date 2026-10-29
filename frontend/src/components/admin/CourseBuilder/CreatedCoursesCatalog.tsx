@@ -371,7 +371,7 @@ export const CreatedCoursesCatalog: React.FC<CreatedCoursesCatalogProps> = ({
                   {/* Instructor / Faculty Row */}
                   <div className={styles.facultyRow}>
                     <img
-                      src="/img/founder.jpeg"
+                      src="/img/dk-sir.jpg"
                       alt="DK Sir"
                       className={styles.facultyAvatar}
                     />

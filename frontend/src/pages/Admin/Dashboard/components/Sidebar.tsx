@@ -212,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className={styles.profileWidget}>
           <div className={styles.avatarWrap}>
             <img
-              src="/img/logo.jpeg"
+              src="/img/dk-sir.jpg"
               alt="Dharmendra Kumar"
               className={styles.profileAvatarImg}
             />

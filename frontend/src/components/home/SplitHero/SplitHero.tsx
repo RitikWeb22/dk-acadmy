@@ -265,7 +265,7 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
                 {/* Image Frame with DK Sir Portrait */}
                 <div className={styles.portraitWrap}>
                   <img
-                    src="/img/founder.jpeg"
+                    src="/img/dk-sir.jpg"
                     alt="Dharmendra Kumar (DK Sir) - Senior IIT-JEE Mathematics Mentor"
                     className={styles.portraitImg}
                     width={480}

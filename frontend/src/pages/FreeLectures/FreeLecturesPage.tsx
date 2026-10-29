@@ -364,7 +364,7 @@ export const FreeLecturesPage: React.FC = () => {
               >
                 {/* Masterclass Thumbnail */}
                 <img
-                  src="/img/founder.jpeg"
+                  src="/img/dk-sir.jpg"
                   alt="Dharmendra Kumar (DK Sir) delivering Calculus Masterclass"
                   className={styles.videoThumbnailImg}
                 />

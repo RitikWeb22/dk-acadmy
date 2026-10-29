@@ -360,6 +360,12 @@ export const CourseDetailPage: React.FC = () => {
 
   const facultyName = course.instructor || 'Dharmendra Kumar (DK Sir)';
   const facultyTitle = 'Senior Kota Mathematics Faculty • 18+ Years Pedagogy';
+  const isDkFaculty = facultyName.toLowerCase().includes('dharmendra') || facultyName.toLowerCase().includes('dk');
+  const facultyAvatar = isDkFaculty
+    ? '/img/dk-sir.jpg'
+    : (course.facultyAvatars?.[0] && !course.facultyAvatars[0].includes('student')
+      ? course.facultyAvatars[0]
+      : '/img/dk-sir.jpg');
 
   return (
     <div className={styles.page}>
@@ -427,9 +433,12 @@ export const CourseDetailPage: React.FC = () => {
 
                 <div className={styles.facultyMini}>
                   <img
-                    src={course.facultyAvatars?.[0] || '/img/founder.jpeg'}
+                    src={facultyAvatar}
                     alt={facultyName}
                     className={styles.facultyThumb}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/img/dk-sir.jpg';
+                    }}
                   />
                   <span>By <strong>{facultyName}</strong></span>
                 </div>
@@ -741,9 +750,12 @@ export const CourseDetailPage: React.FC = () => {
                 <div className={styles.facultyProfileCard}>
                   <div className={styles.facultyAvatarWrapper}>
                     <img
-                      src={course.facultyAvatars?.[0] || '/img/founder.jpeg'}
+                      src={facultyAvatar}
                       alt={facultyName}
                       className={styles.facultyAvatarImg}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/img/dk-sir.jpg';
+                      }}
                     />
                     <span className={styles.facultyVerifiedBadge}>
                       <CheckCircle2 size={12} aria-hidden="true" />

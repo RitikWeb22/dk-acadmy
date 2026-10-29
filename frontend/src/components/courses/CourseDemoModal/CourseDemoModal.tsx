@@ -355,7 +355,7 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
               <div className={styles.facultyCard}>
                 <div className={styles.facultyAvatarWrap}>
                   <img
-                    src="/img/founder.jpeg"
+                    src="/img/dk-sir.jpg"
                     alt="Dharmendra Kumar (DK Sir)"
                     className={styles.facultyImg}
                     onError={(e) => {
