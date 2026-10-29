@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useStudentAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -149,50 +150,79 @@ export const CoursesPage: React.FC = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<'All' | 'Hinglish' | 'English'>('All');
   const [selectedRating, setSelectedRating] = useState<'All' | 4.8 | 4.5 | 4.0>('All');
 
-  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
-  const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
-  const [isRatingDropdownOpen, setIsRatingDropdownOpen] = useState(false);
-  const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false);
-  const [isSubjectDropdownOpen, setIsSubjectDropdownOpen] = useState(false);
   const [selectedTier, setSelectedTier] = useState<'All' | 'Free' | 'Paid'>('All');
 
-  // Mutually-exclusive toggle helpers for dropdowns
-  const toggleLangDropdown = (e: React.MouseEvent) => {
+  // Active Dropdown Portal state (rendered outside scrollable and overflow-clipping containers with elevated z-index)
+  const [activeDropdown, setActiveDropdown] = useState<{
+    id: 'lang' | 'rating' | 'class' | 'subject' | 'sort';
+    top: number;
+    left?: number;
+    right?: number;
+    minWidth?: number;
+  } | null>(null);
+
+  const toggleDropdown = (
+    id: 'lang' | 'rating' | 'class' | 'subject' | 'sort',
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
     e.stopPropagation();
-    setIsLangDropdownOpen((prev) => !prev);
-    setIsRatingDropdownOpen(false);
-    setIsClassDropdownOpen(false);
-    setIsSubjectDropdownOpen(false);
-    setIsSortDropdownOpen(false);
+    if (activeDropdown?.id === id) {
+      setActiveDropdown(null);
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dropdownEstimatedWidth = 200;
+    const willOverflowRight = rect.left + dropdownEstimatedWidth > window.innerWidth - 12;
+
+    setActiveDropdown({
+      id,
+      top: rect.bottom + 6,
+      left: willOverflowRight ? undefined : Math.max(12, rect.left),
+      right: willOverflowRight ? Math.max(12, window.innerWidth - rect.right) : undefined,
+      minWidth: Math.max(rect.width, 185),
+    });
   };
 
-  const toggleRatingDropdown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsRatingDropdownOpen((prev) => !prev);
-    setIsLangDropdownOpen(false);
-    setIsClassDropdownOpen(false);
-    setIsSubjectDropdownOpen(false);
-    setIsSortDropdownOpen(false);
+  const closeDropdown = () => {
+    setActiveDropdown(null);
   };
 
-  const toggleClassDropdown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsClassDropdownOpen((prev) => !prev);
-    setIsLangDropdownOpen(false);
-    setIsRatingDropdownOpen(false);
-    setIsSubjectDropdownOpen(false);
-    setIsSortDropdownOpen(false);
-  };
+  // Close dropdown on scroll, resize or outside click
+  useEffect(() => {
+    if (!activeDropdown) return;
 
-  const toggleSubjectDropdown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsSubjectDropdownOpen((prev) => !prev);
-    setIsLangDropdownOpen(false);
-    setIsRatingDropdownOpen(false);
-    setIsClassDropdownOpen(false);
-    setIsSortDropdownOpen(false);
-  };
+    const handleScrollOrResize = () => {
+      setActiveDropdown(null);
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        !target.closest(`.${styles.floatingDropdownPortal}`) &&
+        !target.closest(`.${styles.dropdownPill}`) &&
+        !target.closest(`.${styles.sortBtn}`)
+      ) {
+        setActiveDropdown(null);
+      }
+    };
+
+    window.addEventListener('scroll', handleScrollOrResize, { passive: true, capture: true });
+    window.addEventListener('resize', handleScrollOrResize, { passive: true });
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, { capture: true });
+      window.removeEventListener('resize', handleScrollOrResize);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeDropdown]);
+
+  // Target Year for the active class & session
+  const dynamicTargetYear = useMemo(() => {
+    return getTargetYearLabel(selectedClass, selectedSession);
+  }, [selectedClass, selectedSession]);
 
   // FAQ Accordion active index
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -206,34 +236,6 @@ export const CoursesPage: React.FC = () => {
   const ratingRef = useRef<HTMLDivElement>(null);
   const classRef = useRef<HTMLDivElement>(null);
   const subjectRef = useRef<HTMLDivElement>(null);
-
-  // Target Year for the active class & session
-  const dynamicTargetYear = useMemo(() => {
-    return getTargetYearLabel(selectedClass, selectedSession);
-  }, [selectedClass, selectedSession]);
-
-  // Close dropdowns on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
-        setIsSortDropdownOpen(false);
-      }
-      if (langRef.current && !langRef.current.contains(e.target as Node)) {
-        setIsLangDropdownOpen(false);
-      }
-      if (ratingRef.current && !ratingRef.current.contains(e.target as Node)) {
-        setIsRatingDropdownOpen(false);
-      }
-      if (classRef.current && !classRef.current.contains(e.target as Node)) {
-        setIsClassDropdownOpen(false);
-      }
-      if (subjectRef.current && !subjectRef.current.contains(e.target as Node)) {
-        setIsSubjectDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Filter & Sort Courses based on ALL dropdowns and URL params
   const filteredCourses = useMemo(() => {
@@ -884,29 +886,12 @@ export const CoursesPage: React.FC = () => {
                 <button
                   type="button"
                   className={`${styles.dropdownPill} ${selectedLanguage !== 'All' ? styles.dropdownPillActive : ''}`}
-                  onClick={toggleLangDropdown}
-                  aria-expanded={isLangDropdownOpen}
+                  onClick={(e) => toggleDropdown('lang', e)}
+                  aria-expanded={activeDropdown?.id === 'lang'}
                 >
                   <span>{selectedLanguage === 'All' ? 'Language' : selectedLanguage}</span>
                   <ChevronDown size={13} aria-hidden="true" />
                 </button>
-                {isLangDropdownOpen && (
-                  <div className={styles.floatingDropdown} role="listbox">
-                    {['All', 'Hinglish', 'English'].map((lang) => (
-                      <button
-                        key={lang}
-                        type="button"
-                        className={`${styles.dropdownItem} ${selectedLanguage === lang ? styles.activeDropdownItem : ''}`}
-                        onClick={() => {
-                          setSelectedLanguage(lang as any);
-                          setIsLangDropdownOpen(false);
-                        }}
-                      >
-                        {lang === 'All' ? 'All Languages' : lang}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* 5. Dropdown Filter: Ratings */}
@@ -914,56 +899,12 @@ export const CoursesPage: React.FC = () => {
                 <button
                   type="button"
                   className={`${styles.dropdownPill} ${selectedRating !== 'All' ? styles.dropdownPillActive : ''}`}
-                  onClick={toggleRatingDropdown}
-                  aria-expanded={isRatingDropdownOpen}
+                  onClick={(e) => toggleDropdown('rating', e)}
+                  aria-expanded={activeDropdown?.id === 'rating'}
                 >
                   <span>{selectedRating === 'All' ? 'Ratings' : `${selectedRating} ★ & up`}</span>
                   <ChevronDown size={13} aria-hidden="true" />
                 </button>
-                {isRatingDropdownOpen && (
-                  <div className={styles.floatingDropdown} role="listbox">
-                    <button
-                      type="button"
-                      className={`${styles.dropdownItem} ${selectedRating === 'All' ? styles.activeDropdownItem : ''}`}
-                      onClick={() => {
-                        setSelectedRating('All');
-                        setIsRatingDropdownOpen(false);
-                      }}
-                    >
-                      All Ratings
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.dropdownItem} ${selectedRating === 4.8 ? styles.activeDropdownItem : ''}`}
-                      onClick={() => {
-                        setSelectedRating(4.8);
-                        setIsRatingDropdownOpen(false);
-                      }}
-                    >
-                      ★ 4.8 &amp; up (Top Rated)
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.dropdownItem} ${selectedRating === 4.5 ? styles.activeDropdownItem : ''}`}
-                      onClick={() => {
-                        setSelectedRating(4.5);
-                        setIsRatingDropdownOpen(false);
-                      }}
-                    >
-                      ★ 4.5 &amp; up
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.dropdownItem} ${selectedRating === 4.0 ? styles.activeDropdownItem : ''}`}
-                      onClick={() => {
-                        setSelectedRating(4.0);
-                        setIsRatingDropdownOpen(false);
-                      }}
-                    >
-                      ★ 4.0 &amp; up
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* 6. Dropdown Filter: Level / Class */}
@@ -971,37 +912,12 @@ export const CoursesPage: React.FC = () => {
                 <button
                   type="button"
                   className={`${styles.dropdownPill} ${selectedClass !== 'All' ? styles.dropdownPillActive : ''}`}
-                  onClick={toggleClassDropdown}
-                  aria-expanded={isClassDropdownOpen}
+                  onClick={(e) => toggleDropdown('class', e)}
+                  aria-expanded={activeDropdown?.id === 'class'}
                 >
                   <span>{selectedClass === 'All' ? 'Level' : selectedClass}</span>
                   <ChevronDown size={13} aria-hidden="true" />
                 </button>
-                {isClassDropdownOpen && (
-                  <div className={styles.floatingDropdown} role="listbox">
-                    {(['All', 'Class 11th', 'Class 12th', 'Dropper', 'Class 10th Foundation'] as ClassType[]).map((cls) => (
-                      <button
-                        key={cls}
-                        type="button"
-                        className={`${styles.dropdownItem} ${selectedClass === cls ? styles.activeDropdownItem : ''}`}
-                        onClick={() => {
-                          const nextParams = new URLSearchParams(searchParams);
-                          if (cls === 'All') {
-                            nextParams.delete('category');
-                            nextParams.delete('class');
-                          } else {
-                            nextParams.set('class', cls);
-                            nextParams.delete('category');
-                          }
-                          setSearchParams(nextParams);
-                          setIsClassDropdownOpen(false);
-                        }}
-                      >
-                        {cls === 'All' ? 'All Levels' : cls}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* 7. Dropdown Filter: Subject */}
@@ -1009,35 +925,12 @@ export const CoursesPage: React.FC = () => {
                 <button
                   type="button"
                   className={`${styles.dropdownPill} ${selectedSubject !== 'All' ? styles.dropdownPillActive : ''}`}
-                  onClick={toggleSubjectDropdown}
-                  aria-expanded={isSubjectDropdownOpen}
+                  onClick={(e) => toggleDropdown('subject', e)}
+                  aria-expanded={activeDropdown?.id === 'subject'}
                 >
                   <span>{selectedSubject === 'All' ? 'Subject' : selectedSubject}</span>
                   <ChevronDown size={13} aria-hidden="true" />
                 </button>
-                {isSubjectDropdownOpen && (
-                  <div className={styles.floatingDropdown} role="listbox">
-                    {['All', 'Mathematics', 'Physics', 'Chemistry'].map((subj) => (
-                      <button
-                        key={subj}
-                        type="button"
-                        className={`${styles.dropdownItem} ${selectedSubject === subj ? styles.activeDropdownItem : ''}`}
-                        onClick={() => {
-                          const nextParams = new URLSearchParams(searchParams);
-                          if (subj === 'All') {
-                            nextParams.delete('subject');
-                          } else {
-                            nextParams.set('subject', subj.toLowerCase());
-                          }
-                          setSearchParams(nextParams);
-                          setIsSubjectDropdownOpen(false);
-                        }}
-                      >
-                        {subj === 'All' ? 'All Subjects' : subj}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -1145,8 +1038,8 @@ export const CoursesPage: React.FC = () => {
               <button
                 type="button"
                 className={styles.sortBtn}
-                onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                aria-expanded={isSortDropdownOpen}
+                onClick={(e) => toggleDropdown('sort', e)}
+                aria-expanded={activeDropdown?.id === 'sort'}
                 aria-haspopup="listbox"
                 aria-label={`Sort courses, currently: ${sortBy}`}
               >
@@ -1163,61 +1056,6 @@ export const CoursesPage: React.FC = () => {
                 </span>
                 <ChevronDown size={13} aria-hidden="true" />
               </button>
-
-              {isSortDropdownOpen && (
-                <div className={styles.floatingDropdown} role="listbox">
-                  <button
-                    type="button"
-                    className={`${styles.dropdownItem} ${sortBy === 'popularity' ? styles.activeDropdownItem : ''}`}
-                    onClick={() => {
-                      setSortBy('popularity');
-                      setIsSortDropdownOpen(false);
-                    }}
-                  >
-                    Most Relevant
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.dropdownItem} ${sortBy === 'rating-desc' ? styles.activeDropdownItem : ''}`}
-                    onClick={() => {
-                      setSortBy('rating-desc');
-                      setIsSortDropdownOpen(false);
-                    }}
-                  >
-                    Highest Rated
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.dropdownItem} ${sortBy === 'price-asc' ? styles.activeDropdownItem : ''}`}
-                    onClick={() => {
-                      setSortBy('price-asc');
-                      setIsSortDropdownOpen(false);
-                    }}
-                  >
-                    Price: Low to High
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.dropdownItem} ${sortBy === 'price-desc' ? styles.activeDropdownItem : ''}`}
-                    onClick={() => {
-                      setSortBy('price-desc');
-                      setIsSortDropdownOpen(false);
-                    }}
-                  >
-                    Price: High to Low
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.dropdownItem} ${sortBy === 'start-date' ? styles.activeDropdownItem : ''}`}
-                    onClick={() => {
-                      setSortBy('start-date');
-                      setIsSortDropdownOpen(false);
-                    }}
-                  >
-                    Starting Soonest
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </Container>
@@ -1971,6 +1809,154 @@ export const CoursesPage: React.FC = () => {
             setDemoModalCourse(c);
           }}
         />
+      )}
+
+      {/* Portal Dropdown Menu attached directly to document.body: fully immune to parent overflow clipping and z-index traps */}
+      {activeDropdown && typeof document !== 'undefined' && createPortal(
+        <div
+          className={styles.floatingDropdownPortal}
+          style={{
+            position: 'fixed',
+            top: `${activeDropdown.top}px`,
+            ...(activeDropdown.left !== undefined ? { left: `${activeDropdown.left}px` } : {}),
+            ...(activeDropdown.right !== undefined ? { right: `${activeDropdown.right}px` } : {}),
+            minWidth: `${activeDropdown.minWidth || 185}px`,
+            zIndex: 99999,
+          }}
+          role="listbox"
+        >
+          {activeDropdown.id === 'lang' && (
+            ['All', 'Hinglish', 'English'].map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                className={`${styles.dropdownItem} ${selectedLanguage === lang ? styles.activeDropdownItem : ''}`}
+                onClick={() => {
+                  setSelectedLanguage(lang as any);
+                  closeDropdown();
+                }}
+              >
+                {lang === 'All' ? 'All Languages' : lang}
+              </button>
+            ))
+          )}
+
+          {activeDropdown.id === 'rating' && (
+            <>
+              <button
+                type="button"
+                className={`${styles.dropdownItem} ${selectedRating === 'All' ? styles.activeDropdownItem : ''}`}
+                onClick={() => {
+                  setSelectedRating('All');
+                  closeDropdown();
+                }}
+              >
+                All Ratings
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem} ${selectedRating === 4.8 ? styles.activeDropdownItem : ''}`}
+                onClick={() => {
+                  setSelectedRating(4.8);
+                  closeDropdown();
+                }}
+              >
+                ★ 4.8 &amp; up (Top Rated)
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem} ${selectedRating === 4.5 ? styles.activeDropdownItem : ''}`}
+                onClick={() => {
+                  setSelectedRating(4.5);
+                  closeDropdown();
+                }}
+              >
+                ★ 4.5 &amp; up
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem} ${selectedRating === 4.0 ? styles.activeDropdownItem : ''}`}
+                onClick={() => {
+                  setSelectedRating(4.0);
+                  closeDropdown();
+                }}
+              >
+                ★ 4.0 &amp; up
+              </button>
+            </>
+          )}
+
+          {activeDropdown.id === 'class' && (
+            (['All', 'Class 11th', 'Class 12th', 'Dropper', 'Class 10th Foundation'] as ClassType[]).map((cls) => (
+              <button
+                key={cls}
+                type="button"
+                className={`${styles.dropdownItem} ${selectedClass === cls ? styles.activeDropdownItem : ''}`}
+                onClick={() => {
+                  const nextParams = new URLSearchParams(searchParams);
+                  if (cls === 'All') {
+                    nextParams.delete('category');
+                    nextParams.delete('class');
+                  } else {
+                    nextParams.set('class', cls);
+                    nextParams.delete('category');
+                  }
+                  setSearchParams(nextParams);
+                  closeDropdown();
+                }}
+              >
+                {cls === 'All' ? 'All Levels' : cls}
+              </button>
+            ))
+          )}
+
+          {activeDropdown.id === 'subject' && (
+            ['All', 'Mathematics', 'Physics', 'Chemistry'].map((subj) => (
+              <button
+                key={subj}
+                type="button"
+                className={`${styles.dropdownItem} ${selectedSubject === subj ? styles.activeDropdownItem : ''}`}
+                onClick={() => {
+                  const nextParams = new URLSearchParams(searchParams);
+                  if (subj === 'All') {
+                    nextParams.delete('subject');
+                  } else {
+                    nextParams.set('subject', subj.toLowerCase());
+                  }
+                  setSearchParams(nextParams);
+                  closeDropdown();
+                }}
+              >
+                {subj === 'All' ? 'All Subjects' : subj}
+              </button>
+            ))
+          )}
+
+          {activeDropdown.id === 'sort' && (
+            <>
+              {[
+                { val: 'popularity', label: 'Most Relevant' },
+                { val: 'rating-desc', label: 'Highest Rated' },
+                { val: 'price-asc', label: 'Price: Low to High' },
+                { val: 'price-desc', label: 'Price: High to Low' },
+                { val: 'start-date', label: 'Starting Soonest' },
+              ].map((sOption) => (
+                <button
+                  key={sOption.val}
+                  type="button"
+                  className={`${styles.dropdownItem} ${sortBy === sOption.val ? styles.activeDropdownItem : ''}`}
+                  onClick={() => {
+                    setSortBy(sOption.val as any);
+                    closeDropdown();
+                  }}
+                >
+                  {sOption.label}
+                </button>
+              ))}
+            </>
+          )}
+        </div>,
+        document.body
       )}
     </main>
   );
