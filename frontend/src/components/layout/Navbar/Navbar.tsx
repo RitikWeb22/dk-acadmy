@@ -131,6 +131,18 @@ export const Navbar: React.FC = () => {
     logout
   } = useStudentAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedMobileDropdowns, setExpandedMobileDropdowns] = useState<Record<string, boolean>>({
+    nav_courses: true,
+  });
+
+  const toggleMobileDropdown = (itemId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedMobileDropdowns((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId],
+    }));
+  };
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [menuItems, setMenuItems] = useState<NavbarMenuItem[]>(() => cmsService.getNavbarItems());
 
@@ -665,12 +677,12 @@ export const Navbar: React.FC = () => {
             {/* Mobile Hamburger Toggle */}
             <button
               type="button"
-              className={styles.mobileToggle}
+              className={`${styles.mobileToggle} ${mobileMenuOpen ? styles.mobileToggleActive : ''}`}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {mobileMenuOpen ? <X size={22} className={styles.toggleIcon} /> : <Menu size={22} className={styles.toggleIcon} />}
             </button>
           </div>
         </Container>
@@ -681,10 +693,15 @@ export const Navbar: React.FC = () => {
           aria-hidden={!mobileMenuOpen}
         >
           <div className={styles.mobileNavInner}>
+            {/* Drawer Header */}
             <div className={styles.mobileHeader}>
-              <div className={styles.mobileBrandWrap}>
+              <Link to="/" onClick={closeMobileMenu} className={styles.mobileBrandWrap}>
                 <img src="/img/logo.jpeg" alt="DK Academy" className={styles.brandLogoImg} />
-              </div>
+                <div className={styles.mobileBrandMeta}>
+                  <span className={styles.mobileBrandTitle}>DK Academy</span>
+                  <span className={styles.mobileBrandSub}>IIT JEE &amp; Foundation</span>
+                </div>
+              </Link>
               <button
                 type="button"
                 className={styles.mobileCloseBtn}
@@ -695,84 +712,214 @@ export const Navbar: React.FC = () => {
               </button>
             </div>
 
-            <nav aria-label="Mobile Navigation">
+            {/* Student Account or Kota Mentor Spotlight Card */}
+            {isAuthenticated ? (
+              <div className={styles.mobileStudentCard}>
+                <div className={styles.studentCardTop}>
+                  {student?.avatarUrl ? (
+                    <img src={student.avatarUrl} alt="" className={styles.studentAvatarImg} />
+                  ) : (
+                    <div className={styles.studentAvatarInitial}>
+                      {student?.name?.trim().charAt(0).toUpperCase() || 'S'}
+                    </div>
+                  )}
+                  <div className={styles.studentCardInfo}>
+                    <div className={styles.studentCardName}>{student?.name || 'Student Aspirant'}</div>
+                    <div className={styles.studentCardEmail}>{student?.email || 'student@dkacademyjee.com'}</div>
+                    <span className={styles.studentVerifiedPill}>Enrolled Student</span>
+                  </div>
+                </div>
+                <div className={styles.studentQuickLinks}>
+                  <Link to="/dashboard" onClick={closeMobileMenu} className={styles.studentQuickPill}>
+                    <LayoutDashboard size={13} />
+                    <span>Dashboard</span>
+                  </Link>
+                  <Link to="/profile" onClick={closeMobileMenu} className={styles.studentQuickPill}>
+                    <User size={13} />
+                    <span>Profile</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMobileMenu();
+                      logout();
+                      navigate('/login');
+                    }}
+                    className={`${styles.studentQuickPill} ${styles.studentLogoutPill}`}
+                  >
+                    <LogOut size={13} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.mobileGuestCard}>
+                <div className={styles.guestCardMentor}>
+                  <img src="/img/dk-sir.jpg" alt="DK Sir" className={styles.guestMentorImg} />
+                  <div className={styles.guestMentorMeta}>
+                    <span className={styles.guestBadge}>Kota Pedagogy</span>
+                    <strong className={styles.guestMentorName}>DK Sir (Dharmendra Kumar)</strong>
+                    <span className={styles.guestMentorRole}>Senior Kota IIT-JEE Mathematics Faculty</span>
+                  </div>
+                </div>
+                <div className={styles.guestActionRow}>
+                  {location.pathname !== '/login' && (
+                    <Link to="/login" onClick={closeMobileMenu} className={styles.guestLoginBtn}>
+                      Student Login
+                    </Link>
+                  )}
+                  <Link to="/signup" onClick={closeMobileMenu} className={styles.guestSignupBtn}>
+                    Register Free
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation List with Interactive Accordion & Modern Micro-interactions */}
+            <nav aria-label="Mobile Navigation" className={styles.mobileNavSection}>
+              <div className={styles.mobileNavLabel}>Explore Platform</div>
               <ul className={styles.mobileNavList}>
                 {menuItems
                   .filter((item) => item.isVisible !== false)
                   .sort((a, b) => (a.order || 0) - (b.order || 0))
-                  .map((item) => {
+                  .map((item, idx) => {
                     const defaultItem = DEFAULT_NAVBAR_ITEMS.find((d) => d.id === item.id);
                     const effectiveDropdownItems =
                       item.dropdownItems && item.dropdownItems.length > 0
                         ? item.dropdownItems
                         : (item.id === 'nav_courses' ? (defaultItem?.dropdownItems || []) : []);
                     const isDropdown = Boolean(item.isDropdown && effectiveDropdownItems.length > 0);
+                    const isExpanded = Boolean(expandedMobileDropdowns[item.id]);
+                    const isActive = location.pathname === item.path;
 
                     return (
-                      <React.Fragment key={item.id}>
-                        <li>
-                          <Link to={item.path} onClick={closeMobileMenu} className={styles.mobileNavLink}>
-                            <span>{item.label}</span>
-                            {item.badge && <span className={styles.freeBadge}>{item.badge}</span>}
+                      <li
+                        key={item.id}
+                        className={`${styles.mobileNavItem} ${isActive ? styles.mobileNavItemActive : ''}`}
+                        style={{ '--anim-order': idx } as React.CSSProperties}
+                      >
+                        {isDropdown ? (
+                          <div className={styles.mobileAccordionContainer}>
+                            <div className={styles.mobileDropdownHeader}>
+                              <Link
+                                to={item.path}
+                                onClick={closeMobileMenu}
+                                className={`${styles.mobileNavLink} ${isActive ? styles.mobileNavLinkActive : ''}`}
+                              >
+                                <span className={styles.mobileNavLabelGroup}>
+                                  <span className={styles.mobileNavText}>{item.label}</span>
+                                  {item.badge && <span className={styles.freeBadge}>{item.badge}</span>}
+                                </span>
+                              </Link>
+                              <button
+                                type="button"
+                                className={`${styles.mobileAccordionToggle} ${
+                                  isExpanded ? styles.mobileAccordionToggleOpen : ''
+                                }`}
+                                onClick={(e) => toggleMobileDropdown(item.id, e)}
+                                aria-label={`Toggle ${item.label} sub-items`}
+                                aria-expanded={isExpanded}
+                              >
+                                <ChevronDown size={18} className={styles.accordionChevronIcon} />
+                              </button>
+                            </div>
+
+                            {/* Collapsible Sub-menu with Rich Micro-Cards */}
+                            <div
+                              className={`${styles.mobileSubmenuWrapper} ${
+                                isExpanded ? styles.mobileSubmenuExpanded : ''
+                              }`}
+                            >
+                              <div className={styles.mobileSubmenuInner}>
+                                {effectiveDropdownItems
+                                  .filter((sub) => sub.isVisible !== false)
+                                  .sort((a, b) => (a.order || 0) - (b.order || 0))
+                                  .map((sub) => {
+                                    const isSubActive =
+                                      location.pathname + location.search === sub.path ||
+                                      location.pathname === sub.path;
+                                    return (
+                                      <Link
+                                        key={sub.id}
+                                        to={sub.path}
+                                        onClick={closeMobileMenu}
+                                        className={`${styles.mobileSubItemLink} ${
+                                          isSubActive ? styles.mobileSubItemActive : ''
+                                        }`}
+                                      >
+                                        <div className={styles.mobileSubIconBox}>
+                                          {renderDropdownIcon(sub.icon, sub.label)}
+                                        </div>
+                                        <div className={styles.mobileSubTextGroup}>
+                                          <div className={styles.mobileSubTitleRow}>
+                                            <span className={styles.mobileSubTitle}>{sub.label}</span>
+                                            {renderDropdownBadge(sub.badge)}
+                                          </div>
+                                          <span className={styles.mobileSubSubtitle}>
+                                            {getDropdownSubtitle(sub)}
+                                          </span>
+                                        </div>
+                                        <ChevronRight size={14} className={styles.mobileSubChevron} />
+                                      </Link>
+                                    );
+                                  })}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <Link
+                            to={item.path}
+                            onClick={closeMobileMenu}
+                            className={`${styles.mobileNavLink} ${isActive ? styles.mobileNavLinkActive : ''}`}
+                          >
+                            <span className={styles.mobileNavLabelGroup}>
+                              <span className={styles.mobileNavText}>{item.label}</span>
+                              {item.badge && <span className={styles.freeBadge}>{item.badge}</span>}
+                            </span>
+                            <ChevronRight size={16} className={styles.mobileNavChevron} />
                           </Link>
-                        </li>
-                        {isDropdown &&
-                          effectiveDropdownItems
-                            .filter((sub) => sub.isVisible !== false)
-                            .sort((a, b) => (a.order || 0) - (b.order || 0))
-                            .map((sub) => (
-                              <li key={sub.id} style={{ paddingLeft: '1.25rem' }}>
-                                <Link
-                                  to={sub.path}
-                                  onClick={closeMobileMenu}
-                                  className={styles.mobileNavLink}
-                                  style={{ fontSize: '0.85rem', opacity: 0.85 }}
-                                >
-                                  <span>↳ {sub.label}</span>
-                                  {sub.badge && <span className={styles.freeBadge}>{sub.badge}</span>}
-                                </Link>
-                              </li>
-                            ))}
-                      </React.Fragment>
+                        )}
+                      </li>
                     );
                   })}
               </ul>
             </nav>
 
+            {/* Helpline & Kota Center Location Card */}
             <div className={styles.mobileCenterInfo}>
-              <div className={styles.centerAddress}>
-                <MapPin size={15} />
-                <span>C4F/33, behind F Market, Janakpuri, New Delhi – 110058</span>
+              <div className={styles.centerInfoHeading}>
+                <MapPin size={15} className={styles.centerPinIcon} />
+                <span>DK Academy Offline Center</span>
               </div>
-              <div className={styles.mobilePhoneRow}>
-                <a href="tel:9325987875" className={styles.mobilePhoneLink}>
-                  <Phone size={14} /> 9325987875
+              <p className={styles.centerAddressText}>
+                C4F/33, behind F Market, Janakpuri, New Delhi – 110058
+              </p>
+              <div className={styles.mobileCallGrid}>
+                <a href="tel:9325987875" className={styles.mobileCallPill}>
+                  <Phone size={13} />
+                  <span>9325987875</span>
                 </a>
-                <a href="tel:9717159062" className={styles.mobilePhoneLink}>
-                  <Phone size={14} /> 9717159062
+                <a href="tel:9717159062" className={styles.mobileCallPill}>
+                  <Phone size={13} />
+                  <span>9717159062</span>
                 </a>
               </div>
+              <a
+                href="https://wa.me/919325987875?text=Hello%20DK%20Sir,%20I%20want%20guidance%20for%20IIT%20JEE%20Mathematics%20batches"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.mobileWhatsappBtn}
+              >
+                <MessageCircle size={15} />
+                <span>Chat with Academic Counselors</span>
+              </a>
             </div>
 
-            <div className={styles.mobileAuthActions}>
-              {isAuthenticated ? (
-                <>
-                  <Link to="/dashboard" className={styles.mobileLoginBtn} onClick={closeMobileMenu}>
-                    Student Dashboard ({student?.name || 'My Portal'})
-                  </Link>
-                  <Link to="/profile" className={styles.mobileProfileLink} onClick={closeMobileMenu}>
-                    Student Profile &amp; Settings
-                  </Link>
-                </>
-              ) : (
-                location.pathname !== '/login' && (
-                  <Link to="/login" className={styles.mobileLoginBtn} onClick={closeMobileMenu}>
-                    Login to Student Portal
-                  </Link>
-                )
-              )}
+            {/* Bottom Primary Action Bar */}
+            <div className={styles.mobileBottomActions}>
               <Link to="/courses" className={styles.mobileExploreBtn} onClick={closeMobileMenu}>
-                Explore JEE Courses
+                <span>Explore All JEE Courses</span>
+                <ArrowRight size={16} />
               </Link>
             </div>
           </div>
