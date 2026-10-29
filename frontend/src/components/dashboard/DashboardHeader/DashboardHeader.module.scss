@@ -148,8 +148,9 @@
   animation: fadeIn 0.15s ease-out;
 
   @media (max-width: 480px) {
-    width: 290px;
-    right: -10px;
+    width: calc(100vw - 48px);
+    max-width: 300px;
+    right: 0;
   }
 }
 

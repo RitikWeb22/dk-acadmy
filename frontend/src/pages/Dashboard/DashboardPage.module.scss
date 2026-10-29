@@ -4,6 +4,13 @@
   background-color: var(--color-bg, #f8fafc);
   min-height: calc(100vh - 120px);
   padding: 24px 0 64px;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+
+  @media (max-width: 640px) {
+    padding: 16px 0 48px;
+  }
 }
 
 .dashboardLayout {
@@ -116,6 +123,17 @@
 
   @media (max-width: 900px) {
     width: 100%;
+  }
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+
+    .callbackBtn,
+    .whatsappBtn {
+      width: 100%;
+      flex: none;
+      justify-content: center;
+    }
   }
 }
 
