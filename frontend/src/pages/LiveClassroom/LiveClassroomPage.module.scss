@@ -6,7 +6,9 @@
   padding: 24px 0 72px 0;
   color: #0f172a;
   position: relative;
-  overflow: hidden;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .ambientTopGlow {

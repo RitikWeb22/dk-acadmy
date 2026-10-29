@@ -780,7 +780,17 @@ export const BitsatPage: React.FC = () => {
 
                 {/* Mentor Quick Note Card */}
                 <div className={styles.mentorBriefCard}>
-                  <img src="/img/founder.jpeg" alt="Dharmendra Kumar (DK Sir)" className={styles.mentorMiniAvatar} />
+                  <img
+                    src="/img/dk-sir.jpg"
+                    alt="Dharmendra Kumar (DK Sir)"
+                    className={styles.mentorMiniAvatar}
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      if (!img.src.includes('founder')) {
+                        img.src = '/img/founder.jpeg';
+                      }
+                    }}
+                  />
                   <div className={styles.mentorMiniText}>
                     <strong>Dharmendra Kumar (DK Sir)</strong>
                     <span>"In BITSAT, a 3-minute correct solution is an exam failure. Speed conditioning makes all the difference."</span>
