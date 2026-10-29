@@ -54,6 +54,7 @@
 .badgeWrap {
   display: flex;
   align-items: center;
+  max-width: 100%;
 }
 
 .admissionsBadge {
@@ -69,6 +70,15 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+  max-width: 100%;
+
+  @include mobile {
+    flex-wrap: wrap;
+    padding: 6px 12px 6px 8px;
+    gap: 6px;
+    font-size: 0.75rem;
+    border-radius: 14px;
+  }
 }
 
 .pulseContainer {
@@ -129,12 +139,18 @@
 }
 
 .headline {
-  font-size: clamp(2.15rem, 3.8vw, 3.35rem);
-  line-height: 1.16;
+  font-size: clamp(1.85rem, 5.5vw, 3.35rem);
+  line-height: 1.18;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #0f172a;
   margin: 0;
+  word-break: break-word;
+
+  @include mobile {
+    font-size: clamp(1.7rem, 6.8vw, 2.25rem);
+    line-height: 1.2;
+  }
 }
 
 .highlightText {
@@ -146,8 +162,8 @@
 }
 
 .subtitle {
-  font-size: clamp(1rem, 1.4vw, 1.125rem);
-  line-height: 1.65;
+  font-size: clamp(0.9375rem, 1.8vw, 1.125rem);
+  line-height: 1.6;
   color: #475569;
   margin: 0;
   max-width: 580px;
@@ -159,6 +175,7 @@
   flex-direction: column;
   gap: 10px;
   margin: 4px 0 8px;
+  width: 100%;
 }
 
 .benefitCard {
@@ -171,6 +188,11 @@
   border-radius: 12px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   max-width: 540px;
+  width: 100%;
+
+  @include mobile {
+    padding: 8px 12px;
+  }
 
   &:hover {
     background: #ffffff;
@@ -325,6 +347,12 @@
   .microShield {
     color: #059669;
     flex-shrink: 0;
+  }
+
+  @include mobile {
+    font-size: 0.72rem;
+    line-height: 1.45;
+    flex-wrap: wrap;
   }
 }
 
@@ -481,6 +509,12 @@
     transform: translateY(-2px);
     box-shadow: 0 16px 32px rgba(15, 23, 42, 0.16);
   }
+
+  @include mobile {
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 10px;
+  }
 }
 
 .pillTopLeft {
@@ -491,6 +525,11 @@
     top: 12px;
     left: 8px;
   }
+
+  @include mobile {
+    top: 10px;
+    left: 8px;
+  }
 }
 
 .pillBottomRight {
@@ -499,6 +538,11 @@
 
   @media (max-width: 768px) {
     bottom: 84px;
+    right: 8px;
+  }
+
+  @include mobile {
+    bottom: 68px;
     right: 8px;
   }
 }
@@ -521,6 +565,13 @@
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  @include mobile {
+    top: 10px;
+    right: 10px;
+    font-size: 0.6875rem;
+    padding: 3px 8px;
+  }
 }
 
 .pedagogySparkle {
@@ -681,11 +732,20 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     padding: 18px 16px;
+    margin-top: 36px;
   }
 
   @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 8px;
+    padding: 14px 10px;
+    margin-top: 24px;
+    border-radius: 16px;
+  }
+
+  @media (max-width: 340px) {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 }
 
@@ -699,6 +759,11 @@
 
   &:hover {
     transform: translateY(-2px);
+  }
+
+  @media (max-width: 480px) {
+    gap: 8px;
+    padding: 4px 6px;
   }
 }
 
@@ -714,6 +779,17 @@
 
   .statCard:hover & {
     transform: scale(1.06);
+  }
+
+  @media (max-width: 480px) {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+
+    svg {
+      width: 17px;
+      height: 17px;
+    }
   }
 }
 

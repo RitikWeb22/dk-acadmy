@@ -38,6 +38,11 @@
   gap: 12px;
   position: relative;
   z-index: 1;
+
+  @include mobile {
+    margin: 0 auto 32px;
+    gap: 10px;
+  }
 }
 
 .eyebrowBadge {
@@ -60,12 +65,13 @@
 }
 
 .heading {
-  font-size: clamp(1.85rem, 3.2vw, 2.6rem);
+  font-size: clamp(1.7rem, 4.8vw, 2.6rem);
   font-weight: 800;
   color: #0f172a;
   line-height: 1.2;
   letter-spacing: -0.025em;
   margin: 0;
+  word-break: break-word;
 }
 
 .headingGradient {
@@ -80,13 +86,18 @@
   line-height: 1.65;
   margin: 0;
   max-width: 680px;
+
+  @include mobile {
+    font-size: 0.925rem;
+    line-height: 1.55;
+  }
 }
 
 // 4-Column Grid
 .grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 20px;
   position: relative;
   z-index: 1;
 
@@ -111,6 +122,11 @@
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
+
+  @include mobile {
+    padding: 20px 16px 16px;
+    border-radius: 16px;
+  }
 
   &:hover {
     transform: translateY(-5px);
