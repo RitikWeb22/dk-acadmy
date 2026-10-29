@@ -293,10 +293,10 @@ export const PaymentPage: React.FC = () => {
 
         {/* ─── Main Two-Column Layout ─── */}
         <div className={styles.layoutGrid}>
-          {/* ════════ LEFT COLUMN (3 Cards) ════════ */}
+          {/* ════════ LEFT COLUMN ════════ */}
           <div className={styles.leftColumn}>
             {/* 1. Course Summary Card */}
-            <section className={styles.whiteCard}>
+            <section className={`${styles.whiteCard} ${styles.courseSummaryCard}`}>
               <div className={styles.courseSummaryHeader}>
                 <div className={styles.courseIconBox}>
                   <GraduationCap size={26} />
@@ -307,12 +307,16 @@ export const PaymentPage: React.FC = () => {
                   <p className={styles.courseDescriptionLine}>
                     {course.description || 'Video classes + DPP + CBT Test Series · Full academic session · English & Hinglish'}
                   </p>
+                  <div className={styles.mentorBadge}>
+                    <img src="/img/dk-sir-real.jpg" alt="Dharmendra Kumar (DK Sir)" className={styles.mentorAvatar} />
+                    <span>Mentor: Dharmendra Kumar (DK Sir)</span>
+                  </div>
                 </div>
               </div>
             </section>
 
             {/* 2. "Your Details" Card */}
-            <section className={styles.whiteCard}>
+            <section className={`${styles.whiteCard} ${styles.detailsCard}`}>
               <div className={styles.cardHeaderStrip}>
                 <h2 className={styles.cardHeading}>Your Details</h2>
                 <span className={styles.cardHeadingNote}>Mandatory for invoice &amp; LMS activation</span>
@@ -417,7 +421,7 @@ export const PaymentPage: React.FC = () => {
             </section>
 
             {/* 3. Payment Confirmation */}
-            <section className={styles.whiteCard}>
+            <section className={`${styles.whiteCard} ${styles.paymentConfirmationCard}`}>
               <div className={styles.cardHeaderStrip}>
                 <h2 className={styles.cardHeading}>Payment Confirmation</h2>
                 <span className={styles.cardHeadingNote}>Secure online payment via Razorpay</span>
@@ -472,10 +476,10 @@ export const PaymentPage: React.FC = () => {
             </section>
           </div>
 
-          {/* ════════ RIGHT COLUMN (3 Sticky Cards, 380px) ════════ */}
+          {/* ════════ RIGHT COLUMN (3 Sticky Cards on Desktop) ════════ */}
           <aside className={styles.rightColumn} aria-label="Order and Fee Summary">
             {/* Card 1: Order Summary with GST Breakdown */}
-            <section className={styles.whiteCard}>
+            <section className={`${styles.whiteCard} ${styles.orderSummaryCard}`}>
               <h2 className={styles.summaryTitle}>Order Summary</h2>
 
               <div className={styles.summaryRowsList}>
@@ -588,7 +592,7 @@ export const PaymentPage: React.FC = () => {
             </section>
 
             {/* Card 2: "What You Will Get" Card */}
-            <section className={styles.whiteCard}>
+            <section className={`${styles.whiteCard} ${styles.inclusionsCard}`}>
               <h3 className={styles.inclusionsTitle}>What You Will Get</h3>
 
               <ul className={styles.inclusionsList}>
@@ -618,7 +622,7 @@ export const PaymentPage: React.FC = () => {
             </section>
 
             {/* Card 3: Help Card (Counselor WhatsApp) */}
-            <section className={`${styles.whiteCard} ${styles.helpCardCenter}`}>
+            <section className={`${styles.whiteCard} ${styles.helpCardCenter} ${styles.helpCard}`}>
               <h3 className={styles.helpHeading}>Need help? Talk to an academic counselor</h3>
               <a
                 href={COUNSELOR_WHATSAPP_LINK}
