@@ -31,6 +31,7 @@ interface AuthContextType {
   deleteNotification: (id: string) => void;
   login: (profile: Partial<StudentProfile>) => void;
   loginWithCredentials: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (credential: string) => Promise<{ success: boolean; error?: string }>;
   signupStudent: (data: {
     name: string;
     email: string;
@@ -438,6 +439,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   }, []);
 
+  // Google OAuth Login & Auto-Registration
+  const loginWithGoogle = useCallback(async (
+    credential: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!credential) {
+      return { success: false, error: 'Google credential token is missing.' };
+    }
+
+    try {
+      const res = await apiClient.post('/auth/google', { credential });
+      if (res && res.success && res.data) {
+        const u = res.data;
+        const profile: StudentProfile = {
+          id: u.studentId || u._id,
+          studentId: u.studentId || u._id,
+          name: u.name,
+          email: u.email,
+          phone: u.phone || '',
+          targetExam: u.targetExam || 'JEE Main & Advanced',
+          targetClass: u.targetClass || 'Class 11th',
+          targetYear: u.targetYear || '2028',
+          avatarUrl: u.avatarUrl,
+          dob: u.dob || '',
+          preferredLanguage: u.preferredLanguage || 'Hinglish',
+          city: u.city || '',
+          state: u.state || 'Delhi',
+          parentName: u.parentName || '',
+          parentPhone: u.parentPhone || '',
+          schoolName: u.schoolName || '',
+          board: u.board || 'CBSE',
+          enrolledCourseIds: Array.isArray(u.enrolledCourses)
+            ? u.enrolledCourses.map((c: any) => (typeof c === 'string' ? c : c._id || c))
+            : [],
+          joinedDate: 'Recently',
+          lastActiveTimestamp: Date.now(),
+          token: u.token
+        };
+
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+        } catch (e) {
+          console.warn('Storage error', e);
+        }
+
+        setStudent(profile);
+        return { success: true };
+      }
+      return { success: false, error: res?.message || 'Google authentication failed.' };
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      return {
+        success: false,
+        error: err?.response?.data?.message || err?.message || 'Failed to authenticate with Google.'
+      };
+    }
+  }, []);
+
   // Signup method with real storage and validation
   const signupStudent = useCallback(async (data: {
     name: string;
@@ -783,6 +841,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteNotification,
         login,
         loginWithCredentials,
+        loginWithGoogle,
         signupStudent,
         requestPasswordReset,
         updateProfile,
