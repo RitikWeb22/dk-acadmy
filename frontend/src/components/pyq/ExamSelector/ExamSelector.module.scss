@@ -1,0 +1,59 @@
+@use '../../../styles/variables' as *;
+
+.selectorWrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-3;
+  margin-bottom: $space-4;
+  max-width: 540px;
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.tabBtn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.875rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: all $transition-fast;
+  text-align: left;
+
+  &:hover {
+    border-color: rgba(37, 99, 235, 0.4);
+    background-color: var(--color-primary-soft);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.active {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+
+  .examName {
+    color: var(--color-primary);
+  }
+}
+
+.examName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+  transition: color $transition-fast;
+}
+
+.examSub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}

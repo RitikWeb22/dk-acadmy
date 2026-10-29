@@ -1,0 +1,240 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.pageTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px;
+  letter-spacing: -0.5px;
+}
+
+.pageSubtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  max-width: 700px;
+}
+
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  background: var(--color-primary, #2563eb);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--color-primary-hover, #1d4ed8);
+  }
+}
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  background: #ffffff;
+  padding: $space-3 $space-4;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 360px;
+
+  @include mobile {
+    max-width: 100%;
+  }
+
+  .searchIcon {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+  }
+
+  input {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px 0 36px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #0f172a;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary, #2563eb);
+    }
+  }
+}
+
+.typeChips {
+  display: flex;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+
+  &.chipActive {
+    background: #eff6ff;
+    color: var(--color-primary, #2563eb);
+    border-color: #bfdbfe;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: $space-4;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.assetCard {
+  background: #ffffff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  padding: $space-4;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #bfdbfe;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  }
+}
+
+.assetPreviewBox {
+  height: 120px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: $space-3;
+}
+
+.typeTag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #475569;
+}
+
+.assetDetails {
+  flex: 1;
+}
+
+.assetName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.assetUsage {
+  font-size: 11px;
+  color: #64748b;
+  margin: 0 0 4px;
+
+  strong {
+    color: #334155;
+  }
+}
+
+.metaRow {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $space-3;
+  margin-top: $space-3;
+  border-top: 1px solid #f1f5f9;
+}
+
+.pathText {
+  font-size: 11px;
+  color: #64748b;
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.copyBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+
+  &:hover {
+    color: var(--color-primary, #2563eb);
+  }
+}

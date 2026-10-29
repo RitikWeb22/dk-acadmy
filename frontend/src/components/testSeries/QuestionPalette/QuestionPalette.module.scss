@@ -1,0 +1,177 @@
+@use '../../../styles/variables' as *;
+
+.paletteContainer {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  padding: $space-4;
+  box-shadow: $shadow-xs;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $space-3;
+  padding-bottom: $space-2;
+  border-bottom: 1px solid $color-border-subtle;
+}
+
+.paletteTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.currentPosition {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $color-primary;
+  background-color: $color-primary-soft;
+  padding: 0.15rem 0.5rem;
+  border-radius: $radius-full;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $space-2;
+  margin-bottom: $space-4;
+
+  @media (min-width: 640px) and (max-width: 991px) {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+.paletteBtn {
+  position: relative;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border: 1px solid transparent;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5);
+  }
+
+  &.active {
+    outline: 2px solid $color-primary;
+    outline-offset: 1px;
+    font-weight: 800;
+  }
+
+  &.notVisited {
+    background-color: #F8FAFC;
+    color: $color-text-secondary;
+    border-color: $color-border;
+
+    &:hover {
+      background-color: #F1F5F9;
+    }
+  }
+
+  &.notAnswered {
+    background-color: #FEE2E2;
+    color: #DC2626;
+    border-color: #FCA5A5;
+
+    &:hover {
+      background-color: #FECACA;
+    }
+  }
+
+  &.answered {
+    background-color: #16A34A;
+    color: #FFFFFF;
+    border-color: #15803D;
+
+    &:hover {
+      background-color: #15803D;
+    }
+  }
+
+  &.markedForReview {
+    background-color: #FAF5FF;
+    color: #7E22CE;
+    border-color: #D8B4FE;
+
+    &:hover {
+      background-color: #F3E8FF;
+    }
+  }
+
+  &.answeredAndMarked {
+    background-color: #7E22CE;
+    color: #FFFFFF;
+    border-color: #6B21A8;
+
+    &:hover {
+      background-color: #6B21A8;
+    }
+  }
+}
+
+.qNum {
+  line-height: 1;
+}
+
+.cornerIcon {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  padding-top: $space-3;
+  border-top: 1px solid $color-border-subtle;
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.legendBox {
+  width: 14px;
+  height: 14px;
+  border-radius: $radius-sm;
+  flex-shrink: 0;
+
+  &.answeredBox {
+    background-color: #16A34A;
+  }
+
+  &.notAnsweredBox {
+    background-color: #FEE2E2;
+    border: 1px solid #FCA5A5;
+  }
+
+  &.markedBox {
+    background-color: #FAF5FF;
+    border: 1px solid #D8B4FE;
+  }
+
+  &.answeredMarkedBox {
+    background-color: #7E22CE;
+  }
+
+  &.notVisitedBox {
+    background-color: #F8FAFC;
+    border: 1px solid #CBD5E1;
+  }
+}

@@ -1,0 +1,1725 @@
+// ─────────────────────────────────────────────────────────────
+// Free Lectures Creation SCSS (Matches Course Create 1:1)
+// Architecture: 2-Column Stage Grid (Left ~75% Form Stage + Right ~25% Stepper Tracker)
+// ─────────────────────────────────────────────────────────────
+
+.courseBuilderShell {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  padding-bottom: 40px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #0F172A;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Global Toast Alert
+// ─────────────────────────────────────────────────────────────
+.toastNotice {
+  position: fixed;
+  top: 24px;
+  right: 28px;
+  background-color: #0F172A;
+  color: #FFFFFF;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 5000;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+  animation: slideDownToast 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    color: #F8FAFC;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes slideDownToast {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Page Header & Breadcrumbs
+// ─────────────────────────────────────────────────────────────
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.breadcrumbBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #64748B;
+}
+
+.breadcrumbRoot {
+  font-weight: 500;
+  color: #64748B;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.breadcrumbArrow {
+  color: #94A3B8;
+
+  :global(.darkMode) & {
+    color: #475569;
+  }
+}
+
+.breadcrumbActive {
+  font-weight: 600;
+  color: #0F172A;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.headingTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.02em;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+// View Mode Switcher: Builder Wizard vs Directory Table
+.viewModeTabs {
+  display: flex;
+  align-items: center;
+  background-color: #F1F5F9;
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+  }
+}
+
+.viewModeTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748B;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #0F172A;
+  }
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+
+    &:hover {
+      color: #F8FAFC;
+    }
+  }
+}
+
+.viewModeTabActive {
+  background-color: #FFFFFF !important;
+  color: #2563EB !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  :global(.darkMode) & {
+    background-color: #0F172A !important;
+    color: #60A5FA !important;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Validation Alert Banner
+// ─────────────────────────────────────────────────────────────
+.validationBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  border-radius: 12px;
+  color: #B91C1C;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(185, 28, 28, 0.08);
+
+  :global(.darkMode) & {
+    background-color: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #FCA5A5;
+  }
+
+  span {
+    flex: 1;
+  }
+}
+
+.alertIcon {
+  color: #DC2626;
+  flex-shrink: 0;
+
+  :global(.darkMode) & {
+    color: #F87171;
+  }
+}
+
+.dismissBannerBtn {
+  background: none;
+  border: none;
+  color: #EF4444;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 8px;
+
+  &:hover {
+    background-color: #FEE2E2;
+  }
+
+  :global(.darkMode) & {
+    color: #FCA5A5;
+
+    &:hover {
+      background-color: rgba(239, 68, 68, 0.2);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2-Column Stage Grid: Center Form (~75%) + Right Stepper (~25%)
+// ─────────────────────────────────────────────────────────────
+.builderStageGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Center Form Stage Card
+// ─────────────────────────────────────────────────────────────
+.formStageCard {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  min-height: 580px;
+  display: flex;
+  flex-direction: column;
+
+  :global(.darkMode) & {
+    background: #0F172A;
+    border-color: #1E293B;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.stepContentBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+}
+
+.stepCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid #F1F5F9;
+  padding-bottom: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  :global(.darkMode) & {
+    border-bottom-color: #1E293B;
+  }
+}
+
+.headerTitleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stepCardTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.01em;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.stepCardSubtitle {
+  font-size: 0.8125rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.4;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.quickRuleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+
+  :global(.darkMode) & {
+    background-color: rgba(5, 150, 105, 0.15);
+    border-color: rgba(5, 150, 105, 0.3);
+    color: #34D399;
+  }
+}
+
+// ─── Form Matrix & Inputs ───
+.formMatrix {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.colFull {
+  grid-column: 1 / -1;
+}
+
+.fieldLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+
+  :global(.darkMode) & {
+    color: #CBD5E1;
+  }
+}
+
+.reqStar {
+  color: #EF4444;
+}
+
+.formInput,
+.formSelect,
+.formTextarea {
+  width: 100%;
+  border: 1px solid #CBD5E1;
+  background-color: #FFFFFF;
+  color: #0F172A;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &:focus {
+      border-color: #60A5FA;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+    }
+  }
+}
+
+.formTextarea {
+  resize: vertical;
+}
+
+// Price Input Group with Prefix
+.inputWithPrefix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.prefixSymbol {
+  position: absolute;
+  left: 14px;
+  color: #64748B;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.formInputWithPrefix {
+  width: 100%;
+  border: 1px solid #CBD5E1;
+  background-color: #FFFFFF;
+  color: #0F172A;
+  padding: 10px 14px 10px 32px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  outline: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Step 2: 5-Free Policy & Pricing Matrix Card
+// ─────────────────────────────────────────────────────────────
+.policyMatrixBox {
+  background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%);
+  border: 1px solid #BFDBFE;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  :global(.darkMode) & {
+    background: linear-gradient(135deg, #0F172A 0%, rgba(37, 99, 235, 0.15) 100%);
+    border-color: rgba(37, 99, 235, 0.35);
+  }
+}
+
+.policyBadgeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.policyRuleTitle {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: #1E3A8A;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  :global(.darkMode) & {
+    color: #93C5FD;
+  }
+}
+
+.policyDescriptionText {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #334155;
+  margin: 0;
+
+  strong {
+    color: #0F172A;
+  }
+
+  :global(.darkMode) & {
+    color: #CBD5E1;
+
+    strong {
+      color: #FFFFFF;
+    }
+  }
+}
+
+.pricingFieldsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.savingsPill {
+  display: inline-flex;
+  align-items: center;
+  background-color: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 4px;
+
+  :global(.darkMode) & {
+    background-color: rgba(5, 150, 105, 0.15);
+    color: #34D399;
+    border-color: rgba(5, 150, 105, 0.3);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Step 3: Interactive Curriculum & Video Lessons Builder
+// ─────────────────────────────────────────────────────────────
+.curriculumBuilderBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.curriculumTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.curriculumSummaryPill {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #475569;
+  background-color: #F1F5F9;
+  padding: 6px 12px;
+  border-radius: 8px;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    color: #CBD5E1;
+  }
+}
+
+.addLessonBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  border: 1px solid #1D4ED8;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+}
+
+.lessonsCardsList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lessonCardItem {
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+  &:hover {
+    border-color: #94A3B8;
+  }
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+  }
+}
+
+.lessonCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background-color: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  cursor: pointer;
+
+  :global(.darkMode) & {
+    background-color: #162032;
+    border-bottom-color: #1E293B;
+  }
+}
+
+.lessonHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lessonOrderBadge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: #E2E8F0;
+  color: #334155;
+
+  :global(.darkMode) & {
+    background-color: #334155;
+    color: #F8FAFC;
+  }
+}
+
+.lessonOrderBadgeFree {
+  background-color: #DCFCE7 !important;
+  color: #15803D !important;
+
+  :global(.darkMode) & {
+    background-color: rgba(22, 101, 52, 0.3) !important;
+    color: #4ADE80 !important;
+  }
+}
+
+.lessonOrderBadgePaid {
+  background-color: #FEF3C7 !important;
+  color: #B45309 !important;
+
+  :global(.darkMode) & {
+    background-color: rgba(245, 158, 11, 0.2) !important;
+    color: #FBBF24 !important;
+  }
+}
+
+.lessonHeadingTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.lessonHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusPillFree {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background-color: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+
+  :global(.darkMode) & {
+    background-color: rgba(5, 150, 105, 0.15);
+    color: #34D399;
+    border-color: rgba(5, 150, 105, 0.3);
+  }
+}
+
+.statusPillPaid {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background-color: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+  font-size: 0.6875rem;
+  font-weight: 700;
+
+  :global(.darkMode) & {
+    background-color: rgba(217, 119, 6, 0.15);
+    color: #FBBF24;
+    border-color: rgba(217, 119, 6, 0.3);
+  }
+}
+
+.deleteLessonBtn {
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: #EF4444;
+  }
+}
+
+.lessonCardBody {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+// Access & Individual Price Radio Switch inside lesson
+.lessonAccessConfig {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+
+  :global(.darkMode) & {
+    background-color: #111827;
+    border-color: #1F2937;
+  }
+}
+
+.accessOptionLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  background-color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  input {
+    margin-top: 2px;
+  }
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+  }
+}
+
+.accessOptionSelectedFree {
+  border-color: #10B981 !important;
+  background-color: #ECFDF5 !important;
+
+  :global(.darkMode) & {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+  }
+}
+
+.accessOptionSelectedPaid {
+  border-color: #F59E0B !important;
+  background-color: #FFFBEB !important;
+
+  :global(.darkMode) & {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+  }
+}
+
+.accessOptionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    font-size: 0.8125rem;
+    color: #0F172A;
+
+    :global(.darkMode) & {
+      color: #F8FAFC;
+    }
+  }
+
+  span {
+    font-size: 0.6875rem;
+    color: #64748B;
+
+    :global(.darkMode) & {
+      color: #94A3B8;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Step 4: 2-Column Split Preview (Student LMS vs Summary)
+// ─────────────────────────────────────────────────────────────
+.previewSplitGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.previewCardLeft,
+.previewSummaryRight {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.previewCardSubheading {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+// LMS Student Card Mockup
+.lmsStudentCard {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #1E293B;
+  }
+}
+
+.cardImageContainer {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background-color: #0F172A;
+}
+
+.previewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.badgePromo {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background-color: rgba(15, 23, 42, 0.8);
+  color: #FFFFFF;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+
+.badgeTarget {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background-color: #059669;
+  color: #FFFFFF;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.cardInfoContainer {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mentorRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #2563EB;
+  font-weight: 700;
+
+  :global(.darkMode) & {
+    color: #60A5FA;
+  }
+}
+
+.catalogTitle {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  line-height: 1.35;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.catalogDesc {
+  font-size: 0.8125rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.45;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.demoLecturesPreviewBox {
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+  }
+}
+
+.demoTopicsHeader {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+
+  :global(.darkMode) & {
+    color: #CBD5E1;
+  }
+}
+
+.demoTopicsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.demoTopicItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #475569;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.topicItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checklistMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.metricTallyCard {
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+  }
+}
+
+.tallyNum {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1.1;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.tallyLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748B;
+  margin-top: 4px;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.syllabusReviewBox {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #1E293B;
+  }
+}
+
+.syllabusReviewTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.syllabusReviewList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.syllabusReviewItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: #F8FAFC;
+  font-size: 0.75rem;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+  }
+}
+
+.publishStatusBox {
+  background-color: #F0FDF4;
+  border: 1px solid #86EFAC;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  :global(.darkMode) & {
+    background-color: rgba(22, 101, 52, 0.2);
+    border-color: rgba(74, 222, 128, 0.3);
+  }
+}
+
+.statusBoxHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #15803D;
+  font-size: 0.8125rem;
+  font-weight: 700;
+
+  :global(.darkMode) & {
+    color: #4ADE80;
+  }
+}
+
+.statusBoxText {
+  font-size: 0.75rem;
+  color: #166534;
+  margin: 0;
+
+  :global(.darkMode) & {
+    color: #86EFAC;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Bottom Action Bar (Matches Course Create)
+// ─────────────────────────────────────────────────────────────
+.bottomActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #F1F5F9;
+  padding-top: 20px;
+  margin-top: auto;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  :global(.darkMode) & {
+    border-top-color: #1E293B;
+  }
+}
+
+.actionLeft,
+.actionRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stepCounterText {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748B;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.btnSecondaryOutline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #F8FAFC;
+    border-color: #94A3B8;
+  }
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background-color: #334155;
+    }
+  }
+}
+
+.btnPrimaryCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  border: 1px solid #1D4ED8;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  transition: all 0.15s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  }
+}
+
+.btnPublishCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border: 1px solid #047857;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Right Stepper Tracker (~25% Width - Matches Course Create 1:1)
+// ─────────────────────────────────────────────────────────────
+.rightStepperAside {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  position: sticky;
+  top: 16px;
+
+  :global(.darkMode) & {
+    background: #0F172A;
+    border-color: #1E293B;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.stepperContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stepperHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid #F1F5F9;
+  padding-bottom: 12px;
+
+  :global(.darkMode) & {
+    border-bottom-color: #1E293B;
+  }
+}
+
+.stepperHeading {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.stepperSubheading {
+  font-size: 0.75rem;
+  color: #64748B;
+  font-weight: 500;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.verticalTimeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.stepTimelineItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+  padding-bottom: 24px;
+  cursor: pointer;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.verticalConnector {
+  position: absolute;
+  top: 32px;
+  left: 15px;
+  width: 2px;
+  height: calc(100% - 32px);
+  background-color: #E2E8F0;
+  z-index: 1;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+  }
+}
+
+.connectorCompleted {
+  background-color: #10B981 !important;
+}
+
+.milestoneCircleWrap {
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.circleActive {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+.circleCompleted {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background-color: #10B981;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkIconWhite {
+  color: #FFFFFF;
+}
+
+.circleUpcoming {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background-color: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  color: #64748B;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+    color: #94A3B8;
+  }
+}
+
+.stepInfoBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stepNumberTitle {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.04em;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.stepMainTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+
+  .stepActive & {
+    color: #2563EB;
+  }
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+
+    .stepActive & {
+      color: #60A5FA;
+    }
+  }
+}
+
+.stepSubDescription {
+  font-size: 0.75rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.35;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Directory View Mode (Table & Management Roster)
+// ─────────────────────────────────────────────────────────────
+.directoryContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.directoryToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 12px 16px;
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #1E293B;
+  }
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  flex: 1;
+  min-width: 240px;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+  }
+}
+
+.searchInput {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 0.8125rem;
+  color: #0F172A;
+  outline: none;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.filterPillsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filterBtnPill {
+  padding: 6px 12px;
+  border: 1px solid #E2E8F0;
+  background-color: #F8FAFC;
+  color: #475569;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #EEF2FF;
+    border-color: #C7D2FE;
+    color: #4338CA;
+  }
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+    color: #94A3B8;
+
+    &:hover {
+      background-color: #334155;
+      color: #FFFFFF;
+    }
+  }
+}
+
+.filterBtnPillActive {
+  background-color: #2563EB !important;
+  color: #FFFFFF !important;
+  border-color: #2563EB !important;
+}
+
+.directoryTableWrap {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #1E293B;
+  }
+}
+
+.directoryTableHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 40fr) minmax(0, 14fr) minmax(0, 18fr) minmax(0, 14fr) minmax(0, 14fr);
+  padding: 12px 18px;
+  background-color: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  :global(.darkMode) & {
+    background-color: #162032;
+    border-bottom-color: #1E293B;
+  }
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+}
+
+.directoryTableRow {
+  display: grid;
+  grid-template-columns: minmax(0, 40fr) minmax(0, 14fr) minmax(0, 18fr) minmax(0, 14fr) minmax(0, 14fr);
+  padding: 14px 18px;
+  align-items: center;
+  border-bottom: 1px solid #F1F5F9;
+  gap: 12px;
+  transition: background-color 0.15s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: #F8FAFC;
+  }
+
+  :global(.darkMode) & {
+    border-bottom-color: #1E293B;
+
+    &:hover {
+      background-color: #162032;
+    }
+  }
+
+  @media (max-width: 900px) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.rowLectureInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rowNumPill {
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: #F1F5F9;
+  color: #475569;
+  flex-shrink: 0;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    color: #94A3B8;
+  }
+}
+
+.rowDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowTrackName {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #2563EB;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  :global(.darkMode) & {
+    color: #60A5FA;
+  }
+}
+
+.rowTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.rowMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.6875rem;
+  color: #64748B;
+  margin-top: 2px;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.rowActionButtons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quickToggleFreeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.toggleMakePaid {
+  background-color: #FFFBEB;
+  border: 1px solid #FCD34D;
+  color: #B45309;
+
+  &:hover {
+    background-color: #FEF3C7;
+  }
+}
+
+.toggleMakeFree {
+  background-color: #ECFDF5;
+  border: 1px solid #86EFAC;
+  color: #15803D;
+
+  &:hover {
+    background-color: #DCFCE7;
+  }
+}

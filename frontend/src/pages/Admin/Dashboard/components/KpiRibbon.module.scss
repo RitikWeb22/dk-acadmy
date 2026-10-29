@@ -1,0 +1,208 @@
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.kpiCard {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  outline: none;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+    border-color: #CBD5E1;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px #2563EB;
+  }
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+
+    &:hover {
+      box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+      border-color: #475569;
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px #60A5FA;
+    }
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.titleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.iconChip {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.iconBlue {
+  background-color: #EFF6FF;
+  color: #2563EB;
+
+  :global(.darkMode) & {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: #93C5FD;
+  }
+}
+
+.iconIndigo {
+  background-color: #EEF2FF;
+  color: #4F46E5;
+
+  :global(.darkMode) & {
+    background-color: rgba(79, 70, 229, 0.2);
+    color: #A5B4FC;
+  }
+}
+
+.iconAmber {
+  background-color: #FFFBEB;
+  color: #D97706;
+
+  :global(.darkMode) & {
+    background-color: rgba(217, 119, 6, 0.2);
+    color: #FCD34D;
+  }
+}
+
+.iconRose {
+  background-color: #FFF1F2;
+  color: #E11D48;
+
+  :global(.darkMode) & {
+    background-color: rgba(225, 29, 72, 0.2);
+    color: #FDA4AF;
+  }
+}
+
+.cardTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  :global(.darkMode) & {
+    color: #CBD5E1;
+  }
+}
+
+.cardMiddle {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.kpiValue {
+  font-size: 1.875rem; // 30px bold
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.kpiUnit {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748B;
+  white-space: nowrap;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.sparklineBox {
+  width: 68px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.sparklineSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  padding-top: 6px;
+  border-top: 1px solid #F1F5F9;
+
+  :global(.darkMode) & {
+    border-top-color: #334155;
+  }
+}
+
+.breakdownText {
+  font-size: 0.72rem;
+  color: #64748B;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}

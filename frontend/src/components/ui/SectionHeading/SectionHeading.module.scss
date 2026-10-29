@@ -1,0 +1,87 @@
+@use '../../../styles/variables' as *;
+
+.wrapper {
+  margin-bottom: $space-8;
+
+  @include desktop {
+    margin-bottom: $space-12;
+  }
+
+  &.center {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 720px;
+  }
+
+  &.left {
+    text-align: left;
+    max-width: 760px;
+  }
+}
+
+.wrapperWithAction {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: $space-8;
+
+  @include desktop {
+    margin-bottom: $space-12;
+  }
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+.headingMainCol {
+  flex: 1;
+  max-width: 760px;
+  text-align: left;
+}
+
+.headingActionCol {
+  flex-shrink: 0;
+
+  @include mobile {
+    width: 100%;
+
+    & > * {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-soft-border);
+  padding: 0.25rem 0.75rem;
+  border-radius: $radius-full;
+  margin-bottom: $space-3;
+}
+
+.title {
+  color: var(--color-text-primary);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin-bottom: $space-3;
+}
+
+.description {
+  font-size: 1.0625rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}

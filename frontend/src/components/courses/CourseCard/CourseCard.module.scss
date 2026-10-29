@@ -1,0 +1,158 @@
+@use '../../../styles/variables' as *;
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-xl;
+  padding: $space-6;
+  box-shadow: $shadow-card;
+  transition: transform $transition-normal, box-shadow $transition-normal, border-color $transition-normal;
+  overflow: hidden;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-card-hover;
+    border-color: rgba(37, 99, 235, 0.3);
+  }
+}
+
+.popular {
+  border-color: #93C5FD;
+  box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.12);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+}
+
+.popularRibbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 1rem;
+  border-bottom-left-radius: $radius-md;
+}
+
+.header {
+  margin-bottom: $space-4;
+}
+
+.badgesRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: $space-3;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.35;
+  margin-bottom: $space-2;
+}
+
+.description {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin-bottom: 0;
+}
+
+.metaInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: $space-3 0;
+  margin: $space-3 0;
+  border-top: 1px dashed var(--color-border);
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.metaIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.featuresSection {
+  flex-grow: 1;
+  margin-bottom: $space-4;
+}
+
+.featuresTitle {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: $space-3;
+}
+
+.featuresList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.checkIcon {
+  color: var(--color-accent-hover);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.toggleFeaturesBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0 0 0;
+  cursor: pointer;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: $space-2;
+}

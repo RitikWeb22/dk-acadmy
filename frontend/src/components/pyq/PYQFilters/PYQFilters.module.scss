@@ -1,0 +1,245 @@
+@use '../../../styles/variables' as *;
+
+.filtersContainer {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-xl;
+  padding: $space-4;
+  margin-bottom: $space-8;
+  box-shadow: $shadow-xs;
+
+  @include desktop {
+    padding: $space-6;
+  }
+}
+
+.searchRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-3;
+
+  @include desktop {
+    grid-template-columns: 1.8fr 1fr 1fr;
+  }
+}
+
+.searchInputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 1rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: 2.75rem;
+  padding-left: 2.75rem;
+  padding-right: 2.5rem;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  transition: all $transition-fast;
+
+  &::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.8;
+  }
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    background-color: #ffffff;
+  }
+}
+
+.clearSearchBtn {
+  position: absolute;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-text-primary);
+    background-color: #e2e8f0;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.dropdownWrap {
+  width: 100%;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.selectInput {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 0.875rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    background-color: #ffffff;
+  }
+}
+
+.bottomRow {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  padding-top: $space-3;
+  border-top: 1px solid var(--color-border);
+
+  @include desktop {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.subjectControlsGroup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $space-4;
+}
+
+.subjectPills {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.pillBtn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  padding: 0.35rem 0.875rem;
+  border-radius: $radius-full;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: var(--color-primary);
+    border-color: rgba(37, 99, 235, 0.4);
+    background-color: var(--color-primary-soft);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.activePill {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+
+  &:hover {
+    background-color: var(--color-primary-hover);
+    color: #FFFFFF;
+    border-color: var(--color-primary-hover);
+  }
+}
+
+.countText {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  padding-left: $space-4;
+  border-left: 1px solid var(--color-border);
+  white-space: nowrap;
+
+  strong {
+    color: var(--color-text-primary);
+    font-weight: 700;
+  }
+}
+
+.resetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-soft-border);
+  padding: 0.35rem 0.875rem;
+  border-radius: $radius-full;
+  cursor: pointer;
+  margin-left: auto;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: #dbeafe;
+    color: var(--color-primary-hover);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.resetIcon {
+  flex-shrink: 0;
+}

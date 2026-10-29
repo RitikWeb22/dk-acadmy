@@ -1,0 +1,519 @@
+@use '../../../styles/variables' as *;
+
+.reviewContainer {
+  padding: $space-4 0 $space-12;
+}
+
+.topHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  padding: $space-3 $space-6;
+  margin-bottom: $space-4;
+  box-shadow: $shadow-xs;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  flex-wrap: wrap;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-text-primary;
+    border-color: $color-text-muted;
+    background-color: $color-surface-muted;
+  }
+}
+
+.reviewTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  margin: 0;
+}
+
+.catalogBtn {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-text-primary;
+    background-color: $color-surface-muted;
+  }
+}
+
+.filterTabsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-2 $space-4;
+  margin-bottom: $space-4;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  flex-wrap: wrap;
+}
+
+.filterIcon {
+  color: $color-text-muted;
+}
+
+.filterLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filterTab {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-surface-muted;
+    color: $color-text-primary;
+  }
+
+  &.filterTabActive {
+    background-color: $color-primary-soft;
+    color: $color-primary;
+    border-color: $color-primary-soft-border;
+    font-weight: 700;
+  }
+}
+
+.filterCount {
+  font-size: 0.75rem;
+  color: $color-text-muted;
+}
+
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-6;
+
+  @media (min-width: 992px) {
+    grid-template-columns: 1fr 280px;
+  }
+}
+
+.card {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-2xl;
+  padding: $space-6;
+  box-shadow: $shadow-xs;
+
+  @media (min-width: 640px) {
+    padding: $space-8;
+  }
+}
+
+.qMetaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid $color-border-subtle;
+  padding-bottom: $space-4;
+  margin-bottom: $space-6;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.qNumberRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.qNumber {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: $color-text-primary;
+}
+
+.subjectTag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: $color-primary;
+  background-color: $color-primary-soft;
+  border: 1px solid $color-primary-soft-border;
+  padding: 0.15rem 0.45rem;
+  border-radius: $radius-sm;
+}
+
+.chapterTag {
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+  background-color: $color-surface-muted;
+  border: 1px solid $color-border;
+  padding: 0.15rem 0.45rem;
+  border-radius: $radius-sm;
+}
+
+.scoreTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: $radius-full;
+
+  &.scoreCorrect {
+    background-color: #DCFCE7;
+    color: #15803D;
+    border: 1px solid #BBF7D0;
+  }
+
+  &.scoreIncorrect {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+    border: 1px solid #FCA5A5;
+  }
+
+  &.scoreUnattempted {
+    background-color: $color-surface-muted;
+    color: $color-text-muted;
+    border: 1px solid $color-border;
+  }
+}
+
+.statementArea {
+  margin-bottom: $space-6;
+}
+
+.statementText {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: $color-text-primary;
+  margin: 0;
+  font-weight: 500;
+}
+
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  margin-bottom: $space-6;
+}
+
+.optionItem {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  width: 100%;
+  padding: $space-3 $space-4;
+  background-color: #FAFCFF;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  position: relative;
+
+  &.correctOption {
+    background-color: #DCFCE7;
+    border-color: #16A34A;
+
+    .radioLetter {
+      background-color: #16A34A;
+      color: #FFFFFF;
+      border-color: #16A34A;
+    }
+
+    .optionText {
+      color: #14532D;
+      font-weight: 600;
+    }
+  }
+
+  &.incorrectOption {
+    background-color: #FEE2E2;
+    border-color: #DC2626;
+
+    .radioLetter {
+      background-color: #DC2626;
+      color: #FFFFFF;
+      border-color: #DC2626;
+    }
+
+    .optionText {
+      color: #7F1D1D;
+      font-weight: 600;
+    }
+  }
+}
+
+.radioLetter {
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-md;
+  background-color: $color-surface-muted;
+  border: 1px solid $color-border;
+  color: $color-text-secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.optionText {
+  flex: 1;
+  font-size: 0.9375rem;
+  color: $color-text-primary;
+  line-height: 1.5;
+}
+
+.correctIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #16A34A;
+}
+
+.incorrectIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #DC2626;
+}
+
+.solutionBox {
+  background-color: #F8FAFC;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  padding: $space-6;
+  margin-bottom: $space-6;
+}
+
+.solutionHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  margin-bottom: $space-3;
+}
+
+.solIcon {
+  color: $color-primary;
+}
+
+.solTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.formulaRow {
+  background-color: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: $radius-md;
+  padding: $space-3;
+  margin-bottom: $space-3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.formulaLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: $color-text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.formulaCode {
+  font-family: $font-family-mono;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-primary;
+  background-color: rgba(37, 99, 235, 0.06);
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius-sm;
+  word-break: break-all;
+}
+
+.explanationText {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: $color-text-secondary;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $space-4;
+  border-top: 1px solid $color-border-subtle;
+}
+
+.navBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: $color-surface-muted;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover:not(:disabled) {
+    background-color: $color-border;
+    color: $color-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.navProgress {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-muted;
+}
+
+.sidebarCard {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  padding: $space-4;
+  box-shadow: $shadow-xs;
+}
+
+.sidebarTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: $space-3;
+  padding-bottom: $space-2;
+  border-bottom: 1px solid $color-border-subtle;
+}
+
+.paletteGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $space-2;
+}
+
+.paletteBtn {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border: 1px solid transparent;
+
+  &.pActive {
+    outline: 2px solid $color-primary;
+    outline-offset: 1px;
+  }
+
+  &.pCorrect {
+    background-color: #DCFCE7;
+    color: #15803D;
+    border-color: #86EFAC;
+  }
+
+  &.pIncorrect {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+    border-color: #FCA5A5;
+  }
+
+  &.pUnattempted {
+    background-color: #F8FAFC;
+    color: $color-text-muted;
+    border-color: $color-border;
+  }
+}
+
+.emptyFilterBox {
+  background-color: $color-surface;
+  border: 1px dashed $color-border;
+  border-radius: $radius-xl;
+  padding: $space-12 $space-6;
+  text-align: center;
+  max-width: 440px;
+  margin: $space-8 auto;
+
+  p {
+    font-size: 0.9375rem;
+    color: $color-text-secondary;
+    margin-bottom: $space-4;
+  }
+}
+
+.resetFilterBtn {
+  padding: 0.4rem 0.85rem;
+  background-color: $color-primary;
+  color: #FFFFFF;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}

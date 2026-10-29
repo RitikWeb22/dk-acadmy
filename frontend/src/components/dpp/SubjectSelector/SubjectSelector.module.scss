@@ -1,0 +1,96 @@
+@use '../../../styles/variables' as *;
+
+.selectorWrapper {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $space-3;
+  margin-bottom: $space-6;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.tabBtn {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-3 $space-4;
+  cursor: pointer;
+  transition: all $transition-fast;
+  text-align: left;
+  outline: none;
+  box-shadow: $shadow-xs;
+
+  &:hover {
+    border-color: $color-primary-soft-border;
+    background-color: #FAFCFF;
+    transform: translateY(-1px);
+    box-shadow: $shadow-sm;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+  }
+
+  &.active {
+    background-color: $color-primary-soft;
+    border-color: $color-primary;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+
+    .tabLabel {
+      color: $color-primary;
+      font-weight: 700;
+    }
+
+    .iconWrap {
+      background-color: $color-primary;
+      color: #FFFFFF;
+    }
+
+    .countBadge {
+      background-color: #FFFFFF;
+      color: $color-primary;
+      border-color: $color-primary-soft-border;
+      font-weight: 700;
+    }
+  }
+}
+
+.iconWrap {
+  width: 34px;
+  height: 34px;
+  border-radius: $radius-md;
+  background-color: $color-surface-muted;
+  color: $color-text-secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all $transition-fast;
+}
+
+.tabLabel {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-text-primary;
+  transition: color $transition-fast;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.countBadge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: $color-text-muted;
+  background-color: $color-surface-muted;
+  border: 1px solid $color-border;
+  padding: 0.125rem 0.5rem;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+}

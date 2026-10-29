@@ -1,0 +1,224 @@
+.analyticsCard {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 260px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #CBD5E1;
+  }
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #1E293B;
+
+    &:hover {
+      border-color: #334155;
+    }
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.015em;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.cardSubtitle {
+  font-size: 0.8125rem;
+  color: #64748B;
+  font-weight: 400;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.growthBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #059669;
+  background-color: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  padding: 3px 8px;
+  border-radius: 9999px;
+
+  :global(.darkMode) & {
+    background-color: rgba(5, 150, 105, 0.15);
+    border-color: rgba(5, 150, 105, 0.3);
+    color: #34D399;
+  }
+}
+
+.selectWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.timeSelect {
+  appearance: none;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 5px 24px 5px 10px;
+  font-size: 0.78125rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.12s ease;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 12px;
+
+  &:hover {
+    border-color: #CBD5E1;
+    background-color: #FFFFFF;
+  }
+
+  &:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  }
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+    color: #E2E8F0;
+
+    &:hover {
+      background-color: #243048;
+    }
+  }
+}
+
+.chartArea {
+  flex: 1;
+  min-height: 180px;
+  width: 100%;
+}
+
+// Tooltip Styles
+.customTooltip {
+  background-color: #0F172A;
+  color: #FFFFFF;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.35);
+  font-size: 0.75rem;
+  min-width: 170px;
+  border: 1px solid #334155;
+}
+
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94A3B8;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.tooltipIcon {
+  color: #60A5FA;
+}
+
+.tooltipDate {
+  font-size: 0.75rem;
+}
+
+.tooltipTotalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  margin-bottom: 6px;
+}
+
+.tooltipLabel {
+  color: #F8FAFC;
+}
+
+.tooltipValue {
+  color: #60A5FA;
+}
+
+.tooltipDivider {
+  height: 1px;
+  background-color: #334155;
+  margin: 6px 0;
+}
+
+.tooltipBatchRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  color: #CBD5E1;
+  margin-top: 3px;
+}
+
+.batchDotClassroom {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #2563EB;
+}
+
+.batchDotOnline {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10B981;
+}
+
+.batchName {
+  flex: 1;
+}
+
+.batchCount {
+  font-weight: 600;
+  color: #FFFFFF;
+}

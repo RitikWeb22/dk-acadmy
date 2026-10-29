@@ -1,0 +1,313 @@
+@use '../../../styles/variables' as *;
+
+.heroSection {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 24px 0 52px;
+
+  @media (max-width: $bp-tablet) {
+    padding: 16px 0 36px;
+  }
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.breadcrumbLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: #2563eb;
+  }
+}
+
+.breadcrumbSeparator {
+  color: #cbd5e1;
+}
+
+.breadcrumbCurrent {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: center;
+
+  @media (min-width: 992px) {
+    grid-template-columns: 1.25fr 1fr;
+    gap: 48px;
+  }
+}
+
+.textContent {
+  max-width: 680px;
+}
+
+.badgeRow {
+  margin-bottom: 16px;
+}
+
+.pedagogyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badgeIcon {
+  color: #2563eb;
+}
+
+.title {
+  font-size: clamp(2rem, 3.8vw, 2.75rem);
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  letter-spacing: -0.03em;
+}
+
+.titleHighlight {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.leadParagraph {
+  font-size: 1.125rem; // 18px
+  line-height: 1.65;
+  color: #334155; // Slate-700
+  margin-bottom: 24px;
+
+  strong {
+    color: #0f172a;
+    font-weight: 700;
+  }
+}
+
+.trustStrip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+  padding: 10px 14px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.trustItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.trustCheck {
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background-color: #2563eb; // Solid electric blue
+  color: #ffffff;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+  }
+}
+
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  background-color: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    background-color: #eff6ff;
+    transform: translateY(-1px);
+  }
+}
+
+/* ───────────────────────────────────────────────
+   Right Column: 2x2 Bento Milestone Grid
+   ─────────────────────────────────────────────── */
+.bentoWrapper {
+  width: 100%;
+}
+
+.bentoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bentoCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.1);
+    border-color: #cbd5e1;
+  }
+
+  &.bentoCardAmber:hover {
+    border-color: #fde68a;
+  }
+
+  &.bentoCardBlue:hover {
+    border-color: #bfdbfe;
+  }
+
+  &.bentoCardEmerald:hover {
+    border-color: #a7f3d0;
+  }
+
+  &.bentoCardPurple:hover {
+    border-color: #ddd6fe;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.iconWrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.iconAmber {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
+
+  &.iconBlue {
+    background-color: #eff6ff;
+    color: #2563eb;
+  }
+
+  &.iconEmerald {
+    background-color: #ecfdf5;
+    color: #059669;
+  }
+
+  &.iconPurple {
+    background-color: #f5f3ff;
+    color: #7c3aed;
+  }
+}
+
+.miniTag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #64748b;
+  background-color: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.metricRow {
+  margin-bottom: 4px;
+}
+
+.metricNumber {
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.metricLabel {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 4px 0 2px;
+}
+
+.metricSub {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.35;
+}
+

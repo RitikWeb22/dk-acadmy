@@ -1,0 +1,126 @@
+@use '../../../styles/variables' as *;
+
+.filtersBar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: $space-4;
+  margin-top: $space-4;
+  margin-bottom: $space-6;
+
+  @include desktop {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.subjectsList {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: $radius-full;
+  }
+}
+
+.filterBtn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 1rem;
+  border-radius: $radius-full;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: var(--color-primary);
+    border-color: rgba(37, 99, 235, 0.4);
+    background-color: var(--color-primary-soft);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.active {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+
+  &:hover {
+    background-color: var(--color-primary-hover);
+    color: #FFFFFF;
+    border-color: var(--color-primary-hover);
+  }
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.countText {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 0.3rem 0.75rem;
+  border-radius: $radius-full;
+  box-shadow: $shadow-xs;
+
+  strong {
+    color: var(--color-primary);
+    font-weight: 700;
+  }
+}
+
+.resetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-soft-border);
+  padding: 0.3rem 0.75rem;
+  border-radius: $radius-full;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: #dbeafe;
+    color: var(--color-primary-hover);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.resetIcon {
+  flex-shrink: 0;
+}

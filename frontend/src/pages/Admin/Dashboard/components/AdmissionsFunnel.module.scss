@@ -1,0 +1,253 @@
+.funnelWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.funnelSummaryRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 500px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.summaryTile {
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #334155;
+  }
+}
+
+.summaryLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.summaryVal {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: #0F172A;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.positiveBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #059669;
+  background-color: #ECFDF5;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.stepsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+  }
+}
+
+.funnelStepRow {
+  display: grid;
+  grid-template-columns: 200px 1fr 140px;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 0;
+  border-bottom: 1px solid #F1F5F9;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.stageMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stageIconWrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background-color: #EFF6FF;
+  color: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  :global(.darkMode) & {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: #93C5FD;
+  }
+}
+
+.stageNameBlock {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stageTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.stageCountText {
+  font-size: 0.6875rem;
+  color: #64748B;
+
+  strong {
+    color: #0F172A;
+  }
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+
+    strong {
+      color: #F8FAFC;
+    }
+  }
+}
+
+.barArea {
+  width: 100%;
+}
+
+.barTrack {
+  width: 100%;
+  height: 10px;
+  background-color: #F1F5F9;
+  border-radius: 9999px;
+  overflow: hidden;
+
+  :global(.darkMode) & {
+    background-color: #334155;
+  }
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.stepStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+
+  @media (max-width: 768px) {
+    align-items: flex-start;
+  }
+}
+
+.conversionPct {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0F172A;
+  font-variant-numeric: tabular-nums;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.stepRetention {
+  font-size: 0.65rem;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.insightNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #334155;
+  }
+}
+
+.sparkleIcon {
+  font-size: 0.85rem;
+}
+
+.insightText {
+  font-size: 0.72rem;
+  color: #475569;
+  line-height: 1.4;
+  margin: 0;
+
+  strong {
+    color: #0F172A;
+  }
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+
+    strong {
+      color: #F8FAFC;
+    }
+  }
+}

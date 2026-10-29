@@ -1,0 +1,35 @@
+@use '../../../styles/variables' as *;
+
+.successAlert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  border-radius: $radius-md;
+  padding: 10px 14px;
+  color: var(--color-success);
+  font-size: $font-size-xs;
+  line-height: 1.45;
+  animation: fadeIn 0.15s ease-in-out;
+}
+
+.icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.messageText {
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

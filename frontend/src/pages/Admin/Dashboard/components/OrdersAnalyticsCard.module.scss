@@ -1,0 +1,206 @@
+.ordersCard {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 260px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #CBD5E1;
+  }
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #1E293B;
+
+    &:hover {
+      border-color: #334155;
+    }
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.015em;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.cardSubtitle {
+  font-size: 0.8125rem;
+  color: #64748B;
+  font-weight: 400;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.badgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.surgeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2563EB;
+  background-color: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  padding: 3px 9px;
+  border-radius: 9999px;
+
+  :global(.darkMode) & {
+    background-color: rgba(37, 99, 235, 0.15);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: #93C5FD;
+  }
+}
+
+.surgeIcon {
+  color: #2563EB;
+
+  :global(.darkMode) & {
+    color: #60A5FA;
+  }
+}
+
+.metricSummaryPill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  background-color: #F1F5F9;
+  padding: 3px 9px;
+  border-radius: 9999px;
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    color: #CBD5E1;
+  }
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748B;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chartArea {
+  flex: 1;
+  min-height: 180px;
+  width: 100%;
+}
+
+// Tooltip Styles
+.customTooltip {
+  background-color: #0F172A;
+  color: #FFFFFF;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.35);
+  font-size: 0.75rem;
+  min-width: 175px;
+  border: 1px solid #334155;
+}
+
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94A3B8;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.tooltipIcon {
+  color: #38BDF8;
+}
+
+.tooltipDate {
+  font-size: 0.75rem;
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+
+.dotAttempts {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #2563EB;
+}
+
+.dotAdmissions {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10B981;
+}
+
+.label {
+  flex: 1;
+  color: #CBD5E1;
+}
+
+.valAttempts {
+  font-weight: 700;
+  color: #60A5FA;
+}
+
+.valAdmissions {
+  font-weight: 700;
+  color: #34D399;
+}

@@ -1,0 +1,779 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalContainer {
+  position: relative;
+  width: 100%;
+  max-width: 1060px;
+  max-height: 92vh;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @media (min-width: 900px) {
+    height: min(710px, 92vh);
+  }
+}
+
+@keyframes modalScaleUp {
+  from {
+    transform: translateY(16px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ─── Floating Top-Right Close Button ─── */
+.closeBtn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 60;
+  transition: all 0.18s ease;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+    transform: rotate(90deg);
+  }
+}
+
+/* ─── 54% / 46% Split Masterclass Layout ─── */
+.splitLayout {
+  display: grid;
+  grid-template-columns: 54% 46%;
+  height: 100%;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+
+  @media (max-width: 899px) {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+    max-height: 85vh;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   LEFT COLUMN: INTERACTIVE VIDEO & LECTURE BRIEF (54%)
+   ══════════════════════════════════════════════════ */
+.leftVideoSection {
+  background: linear-gradient(180deg, #090e1a 0%, #030712 100%);
+  color: #ffffff;
+  padding: 18px 20px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+  }
+}
+
+/* ─── Video Player Frame ─── */
+.videoPlayerContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000000;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.videoElement {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ─── Top Video Overlay Badges ─── */
+.videoTopHeader {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.masterclassBadge {
+  background: rgba(37, 99, 235, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+
+  .zapIcon {
+    color: #fef08a;
+    fill: #fef08a;
+  }
+}
+
+.resolutionBadge {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3.5px 8.5px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  letter-spacing: 0.2px;
+}
+
+/* ─── Large Centered Pulsing Play Trigger ─── */
+.centerPlayTrigger {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 4px;
+  cursor: pointer;
+  z-index: 12;
+  box-shadow: 0 0 30px rgba(37, 99, 235, 0.65), 0 8px 16px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: playPulse 2.4s infinite;
+
+  &:hover {
+    transform: scale(1.08);
+    background: #1d4ed8;
+    box-shadow: 0 0 38px rgba(37, 99, 235, 0.85);
+  }
+}
+
+@keyframes playPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(37, 99, 235, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+/* ─── Bottom Integrated Media Scrub Bar ─── */
+.mediaScrubBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 14px;
+  background: linear-gradient(to top, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.6) 75%, transparent 100%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 14;
+}
+
+.mediaIconBtn {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.timeDisplay {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+
+.seekbarContainer {
+  position: relative;
+  flex: 1;
+  height: 18px;
+  display: flex;
+  align-items: center;
+}
+
+.seekbarInput {
+  position: absolute;
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  accent-color: #2563eb;
+  cursor: pointer;
+  outline: none;
+  z-index: 2;
+  margin: 0;
+  opacity: 0.9;
+
+  &::-webkit-slider-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #2563eb;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+  }
+}
+
+.seekbarFill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 5px;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.speedSelectorBtn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2.5px 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+  }
+}
+
+/* ─── Bottom Lecture Meta Card ─── */
+.lectureMetaCard {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.lectureHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.lecturePill {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.lectureDuration {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.lectureTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 5px 0;
+  line-height: 1.35;
+}
+
+.lectureExcerpt {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.45;
+  margin: 0 0 9px 0;
+}
+
+.handoutLink {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: #60a5fa;
+  font-size: 11.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.4);
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   RIGHT COLUMN: COURSE DETAILS & CHECKOUT DRAWER (46%)
+   ══════════════════════════════════════════════════ */
+.rightInfoSection {
+  background: #ffffff;
+  padding: 18px 22px 14px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.infoScrollContent {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(203, 213, 225, 0.7);
+    border-radius: 4px;
+  }
+}
+
+/* ─── Top Badges Row ─── */
+.topBadgesRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+  padding-right: 36px; /* Clear close button */
+  flex-wrap: wrap;
+}
+
+.targetClassPill {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+}
+
+.seatUrgencyPill {
+  background: #fffbeb;
+  color: #b45309;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  border: 1px solid rgba(253, 230, 138, 0.9);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pulseDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d97706;
+  display: inline-block;
+  animation: pulseDotAnim 1.6s infinite ease-in-out;
+}
+
+@keyframes pulseDotAnim {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+}
+
+.urgencyZap {
+  color: #d97706;
+}
+
+/* ─── Course Title & Subtitle ─── */
+.courseTitle {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  line-height: 1.28;
+}
+
+.courseSubtitle {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.42;
+  margin: 0 0 8px 0;
+}
+
+/* ─── Faculty Credential Card ─── */
+.facultyCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 7px 10px;
+  margin-bottom: 9px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.facultyAvatarWrap {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #3b82f6;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  background: #1d4ed8;
+}
+
+.facultyImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatarFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  background: #1d4ed8;
+}
+
+.facultyInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.facultyNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.facultyName {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1.5px 5.5px;
+  border-radius: 9999px;
+  border: 1px solid rgba(167, 243, 208, 0.8);
+}
+
+.shieldIcon {
+  color: #059669;
+}
+
+.facultyCredentials {
+  font-size: 10.5px;
+  color: #475569;
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.facultyTag {
+  font-size: 10px;
+  color: #b45309;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+/* ─── Academic Deliverables Checklist ─── */
+.deliverablesSection {
+  margin-bottom: 6px;
+}
+
+.deliverablesLabel {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+}
+
+.deliverablesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5.5px;
+}
+
+.deliverableItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.checkIconWrap {
+  color: #059669;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.deliverableText {
+  font-size: 11.5px;
+  color: #334155;
+  line-height: 1.35;
+
+  strong {
+    color: #0f172a;
+    font-weight: 700;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   CHECKOUT ACTION BAR (BOTTOM RIGHT)
+   ══════════════════════════════════════════════════ */
+.checkoutBar {
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 4px;
+  flex-shrink: 0;
+  background: #ffffff;
+  position: relative;
+  z-index: 10;
+}
+
+.priceContainer {
+  margin-bottom: 8px;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.currentPrice {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.originalPrice {
+  font-size: 12.5px;
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.scholarshipBadge {
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7.5px;
+  border-radius: 9999px;
+  border: 1px solid rgba(167, 243, 208, 0.8);
+}
+
+.taxSubtext {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* ─── Action Buttons Row ─── */
+.actionButtonsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+}
+
+.syllabusSecondaryBtn {
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a;
+  }
+}
+
+.enrollPrimaryBtn {
+  flex: 1;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  padding: 9.5px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+
+  &:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* ─── Trust & Security Microcopy ─── */
+.trustMicrocopy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 10px;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.35;
+
+  .lockIcon {
+    color: #059669;
+    flex-shrink: 0;
+  }
+}

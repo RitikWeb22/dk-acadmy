@@ -1,0 +1,283 @@
+@use '../../../styles/variables' as *;
+
+.authPage {
+  min-height: calc(100vh - 72px);
+  background: var(--color-bg);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 24px 64px 24px;
+
+  @include mobile {
+    padding: 16px 16px 40px 16px;
+  }
+}
+
+.authContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  max-width: 1120px;
+  width: 100%;
+  align-items: flex-start; // Align left panel and form card at the same top offset
+
+  @include tablet-down {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 520px;
+  }
+}
+
+// -------------------------------------------------------------
+// Mobile-only Concise Header (Logo + One Sentence)
+// -------------------------------------------------------------
+.mobileHeroHeader {
+  display: none;
+
+  @include tablet-down {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    padding: 8px 4px 12px 4px;
+    width: 100%;
+  }
+}
+
+.mobileBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.logoBold {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--color-primary);
+  letter-spacing: -0.03em;
+}
+
+// Single JEE badge style everywhere: Brand Blue, NOT orange!
+.brandBadge {
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+}
+
+.mobileSummary {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+  max-width: 420px;
+  margin: 0;
+}
+
+// -------------------------------------------------------------
+// Left Educational Value Panel (Desktop Split-Screen)
+// -------------------------------------------------------------
+.leftPanel {
+  background: linear-gradient(175deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: $shadow-card;
+  display: flex;
+  flex-direction: column;
+
+  @include tablet-down {
+    display: none;
+  }
+}
+
+.leftContent {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.heroTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.portalTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-soft-border);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  width: fit-content;
+}
+
+.headline {
+  font-size: clamp(1.625rem, 2.2vw, 2rem);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.highlight {
+  color: var(--color-primary);
+}
+
+.supportingText {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+// 3 Honest Benefits
+.benefitsList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 12px 0 4px 0;
+}
+
+.benefitItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.benefitIconBox {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--color-primary-soft-border);
+}
+
+.benefitBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.benefitTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.benefitDesc {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+// Verified Standards Strip (Real Data Only)
+.verifiedStrip {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.verifiedItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.verifiedIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+// Trust Footer Note
+.trustFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  line-height: 1.45;
+}
+
+.shieldIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+// -------------------------------------------------------------
+// Right Form Card Panel
+// -------------------------------------------------------------
+.rightPanel {
+  width: 100%;
+}
+
+.formCard {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 40px; // 40px padding desktop per prompt
+  box-shadow: $shadow-card;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  @include mobile {
+    padding: 24px; // 24px padding mobile per prompt
+  }
+}
+
+.formHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.formTitle {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.formSubtitle {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.formBody {
+  display: flex;
+  flex-direction: column;
+}

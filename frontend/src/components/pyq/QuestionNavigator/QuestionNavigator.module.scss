@@ -1,0 +1,315 @@
+@use '../../../styles/variables' as *;
+
+.navigatorCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navTitle {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.currentPosition {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.markReviewBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7e22ce;
+  background-color: #f3e8ff;
+  border: 1px solid #d8b4fe;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #ede9fe;
+    border-color: #c084fc;
+  }
+}
+
+.markedActive {
+  background-color: #7e22ce;
+  color: #ffffff;
+  border-color: #7e22ce;
+
+  &:hover {
+    background-color: #6b21a8;
+  }
+}
+
+// Filter Summary Chips
+.filterSummaryRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.summaryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+  }
+}
+
+.chipActive {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+
+  .indicatorGreen {
+    background-color: #4ade80;
+  }
+  .indicatorGray {
+    background-color: #cbd5e1;
+  }
+  .indicatorPurple {
+    background-color: #c084fc;
+  }
+}
+
+.indicatorGreen {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #16a34a;
+}
+
+.indicatorGray {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #94a3b8;
+}
+
+.indicatorPurple {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #9333ea;
+}
+
+// Numbered Circular Grid (1, 2, 3...)
+.circularGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.5rem, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.circleBtn {
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+.circleNum {
+  line-height: 1;
+}
+
+// State 1: Unattempted (Gray)
+.stateUnattempted {
+  background-color: #f8fafc;
+  color: #475569;
+  border-color: #cbd5e1;
+
+  &:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+  }
+}
+
+// State 2: Attempted (Green)
+.stateAttempted {
+  background-color: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+
+  &:hover {
+    background-color: #bbf7d0;
+    color: #166534;
+    border-color: #4ade80;
+    transform: translateY(-1px);
+  }
+}
+
+// State 3: Marked for Review (Purple)
+.stateMarked {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+  border-color: #d8b4fe;
+
+  &:hover {
+    background-color: #ede9fe;
+    color: #6b21a8;
+    border-color: #c084fc;
+    transform: translateY(-1px);
+  }
+}
+
+// State 4: Current Active Question
+.stateCurrent {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35) !important;
+  font-weight: 800;
+}
+
+// State 5: Locked Course Question
+.stateLocked {
+  border-style: dashed;
+  opacity: 0.85;
+
+  &:hover {
+    border-color: #f59e0b;
+    background-color: #fef3c7;
+  }
+}
+
+// Mini badge icons
+.badgeAttempted {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #16a34a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.badgeMarked {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #9333ea;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.badgeLock {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #d97706;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+// Legend
+.legendRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotAttempted {
+  background-color: #16a34a;
+}
+
+.dotUnattempted {
+  background-color: #cbd5e1;
+}
+
+.dotMarked {
+  background-color: #9333ea;
+}
+
+.dotCurrent {
+  background-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}

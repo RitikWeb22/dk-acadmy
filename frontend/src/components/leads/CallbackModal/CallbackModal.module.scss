@@ -1,0 +1,771 @@
+@use '../../../styles/variables' as *;
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalContainer {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.2);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.96) translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid var(--color-border);
+  background: #f8fafc;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.iconCircle {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--color-primary-soft-border);
+}
+
+.modalTitle {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.modalSubtitle {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 2px 0 0 0;
+  line-height: 1.4;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #e2e8f0;
+    color: var(--color-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+  }
+}
+
+// Tab Switcher
+.tabGroup {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  padding: 8px 24px 0 24px;
+  background: #f8fafc;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all $transition-fast;
+  position: relative;
+
+  &:hover {
+    color: var(--color-primary);
+  }
+}
+
+.tabBtnActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 700;
+}
+
+.whatsappTab {
+  &.tabBtnActive {
+    color: #15803d;
+    border-bottom-color: #15803d;
+  }
+}
+
+.instantTag {
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  letter-spacing: 0.04em;
+}
+
+.modalBody {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+// Form styles
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.required {
+  color: var(--color-error);
+}
+
+.optional {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.input,
+.select {
+  height: 44px;
+  padding: 0 14px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-family: $font-family-base;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  outline: none;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+
+  &:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  &.hasError {
+    border-color: var(--color-error);
+  }
+}
+
+.select {
+  cursor: pointer;
+}
+
+.phoneInputWrapper {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+
+  &:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  &.hasError {
+    border-color: var(--color-error);
+  }
+}
+
+.prefix {
+  padding: 0 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  border-right: 1px solid var(--color-border);
+  background: #f8fafc;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.phoneInput {
+  flex: 1;
+  height: 100%;
+  padding: 0 12px;
+  border: none;
+  outline: none;
+  font-family: $font-family-base;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+}
+
+.errorText {
+  font-size: 0.75rem;
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+// Class Chips Row
+.classChipsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+
+  @include mobile {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.classChip {
+  height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all $transition-fast;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: #e2e8f0;
+    color: var(--color-text-primary);
+  }
+}
+
+.classChipActive {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+// Preferred Time Slot Cards
+.timeSlotGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.timeSlotCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #93c5fd;
+    background: #f8fafc;
+  }
+}
+
+.timeSlotCardActive {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.slotIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-size: 1.25rem;
+}
+
+.slotInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.slotTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.slotSub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.trustNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.shieldIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.modalActions {
+  margin-top: 4px;
+}
+
+.submitBtn {
+  width: 100%;
+  height: 48px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all $transition-fast;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Success View
+.successView {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 12px 0;
+}
+
+.successIconCircle {
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background: #f0fdf4;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #bbf7d0;
+}
+
+.successTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.referenceBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  color: #1e40af;
+
+  strong {
+    font-size: 0.9375rem;
+    font-family: $font-family-mono;
+    color: var(--color-primary);
+  }
+}
+
+.successText {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 440px;
+}
+
+.slotConfirmedCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  width: 100%;
+  text-align: left;
+
+  strong {
+    font-size: 0.8125rem;
+    color: var(--color-text-primary);
+    display: block;
+  }
+
+  p {
+    font-size: 0.8125rem;
+    color: var(--color-primary);
+    font-weight: 600;
+    margin: 2px 0 0 0;
+  }
+}
+
+.slotClockIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.instantBridgeBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.bridgeLabel {
+  font-size: 0.8125rem;
+  color: #166534;
+  font-weight: 600;
+}
+
+.instantWhatsAppBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  background: #16a34a;
+  color: #ffffff;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
+  }
+}
+
+.successActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.secondaryBtn {
+  height: 44px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #e2e8f0;
+    color: var(--color-text-primary);
+  }
+}
+
+.primaryDoneBtn {
+  height: 44px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-primary-hover);
+  }
+}
+
+// WhatsApp Tab Panel
+.whatsappTabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.waLiveStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #15803d;
+  width: fit-content;
+}
+
+.pulseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.waCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.waIconLarge {
+  width: 60px;
+  height: 60px;
+  border-radius: 9999px;
+  background: #25d366;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.3);
+}
+
+.waTitle {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.waDesc {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 440px;
+}
+
+.waBatchSelect {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.openWhatsAppBtn {
+  width: 100%;
+  height: 48px;
+  background: #25d366;
+  color: #ffffff;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
+  transition: all $transition-fast;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+
+  &:hover {
+    background: #20ba5a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);
+  }
+}
+
+.directCallRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.callLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.callLinks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.phoneChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--color-primary-soft);
+  }
+}

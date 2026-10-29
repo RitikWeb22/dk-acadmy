@@ -1,0 +1,90 @@
+// DK Academy JEE - Unified Design System Tokens
+// Compliant with WCAG 2.2 AA (>= 4.5:1 text contrast) and Usability Heuristics Audit
+
+:root {
+  // 1. Text Colors: Exactly 6 Semantic Roles (all >= 4.5:1 contrast against surface)
+  --color-text-strong: #0F172A;   // Slate 900 (15.6:1 on white) - Headings, prominent titles
+  --color-text-default: #1E293B;  // Slate 800 (12.8:1 on white) - Body copy, input values
+  --color-text-muted: #475569;    // Slate 600 (5.9:1 on white)  - Subtitles, descriptions, captions
+  --color-text-on-dark: #FFFFFF;  // White (21:1 on #0F172A, 4.6:1 on #2563EB) - Button labels, hero on dark
+  --color-text-link: #2563EB;     // Blue 600 (4.6:1 on white)   - Interactive text links, active tabs
+  --color-text-accent: #15803D;   // Green 700 (4.5:1 on white, 5.2:1 on #F0FDF4) - Verified tags, success
+
+  // Backward compatible aliases
+  --color-navy: var(--color-text-strong);
+  --color-text: var(--color-text-default);
+  --color-text-primary: var(--color-text-default);
+  --color-text-secondary: var(--color-text-muted);
+  --color-muted: var(--color-text-muted);
+
+  // 2. Surface & Brand Palette
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-primary-soft: #EFF6FF;
+  --color-primary-border: #DBEAFE;
+
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F8FAFC;
+  --color-bg: #FFFFFF;
+  --color-bg-alt: #F8FAFC;
+
+  --color-border: #E2E8F0;
+  --color-border-subtle: #F1F5F9;
+
+  --color-success: #16A34A;
+  --color-success-soft: #F0FDF4;
+  --color-warning: #D97706;
+  --color-warning-soft: #FFFBEB;
+  --color-error: #DC2626;
+
+  // 3. Type Scale: Exactly 8 Sizes, Minimum 12px (0.75rem), all in rem units
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-size-xs: 0.75rem;                       // 12px - Footnotes, micro-badges
+  --font-size-sm: 0.8125rem;                     // 13px - Captions, helper text, pill subtitles
+  --font-size-base: 0.875rem;                    // 14px - UI labels, tabs, card metadata
+  --font-size-md: 1rem;                          // 16px - Standard body copy, inputs
+  --font-size-lg: 1.125rem;                      // 18px - Lead paragraphs, section intros
+  --font-size-xl: 1.375rem;                      // 22px - H3 card headings, stat highlights
+  --font-size-2xl: clamp(1.75rem, 3vw, 2.25rem); // 28px–36px - H2 section headings
+  --font-size-3xl: clamp(2rem, 4vw, 3rem);       // 32px–48px - H1 hero title
+
+  // 4. Border Radii: Exactly 4 Steps
+  --radius-sm: 6px;       // Small tags, indicators
+  --radius-md: 12px;      // Standard cards, inputs, containers
+  --radius-lg: 20px;      // Large featured containers
+  --radius-pill: 9999px;  // Pills, badges, circular buttons
+  --radius-default: var(--radius-md);
+
+  // Single Button Radius Token: ALL buttons use pill
+  --btn-radius: var(--radius-pill);
+
+  // 5. Spacing Scale (4px / 8px grid)
+  --space-1: 0.25rem; // 4px
+  --space-2: 0.5rem;  // 8px
+  --space-3: 0.75rem; // 12px
+  --space-4: 1rem;    // 16px
+  --space-5: 1.5rem;  // 24px
+  --space-6: 2rem;    // 32px
+  --space-7: 3rem;    // 48px
+  --space-8: 4rem;    // 64px
+  --space-12: 6rem;   // 96px
+
+  // Container dimensions
+  --container-max-width: 1200px;
+  --container-padding: 24px;
+  --section-padding-y: 56px;
+  --card-padding: 24px;
+  --grid-gap: 24px;
+
+  // 6. Elevation Shadows
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 12px 24px -4px rgba(37, 99, 235, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+
+  // 7. Button Dimensions
+  --btn-height-md: 48px;
+  --btn-height-sm: 44px;
+  --btn-height: var(--btn-height-md);
+}

@@ -1,0 +1,63 @@
+@use '../../../styles/variables' as *;
+
+.emptyContainer {
+  background-color: $color-surface;
+  border: 1px dashed $color-border;
+  border-radius: $radius-2xl;
+  padding: $space-16 $space-6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 560px;
+  margin: $space-8 auto;
+}
+
+.iconWrap {
+  width: 64px;
+  height: 64px;
+  border-radius: $radius-full;
+  background-color: $color-surface-muted;
+  color: $color-text-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $space-4;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: $color-text-primary;
+  margin-bottom: $space-2;
+}
+
+.description {
+  font-size: 0.9375rem;
+  color: $color-text-secondary;
+  margin-bottom: $space-6;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.resetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-3 $space-6;
+  background-color: $color-primary;
+  color: #FFFFFF;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+}

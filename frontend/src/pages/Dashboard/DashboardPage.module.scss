@@ -1,0 +1,175 @@
+@use '../../styles/variables' as *;
+
+.page {
+  background-color: var(--color-bg, #f8fafc);
+  min-height: calc(100vh - 120px);
+  padding: 24px 0 64px;
+}
+
+.dashboardLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+// ───────────────────────────────────────────────
+// Two-Column Layout (7 Cols Left : 5 Cols Right Desktop)
+// ───────────────────────────────────────────────
+.twoColumnGrid {
+  display: grid;
+  grid-template-columns: 1.38fr 1fr;
+  gap: 24px;
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+// ───────────────────────────────────────────────
+// Global Academic Support Strip (#070D1E Dark Navy)
+// ───────────────────────────────────────────────
+.supportBanner {
+  background-color: #070d1e;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 24px 28px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  box-shadow: 0 10px 30px rgba(7, 13, 30, 0.35);
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+    gap: 18px;
+  }
+}
+
+.supportLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 680px;
+
+  @media (max-width: 600px) {
+    align-items: flex-start;
+  }
+}
+
+.headphoneIconBox {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.headphoneIcon {
+  color: #60a5fa;
+}
+
+.supportTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.supportTitle {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.supportSubtext {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.supportActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+
+  @media (max-width: 900px) {
+    width: 100%;
+  }
+}
+
+.callbackBtn {
+  min-height: 42px;
+  padding: 0 20px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: none;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.5);
+  }
+
+  @media (max-width: 900px) {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+.whatsappBtn {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #ffffff;
+    color: #070d1e;
+    border-color: #ffffff;
+  }
+
+  @media (max-width: 900px) {
+    flex: 1;
+    justify-content: center;
+  }
+}

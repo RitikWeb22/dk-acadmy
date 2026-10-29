@@ -1,0 +1,277 @@
+@use '../../styles/variables' as *;
+
+.page {
+  padding: $space-6 0 $space-16;
+  min-height: calc(100vh - 72px);
+  background: var(--color-bg);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: $font-size-xs;
+  margin-bottom: $space-4;
+}
+
+.breadcrumbLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.breadcrumbChevron {
+  color: #64748B; // WCAG contrast >= 4.5:1
+}
+
+.breadcrumbCurrent {
+  color: #475569; // WCAG contrast >= 4.5:1
+  font-weight: 600;
+}
+
+.headerArea {
+  margin-bottom: 24px;
+}
+
+// Modern segmented pill dock for tab navigation
+.tabNavContainer {
+  margin: 0 0 24px 0;
+  position: relative;
+}
+
+.tabList {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @include mobile {
+    padding: 4px;
+    gap: 4px;
+  }
+}
+
+.tabBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  font-family: $font-family-base;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569; // slate-600
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+  position: relative;
+
+  &:hover {
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.6);
+
+    .tabIcon {
+      color: #0f172a;
+    }
+  }
+
+  &.activeTab {
+    background: #ffffff;
+    color: #2563eb; // electric blue
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+
+    .tabIcon {
+      color: #2563eb;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+
+  @include mobile {
+    padding: 8px 12px;
+    font-size: 0.8125rem;
+    gap: 6px;
+  }
+}
+
+.tabIcon {
+  color: #475569; // slate-600
+  flex-shrink: 0;
+  transition: color $transition-fast;
+}
+
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  color: #334155;
+  transition: all $transition-fast;
+
+  &.activeBadge {
+    background: #2563eb;
+    color: #ffffff;
+  }
+}
+
+.tabContent {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Accessibility: Respect reduced motion
+@media (prefers-reduced-motion: reduce) {
+  .tabContent,
+  .tabBtn {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+// Unsaved changes confirmation modal
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4;
+  z-index: 10000;
+}
+
+.modalCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 440px;
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modalTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warningIcon {
+  color: var(--color-warning);
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: $font-size-md;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.modalCloseBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+
+  &:hover {
+    color: var(--color-text-primary);
+  }
+}
+
+.modalDesc {
+  font-size: $font-size-xs;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.modalActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: $space-2;
+}
+
+.keepEditingBtn {
+  padding: 8px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-surface-muted);
+  }
+}
+
+.discardBtn {
+  padding: 8px 16px;
+  background: var(--color-error);
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+
+  &:hover {
+    background: #b91c1c;
+  }
+}

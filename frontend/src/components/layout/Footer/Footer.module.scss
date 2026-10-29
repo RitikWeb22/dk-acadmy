@@ -1,0 +1,355 @@
+@use '../../../styles/variables' as *;
+
+.footer {
+  background-color: #0F172A;
+  color: #94A3B8;
+  border-top: 1px solid #1E293B;
+  padding-top: $space-16;
+  padding-bottom: $space-8;
+  margin-top: auto;
+
+  @include mobile {
+    padding-bottom: calc($space-8 + 68px);
+  }
+}
+
+.topSection {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-8;
+  margin-bottom: $space-12;
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include desktop {
+    grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr;
+    gap: $space-12;
+  }
+}
+
+.brandCol {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.brandLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  text-decoration: none;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.footerLogoImg {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+  background: #ffffff;
+  padding: 3px 6px;
+  border-radius: 6px;
+  display: block;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.04);
+  }
+}
+
+.logoBadge {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: $radius-md;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.logoIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.brandName {
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+}
+
+.brandTag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #60A5FA;
+  background-color: rgba(37, 99, 235, 0.2);
+  padding: 0.125rem 0.375rem;
+  border-radius: $radius-sm;
+  margin-left: 0.25rem;
+}
+
+.brandDesc {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: #94A3B8;
+  max-width: 400px;
+}
+
+.officeAddress {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+
+  .addressIcon {
+    color: #60a5fa;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+}
+
+.contactChipsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.contactChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: #1e293b;
+  border: 1px solid #334155;
+  padding: 6px 12px;
+  border-radius: $radius-full;
+  text-decoration: none;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+  }
+
+  &.whatsappChip {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #34d399;
+
+    &:hover {
+      background: #10b981;
+      color: #ffffff;
+    }
+  }
+}
+
+.socialRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding-left: 0;
+}
+
+.socialLabel {
+  width: 100%;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.socialLink {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1e293b;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #2563eb;
+    color: #ffffff;
+    transform: translateY(-2px);
+  }
+}
+
+.linksCol {
+  display: flex;
+  flex-direction: column;
+}
+
+.colTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.02em;
+  margin-bottom: $space-4;
+}
+
+.linkList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footerLink {
+  font-size: 14px;
+  color: #94A3B8;
+  transition: all $transition-fast;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+
+  .policyIcon {
+    color: #60a5fa;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    color: #FFFFFF;
+    transform: translateX(2px);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.quickContactNote {
+  margin-top: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.contactNoteLabel {
+  font-size: 0.9375rem;
+  color: #FFFFFF;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.contactMailLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: #94A3B8;
+  transition: color $transition-fast;
+  text-decoration: none;
+
+  &:hover {
+    color: #FFFFFF;
+  }
+}
+
+.bottomBar {
+  border-top: 1px solid #1E293B;
+  padding-top: $space-8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copyright {
+  font-size: 0.875rem;
+  color: #64748B;
+  text-align: center;
+}
+
+// Slim Portal Footer
+.slimFooter {
+  background-color: #0F172A;
+  color: #94A3B8;
+  border-top: 1px solid #1E293B;
+  padding: 24px 0; // Exactly 24px padding top & bottom per prompt (never clipped)
+  margin-top: auto;
+}
+
+.slimInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-6;
+  flex-wrap: wrap;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: $space-4;
+  }
+}
+
+.slimLinks {
+  display: flex;
+  align-items: center;
+  gap: $space-5;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-wrap: wrap;
+
+  @include mobile {
+    justify-content: center;
+    gap: $space-3;
+  }
+}
+
+.slimSupport {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  font-size: 0.8125rem;
+
+  a {
+    color: #94A3B8;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: #FFFFFF;
+    }
+  }
+
+  @include mobile {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+.slimCopyright {
+  font-size: 0.8125rem;
+  color: #94A3B8; // 5.8:1 contrast against #0F172A (satisfies contrast >= 4.5:1)
+  font-weight: 500;
+}
+

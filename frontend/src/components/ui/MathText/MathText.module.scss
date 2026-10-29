@@ -1,0 +1,54 @@
+.mathContainer {
+  display: inline;
+  line-height: 1.7;
+}
+
+.plainMathText {
+  display: inline;
+}
+
+.inlineMath {
+  display: inline-block;
+  font-family: 'STIX Two Math', 'KaTeX_Math', 'Cambria Math', 'Latin Modern Math', 'Times New Roman', serif;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  padding: 0 3px;
+  background-color: #f8fafc;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  line-height: 1.4;
+  vertical-align: baseline;
+}
+
+.displayMath {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'STIX Two Math', 'KaTeX_Math', 'Cambria Math', 'Latin Modern Math', 'Times New Roman', serif;
+  font-size: 1.0625rem;
+  letter-spacing: 0.02em;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3.5px solid #2563eb;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin: 12px 0;
+  color: #0f172a;
+  overflow-x: auto;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.sup {
+  font-size: 0.75em;
+  vertical-align: super;
+  line-height: 0;
+  font-family: inherit;
+}
+
+.sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+  line-height: 0;
+  font-family: inherit;
+}

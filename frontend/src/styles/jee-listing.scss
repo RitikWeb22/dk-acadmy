@@ -1,0 +1,324 @@
+// ============================================================================
+// DK ACADEMY — JEE MAIN & ADVANCED COMPREHENSIVE BATCHES DESIGN SYSTEM
+// Scoped strictly under .jee-listing
+// High-conversion, WCAG 2.2 AA compliant, 4px grid, 360px to 1440px+
+// ============================================================================
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+.jee-listing {
+  // --- BRAND TOKENS ---
+  --jee-primary: #3730A3;        // Deep Indigo (primary CTA & brand)
+  --jee-primary-hover: #312E81;  // Indigo 900
+  --jee-primary-light: #EEF2FF;  // Indigo 50
+  --jee-primary-border: #C7D2FE; // Indigo 200
+  --jee-primary-glow: rgba(55, 48, 163, 0.18);
+
+  --jee-accent: #F59E0B;         // Amber 500 (Urgency, scarcity, highlights)
+  --jee-accent-hover: #D97706;   // Amber 600
+  --jee-accent-light: #FEF3C7;   // Amber 100
+  --jee-accent-dark: #92400E;    // Amber 800 (for high contrast text)
+
+  --jee-success: #16A34A;        // Emerald Green 600
+  --jee-success-light: #DCFCE7;  // Green 100
+  --jee-success-dark: #14532D;   // Green 900
+
+  --jee-danger: #DC2626;         // Red 600
+  --jee-danger-light: #FEE2E2;   // Red 100
+  --jee-danger-dark: #7F1D1D;    // Red 900
+
+  // --- NEUTRAL SLATE SCALE ---
+  --jee-bg: #F8FAFC;             // Slate 50 (Page background)
+  --jee-card-bg: #FFFFFF;        // Pure White (Card background)
+  --jee-card-subtle: #F1F5F9;    // Slate 100
+  --jee-border: #E2E8F0;         // Slate 200 (Clean borders)
+  --jee-border-hover: #CBD5E1;   // Slate 300
+
+  --jee-text-strong: #0F172A;    // Slate 900 (15.6:1 contrast on white)
+  --jee-text-body: #1E293B;      // Slate 800 (12.8:1 contrast on white)
+  --jee-text-muted: #475569;     // Slate 600 (5.9:1 contrast on white)
+  --jee-text-subtle: #64748B;    // Slate 500 (4.6:1 contrast on white)
+
+  // --- TYPOGRAPHY SCALE ---
+  --jee-font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --jee-font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --jee-text-xs: 0.75rem;     // 12px
+  --jee-text-sm: 0.875rem;    // 14px
+  --jee-text-base: 1rem;      // 16px
+  --jee-text-lg: 1.125rem;    // 18px (card title semibold)
+  --jee-text-xl: 1.5rem;      // 24px (prices bold)
+  --jee-text-2xl: 2rem;       // 32px (section headings)
+  --jee-text-3xl: 2.75rem;    // 44px (hero title)
+
+  // --- RADII ---
+  --jee-radius-card: 12px;
+  --jee-radius-btn: 8px;
+  --jee-radius-chip: 999px;
+  --jee-radius-sm: 6px;
+
+  // --- SHADOWS ---
+  --jee-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --jee-shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --jee-shadow-hover: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 12px 28px -4px rgba(55, 48, 163, 0.14);
+  --jee-shadow-modal: 0 20px 25px -5px rgba(15, 23, 42, 0.25), 0 8px 10px -6px rgba(15, 23, 42, 0.15);
+
+  // --- CORE CONTAINER & RESET ---
+  background-color: var(--jee-bg);
+  color: var(--jee-text-body);
+  font-family: var(--jee-font-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+  min-height: 100vh;
+  position: relative;
+
+  * {
+    box-sizing: border-box;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--jee-font-heading);
+    color: var(--jee-text-strong);
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  ul, ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  // Accessible Focus Ring
+  :focus-visible {
+    outline: 2px solid var(--jee-primary);
+    outline-offset: 2px;
+  }
+
+  // --- CONTAINER ---
+  .jee-container {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 16px;
+    padding-right: 16px;
+
+    @media (min-width: 640px) {
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+
+    @media (min-width: 1024px) {
+      padding-left: 32px;
+      padding-right: 32px;
+    }
+  }
+
+  // --- SECTION SPACING ---
+  .jee-section {
+    padding-top: 40px;
+    padding-bottom: 40px;
+
+    @media (min-width: 1024px) {
+      padding-top: 64px;
+      padding-bottom: 64px;
+    }
+  }
+
+  // --- BUTTON SYSTEM (>= 44x44px touch targets) ---
+  .jee-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 20px;
+    font-family: var(--jee-font-heading);
+    font-size: var(--jee-text-sm);
+    font-weight: 600;
+    line-height: 1.25;
+    border-radius: var(--jee-radius-btn);
+    cursor: pointer;
+    transition: all 180ms ease-out;
+    border: 1px solid transparent;
+    text-decoration: none;
+    white-space: nowrap;
+    user-select: none;
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+  }
+
+  .jee-btn-primary {
+    background: linear-gradient(135deg, #3730A3 0%, #312E81 100%);
+    color: #FFFFFF !important;
+    border-color: #3730A3;
+    box-shadow: 0 2px 4px rgba(55, 48, 163, 0.25);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #312E81 0%, #1E1B4B 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(55, 48, 163, 0.35);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
+
+  .jee-btn-outline {
+    background-color: #FFFFFF;
+    color: var(--jee-text-strong) !important;
+    border-color: var(--jee-border);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+    &:hover:not(:disabled) {
+      background-color: var(--jee-primary-light);
+      border-color: var(--jee-primary-border);
+      color: var(--jee-primary) !important;
+      transform: translateY(-1px);
+    }
+  }
+
+  .jee-btn-ghost {
+    background-color: transparent;
+    color: var(--jee-text-muted) !important;
+    border-color: transparent;
+
+    &:hover:not(:disabled) {
+      background-color: var(--jee-card-subtle);
+      color: var(--jee-text-strong) !important;
+    }
+  }
+
+  .jee-btn-accent {
+    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+    color: #0F172A !important;
+    border-color: #D97706;
+    font-weight: 700;
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+      color: #FFFFFF !important;
+      transform: translateY(-1px);
+    }
+  }
+
+  // --- CHIPS & PILLS ---
+  .jee-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 5px 14px;
+    font-size: var(--jee-text-xs);
+    font-weight: 600;
+    border-radius: var(--jee-radius-chip);
+    transition: all 160ms ease-out;
+    border: 1px solid var(--jee-border);
+    background-color: #FFFFFF;
+    color: var(--jee-text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover {
+      border-color: var(--jee-primary-border);
+      color: var(--jee-primary);
+      background-color: var(--jee-primary-light);
+    }
+
+    &.active {
+      background-color: var(--jee-primary);
+      border-color: var(--jee-primary);
+      color: #FFFFFF !important;
+      box-shadow: 0 2px 8px rgba(55, 48, 163, 0.25);
+    }
+  }
+
+  // --- CARDS SYSTEM ---
+  .jee-card {
+    background-color: var(--jee-card-bg);
+    border: 1px solid var(--jee-border);
+    border-radius: var(--jee-radius-card);
+    box-shadow: var(--jee-shadow-soft);
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--jee-shadow-hover);
+      border-color: var(--jee-primary-border);
+    }
+  }
+
+  .jee-card-popular {
+    border: 2px solid var(--jee-primary) !important;
+    box-shadow: 0 4px 16px rgba(55, 48, 163, 0.15) !important;
+    position: relative;
+  }
+
+  // --- SHIMMER SKELETON ---
+  .jee-skeleton {
+    background: linear-gradient(
+      90deg,
+      #E2E8F0 0%,
+      #F1F5F9 50%,
+      #E2E8F0 100%
+    );
+    background-size: 200% 100%;
+    animation: jee-shimmer 1.5s infinite;
+    border-radius: 6px;
+  }
+
+  @keyframes jee-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  // --- ANIMATIONS ---
+  @keyframes jee-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes jee-scale-up {
+    from { transform: scale(0.96); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes jee-slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes jee-drawer-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  // --- REDUCED MOTION ---
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    .jee-card:hover {
+      transform: none !important;
+    }
+
+    .jee-btn:hover {
+      transform: none !important;
+    }
+  }
+}

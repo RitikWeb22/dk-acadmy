@@ -1,0 +1,229 @@
+@use '../../../styles/variables' as *;
+
+.card {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  }
+
+  @media (max-width: 640px) {
+    padding: 18px 16px;
+  }
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.titleWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.progressPill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2563eb;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  letter-spacing: 0.01em;
+
+  &.progressPillCompleted {
+    color: #15803d;
+    background-color: #dcfce7;
+    border-color: #bbf7d0;
+  }
+}
+
+// Gamified Motivation Line
+.motivationRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background-color: #fffbeb;
+  border: 1px solid #fef3c7;
+}
+
+.flameIcon {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+.motivationText {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
+}
+
+// ───────────────────────────────────────────────
+// Task List
+// ───────────────────────────────────────────────
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.taskItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+  }
+
+  &.taskItemDone {
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+}
+
+// Custom Rounded Checkbox
+.checkToggleBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    transform: scale(1.15);
+    color: #2563eb;
+  }
+}
+
+.circlePendingIcon {
+  color: #94a3b8;
+}
+
+.checkDoneIcon {
+  color: #16a34a;
+}
+
+.taskContent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.taskMetaTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &.dpp {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+  }
+
+  &.pyq {
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+  }
+
+  &.drill {
+    background-color: #fdf4ff;
+    color: #a855f7;
+    border: 1px solid #f0abfc;
+  }
+}
+
+.taskMetaText {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.taskTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.35;
+  transition: color 0.15s ease;
+
+  &.taskTitleDone {
+    color: #64748b;
+    text-decoration: line-through;
+  }
+}
+
+.actionLink {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #1d4ed8;
+    background-color: #eff6ff;
+  }
+}

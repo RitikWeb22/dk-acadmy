@@ -1,0 +1,710 @@
+@use '../../../styles/variables' as *;
+
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// 1. Main Card Container
+.mainCard {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 18px;
+  box-shadow: 0 2px 12px -2px rgba(15, 23, 42, 0.05);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  @include mobile {
+    padding: 20px 16px;
+    gap: 18px;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 16px;
+  gap: 16px;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+.headerTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.headerIconBox {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-text-primary, #0f172a);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.cardSubtitle {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #64748b);
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+
+.headerRightActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+
+  @include mobile {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.saveStatusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  animation: fadeIn 0.15s ease-out;
+}
+
+// Top-right CTA: sleek secondary ghost button with paper-plane icon: [Send Test Ping ↗]
+.sendTestPingBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast;
+
+  .sendIcon {
+    color: #2563eb;
+    transition: transform $transition-fast;
+  }
+
+  &:hover:not(:disabled) {
+    background: #eff6ff;
+    border-color: #2563eb;
+    color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+
+    .sendIcon {
+      transform: translate(2px, -2px);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+// 2. Delivery Channels Status Bento Grid (3-column structured card grid)
+.deliveryBentoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  width: 100%;
+
+  @include tablet-down {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.channelCard {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+    transform: translateY(-1px);
+  }
+}
+
+.channelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.channelIconBox {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.iconEmail {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+  }
+
+  &.iconSms {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+  }
+
+  &.iconWhatsApp {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+  }
+}
+
+.emeraldBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+// WhatsApp Quick-Toggle action [Active / Opt-out]
+.waQuickToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &.waActive {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+
+    &:hover {
+      background: #bbf7d0;
+    }
+  }
+
+  &.waOptOut {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+
+    &:hover {
+      background: #e2e8f0;
+      color: #334155;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #16a34a;
+    outline-offset: 1px;
+  }
+}
+
+.channelBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.channelTypeLabel {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.channelEndpointText {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channelMicroCopy {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+// 3. Academic Reminders & Schedule Alerts (Toggle Matrix)
+.toggleMatrixSection {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @include mobile {
+    padding: 16px 14px;
+  }
+}
+
+.sectionHeaderBar {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+}
+
+.sectionIconTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sectionIconBadge {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sectionTitle {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sectionSubtitle {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 3px 0 0;
+  line-height: 1.45;
+}
+
+.toggleMatrixRows {
+  display: flex;
+  flex-direction: column;
+}
+
+// Flex row justify-between with 16px vertical padding
+.matrixRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background $transition-fast;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 4px;
+  }
+
+  &:first-child {
+    padding-top: 8px;
+  }
+
+  @include mobile {
+    gap: 12px;
+  }
+}
+
+.matrixLeftCol {
+  flex-shrink: 0;
+}
+
+.itemIconBox {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.iconDpp {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+  }
+
+  &.iconCbt {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+  }
+
+  &.iconHandouts {
+    background: #f5f3ff;
+    color: #7c3aed;
+    border: 1px solid #ddd6fe;
+  }
+
+  &.iconNta {
+    background: #fff7ed;
+    color: #ea580c;
+    border: 1px solid #fed7aa;
+  }
+}
+
+.matrixMidCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rowTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.rowSubtext {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.timingHighlight {
+  font-weight: 700;
+  color: #334155;
+}
+
+.matrixRightCol {
+  flex-shrink: 0;
+}
+
+// Modern iOS-style toggle switch (Electric Blue #2563EB with smooth spring translation)
+.iosToggleSwitch {
+  width: 44px;
+  height: 24px;
+  border-radius: 9999px;
+  background: #cbd5e1;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  padding: 2px;
+  flex-shrink: 0;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.toggleOn {
+    background: #2563eb; // electric blue
+
+    .toggleKnob {
+      transform: translateX(20px);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+.toggleKnob {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// 4. Student Verification & Identity Status (Security Trust Card)
+.securityTrustCard {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  @include mobile {
+    padding: 16px 14px;
+  }
+}
+
+.trustHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.trustIconWrapper {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.trustInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.trustTitleLine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trustTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #15803d;
+  margin: 0;
+}
+
+.sessionBadge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: #ffffff;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.trustSubtitle {
+  font-size: 0.8125rem;
+  color: #166534;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.featureTagsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-left: 52px;
+
+  @include mobile {
+    padding-left: 0;
+  }
+}
+
+.featureTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.tagCheck {
+  color: #16a34a;
+}
+
+// 5. Policies, Privacy & Student Support Grid (Clean 3-Card Resource Bar)
+.resourceSection {
+  width: 100%;
+
+  h4 {
+    padding-bottom: 1rem;
+  }
+}
+
+.resourceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+
+  @include tablet-down {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.resourceCard {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+
+    .resourceArrowBox {
+      color: #2563eb;
+      transform: translate(2px, -2px);
+    }
+  }
+
+  &.whatsappSupportCard {
+    &:hover {
+      border-color: #16a34a;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
+
+      .waArrowBox {
+        color: #16a34a;
+        transform: translate(2px, -2px);
+      }
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+.resourceIconBox {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.iconPrivacy {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #cbd5e1;
+  }
+
+  &.iconSupport {
+    background: #f0fdf4;
+    color: #16a34a;
+    border-color: #bbf7d0;
+  }
+}
+
+.resourceContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resourceTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.resourceDesc {
+  font-size: 0.6875rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.resourceArrowBox {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform $transition-fast, color $transition-fast;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

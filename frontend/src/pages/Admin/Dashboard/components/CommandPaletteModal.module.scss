@@ -1,0 +1,268 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.paletteContainer {
+  width: 90%;
+  max-width: 600px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+
+  :global(.darkMode) & {
+    background-color: #1E293B;
+    border-color: #334155;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #F1F5F9;
+
+  :global(.darkMode) & {
+    border-bottom-color: #334155;
+  }
+}
+
+.searchIcon {
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+.paletteInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.9375rem;
+  color: #0F172A;
+  outline: none;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+
+  &::placeholder {
+    color: #94A3B8;
+  }
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+
+  &:hover {
+    background-color: #F1F5F9;
+    color: #0F172A;
+  }
+
+  :global(.darkMode) &:hover {
+    background-color: #334155;
+    color: #F8FAFC;
+  }
+}
+
+.resultsList {
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emptyState {
+  padding: 30px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: #94A3B8;
+}
+
+.commandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+
+  &:hover,
+  &.selectedRow {
+    background-color: #EFF6FF;
+
+    .rowLabel {
+      color: #1D4ED8;
+    }
+
+    .arrowIcon {
+      color: #1D4ED8;
+      transform: translateX(2px);
+    }
+  }
+
+  :global(.darkMode) & {
+    &:hover,
+    &.selectedRow {
+      background-color: rgba(30, 64, 175, 0.3);
+
+      .rowLabel {
+        color: #93C5FD;
+      }
+      .arrowIcon {
+        color: #93C5FD;
+      }
+    }
+  }
+}
+
+.rowLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rowIconBox {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: #F1F5F9;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    color: #94A3B8;
+  }
+}
+
+.rowTextCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rowLabel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  :global(.darkMode) & {
+    color: #F8FAFC;
+  }
+}
+
+.rowSublabel {
+  font-size: 0.6875rem;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  :global(.darkMode) & {
+    color: #94A3B8;
+  }
+}
+
+.rowRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.categoryBadge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #64748B;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-color: #334155;
+    color: #94A3B8;
+  }
+}
+
+.arrowIcon {
+  color: #CBD5E1;
+  transition: transform 0.12s ease;
+}
+
+.paletteFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 8px 16px;
+  background-color: #F8FAFC;
+  border-top: 1px solid #F1F5F9;
+  font-size: 0.6875rem;
+  color: #94A3B8;
+
+  strong {
+    color: #475569;
+  }
+
+  :global(.darkMode) & {
+    background-color: #0F172A;
+    border-top-color: #334155;
+
+    strong {
+      color: #CBD5E1;
+    }
+  }
+}

@@ -1,0 +1,57 @@
+@use '../../styles/variables' as *;
+
+.dppPage {
+  min-height: 100vh;
+  background-color: $color-bg;
+  padding-bottom: $space-16;
+}
+
+.pageContainer {
+  padding-top: $space-8;
+}
+
+.focusContainer {
+  padding-top: $space-4;
+  max-width: 1360px;
+}
+
+.catalogSection {
+  animation: fadeIn $transition-normal ease-out;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.setsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-6;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

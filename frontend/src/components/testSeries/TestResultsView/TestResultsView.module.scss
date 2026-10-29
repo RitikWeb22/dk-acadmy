@@ -1,0 +1,813 @@
+@use '../../../styles/variables' as *;
+
+.resultsContainer {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+// 1. Breadcrumb & Back Navigation
+.topNavRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.inlineBackLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: #2563eb;
+    background: #eff6ff;
+    transform: translateX(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+// 2. Test Header Card
+.testHeaderCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px 26px;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @include mobile {
+    padding: 18px 16px;
+  }
+}
+
+.headerBadgesRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.examBadge {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 3px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.formatBadge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+.patternBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.testTitle {
+  font-size: 1.375rem; // 22px
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+  margin: 2px 0 0;
+  line-height: 1.3;
+
+  @include mobile {
+    font-size: 1.15rem;
+  }
+}
+
+.testSubtitle {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.attemptMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.metaIcon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.metaDot {
+  color: #cbd5e1;
+}
+
+// 3. Hero Scorecard & Accuracy Wheel (Split 2-Column Banner)
+.heroScoreBanner {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  align-items: stretch;
+
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+// Left Column: Radial Score Chart
+.radialChartCol {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px 20px;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.radialRingWrapper {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radialSvg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(0deg);
+}
+
+.radialBgCircle {
+  fill: none;
+  stroke: #f1f5f9;
+}
+
+.radialProgressCircle {
+  fill: none;
+  stroke: #2563eb;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.radialInnerContent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.radialScoreValue {
+  font-size: 1.875rem; // 30px
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.radialTotalMarks {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.radialAccuracyPill {
+  display: inline-flex;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  margin-top: 4px;
+}
+
+.cutoffChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  color: #475569;
+  text-align: center;
+
+  strong {
+    color: #0f172a;
+  }
+}
+
+.cutoffIcon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.cutoffSuccessIcon {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+// Right Column: Actionable Performance Diagnosis
+.diagnosisCol {
+  border-radius: 16px;
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+
+  &.diagnosisAmber {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+  }
+
+  &.diagnosisEmerald {
+    background: #f0fdf4;
+    border: 1.5px solid #bbf7d0;
+  }
+
+  @include mobile {
+    padding: 18px 16px;
+  }
+}
+
+.diagnosisHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.diagnosisIconBox {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .diagnosisAmber & {
+    color: #d97706;
+    border: 1px solid #fde68a;
+  }
+
+  .diagnosisEmerald & {
+    color: #059669;
+    border: 1px solid #bbf7d0;
+  }
+}
+
+.diagnosisTitle {
+  font-size: 1.0625rem; // 17px
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.3;
+
+  .diagnosisAmber & {
+    color: #92400e;
+  }
+
+  .diagnosisEmerald & {
+    color: #166534;
+  }
+}
+
+.diagnosisSubtitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  display: block;
+  margin-top: 2px;
+}
+
+.diagnosticBulletList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diagnosticBullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+
+  .diagnosisAmber & {
+    color: #78350f;
+  }
+
+  .diagnosisEmerald & {
+    color: #14532d;
+  }
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+.bulletDot {
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1;
+
+  .diagnosisAmber & {
+    color: #d97706;
+  }
+
+  .diagnosisEmerald & {
+    color: #16a34a;
+  }
+}
+
+// 4. 5-Metric Quick-Glance Bento Bar
+.metricsBentoBar {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  width: 100%;
+
+  @media (max-width: 960px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.bentoTile {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  }
+}
+
+.tileHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.tileLabel {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.iconWrap {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.iconSlate {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+
+  &.iconEmerald {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+  }
+
+  &.iconRose {
+    background: #fff1f2;
+    color: #e11d48;
+    border: 1px solid #fecdd3;
+  }
+
+  &.iconAmber {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+  }
+
+  &.iconPurple {
+    background: #f5f3ff;
+    color: #7c3aed;
+    border: 1px solid #ddd6fe;
+  }
+}
+
+.tileValue {
+  font-size: 1.25rem; // 20px
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.tileSub {
+  font-size: 0.6875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+// 5. Subject-Wise Score & Accuracy Matrix
+.subjectMatrixSection {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px 26px;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @include mobile {
+    padding: 18px 16px;
+  }
+}
+
+.matrixSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.matrixIconBox {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.matrixSectionTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.matrixSectionSubtitle {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+.subjectCardsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.subjectCard {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: #2563eb;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+    transform: translateY(-1px);
+  }
+}
+
+.subCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.subTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subIconWrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.subName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.subScoreBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.subProgressBarTrack {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.subProgressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  border-radius: 9999px;
+  transition: width 0.4s ease-out;
+}
+
+.subStatsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.subStatPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statLabel {
+  color: #64748b;
+  font-size: 0.6875rem;
+}
+
+.statValueGreen {
+  color: #15803d;
+}
+
+.statValueRed {
+  color: #e11d48;
+}
+
+.statValueSlate {
+  color: #0f172a;
+}
+
+.statDivider {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+}
+
+.subActionLink {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2563eb;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  transition: all $transition-fast;
+
+  .subChevron {
+    transition: transform $transition-fast;
+  }
+
+  &:hover {
+    color: #1d4ed8;
+
+    .subChevron {
+      transform: translateX(3px);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 1px;
+  }
+}
+
+// 6. Bottom Action Bar (Fixed / Sturdy Elevated Footer)
+.bottomActionBar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+}
+
+// Primary Action: Solid electric blue button [Review Detailed Step-by-Step Solutions ↗]
+.primaryReviewBtn {
+  flex: 2;
+  height: 42px;
+  padding: 0 20px;
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+// Secondary Action: Clean outline button with refresh SVG icon [Retake Mock Test (Practice Mode)]
+.secondaryRetryBtn {
+  flex: 1;
+  height: 42px;
+  padding: 0 16px;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #2563eb;
+    color: #2563eb;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+// Tertiary Action: Subtle ghost button [← Return to Test Dashboard]
+.tertiaryBackBtn {
+  flex: 1;
+  height: 42px;
+  padding: 0 16px;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

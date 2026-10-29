@@ -1,0 +1,442 @@
+@use '../../styles/variables' as *;
+
+.hero {
+  position: relative;
+  padding-top: $space-12;
+  padding-bottom: $space-16;
+  background: radial-gradient(circle at 10% 20%, rgba(239, 246, 255, 0.8) 0%, rgba(248, 250, 252, 1) 60%);
+  overflow: hidden;
+
+  @include desktop {
+    padding-top: $space-16;
+    padding-bottom: $space-20;
+  }
+}
+
+.bgDecorCircle {
+  position: absolute;
+  top: -120px;
+  right: -80px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0) 70%);
+  pointer-events: none;
+}
+
+.bgGridPattern {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(226, 232, 240, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 232, 240, 0.4) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.5) 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.5) 0%, transparent 80%);
+  pointer-events: none;
+}
+
+.container {
+  position: relative;
+  z-index: 2;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-12;
+  align-items: center;
+
+  @include desktop {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: $space-12;
+  }
+}
+
+.leftCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.eyebrowBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-soft-border);
+  padding: 0.35rem 0.875rem;
+  border-radius: $radius-full;
+  margin-bottom: $space-4;
+  box-shadow: $shadow-xs;
+}
+
+.sparkleIcon {
+  color: var(--color-primary);
+}
+
+.headline {
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--color-text-primary);
+  margin-bottom: $space-4;
+}
+
+.highlightText {
+  color: var(--color-primary);
+  position: relative;
+  display: inline-block;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background-color: rgba(37, 99, 235, 0.15);
+    z-index: -1;
+    border-radius: 4px;
+  }
+}
+
+.description {
+  font-size: clamp(1.0625rem, 2vw, 1.2rem);
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+  margin-bottom: $space-8;
+  max-width: 580px;
+}
+
+.ctaGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-4;
+  margin-bottom: $space-8;
+  width: 100%;
+
+  @include mobile {
+    flex-direction: column;
+
+    a, button {
+      width: 100%;
+    }
+  }
+}
+
+.trustHighlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-4;
+  padding-top: $space-6;
+  border-top: 1px solid var(--color-border);
+  width: 100%;
+}
+
+.trustItem {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.trustIcon {
+  color: var(--color-accent-hover);
+  flex-shrink: 0;
+}
+
+/* Right Column Visual Mock */
+.rightCol {
+  display: flex;
+  justify-content: center;
+}
+
+.visualCardWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+.mainBoard {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-2xl;
+  box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.1), 0 1px 3px rgba(15, 23, 42, 0.05);
+  padding: $space-6;
+  position: relative;
+  z-index: 1;
+}
+
+.boardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: $space-4;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: $space-4;
+}
+
+.boardDots {
+  display: flex;
+  gap: 6px;
+
+  span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+}
+
+.dotRed {
+  background-color: #EF4444;
+}
+
+.dotYellow {
+  background-color: #F59E0B;
+}
+
+.dotGreen {
+  background-color: #10B981;
+}
+
+.boardTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.yearTag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  padding: 0.2rem 0.5rem;
+  border-radius: $radius-sm;
+}
+
+.subjectsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  margin-bottom: $space-4;
+}
+
+.subjectCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.875rem;
+  border-radius: $radius-md;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-muted);
+  transition: transform $transition-fast;
+
+  &:hover {
+    transform: translateX(3px);
+  }
+
+  &.physics {
+    border-left: 4px solid #3B82F6;
+  }
+
+  &.chemistry {
+    border-left: 4px solid #10B981;
+  }
+
+  &.maths {
+    border-left: 4px solid #F59E0B;
+  }
+}
+
+.subjectIconBox {
+  width: 2rem;
+  height: 2rem;
+  border-radius: $radius-sm;
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  box-shadow: $shadow-xs;
+}
+
+.subjectName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.subjectTopic {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.subjectStatus {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.activityBox {
+  background-color: #F8FAFC;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  padding: $space-4;
+}
+
+.activityHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-2;
+}
+
+.activityLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+.activityBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #16A34A;
+  background-color: #DCFCE7;
+  padding: 0.125rem 0.5rem;
+  border-radius: $radius-full;
+}
+
+.activityRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: $space-3;
+}
+
+.activityIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}
+
+.activityText {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8125rem;
+
+  strong {
+    color: var(--color-text-primary);
+  }
+
+  span {
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+  }
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.progressBar {
+  flex-grow: 1;
+  height: 6px;
+  border-radius: $radius-full;
+  background-color: #E2E8F0;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563EB, #3B82F6);
+  border-radius: $radius-full;
+}
+
+.progressText {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* Floating Badges */
+.floatingPill {
+  position: absolute;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12);
+  border-radius: $radius-lg;
+  padding: 0.625rem 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  z-index: 3;
+}
+
+.pillTopLeft {
+  top: -16px;
+  left: -20px;
+
+  @include mobile {
+    position: static;
+    margin-bottom: $space-3;
+  }
+}
+
+.pillBottomRight {
+  bottom: -16px;
+  right: -20px;
+
+  @include mobile {
+    position: static;
+    margin-top: $space-3;
+  }
+}
+
+.pillIconWrap {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: $radius-md;
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pillIconWrapAccent {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: $radius-md;
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pillHeading {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.pillSub {
+  font-size: var(--font-size-sm, 0.8125rem);
+  color: var(--color-text-muted);
+  margin-top: 0.125rem;
+}
