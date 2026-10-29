@@ -2,6 +2,9 @@
 
 .practiceContainer {
   padding-bottom: $space-16;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 // 1. Sticky Session Sub-Header Bar
@@ -646,12 +649,28 @@
   padding-top: $space-5;
   border-top: 1.5px solid #F1F5F9;
   flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    flex-direction: column-reverse;
+    gap: 12px;
+  }
 }
 
 .actionLeft {
   display: flex;
   align-items: center;
   gap: $space-3;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: space-between;
+
+    button {
+      flex: 1;
+      justify-content: center;
+      min-height: 40px;
+    }
+  }
 }
 
 .prevBtn {
@@ -704,6 +723,16 @@
 .actionCenter {
   display: flex;
   align-items: center;
+
+  @media (max-width: 640px) {
+    width: 100%;
+
+    button {
+      width: 100%;
+      justify-content: center;
+      min-height: 40px;
+    }
+  }
 }
 
 .checkBtn {
@@ -739,6 +768,17 @@
   display: flex;
   align-items: center;
   gap: $space-3;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: space-between;
+
+    button {
+      flex: 1;
+      justify-content: center;
+      min-height: 40px;
+    }
+  }
 }
 
 .nextBtn {

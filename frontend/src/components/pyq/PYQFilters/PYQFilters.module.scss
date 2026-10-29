@@ -213,6 +213,12 @@
     color: var(--color-text-primary);
     font-weight: 700;
   }
+
+  @media (max-width: 640px) {
+    border-left: none;
+    padding-left: 0;
+    width: 100%;
+  }
 }
 
 .resetBtn {
@@ -237,6 +243,12 @@
 
   &:focus-visible {
     @include focus-ring;
+  }
+
+  @media (max-width: 640px) {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
   }
 }
 

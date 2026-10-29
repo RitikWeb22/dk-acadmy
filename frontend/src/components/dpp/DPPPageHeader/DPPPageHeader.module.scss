@@ -4,6 +4,9 @@
   background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
   border-bottom: 1px solid $color-border;
   padding: $space-6 0 $space-10;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 
   @media (max-width: $bp-tablet) {
     padding: $space-4 0 $space-6;
@@ -108,8 +111,16 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
   margin-top: $space-4;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .hubTab {
