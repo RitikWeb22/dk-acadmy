@@ -9,6 +9,10 @@
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+
+  @media (max-width: 768px) {
+    padding: 16px 0 48px 0;
+  }
 }
 
 .ambientTopGlow {
@@ -36,6 +40,7 @@
   margin: 0;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   font-size: 13px;
 }
@@ -76,8 +81,15 @@
   position: relative;
   z-index: 1;
 
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     padding: 32px 20px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 24px 14px;
+    border-radius: 16px;
   }
 }
 
@@ -88,6 +100,11 @@
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 20px;
+
+  @media (max-width: 480px) {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
 }
 
 .livePulsePill {
@@ -103,6 +120,12 @@
   padding: 5px 14px;
   border-radius: 9999px;
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
+
+  @media (max-width: 480px) {
+    font-size: 10px;
+    padding: 4px 10px;
+    gap: 6px;
+  }
 }
 
 .livePulseDot {
@@ -112,6 +135,7 @@
   background-color: #ef4444;
   box-shadow: 0 0 0 rgba(239, 68, 68, 0.6);
   animation: pulseDot 1.8s infinite;
+  flex-shrink: 0;
 }
 
 @keyframes pulseDot {
@@ -128,6 +152,7 @@
 
 .radioIcon {
   color: #dc2626;
+  flex-shrink: 0;
 }
 
 .sessionPill {
@@ -140,15 +165,25 @@
   font-weight: 700;
   padding: 5px 14px;
   border-radius: 9999px;
+
+  @media (max-width: 480px) {
+    font-size: 10px;
+    padding: 4px 10px;
+  }
 }
 
 .heroHeading {
-  font-size: clamp(2rem, 3.8vw, 2.75rem);
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
   font-weight: 900;
   color: #0f172a;
   letter-spacing: -0.025em;
   margin: 0 0 16px 0;
   line-height: 1.2;
+  word-break: break-word;
+
+  @media (max-width: 480px) {
+    margin-bottom: 12px;
+  }
 }
 
 .headingGradient {
@@ -164,9 +199,15 @@
   margin: 0 auto 36px auto;
   line-height: 1.65;
 
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     font-size: 0.95rem;
-    margin-bottom: 26px;
+    margin-bottom: 24px;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.875rem;
+    margin-bottom: 20px;
   }
 }
 
@@ -177,8 +218,18 @@
   border-radius: 20px;
   padding: 28px 24px;
   max-width: 650px;
+  width: 100%;
   margin: 0 auto;
   box-shadow: 0 6px 20px -4px rgba(15, 23, 42, 0.05);
+
+  @media (max-width: 640px) {
+    padding: 20px 14px;
+    border-radius: 16px;
+  }
+
+  @media (max-width: 380px) {
+    padding: 16px 10px;
+  }
 }
 
 .countdownHeader {
@@ -192,9 +243,18 @@
   color: #475569;
   letter-spacing: 0.06em;
   margin-bottom: 20px;
+  text-align: center;
+  flex-wrap: wrap;
 
   .clockIcon {
     color: #2563eb;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 10px;
+    margin-bottom: 14px;
+    gap: 6px;
   }
 }
 
@@ -204,9 +264,15 @@
   justify-content: center;
   gap: 14px;
   margin-bottom: 18px;
+  width: 100%;
 
-  @media (max-width: 480px) {
+  @media (max-width: 520px) {
     gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  @media (max-width: 360px) {
+    gap: 3px;
   }
 }
 
@@ -214,8 +280,10 @@
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 14px;
-  padding: 14px 20px;
-  min-width: 82px;
+  padding: 14px 18px;
+  flex: 1;
+  max-width: 95px;
+  min-width: 0;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
   display: flex;
   flex-direction: column;
@@ -223,55 +291,71 @@
   justify-content: center;
   transition: transform 0.2s ease;
 
-  @media (max-width: 480px) {
-    min-width: 60px;
-    padding: 10px 8px;
+  @media (max-width: 520px) {
+    padding: 10px 4px;
+    border-radius: 10px;
+  }
+
+  @media (max-width: 360px) {
+    padding: 8px 2px;
+    border-radius: 8px;
   }
 }
 
 .timeNumber {
-  font-size: 2.25rem;
+  font-size: clamp(1.4rem, 5.2vw, 2.25rem);
   font-weight: 900;
   color: #0f172a;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: -0.03em;
-
-  @media (max-width: 480px) {
-    font-size: 1.6rem;
-  }
 }
 
 .timeLabel {
-  font-size: 10.5px;
+  font-size: clamp(9px, 2.3vw, 10.5px);
   font-weight: 700;
   text-transform: uppercase;
   color: #64748b;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   margin-top: 6px;
+  white-space: nowrap;
 }
 
 .timeColon {
-  font-size: 1.75rem;
+  font-size: clamp(1.1rem, 3.8vw, 1.75rem);
   font-weight: 900;
   color: #94a3b8;
   margin-bottom: 14px;
+  flex-shrink: 0;
+
+  @media (max-width: 520px) {
+    margin-bottom: 8px;
+  }
 }
 
 .targetDateNote {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   font-size: 12.5px;
   color: #475569;
+  flex-wrap: wrap;
+  text-align: center;
+  line-height: 1.45;
 
   .calendarIcon {
     color: #2563eb;
+    flex-shrink: 0;
   }
 
   strong {
     color: #0f172a;
     font-weight: 700;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 11.5px;
   }
 }
 
@@ -282,6 +366,10 @@
   margin-bottom: 48px;
   position: relative;
   z-index: 1;
+
+  @media (max-width: 768px) {
+    margin-bottom: 32px;
+  }
 }
 
 .waitlistCard {
@@ -294,14 +382,24 @@
   margin: 0 auto;
   position: relative;
 
-  @media (max-width: 640px) {
-    padding: 26px 20px;
+  @media (max-width: 768px) {
+    padding: 28px 20px;
+    border-radius: 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 22px 14px;
+    border-radius: 16px;
   }
 }
 
 .formHeader {
   text-align: center;
   margin-bottom: 28px;
+
+  @media (max-width: 480px) {
+    margin-bottom: 20px;
+  }
 }
 
 .formMiniTag {
@@ -318,14 +416,20 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border: 1px solid #bfdbfe;
+
+  @media (max-width: 480px) {
+    font-size: 10px;
+    padding: 3px 10px;
+  }
 }
 
 .formTitle {
-  font-size: 1.65rem;
+  font-size: clamp(1.35rem, 4.5vw, 1.65rem);
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.02em;
   margin: 0 0 10px 0;
+  line-height: 1.25;
 }
 
 .formDesc {
@@ -334,12 +438,21 @@
   max-width: 640px;
   margin: 0 auto;
   line-height: 1.6;
+
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
 }
 
 .formBody {
   display: flex;
   flex-direction: column;
   gap: 18px;
+
+  @media (max-width: 480px) {
+    gap: 14px;
+  }
 }
 
 .inputGrid {
@@ -347,8 +460,9 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 
-  @media (max-width: 768px) {
+  @media (max-width: 860px) {
     grid-template-columns: 1fr;
+    gap: 14px;
   }
 }
 
@@ -395,6 +509,11 @@
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   }
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+    padding: 11px 12px 11px 38px;
+  }
 }
 
 .submitWaitlistBtn {
@@ -425,6 +544,13 @@
     cursor: not-allowed;
     transform: none;
   }
+
+  @media (max-width: 640px) {
+    width: 100%;
+    padding: 13px 18px;
+    font-size: 14px;
+    gap: 8px;
+  }
 }
 
 .privacyNote {
@@ -435,10 +561,16 @@
   font-size: 12px;
   color: #64748b;
   text-align: center;
+  line-height: 1.45;
 
   .shieldIcon {
     color: #059669;
     flex-shrink: 0;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 11px;
+    flex-wrap: wrap;
   }
 }
 
@@ -486,6 +618,10 @@
   font-weight: 800;
   color: #0f172a;
   margin: 0 0 10px 0;
+
+  @media (max-width: 480px) {
+    font-size: 1.3rem;
+  }
 }
 
 .passSubtitle {
@@ -494,6 +630,11 @@
   max-width: 600px;
   margin: 0 auto 24px auto;
   line-height: 1.6;
+
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+    margin-bottom: 18px;
+  }
 }
 
 .passPerksRow {
@@ -503,6 +644,13 @@
   gap: 20px;
   flex-wrap: wrap;
   margin-bottom: 28px;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
 }
 
 .passPerk {
@@ -520,11 +668,20 @@
   .perkIcon {
     color: #059669;
   }
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .passActions {
   display: flex;
   justify-content: center;
+
+  @media (max-width: 480px) {
+    width: 100%;
+  }
 }
 
 .exploreExistingBtn {
@@ -547,6 +704,11 @@
     color: #1d4ed8;
     transform: translateY(-1px);
   }
+
+  @media (max-width: 480px) {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ══════════════════════════════════════════════════
@@ -556,11 +718,19 @@
   margin-bottom: 48px;
   position: relative;
   z-index: 1;
+
+  @media (max-width: 768px) {
+    margin-bottom: 32px;
+  }
 }
 
 .sectionHeadingBlock {
   text-align: center;
   margin-bottom: 36px;
+
+  @media (max-width: 768px) {
+    margin-bottom: 24px;
+  }
 }
 
 .sectionPill {
@@ -577,14 +747,20 @@
   border-radius: 9999px;
   border: 1px solid #bfdbfe;
   margin-bottom: 12px;
+
+  @media (max-width: 480px) {
+    font-size: 10px;
+    padding: 4px 10px;
+  }
 }
 
 .sectionTitle {
-  font-size: clamp(1.8rem, 3.2vw, 2.35rem);
+  font-size: clamp(1.6rem, 4vw, 2.35rem);
   font-weight: 900;
   color: #0f172a;
   letter-spacing: -0.025em;
   margin: 0 0 10px 0;
+  line-height: 1.25;
 }
 
 .sectionSub {
@@ -593,20 +769,27 @@
   max-width: 680px;
   margin: 0 auto;
   line-height: 1.6;
+
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
 }
 
 .featuresGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 16px;
   align-items: stretch;
 
-  @include tablet {
+  @media (min-width: 640px) {
     grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
   }
 
-  @include desktop {
+  @media (min-width: 1024px) {
     grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
   }
 }
 
@@ -627,6 +810,19 @@
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0.09);
     border-color: #cbd5e1;
   }
+
+  @media (max-width: 640px) {
+    padding: 22px 18px;
+    border-radius: 16px;
+
+    &:hover {
+      transform: none;
+    }
+  }
+
+  @media (max-width: 380px) {
+    padding: 18px 14px;
+  }
 }
 
 .numberWatermark {
@@ -641,6 +837,12 @@
   font-family: inherit;
   letter-spacing: -0.04em;
   color: #0f172a;
+
+  @media (max-width: 480px) {
+    font-size: 2rem;
+    top: 10px;
+    right: 14px;
+  }
 }
 
 .iconWrap {
@@ -655,6 +857,13 @@
 
   .featureCard:hover & {
     transform: scale(1.06);
+  }
+
+  @media (max-width: 480px) {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    margin-bottom: 14px;
   }
 }
 
@@ -691,6 +900,14 @@
   min-height: 2.7rem;
   display: flex;
   align-items: center;
+
+  @media (max-width: 1023px) {
+    min-height: auto;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 1.05rem;
+  }
 }
 
 .featureDesc {
@@ -699,6 +916,15 @@
   line-height: 1.6;
   margin: 0 0 16px 0;
   min-height: 4.8rem;
+
+  @media (max-width: 1023px) {
+    min-height: auto;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
 }
 
 .cardDivider {
@@ -716,6 +942,11 @@
   flex-direction: column;
   gap: 8px;
   flex-grow: 1;
+
+  @media (max-width: 480px) {
+    margin-bottom: 14px;
+    gap: 6px;
+  }
 }
 
 .cardPointItem {
@@ -726,6 +957,10 @@
   font-weight: 600;
   color: #334155;
   line-height: 1.45;
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
 }
 
 .checkBlue {
@@ -762,6 +997,11 @@
   font-weight: 700;
   margin-top: auto;
   letter-spacing: 0.01em;
+
+  @media (max-width: 480px) {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
 }
 
 .badgeBlue {
@@ -795,6 +1035,10 @@
   margin-bottom: 44px;
   position: relative;
   z-index: 1;
+
+  @media (max-width: 768px) {
+    margin-bottom: 30px;
+  }
 }
 
 .quoteCard {
@@ -812,9 +1056,15 @@
 
   @media (max-width: 860px) {
     flex-direction: column;
-    padding: 30px 24px;
-    gap: 22px;
+    padding: 26px 20px;
+    gap: 20px;
     text-align: center;
+  }
+
+  @media (max-width: 480px) {
+    padding: 22px 14px;
+    border-radius: 18px;
+    gap: 16px;
   }
 }
 
@@ -836,6 +1086,7 @@
 
   @media (max-width: 860px) {
     flex-direction: column;
+    gap: 12px;
   }
 }
 
@@ -848,6 +1099,11 @@
   background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
   flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    width: 66px;
+    height: 66px;
+  }
 }
 
 .authorImage {
@@ -885,6 +1141,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
+
+  @media (max-width: 860px) {
+    justify-content: center;
+  }
 }
 
 .authorName {
@@ -893,6 +1153,10 @@
   color: #ffffff;
   margin: 0;
   letter-spacing: -0.01em;
+
+  @media (max-width: 480px) {
+    font-size: 1.05rem;
+  }
 }
 
 .verifiedBadge {
@@ -903,12 +1167,20 @@
   font-size: 12.5px;
   color: #cbd5e1;
   font-weight: 600;
+
+  @media (max-width: 480px) {
+    font-size: 11.5px;
+  }
 }
 
 .authorSpecialization {
   font-size: 11.5px;
   color: #38bdf8;
   font-weight: 700;
+
+  @media (max-width: 480px) {
+    font-size: 11px;
+  }
 }
 
 .quoteDivider {
@@ -936,7 +1208,7 @@
 
 .quoteText {
   margin: 0;
-  font-size: 1.025rem;
+  font-size: clamp(0.925rem, 2.8vw, 1.025rem);
   line-height: 1.65;
   color: #f8fafc;
   font-weight: 500;
@@ -966,8 +1238,13 @@
   @media (max-width: 860px) {
     flex-direction: column;
     text-align: center;
-    padding: 24px 20px;
-    gap: 20px;
+    padding: 24px 18px;
+    gap: 18px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 20px 14px;
+    border-radius: 16px;
   }
 }
 
@@ -996,6 +1273,10 @@
   color: #0f172a;
   margin: 0 0 6px 0;
   letter-spacing: -0.015em;
+
+  @media (max-width: 480px) {
+    font-size: 1.15rem;
+  }
 }
 
 .altDesc {
@@ -1003,6 +1284,10 @@
   color: #475569;
   margin: 0;
   line-height: 1.55;
+
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+  }
 }
 
 .altButtons {
@@ -1015,6 +1300,12 @@
   @media (max-width: 860px) {
     justify-content: center;
     width: 100%;
+  }
+
+  @media (max-width: 520px) {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
   }
 }
 
@@ -1037,6 +1328,12 @@
     transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38);
   }
+
+  @media (max-width: 520px) {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 16px;
+  }
 }
 
 .secondaryAltBtn {
@@ -1058,5 +1355,11 @@
     border-color: #93c5fd;
     color: #2563eb;
     transform: translateY(-1px);
+  }
+
+  @media (max-width: 520px) {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 16px;
   }
 }
