@@ -79,6 +79,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 380px;
+
+    @media (max-width: 768px) {
+      max-width: 180px;
+    }
+
+    @media (max-width: 480px) {
+      max-width: 120px;
+    }
   }
 }
 
@@ -90,6 +98,10 @@
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  @media (max-width: 768px) {
+    padding: 28px 0 36px;
+  }
 
   &::after {
     content: '';
@@ -203,6 +215,13 @@
   margin-bottom: 24px;
   font-size: 0.84rem;
   color: #cbd5e1;
+
+  @media (max-width: 640px) {
+    gap: 12px 14px;
+    padding: 12px 0 16px;
+    margin-bottom: 18px;
+    font-size: 0.8rem;
+  }
 }
 
 .metaDivider {
@@ -282,7 +301,7 @@
   gap: 12px;
   max-width: 780px;
 
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 }
@@ -326,6 +345,10 @@
 // ─── 3. Main Two-Column Layout ───
 .mainLayoutSection {
   padding: 44px 0 88px;
+
+  @media (max-width: 1080px) {
+    padding: 24px 0 110px;
+  }
 }
 
 .twoColumnGrid {
@@ -336,7 +359,7 @@
 
   @media (max-width: 1080px) {
     grid-template-columns: minmax(0, 1fr);
-    gap: 32px;
+    gap: 28px;
   }
 }
 
@@ -346,6 +369,10 @@
   flex-direction: column;
   gap: 36px;
   min-width: 0;
+
+  @media (max-width: 768px) {
+    gap: 24px;
+  }
 }
 
 .contentBlock {
@@ -356,8 +383,12 @@
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.02);
 
   @media (max-width: 768px) {
-    padding: 22px 18px;
+    padding: 20px 16px;
     border-radius: 14px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 16px 12px;
   }
 }
 
@@ -468,9 +499,16 @@
   max-width: 100%;
   overflow-x: auto;
   box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   @media (max-width: 640px) {
     width: 100%;
+    padding: 3px;
   }
 }
 
@@ -583,6 +621,11 @@
   gap: 12px;
   transition: background-color 0.15s ease;
 
+  @media (max-width: 640px) {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
   &:hover {
     background: #f1f5f9;
   }
@@ -660,6 +703,29 @@
 
   &:hover {
     background: #f8fafc;
+  }
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+
+    .lectureLeft {
+      width: 100%;
+      align-items: flex-start;
+    }
+
+    .lectureTitle {
+      font-size: 0.825rem;
+      word-break: break-word;
+    }
+
+    .lectureRight {
+      width: 100%;
+      justify-content: space-between;
+      padding-left: 26px;
+    }
   }
 }
 
@@ -784,10 +850,12 @@
   border-radius: 14px;
   padding: 24px;
 
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     flex-direction: column;
     align-items: center;
     text-align: center;
+    padding: 20px 16px;
+    gap: 16px;
   }
 }
 
@@ -855,9 +923,10 @@
   padding-top: 16px;
   border-top: 1px solid #e2e8f0;
 
-  @media (max-width: 640px) {
+  @media (max-width: 900px) {
     grid-template-columns: repeat(2, 1fr);
     width: 100%;
+    gap: 10px;
   }
 }
 
@@ -865,6 +934,13 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+
+  @media (max-width: 768px) {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 10px 8px;
+    border-radius: 8px;
+  }
 
   strong {
     font-size: 1.1rem;
@@ -1099,7 +1175,8 @@
 
   @media (max-width: 1080px) {
     position: static;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
+    order: -1;
   }
 }
 
@@ -1175,6 +1252,10 @@
 
 .cardBody {
   padding: 24px;
+
+  @media (max-width: 640px) {
+    padding: 18px 16px;
+  }
 }
 
 // Pricing Display
@@ -1197,6 +1278,10 @@
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.02em;
+
+  @media (max-width: 480px) {
+    font-size: 1.625rem;
+  }
 }
 
 .originalPriceText {
@@ -1268,6 +1353,11 @@
   flex-direction: column;
   gap: 10px;
   margin-bottom: 22px;
+
+  @media (max-width: 640px) {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
 }
 
 .enrollPrimaryBtn {
@@ -1347,6 +1437,12 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
+  text-align: center;
+
+  @media (max-width: 480px) {
+    padding: 9px 12px;
+    font-size: 0.8rem;
+  }
 
   &:hover {
     background: #f1f5f9;
@@ -1427,14 +1523,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     background: #ffffff;
     border-top: 1px solid #e2e8f0;
-    padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
-    z-index: 100;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    z-index: 90;
     box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
   }
 }
@@ -1442,6 +1539,7 @@
 .mobilePriceInfo {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .mobilePriceLabel {
@@ -1455,34 +1553,41 @@
   font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
+
+  @media (max-width: 480px) {
+    font-size: 1.1rem;
+  }
 }
 
-.mobileEnrollBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #2563eb;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 20px;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
+.mobileEnrollBtn,
 .mobileClassroomBtn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  background: #16a34a;
-  color: #ffffff;
   border: none;
   border-radius: 10px;
   padding: 10px 20px;
   font-size: 0.9375rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    padding: 9px 15px;
+    font-size: 0.875rem;
+  }
+}
+
+.mobileEnrollBtn {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.mobileClassroomBtn {
+  background: #16a34a;
+  color: #ffffff;
 }
 
 // ─── Accessibility: Reduced Motion ───
