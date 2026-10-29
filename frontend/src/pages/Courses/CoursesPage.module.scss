@@ -544,7 +544,7 @@
 // 4. Sticky Filter Bar (Pixel-matched with Reference Image)
 .stickyFilterSection {
   position: sticky;
-  top: 72px; // Under navbar
+  top: 72px; // Under navbar on desktop
   z-index: 45;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(12px);
@@ -554,6 +554,11 @@
   padding: 12px 0;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
   overflow: visible;
+
+  @include mobile {
+    top: 60px; // Under navbar on mobile
+    padding: 8px 0;
+  }
 }
 
 .filterToolbar {
@@ -579,6 +584,8 @@
     overflow-x: auto;
     scrollbar-width: none;
     padding-bottom: 4px;
+    padding-right: 16px;
+    -webkit-overflow-scrolling: touch;
 
     &::-webkit-scrollbar {
       display: none;
@@ -603,6 +610,12 @@
   white-space: nowrap;
   transition: all 0.15s ease;
   flex-shrink: 0;
+
+  @include mobile {
+    height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
 
   &:hover {
     border-color: #2563eb;
@@ -648,6 +661,12 @@
   transition: all 0.15s ease;
   flex-shrink: 0;
 
+  @include mobile {
+    height: 34px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
+
   &:hover {
     border-color: #94a3b8;
     color: #0f172a;
@@ -689,6 +708,12 @@
   white-space: nowrap;
   transition: all 0.15s ease;
   flex-shrink: 0;
+
+  @include mobile {
+    height: 34px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
 
   &:hover {
     border-color: #94a3b8;
@@ -753,6 +778,16 @@
     left: auto;
     right: 0;
   }
+
+  @media (max-width: 640px) {
+    margin-left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+  }
 }
 
 .sortBtn {
@@ -787,6 +822,12 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
 }
 
 .resultsLeftCol {
@@ -794,6 +835,11 @@
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    gap: 10px;
+    width: 100%;
+  }
 }
 
 .sortLabel {
@@ -2162,9 +2208,14 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 
-  @include tablet {
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  @media (max-width: 640px) {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
   }
 }
 
@@ -2293,9 +2344,14 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 
-  @include tablet {
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  @media (max-width: 640px) {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
   }
 }
 
@@ -2626,16 +2682,18 @@
 }
 
 // 17. Modals
+.modalOverlay,
 .modalBackdrop {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
 }
 
 .modalCard {
@@ -2643,19 +2701,37 @@
   border-radius: 16px;
   width: 100%;
   max-width: 500px;
-  padding: 32px;
+  padding: 28px 24px;
   position: relative;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
   max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 
   &.compareModalCard {
     max-width: 860px;
   }
 
   @include mobile {
-    padding: 24px;
+    padding: 20px 16px;
+    border-radius: 14px;
+    max-height: 92vh;
   }
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  padding-right: 4px;
+  flex: 1;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .modalCloseBtn {
@@ -2835,6 +2911,19 @@
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid #e2e8f0;
+
+  @include mobile {
+    flex-direction: column-reverse;
+    gap: 10px;
+
+    .modalResetBtn,
+    .modalApplyBtn {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+      padding: 10px 14px;
+    }
+  }
 }
 
 .modalResetBtn {
