@@ -1,6 +1,14 @@
-import React, { useState } from 'react';
-import { AlertCircle, X } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
+import { useStudentAuth } from '../../../context/AuthContext';
 import styles from './GoogleSignInButton.module.scss';
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 interface GoogleSignInButtonProps {
   label?: string;
@@ -11,32 +19,111 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   label = 'Continue with Google',
   disabled = false
 }) => {
-  const [showConfigNotice, setShowConfigNotice] = useState(false);
+  const { loginWithGoogle } = useStudentAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const googleBtnContainerRef = useRef<HTMLDivElement>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [gisLoaded, setGisLoaded] = useState(false);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const clientId =
+    (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) ||
+    '422285875211-hd17jag5pjm8s2h7uo429fj9likg9vku.apps.googleusercontent.com';
+
+  const handleCredentialResponse = useCallback(async (response: any) => {
+    if (!response || !response.credential) {
+      setErrorMsg('Failed to obtain Google login credentials.');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setErrorMsg(null);
+      const result = await loginWithGoogle(response.credential);
+      if (result.success) {
+        const from = (location.state as any)?.from?.pathname || '/learn';
+        navigate(from, { replace: true });
+      } else {
+        setErrorMsg(result.error || 'Google login failed. Please try again.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'An error occurred during Google sign-in.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [loginWithGoogle, location.state, navigate]);
+
+  useEffect(() => {
+    const initGoogleGsi = () => {
+      if (!window.google?.accounts?.id || !clientId) return;
+
+      try {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true
+        });
+
+        if (googleBtnContainerRef.current) {
+          googleBtnContainerRef.current.innerHTML = '';
+          window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: label.toLowerCase().includes('sign up') ? 'signup_with' : 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: googleBtnContainerRef.current.clientWidth || 360
+          });
+        }
+        setGisLoaded(true);
+      } catch (e) {
+        console.warn('GIS init error:', e);
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      initGoogleGsi();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(interval);
+          initGoogleGsi();
+        }
+      }, 300);
+      return () => clearInterval(interval);
+    }
+  }, [clientId, label, handleCredentialResponse]);
+
+  const handleFallbackClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (disabled || isProcessing) return;
 
-    setIsProcessing(true);
-    // Since Google OAuth Client ID is not configured in local environment,
-    // display honest development status dialog instead of a fake success
-    setTimeout(() => {
-      setIsProcessing(false);
-      setShowConfigNotice(true);
-    }, 250);
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.prompt();
+    } else {
+      setErrorMsg('Google Sign-In is initializing. Please verify network access or try again in a few seconds.');
+    }
   };
 
   return (
-    <>
-      <div className={styles.wrapper}>
+    <div className={styles.wrapper}>
+      <div
+        ref={googleBtnContainerRef}
+        className={styles.gisContainer}
+        style={{ display: gisLoaded ? 'flex' : 'none' }}
+      />
+
+      {!gisLoaded && (
         <button
           type="button"
-          onClick={handleClick}
+          onClick={handleFallbackClick}
           disabled={disabled || isProcessing}
           aria-busy={isProcessing}
           className={styles.googleBtn}
-          title="Google Sign-In (Requires Google Cloud Client ID)"
+          title="Sign in with Google"
         >
           <svg className={styles.googleIcon} viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -60,57 +147,14 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
             {isProcessing ? 'Connecting...' : label}
           </span>
         </button>
-      </div>
+      )}
 
-      {showConfigNotice && (
-        <div
-          className={styles.modalBackdrop}
-          onClick={() => setShowConfigNotice(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="google-auth-notice-title"
-        >
-          <div className={styles.noticeModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.noticeHeader}>
-              <div className={styles.alertIconBox}>
-                <AlertCircle size={20} />
-              </div>
-              <h3 id="google-auth-notice-title" className={styles.noticeTitle}>
-                Google OAuth Setup Notice
-              </h3>
-              <button
-                type="button"
-                className={styles.closeBtn}
-                onClick={() => setShowConfigNotice(false)}
-                aria-label="Close dialog"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className={styles.noticeContent}>
-              <p>
-                Google Sign-In is configured to use Google OAuth 2.0 Web Client credentials. In this local environment, OAuth client secrets are kept secure.
-              </p>
-              <div className={styles.configInstructions}>
-                <strong>How to sign in now:</strong>
-                <ul>
-                  <li>Use the <strong>Email &amp; Password</strong> form directly.</li>
-                  <li>Or use the <strong>Instant Evaluation Access</strong> buttons (Aarav Sharma demo account) to explore the student dashboard.</li>
-                </ul>
-              </div>
-            </div>
-            <div className={styles.noticeActions}>
-              <button
-                type="button"
-                className={styles.dismissBtn}
-                onClick={() => setShowConfigNotice(false)}
-              >
-                Understood, Return to Form
-              </button>
-            </div>
-          </div>
+      {errorMsg && (
+        <div className={styles.errorBanner} role="alert">
+          <AlertCircle size={14} />
+          <span>{errorMsg}</span>
         </div>
       )}
-    </>
+    </div>
   );
 };

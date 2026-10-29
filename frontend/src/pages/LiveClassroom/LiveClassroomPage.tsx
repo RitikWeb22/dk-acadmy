@@ -12,12 +12,14 @@ import {
   CheckCircle2,
   Bell,
   ArrowRight,
-  Play,
   BookOpen,
   ShieldCheck,
-  Users,
-  Award,
-  Send
+  User,
+  Phone,
+  GraduationCap,
+  Quote,
+  Calendar,
+  Check
 } from 'lucide-react';
 import { Container } from '../../components/ui/Container/Container';
 import { useToast } from '../../context/ToastContext';
@@ -42,22 +44,25 @@ export const LiveClassroomPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [targetYear, setTargetYear] = useState('JEE 2028 (Class 11th)');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isJoined, setIsJoined] = useState(false);
-  const [vipTicketId, setVipTicketId] = useState('');
-
-  // Check if user already joined waitlist
-  useEffect(() => {
-    const existing = localStorage.getItem('dk_live_classroom_waitlist');
-    if (existing) {
-      try {
-        const parsed = JSON.parse(existing);
-        setIsJoined(true);
-        setVipTicketId(parsed.ticketId || 'DK-LIVE-7842');
-      } catch {
-        // ignore
-      }
+  const [isJoined, setIsJoined] = useState(() => {
+    try {
+      return !!localStorage.getItem('dk_live_classroom_waitlist');
+    } catch {
+      return false;
     }
-  }, []);
+  });
+  const [vipTicketId, setVipTicketId] = useState(() => {
+    try {
+      const existing = localStorage.getItem('dk_live_classroom_waitlist');
+      if (existing) {
+        const parsed = JSON.parse(existing);
+        return parsed.ticketId || 'DK-LIVE-7842';
+      }
+    } catch {
+      // ignore
+    }
+    return '';
+  });
 
   // Countdown tick
   useEffect(() => {
@@ -118,6 +123,9 @@ export const LiveClassroomPage: React.FC = () => {
 
   return (
     <div className={styles.liveClassroomRoot}>
+      {/* Ambient background glows */}
+      <div className={styles.ambientTopGlow} aria-hidden="true" />
+
       <Container size="wide">
         {/* 1. Breadcrumb navigation */}
         <nav aria-label="Breadcrumb" className={styles.breadcrumbStrip}>
@@ -136,11 +144,10 @@ export const LiveClassroomPage: React.FC = () => {
 
         {/* 2. Hero Coming Soon Announcement Block */}
         <section className={styles.heroSection}>
-          {/* Live Status Pill */}
           <div className={styles.liveStatusRow}>
             <span className={styles.livePulsePill}>
               <span className={styles.livePulseDot} />
-              <Radio size={14} className={styles.radioIcon} />
+              <Radio size={13} className={styles.radioIcon} />
               LIVE 2-WAY BROADCAST ENGINE • COMING SOON
             </span>
             <span className={styles.sessionPill}>
@@ -149,7 +156,7 @@ export const LiveClassroomPage: React.FC = () => {
           </div>
 
           <h1 className={styles.heroHeading}>
-            DK Sir Live Interactive Classroom
+            DK Sir Live <span className={styles.headingGradient}>Interactive Classroom</span>
           </h1>
           <p className={styles.heroSubheading}>
             Kota coaching rigor delivered straight to your study desk. Experience ultra-low latency live classes, real-time 2-way microphone doubts with DK Sir, and 20-30s speed inspection timer drills.
@@ -158,7 +165,7 @@ export const LiveClassroomPage: React.FC = () => {
           {/* 3. Live Countdown Timer */}
           <div className={styles.countdownContainer}>
             <div className={styles.countdownHeader}>
-              <Clock size={16} className={styles.clockIcon} />
+              <Clock size={15} className={styles.clockIcon} />
               <span>OFFICIAL LAUNCH COUNTDOWN &amp; BATCH ONBOARDING</span>
             </div>
 
@@ -185,7 +192,8 @@ export const LiveClassroomPage: React.FC = () => {
             </div>
 
             <div className={styles.targetDateNote}>
-              <span>📅 Target Launch Date: <strong>15 November 2026 • 06:00 PM IST</strong></span>
+              <Calendar size={13} className={styles.calendarIcon} />
+              <span>Target Launch Date: <strong>15 November 2026 • 06:00 PM IST</strong></span>
             </div>
           </div>
         </section>
@@ -225,7 +233,7 @@ export const LiveClassroomPage: React.FC = () => {
 
                 <div className={styles.passActions}>
                   <Link to="/courses" className={styles.exploreExistingBtn}>
-                    <span>Browse Current Classroom Batches</span>
+                    <span>Browse Current Batches</span>
                     <ArrowRight size={15} />
                   </Link>
                 </div>
@@ -233,10 +241,10 @@ export const LiveClassroomPage: React.FC = () => {
             ) : (
               <div className={styles.waitlistFormWrap}>
                 <div className={styles.formHeader}>
-                  <span className={styles.formMiniTag}>
+                  <div className={styles.formMiniTag}>
                     <Sparkles size={13} />
-                    Early Access Privilege
-                  </span>
+                    <span>EARLY ACCESS PRIVILEGE</span>
+                  </div>
                   <h2 className={styles.formTitle}>Join the VIP Live Classroom Waitlist</h2>
                   <p className={styles.formDesc}>
                     Live batches will be strictly capped at 50 students per cohort to guarantee personalized attention. Secure your spot before general admissions open.
@@ -249,48 +257,57 @@ export const LiveClassroomPage: React.FC = () => {
                       <label htmlFor="student-name" className={styles.inputLabel}>
                         Student Full Name *
                       </label>
-                      <input
-                        id="student-name"
-                        type="text"
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. Rahul Sharma"
-                        className={styles.textInput}
-                      />
+                      <div className={styles.inputWrap}>
+                        <User size={16} className={styles.inputIcon} />
+                        <input
+                          id="student-name"
+                          type="text"
+                          required
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="e.g. Rahul Sharma"
+                          className={styles.textInput}
+                        />
+                      </div>
                     </div>
 
                     <div className={styles.formField}>
                       <label htmlFor="student-phone" className={styles.inputLabel}>
                         WhatsApp Number *
                       </label>
-                      <input
-                        id="student-phone"
-                        type="tel"
-                        required
-                        maxLength={10}
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="10-digit mobile number"
-                        className={styles.textInput}
-                      />
+                      <div className={styles.inputWrap}>
+                        <Phone size={16} className={styles.inputIcon} />
+                        <input
+                          id="student-phone"
+                          type="tel"
+                          required
+                          maxLength={10}
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="10-digit mobile number"
+                          className={styles.textInput}
+                        />
+                      </div>
                     </div>
 
                     <div className={styles.formField}>
                       <label htmlFor="target-year" className={styles.inputLabel}>
                         Target Batch &amp; Academic Year
                       </label>
-                      <select
-                        id="target-year"
-                        value={targetYear}
-                        onChange={(e) => setTargetYear(e.target.value)}
-                        className={styles.selectInput}
-                      >
-                        <option value="JEE 2028 (Class 11th)">JEE 2028 • Class 11th (2-Year Cohort)</option>
-                        <option value="JEE 2027 (Class 12th)">JEE 2027 • Class 12th (1-Year Fastrack)</option>
-                        <option value="JEE 2027 (Droppers)">JEE 2027 • Dropper / Repeater Batch</option>
-                        <option value="Foundation (Class 9-10)">Class 9th &amp; 10th Pre-JEE Foundation</option>
-                      </select>
+                      <div className={styles.inputWrap}>
+                        <GraduationCap size={16} className={styles.inputIcon} />
+                        <select
+                          id="target-year"
+                          value={targetYear}
+                          onChange={(e) => setTargetYear(e.target.value)}
+                          className={styles.selectInput}
+                        >
+                          <option value="JEE 2028 (Class 11th)">JEE 2028 • Class 11th (2-Year Cohort)</option>
+                          <option value="JEE 2027 (Class 12th)">JEE 2027 • Class 12th (1-Year Fastrack)</option>
+                          <option value="JEE 2027 (Droppers)">JEE 2027 • Dropper / Repeater Batch</option>
+                          <option value="Foundation (Class 9-10)">Class 9th &amp; 10th Pre-JEE Foundation</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
 
@@ -306,7 +323,7 @@ export const LiveClassroomPage: React.FC = () => {
 
                   <div className={styles.privacyNote}>
                     <ShieldCheck size={14} className={styles.shieldIcon} />
-                    <span>Zero spam guarantee. We only send live stream link and schedule updates via WhatsApp / SMS.</span>
+                    <span>Zero spam guarantee. Priority stream link &amp; credentials delivered via WhatsApp.</span>
                   </div>
                 </form>
               </div>
@@ -317,26 +334,48 @@ export const LiveClassroomPage: React.FC = () => {
         {/* 5. What Makes DK Academy Live Classroom Superior (Feature Pillars) */}
         <section className={styles.featuresSection}>
           <div className={styles.sectionHeadingBlock}>
-            <span className={styles.sectionPill}>PEDAGOGY USP</span>
-            <h2 className={styles.sectionTitle}>Engineered for Active Rank Improvement</h2>
+            <div className={styles.sectionPill}>
+              <Zap size={13} />
+              <span>PEDAGOGY USP</span>
+            </div>
+            <h2 className={styles.sectionTitle}>
+              Engineered for <span className={styles.headingGradient}>Active Rank Improvement</span>
+            </h2>
             <p className={styles.sectionSub}>
               Unlike passive broadcast lectures, DK Academy’s Live Classroom is built ground-up for fast mental computation and direct student-teacher interaction.
             </p>
           </div>
 
           <div className={styles.featuresGrid}>
+            {/* Card 1 */}
             <div className={styles.featureCard}>
+              <span className={styles.numberWatermark} aria-hidden="true">01</span>
               <div className={`${styles.iconWrap} ${styles.blueIcon}`}>
                 <Zap size={22} />
               </div>
-              <h3 className={styles.featureTitle}>20-30s Speed Inspection Polls</h3>
+              <h3 className={styles.featureTitle}>20–30s Speed Inspection Polls</h3>
               <p className={styles.featureDesc}>
                 During live derivations, DK Sir launches rapid timed checks. Students solve problems without traditional multi-step algebra using proprietary Kota inspection heuristics.
               </p>
-              <div className={styles.featureBadge}>Speed Rank Leaderboard</div>
+              <div className={styles.cardDivider} />
+              <ul className={styles.cardPointsList}>
+                <li className={styles.cardPointItem}>
+                  <Check size={14} className={styles.checkBlue} />
+                  <span>Rapid mental calculation drills</span>
+                </li>
+                <li className={styles.cardPointItem}>
+                  <Check size={14} className={styles.checkBlue} />
+                  <span>Instant option-elimination tactics</span>
+                </li>
+              </ul>
+              <div className={`${styles.featureBadge} ${styles.badgeBlue}`}>
+                <Sparkles size={11} /> Speed Rank Leaderboard
+              </div>
             </div>
 
+            {/* Card 2 */}
             <div className={styles.featureCard}>
+              <span className={styles.numberWatermark} aria-hidden="true">02</span>
               <div className={`${styles.iconWrap} ${styles.emeraldIcon}`}>
                 <Mic size={22} />
               </div>
@@ -344,10 +383,25 @@ export const LiveClassroomPage: React.FC = () => {
               <p className={styles.featureDesc}>
                 No typing clumsy LaTeX or long math equations in chat. Simply raise your hand; DK Sir unmutes your microphone so you can discuss the boundary conditions live.
               </p>
-              <div className={styles.featureBadge}>Instant Audio Clearance</div>
+              <div className={styles.cardDivider} />
+              <ul className={styles.cardPointsList}>
+                <li className={styles.cardPointItem}>
+                  <Check size={14} className={styles.checkEmerald} />
+                  <span>Zero typing: speak directly to DK Sir</span>
+                </li>
+                <li className={styles.cardPointItem}>
+                  <Check size={14} className={styles.checkEmerald} />
+                  <span>Instant chalkboard resolution</span>
+                </li>
+              </ul>
+              <div className={`${styles.featureBadge} ${styles.badgeEmerald}`}>
+                <ShieldCheck size={11} /> Instant Audio Clearance
+              </div>
             </div>
 
+            {/* Card 3 */}
             <div className={styles.featureCard}>
+              <span className={styles.numberWatermark} aria-hidden="true">03</span>
               <div className={`${styles.iconWrap} ${styles.purpleIcon}`}>
                 <Video size={22} />
               </div>
@@ -355,10 +409,25 @@ export const LiveClassroomPage: React.FC = () => {
               <p className={styles.featureDesc}>
                 Sub-500ms broadcast engine ensures you hear every single word and pen stroke instantaneously with zero awkward buffering, even on 4G cellular networks.
               </p>
-              <div className={styles.featureBadge}>1080p Studio Broadcast</div>
+              <div className={styles.cardDivider} />
+              <ul className={styles.cardPointsList}>
+                <li className={styles.cardPointItem}>
+                  <Check size={14} className={styles.checkPurple} />
+                  <span>Sub-500ms real-time audio/video</span>
+                </li>
+                <li className={styles.cardPointItem}>
+                  <Check size={14} className={styles.checkPurple} />
+                  <span>Adaptive bitrates for 4G/5G mobile</span>
+                </li>
+              </ul>
+              <div className={`${styles.featureBadge} ${styles.badgePurple}`}>
+                <Radio size={11} /> 1080p Studio Broadcast
+              </div>
             </div>
 
+            {/* Card 4 */}
             <div className={styles.featureCard}>
+              <span className={styles.numberWatermark} aria-hidden="true">04</span>
               <div className={`${styles.iconWrap} ${styles.amberIcon}`}>
                 <FileText size={22} />
               </div>
@@ -366,23 +435,61 @@ export const LiveClassroomPage: React.FC = () => {
               <p className={styles.featureDesc}>
                 Focus on listening and mental derivations without taking notes frantically. The entire live chalkboard is automatically vectorized and saved to your student account within 2 minutes.
               </p>
-              <div className={styles.featureBadge}>Cloud Notes Archive</div>
+              <div className={styles.cardDivider} />
+              <ul className={styles.cardPointsList}>
+                <li className={styles.cardPointItem}>
+                  <Check size={14} className={styles.checkAmber} />
+                  <span>High-res vector chalkboard export</span>
+                </li>
+                <li className={styles.cardPointItem}>
+                  <Check size={14} className={styles.checkAmber} />
+                  <span>Auto-saved to student LMS library</span>
+                </li>
+              </ul>
+              <div className={`${styles.featureBadge} ${styles.badgeAmber}`}>
+                <Clock size={11} /> Cloud Notes Archive
+              </div>
             </div>
           </div>
         </section>
 
-        {/* 6. Quote from DK Sir */}
+        {/* 6. Quote from DK Sir with Real Verified Portrait */}
         <section className={styles.quoteSection}>
           <div className={styles.quoteCard}>
-            <div className={styles.quoteMonogram}>DK</div>
+            <div className={styles.quoteGlowAura} aria-hidden="true" />
+            
+            <div className={styles.quoteAuthorWrap}>
+              <div className={styles.authorAvatarBox}>
+                <img
+                  src="/img/founder.jpeg"
+                  alt="Dharmendra Kumar (DK Sir)"
+                  className={styles.authorImage}
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    if (!img.src.includes('founder-profile')) {
+                      img.src = '/img/founder-profile.jpeg';
+                    }
+                  }}
+                />
+                <span className={styles.onlineStatusDot} title="Faculty Active" />
+              </div>
+              <div className={styles.authorDetails}>
+                <div className={styles.authorNameRow}>
+                  <h4 className={styles.authorName}>Dharmendra Kumar (DK Sir)</h4>
+                  <ShieldCheck size={16} className={styles.verifiedBadge} />
+                </div>
+                <span className={styles.authorTitle}>18+ Yrs Kota Faculty • Ex-Allen / Bansal Math HOD</span>
+                <span className={styles.authorSpecialization}>Specialist in 20–30s Speed Inspection Algorithms</span>
+              </div>
+            </div>
+
+            <div className={styles.quoteDivider} aria-hidden="true" />
+
             <div className={styles.quoteContent}>
+              <Quote size={28} className={styles.quoteMarkIcon} aria-hidden="true" />
               <blockquote className={styles.quoteText}>
                 “In true Kota coaching, solving problems fast isn’t just about memorizing formulas—it is about the rhythm of thinking under timed inspection. Our upcoming Live Classroom brings that exact classroom tempo straight to your screen.”
               </blockquote>
-              <div className={styles.authorRow}>
-                <span className={styles.authorName}>Dharmendra Kumar (DK Sir)</span>
-                <span className={styles.authorTitle}>18+ Yrs Kota Faculty • Ex-Allen / Bansal Math HOD</span>
-              </div>
             </div>
           </div>
         </section>
@@ -391,6 +498,10 @@ export const LiveClassroomPage: React.FC = () => {
         <section className={styles.alternativesSection}>
           <div className={styles.alternativesCard}>
             <div className={styles.altText}>
+              <div className={styles.altBadge}>
+                <Sparkles size={13} />
+                <span>START PREPARING TODAY</span>
+              </div>
               <h3 className={styles.altTitle}>Don't Want to Wait? Start Learning Right Now</h3>
               <p className={styles.altDesc}>
                 Our existing self-paced masterclasses, solved DPP sheets, and CBT All-India test series are available for immediate enrollment.
@@ -399,12 +510,12 @@ export const LiveClassroomPage: React.FC = () => {
 
             <div className={styles.altButtons}>
               <Link to="/courses" className={styles.primaryAltBtn}>
-                <BookOpen size={16} />
                 <span>Explore Full Batches</span>
+                <ArrowRight size={15} />
               </Link>
               <Link to="/free-lectures" className={styles.secondaryAltBtn}>
-                <Play size={15} fill="currentColor" />
-                <span>Watch Free Demos</span>
+                <BookOpen size={15} />
+                <span>Free Foundation Lectures</span>
               </Link>
             </div>
           </div>
@@ -413,4 +524,5 @@ export const LiveClassroomPage: React.FC = () => {
     </div>
   );
 };
+
 export default LiveClassroomPage;

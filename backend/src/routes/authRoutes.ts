@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   register,
   login,
+  googleAuth,
   adminLogin,
   getMe,
   updateProfile,
@@ -29,6 +30,7 @@ const authLimiter = rateLimit({
 // Public Auth Endpoints
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
+router.post('/google', authLimiter, googleAuth);
 router.post('/admin-login', authLimiter, adminLogin);
 
 // Protected Student / User Endpoints

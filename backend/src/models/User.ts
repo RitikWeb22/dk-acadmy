@@ -21,6 +21,8 @@ export interface IUser extends Document {
   parentPhone?: string;
   schoolName?: string;
   board?: string;
+  googleId?: string;
+  authProvider?: 'local' | 'google';
   enrolledCourses?: any[];
   comparePassword(enteredPassword: string): Promise<boolean>;
   createdAt: Date;
@@ -43,9 +45,21 @@ const userSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, 'Please provide password'],
+      required: function (this: any) {
+        return !this.googleId;
+      },
       minlength: 6,
       select: false
+    },
+    googleId: {
+      type: String,
+      sparse: true,
+      index: true
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local'
     },
     phone: {
       type: String,

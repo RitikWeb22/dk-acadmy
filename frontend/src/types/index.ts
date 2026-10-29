@@ -79,6 +79,7 @@ export interface CourseLectureItem {
   title: string;
   duration: string;
   isPreview: boolean;
+  isFree?: boolean;
   videoUrl?: string;
   youtubeId?: string;
   description?: string;

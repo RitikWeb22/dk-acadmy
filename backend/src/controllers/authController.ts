@@ -85,6 +85,128 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+export const googleAuth = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { credential, accessToken } = req.body;
+
+    if (!credential && !accessToken) {
+      res.status(400).json({ success: false, message: 'Google authentication credential is required.' });
+      return;
+    }
+
+    let googleUser: {
+      sub: string;
+      email: string;
+      name?: string;
+      picture?: string;
+      email_verified?: boolean | string;
+    } | null = null;
+
+    if (credential) {
+      // 1. Verify Google ID token via official Google TokenInfo endpoint
+      const googleRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+      if (!googleRes.ok) {
+        const errorData: any = await googleRes.json().catch(() => ({}));
+        res.status(401).json({ success: false, message: errorData.error_description || 'Invalid Google credential token.' });
+        return;
+      }
+      googleUser = (await googleRes.json()) as any;
+    } else if (accessToken) {
+      // 2. Or verify Access Token via Google UserInfo endpoint
+      const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!googleRes.ok) {
+        res.status(401).json({ success: false, message: 'Invalid Google access token.' });
+        return;
+      }
+      googleUser = (await googleRes.json()) as any;
+    }
+
+    if (!googleUser || !googleUser.email) {
+      res.status(400).json({ success: false, message: 'Could not retrieve verified email from Google.' });
+      return;
+    }
+
+    const cleanEmail = googleUser.email.trim().toLowerCase();
+    let user = await User.findOne({ email: cleanEmail });
+
+    if (user) {
+      // Existing user: Link googleId and avatar if not present
+      let needsSave = false;
+      if (!user.googleId && googleUser.sub) {
+        user.googleId = googleUser.sub;
+        needsSave = true;
+      }
+      if (!user.avatarUrl && googleUser.picture) {
+        user.avatarUrl = googleUser.picture;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await user.save();
+      }
+    } else {
+      // New student registration via Google
+      const studentId = generateStudentId();
+      user = await User.create({
+        name: (googleUser.name || cleanEmail.split('@')[0]).trim(),
+        email: cleanEmail,
+        googleId: googleUser.sub,
+        avatarUrl: googleUser.picture,
+        authProvider: 'google',
+        role: 'STUDENT',
+        studentId,
+        targetExam: 'JEE Main & Advanced 2027',
+        targetClass: 'Class 11th',
+        targetYear: '2028'
+      });
+
+      try {
+        broadcastStudentRegistered({
+          _id: user._id.toString(),
+          studentId: user.studentId,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          targetExam: user.targetExam,
+          targetClass: user.targetClass,
+          targetYear: user.targetYear,
+          createdAt: user.createdAt
+        });
+        console.log(`[Google Auth] New student registered with Google: ${user.name} (${user.email}) - ID: ${user.studentId}`);
+      } catch (socketErr) {
+        console.warn('[Socket Broadcast Warning]:', socketErr);
+      }
+    }
+
+    const token = generateToken(user._id.toString(), user.role);
+
+    res.status(200).json({
+      success: true,
+      message: 'Google authentication successful',
+      data: {
+        _id: user._id,
+        studentId: user.studentId,
+        teacherId: user.teacherId,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        targetExam: user.targetExam,
+        targetClass: user.targetClass,
+        targetYear: user.targetYear,
+        enrolledCourses: user.enrolledCourses || [],
+        token
+      }
+    });
+  } catch (error: any) {
+    console.error('[Google Auth Error]:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error during Google authentication.' });
+  }
+};
+
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;

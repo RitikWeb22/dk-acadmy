@@ -2004,7 +2004,7 @@ export const CourseLmsPage: React.FC = () => {
               <span className={styles.lessonBadge}>
                 Lesson {currentLessonNumber} of {allLectures.length}
               </span>
-              {activeLecture.isFree ? (
+              {activeLecture.isPreview || activeLecture.isFree ? (
                 <span className={styles.freePreviewBadge}>
                   <Sparkles size={11} /> Free Masterclass
                 </span>
