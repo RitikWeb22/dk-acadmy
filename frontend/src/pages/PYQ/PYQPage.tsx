@@ -387,13 +387,16 @@ export const PYQPage: React.FC = () => {
           {/* Quick Practice Hub Switcher */}
           <div className={styles.hubTabs} role="navigation" aria-label="Practice modes">
             <span className={`${styles.hubTab} ${styles.hubTabActive}`}>
-              Chapter-Wise PYQs
+              <FileText size={15} aria-hidden="true" />
+              <span>Chapter-Wise PYQs</span>
             </span>
             <Link to="/dpp" className={styles.hubTab}>
-              Daily Practice Problems (DPP)
+              <Zap size={15} aria-hidden="true" />
+              <span>Daily Practice Problems (DPP)</span>
             </Link>
             <Link to="/test-series" className={styles.hubTab}>
-              Full CBT Test Series
+              <ListOrdered size={15} aria-hidden="true" />
+              <span>Full CBT Test Series</span>
             </Link>
           </div>
 

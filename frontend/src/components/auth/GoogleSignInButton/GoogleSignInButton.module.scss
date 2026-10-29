@@ -2,6 +2,13 @@
 
 .wrapper {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .googleBtn {
@@ -53,17 +60,45 @@
 .btnLabel {
   font-size: 0.9375rem;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gisContainer {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   display: flex;
   justify-content: center;
+  align-items: center;
   min-height: 44px;
+  overflow: hidden;
 
+  > div,
   iframe {
+    max-width: 100% !important;
     margin: 0 auto !important;
+    box-sizing: border-box !important;
   }
+}
+
+.gisHidden {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.gisVisible {
+  position: relative;
+  width: 100%;
+  opacity: 1;
+  visibility: visible;
 }
 
 .errorBanner {

@@ -68,6 +68,20 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
 
         if (googleBtnContainerRef.current) {
           googleBtnContainerRef.current.innerHTML = '';
+
+          // Accurately determine available parent width
+          const parentWidth = googleBtnContainerRef.current.parentElement?.clientWidth;
+          const containerWidth = googleBtnContainerRef.current.clientWidth;
+          const measuredWidth = parentWidth || containerWidth;
+          const availableWidth = measuredWidth && measuredWidth > 60
+            ? measuredWidth
+            : typeof window !== 'undefined'
+            ? window.innerWidth - 64
+            : 300;
+
+          // Google Identity Services renderButton strictly enforces [200, 400]
+          const targetWidth = Math.floor(Math.min(Math.max(200, availableWidth), 380));
+
           window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
             type: 'standard',
             theme: 'outline',
@@ -75,7 +89,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
             text: label.toLowerCase().includes('sign up') ? 'signup_with' : 'signin_with',
             shape: 'rectangular',
             logo_alignment: 'left',
-            width: googleBtnContainerRef.current.clientWidth || 360
+            width: targetWidth
           });
         }
         setGisLoaded(true);
@@ -95,6 +109,22 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       }, 300);
       return () => clearInterval(interval);
     }
+
+    let resizeTimer: any;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (window.google?.accounts?.id && googleBtnContainerRef.current) {
+          initGoogleGsi();
+        }
+      }, 200);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(resizeTimer);
+      window.removeEventListener('resize', handleResize);
+    };
   }, [clientId, label, handleCredentialResponse]);
 
   const handleFallbackClick = (e: React.MouseEvent) => {
@@ -112,8 +142,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     <div className={styles.wrapper}>
       <div
         ref={googleBtnContainerRef}
-        className={styles.gisContainer}
-        style={{ display: gisLoaded ? 'flex' : 'none' }}
+        className={`${styles.gisContainer} ${gisLoaded ? styles.gisVisible : styles.gisHidden}`}
       />
 
       {!gisLoaded && (
