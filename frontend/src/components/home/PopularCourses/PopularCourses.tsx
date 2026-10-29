@@ -1,21 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   CheckCircle2,
   Calendar,
   Users,
   Sparkles,
-  BookOpen,
   GraduationCap,
   Target,
   Compass,
   Zap,
-  Play,
   ShieldCheck
 } from 'lucide-react';
 import { Container } from '../../ui/Container/Container';
-import { CourseDemoModal } from '../../courses/CourseDemoModal/CourseDemoModal';
 import { cmsService, CMS_EVENT_KEY } from '../../../services/cmsService';
 import type { Course } from '../../../types';
 import styles from './PopularCourses.module.scss';
@@ -29,11 +26,8 @@ export interface PopularCoursesProps {
 }
 
 export const PopularCourses: React.FC<PopularCoursesProps> = ({ badge, title, subtitle }) => {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [coursesList, setCoursesList] = useState<Course[]>(() => cmsService.getCourses());
-  const [demoCourse, setDemoCourse] = useState<Course | null>(null);
-  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
 
   useEffect(() => {
     const handleUpdate = () => setCoursesList(cmsService.getCourses());
@@ -79,15 +73,6 @@ export const PopularCourses: React.FC<PopularCoursesProps> = ({ badge, title, su
         setTimeout(() => (nameInput as HTMLElement).focus(), 500);
       }
     }
-  };
-
-  const handleOpenDemo = (course: Course) => {
-    setDemoCourse(course);
-    setIsDemoModalOpen(true);
-  };
-
-  const handleOpenSyllabus = (course: Course) => {
-    navigate(`/courses/${course.id}`);
   };
 
   // Helper to calculate or derive discount percentage
@@ -255,21 +240,6 @@ export const PopularCourses: React.FC<PopularCoursesProps> = ({ badge, title, su
                   ))}
                 </ul>
 
-                {/* Interactive Demo Preview Link */}
-                <div className={styles.demoTriggerRow}>
-                  <button
-                    type="button"
-                    className={styles.demoLinkBtn}
-                    onClick={() => handleOpenDemo(course)}
-                    aria-label={`Watch free demo masterclass for ${course.title}`}
-                  >
-                    <div className={styles.demoPlayCircle}>
-                      <Play size={10} fill="currentColor" />
-                    </div>
-                    <span>Watch Free Demo Masterclass (54m)</span>
-                  </button>
-                </div>
-
                 {/* Standardized Pricing Row */}
                 <div className={styles.priceRow}>
                   <div className={styles.priceWrap}>
@@ -295,14 +265,6 @@ export const PopularCourses: React.FC<PopularCoursesProps> = ({ badge, title, su
                     <span>Enroll Now</span>
                     <ArrowRight size={14} className={styles.btnArrow} aria-hidden="true" />
                   </button>
-                  <Link
-                    to={`/courses/${course.id}`}
-                    className={styles.detailsLink}
-                    aria-label={`View syllabus details for ${course.title}`}
-                  >
-                    <BookOpen size={14} className={styles.bookIcon} aria-hidden="true" />
-                    <span>Syllabus</span>
-                  </Link>
                 </div>
               </article>
             );
@@ -335,16 +297,6 @@ export const PopularCourses: React.FC<PopularCoursesProps> = ({ badge, title, su
           </Link>
         </div>
       </Container>
-
-      {/* Interactive Free Masterclass Demo Modal */}
-      {isDemoModalOpen && (
-        <CourseDemoModal
-          course={demoCourse}
-          isOpen={isDemoModalOpen}
-          onClose={() => setIsDemoModalOpen(false)}
-          onOpenSyllabus={handleOpenSyllabus}
-        />
-      )}
     </section>
   );
 };

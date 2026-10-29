@@ -2,8 +2,6 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Star,
-  Play,
-  BookOpen,
   Clock,
   Video,
   FileCheck,
@@ -45,8 +43,8 @@ function formatIndianPrice(price: number | string | undefined, isFree: boolean):
 export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
   course,
   onEnroll,
-  onDemo,
-  onSyllabus,
+  onDemo: _onDemo,
+  onSyllabus: _onSyllabus,
   actionLabel,
 }) => {
   const navigate = useNavigate();
@@ -293,42 +291,6 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
         {promoBadge && (
           <span className={styles.promoBadge}>{promoBadge}</span>
         )}
-
-        {/* Compact Syllabus and Demo actions (only if callbacks exist) */}
-        {(onSyllabus || onDemo) && (
-          <div className={styles.thumbnailActions}>
-            {onSyllabus && (
-              <button
-                type="button"
-                className={styles.thumbActionBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSyllabus(course);
-                }}
-                title="View Course Syllabus"
-                aria-label={`View syllabus for ${course.title}`}
-              >
-                <BookOpen size={11} aria-hidden="true" />
-                <span>Syllabus</span>
-              </button>
-            )}
-            {onDemo && (
-              <button
-                type="button"
-                className={styles.thumbActionBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDemo(course);
-                }}
-                title="Watch Free Demo Lecture"
-                aria-label={`Watch free demo lecture for ${course.title}`}
-              >
-                <Play size={10} fill="currentColor" aria-hidden="true" />
-                <span>Demo</span>
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ─── B. Course Information Body (Exact Requested Order) ─── */}
@@ -415,13 +377,7 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
           aria-label={`${buttonText}: ${course.title}`}
         >
           <span>{buttonText}</span>
-          {isPurchased ? (
-            <ArrowRight size={14} aria-hidden="true" />
-          ) : isFree ? (
-            <Play size={11} fill="currentColor" aria-hidden="true" />
-          ) : (
-            <ArrowRight size={14} aria-hidden="true" />
-          )}
+          <ArrowRight size={14} aria-hidden="true" />
         </button>
       </div>
     </article>

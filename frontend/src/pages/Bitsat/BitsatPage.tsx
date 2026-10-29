@@ -16,7 +16,6 @@ import {
   Send,
   Sparkles,
   ArrowRight,
-  BookOpen,
   Calendar,
   Users,
   Flame,
@@ -502,10 +501,6 @@ export const BitsatPage: React.FC = () => {
                   <span>Enroll in Speed Master</span>
                   <ArrowRight size={14} />
                 </a>
-                <Link to="/courses" className={styles.syllabusSecondaryBtn}>
-                  <BookOpen size={13} />
-                  <span>Syllabus</span>
-                </Link>
               </div>
             </article>
 
@@ -576,10 +571,6 @@ export const BitsatPage: React.FC = () => {
                   <span>Enroll in Booster</span>
                   <ArrowRight size={14} />
                 </a>
-                <Link to="/courses" className={styles.syllabusSecondaryBtn}>
-                  <BookOpen size={13} />
-                  <span>Syllabus</span>
-                </Link>
               </div>
             </article>
 
@@ -650,10 +641,6 @@ export const BitsatPage: React.FC = () => {
                   <span>Join Test Series</span>
                   <ArrowRight size={14} />
                 </a>
-                <Link to="/test-series" className={styles.syllabusSecondaryBtn}>
-                  <BookOpen size={13} />
-                  <span>Details</span>
-                </Link>
               </div>
             </article>
           </div>
