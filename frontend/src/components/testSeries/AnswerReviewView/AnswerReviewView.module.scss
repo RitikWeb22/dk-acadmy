@@ -2,6 +2,9 @@
 
 .reviewContainer {
   padding: $space-4 0 $space-12;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .topHeader {
