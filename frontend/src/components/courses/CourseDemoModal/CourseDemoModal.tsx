@@ -208,7 +208,7 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
               />
 
               {/* Top Player Badges Overlay */}
-              <div className={styles.videoTopHeader}>
+              <div className={`${styles.videoTopHeader} ${isPlaying ? styles.headerAutoHide : ''}`}>
                 <span className={styles.masterclassBadge}>
                   <Zap size={13} className={styles.zapIcon} />
                   100% Free Demo Masterclass
@@ -231,7 +231,7 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
               )}
 
               {/* Bottom Integrated Media Controls Bar */}
-              <div className={styles.mediaScrubBar}>
+              <div className={`${styles.mediaScrubBar} ${isPlaying ? styles.controlsAutoHide : ''}`}>
                 {/* Play / Pause Toggle */}
                 <button
                   type="button"
