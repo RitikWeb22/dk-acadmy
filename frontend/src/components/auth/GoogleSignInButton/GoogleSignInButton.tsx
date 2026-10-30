@@ -78,8 +78,9 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
           const availableWidth = measuredWidth || fallbackWidth;
 
           // Google Identity Services renderButton strictly enforces [200, 400]
-          // Subtract a small buffer (4px) so borders never clip the container
-          const targetWidth = Math.max(200, Math.min(380, Math.floor(availableWidth - 4)));
+          // Subtract a small buffer (4px) and screen safe bounds so borders never clip
+          const screenSafeMax = typeof window !== 'undefined' ? Math.max(200, window.innerWidth - 64) : 340;
+          const targetWidth = Math.max(200, Math.min(380, screenSafeMax, Math.floor(availableWidth - 4)));
 
           window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
             type: 'standard',

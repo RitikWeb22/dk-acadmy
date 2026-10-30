@@ -274,6 +274,18 @@ export const App: React.FC = () => {
                   }
                 />
                 <Route
+                  path="/admin/live"
+                  element={
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                      <AdminDashboardPage initialMenu="live-classroom" />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teacher/live"
+                  element={<Navigate to="/admin/live" replace />}
+                />
+                <Route
                   path="/admin/lectures"
                   element={<Navigate to="/admin/free-lectures" replace />}
                 />

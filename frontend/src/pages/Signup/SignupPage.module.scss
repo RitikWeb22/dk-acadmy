@@ -1,6 +1,13 @@
 @use '../../styles/variables' as *;
 
 .socialSlot {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin-bottom: 4px;
 }
 

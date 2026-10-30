@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { Container } from '../../components/ui/Container/Container';
 import { useToast } from '../../context/ToastContext';
+import { useStudentAuth } from '../../context/AuthContext';
+import { StudentLiveClassroom } from '../../components/live/StudentLiveClassroom';
 import styles from './LiveClassroomPage.module.scss';
 
 // Target Launch Date: 15th November 2026, 18:00 IST
@@ -30,6 +32,7 @@ const TARGET_LAUNCH_DATE = new Date('2026-11-15T18:00:00+05:30').getTime();
 
 export const LiveClassroomPage: React.FC = () => {
   const { showToast } = useToast();
+  const { student } = useStudentAuth();
 
   // Countdown timer state
   const [timeLeft, setTimeLeft] = useState({
@@ -141,6 +144,11 @@ export const LiveClassroomPage: React.FC = () => {
             </li>
           </ol>
         </nav>
+
+        {/* LiveKit Student Classroom Player & Live Session Status */}
+        <section className="my-6 w-full" aria-label="LiveKit Classroom Stream">
+          <StudentLiveClassroom currentStudent={student} />
+        </section>
 
         {/* 2. Hero Coming Soon Announcement Block */}
         <section className={styles.heroSection}>

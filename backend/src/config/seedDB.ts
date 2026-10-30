@@ -57,25 +57,25 @@ export const seedInitialDatabase = async (): Promise<void> => {
           curriculumSections: [
             {
               id: 'sec-1',
-              title: 'Chapter 1: Foundations & Calculus Inspection',
+              title: 'Chapter 1: Straight Lines & Coordinate Geometry (DK Sir Inspection Method)',
               lectures: [
                 {
                   id: 'lec-1',
-                  title: 'Introduction to 20s Inspection Method',
-                  duration: '38:40',
-                  videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                  title: 'Straight Lines: 20-30s Inspection Technique for JEE Main & Advanced',
+                  duration: '42:10',
+                  videoUrl: '/videos/1.mp4',
                   isFreePreview: true,
-                  notesPdfUrl: '/downloads/dk-calculus-handout-01.pdf',
-                  dppPdfUrl: '/downloads/dpp-calculus-01.pdf'
+                  notesPdfUrl: '/assets/downloads/st line-2.pdf',
+                  dppPdfUrl: '/assets/downloads/st line-2.pdf'
                 },
                 {
                   id: 'lec-2',
-                  title: 'King’s Property & Symmetric Integrals',
-                  duration: '45:15',
-                  videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+                  title: 'Conic Sections: Parabola Locus & Tangent Equations Masterclass',
+                  duration: '48:35',
+                  videoUrl: '/videos/2.mp4',
                   isFreePreview: true,
-                  notesPdfUrl: '/downloads/kings-property-notes.pdf',
-                  dppPdfUrl: '/downloads/dpp-calculus-02.pdf'
+                  notesPdfUrl: '/assets/downloads/parabola -1.pdf',
+                  dppPdfUrl: '/assets/downloads/parabola -1.pdf'
                 }
               ]
             }
@@ -123,6 +123,60 @@ export const seedInitialDatabase = async (): Promise<void> => {
           ],
           isPublished: true,
           curriculumSections: []
+        },
+        {
+          title: 'DK Sir Masterclass: Straight Lines & Parabola Conic Sections (PYQs + Shortcuts)',
+          slug: 'dk-sir-straight-lines-parabola-masterclass',
+          description: "Complete high-yield masterclass covering Straight Lines and Parabola Conic Sections for JEE Main & Advanced. Learn DK Sir's signature 20-30 second inspection shortcuts to solve complex coordinate geometry questions without lengthy calculations.",
+          category: 'JEE Main & Advanced',
+          targetClass: 'Class 11th & 12th',
+          targetYear: 'Target JEE 2026-2027',
+          price: 1499,
+          originalPrice: 2999,
+          deliveryMode: 'Hybrid',
+          startDate: 'Immediate Access',
+          duration: 'Self-Paced + Live Doubt Counter',
+          coverImage: '/images/pyq-straight-lines-banner.jpg',
+          features: [
+            'DK Sir 20-30s Coordinate Geometry Shortcuts',
+            'Full High-Definition Video Masterclasses (Lectures 1 & 2)',
+            'Straight Lines 15-Year Solved PYQ Handout PDF',
+            'Parabola Conic Sections High-Yield Practice Sheet PDF',
+            'Live Audio Doubt Support & CBT Test Integration'
+          ],
+          curriculumSections: [
+            {
+              id: 'sec-1',
+              title: 'Module 1: Straight Lines 20-30s Inspection & PYQs',
+              lectures: [
+                {
+                  id: 'lec-sl-1',
+                  title: 'Straight Lines — Part 1: Slope, Intercept & 20s Inspection Shortcut',
+                  duration: '42:10',
+                  videoUrl: '/videos/1.mp4',
+                  isFreePreview: true,
+                  notesPdfUrl: '/assets/downloads/st line-2.pdf',
+                  dppPdfUrl: '/assets/downloads/st line-2.pdf'
+                }
+              ]
+            },
+            {
+              id: 'sec-2',
+              title: 'Module 2: Parabola Conic Sections & Exam Problem Solving',
+              lectures: [
+                {
+                  id: 'lec-pb-1',
+                  title: 'Parabola — Part 2: Standard Forms, Focal Chords & JEE Problem Solving',
+                  duration: '48:35',
+                  videoUrl: '/videos/2.mp4',
+                  isFreePreview: true,
+                  notesPdfUrl: '/assets/downloads/parabola -1.pdf',
+                  dppPdfUrl: '/assets/downloads/parabola -1.pdf'
+                }
+              ]
+            }
+          ],
+          isPublished: true
         }
       ];
 
