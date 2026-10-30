@@ -28,6 +28,7 @@ import {
   LogOut,
   HelpCircle
 } from 'lucide-react';
+import { apiClient } from '../../services/apiClient';
 
 interface LiveSessionData {
   roomId: string;
@@ -445,9 +446,14 @@ export const StudentLiveClassroom: React.FC<StudentLiveClassroomProps> = ({
     let isMounted = true;
     const fetchActiveSessions = async () => {
       try {
-        const res = await fetch(`${apiBaseUrl}/live/sessions?status=LIVE`);
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0 && isMounted) {
+        let json: any;
+        if (apiBaseUrl && apiBaseUrl !== '/api') {
+          const res = await fetch(`${apiBaseUrl.replace(/\/+$/, '')}/live/sessions?status=LIVE`);
+          json = await res.json();
+        } else {
+          json = await apiClient.get('/live/sessions?status=LIVE');
+        }
+        if (json && json.success && Array.isArray(json.data) && json.data.length > 0 && isMounted) {
           setActiveSession(json.data[0]);
         }
       } catch (err) {
@@ -472,21 +478,33 @@ export const StudentLiveClassroom: React.FC<StudentLiveClassroomProps> = ({
     setErrorMsg(null);
 
     try {
-      const res = await fetch(`${apiBaseUrl}/live/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId: targetRoom,
-          userId: studentId,
-          role: 'student',
-          userName: studentName,
-          batchId: activeSession?.batchId || 'all'
-        })
-      });
+      const payload = {
+        roomId: targetRoom,
+        userId: studentId,
+        role: 'student',
+        userName: studentName,
+        batchId: activeSession?.batchId || 'all'
+      };
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to join live classroom');
+      let data: any;
+      if (apiBaseUrl && apiBaseUrl !== '/api') {
+        const res = await fetch(`${apiBaseUrl.replace(/\/+$/, '')}/live/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const text = await res.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Server returned status ${res.status}: ${text.slice(0, 100)}`);
+        }
+      } else {
+        data = await apiClient.post('/live/token', payload);
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.message || 'Failed to join live classroom');
       }
 
       setToken(data.token);
