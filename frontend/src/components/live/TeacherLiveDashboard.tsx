@@ -32,6 +32,7 @@ import {
   Minimize2,
   BookOpen
 } from 'lucide-react';
+import { apiClient } from '../../services/apiClient';
 
 interface DoubtMessage {
   id: string;
@@ -624,26 +625,39 @@ export const TeacherLiveDashboard: React.FC<TeacherLiveDashboardProps> = ({
     setErrorMsg(null);
 
     try {
-      // 1. Initialize or start live session via backend
-      const res = await fetch(`${apiBaseUrl}/live/sessions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId: roomId.trim() || `dk-live-${Date.now()}`,
-          title: `${subject}: ${topic.trim()}`,
-          subject,
-          topic: topic.trim(),
-          batchId: 'jee-main-advanced-2yr-ultimate',
-          batchName: batchName.trim(),
-          teacherId,
-          teacherName,
-          description: 'Official DK Academy Live Interactive Broadcast'
-        })
-      });
+      const sessionPayload = {
+        roomId: roomId.trim() || `dk-live-${Date.now()}`,
+        title: `${subject}: ${topic.trim()}`,
+        subject,
+        topic: topic.trim(),
+        batchId: 'jee-main-advanced-2yr-ultimate',
+        batchName: batchName.trim(),
+        teacherId,
+        teacherName,
+        description: 'Official DK Academy Live Interactive Broadcast'
+      };
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to start live session');
+      // 1. Initialize or start live session via backend
+      let data: any;
+      if (apiBaseUrl && apiBaseUrl !== '/api') {
+        const fullUrl = `${apiBaseUrl.replace(/\/+$/, '')}/live/sessions`;
+        const res = await fetch(fullUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sessionPayload)
+        });
+        const text = await res.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Server returned status ${res.status}: ${text.slice(0, 120)}`);
+        }
+      } else {
+        data = await apiClient.post('/live/sessions', sessionPayload);
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.message || 'Failed to start live session');
       }
 
       // If token returned directly from start endpoint
@@ -652,19 +666,33 @@ export const TeacherLiveDashboard: React.FC<TeacherLiveDashboardProps> = ({
 
       // Fallback: If start endpoint didn't provide token, query /token
       if (!activeToken) {
-        const tokenRes = await fetch(`${apiBaseUrl}/live/token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            roomId: data.data?.roomId || roomId,
-            userId: teacherId,
-            role: 'teacher',
-            userName: teacherName
-          })
-        });
-        const tokenData = await tokenRes.json();
-        if (!tokenRes.ok || !tokenData.success) {
-          throw new Error(tokenData.message || 'Failed to fetch teacher LiveKit token');
+        const tokenPayload = {
+          roomId: data.data?.roomId || roomId,
+          userId: teacherId,
+          role: 'teacher',
+          userName: teacherName
+        };
+
+        let tokenData: any;
+        if (apiBaseUrl && apiBaseUrl !== '/api') {
+          const fullTokenUrl = `${apiBaseUrl.replace(/\/+$/, '')}/live/token`;
+          const tokenRes = await fetch(fullTokenUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(tokenPayload)
+          });
+          const tokenText = await tokenRes.text();
+          try {
+            tokenData = JSON.parse(tokenText);
+          } catch {
+            throw new Error(`Server returned status ${tokenRes.status}`);
+          }
+        } else {
+          tokenData = await apiClient.post('/live/token', tokenPayload);
+        }
+
+        if (!tokenData || !tokenData.success) {
+          throw new Error(tokenData?.message || 'Failed to fetch teacher LiveKit token');
         }
         activeToken = tokenData.token;
         activeWsUrl = tokenData.wsUrl || activeWsUrl;
@@ -684,9 +712,13 @@ export const TeacherLiveDashboard: React.FC<TeacherLiveDashboardProps> = ({
   // End Session Handler
   const handleEndSession = async () => {
     try {
-      await fetch(`${apiBaseUrl}/live/sessions/${encodeURIComponent(roomId)}/end`, {
-        method: 'POST'
-      });
+      if (apiBaseUrl && apiBaseUrl !== '/api') {
+        await fetch(`${apiBaseUrl.replace(/\/+$/, '')}/live/sessions/${encodeURIComponent(roomId)}/end`, {
+          method: 'POST'
+        });
+      } else {
+        await apiClient.post(`/live/sessions/${encodeURIComponent(roomId)}/end`);
+      }
     } catch (err) {
       console.warn('End session notification error:', err);
     }
