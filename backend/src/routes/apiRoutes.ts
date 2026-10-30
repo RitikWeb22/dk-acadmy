@@ -12,6 +12,7 @@ import testSeriesRoutes from './testSeriesRoutes.js';
 import dppPyqRoutes from './dppPyqRoutes.js';
 import freeLectureRoutes from './freeLectureRoutes.js';
 import doubtRoutes from './doubtRoutes.js';
+import liveRoutes from './liveRoutes.js';
 
 import mongoose from 'mongoose';
 
@@ -69,6 +70,7 @@ router.use('/upload', uploadRoutes);
 router.use('/lms', lmsVideoRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/doubts', doubtRoutes);
+router.use('/live', liveRoutes);
 router.use('/analytics', analyticsRoutes);
 
 

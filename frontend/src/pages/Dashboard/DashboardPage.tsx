@@ -12,6 +12,7 @@ import { TestPerformance } from '../../components/dashboard/TestPerformance/Test
 import { DashboardSkeleton } from '../../components/dashboard/DashboardSkeleton/DashboardSkeleton';
 import { DashboardEmptyState } from '../../components/dashboard/DashboardEmptyState/DashboardEmptyState';
 import { CallbackModal } from '../../components/leads/CallbackModal/CallbackModal';
+import { StudentLiveClassroom } from '../../components/live/StudentLiveClassroom';
 import { Headphones, PhoneCall, MessageCircle } from 'lucide-react';
 import { getStudentWhatsAppUrl } from '../../utils/whatsapp';
 import { cmsService } from '../../services/cmsService';
@@ -280,6 +281,11 @@ export const DashboardPage: React.FC = () => {
     <main className={styles.page}>
       <Container size="wide">
         <div className={styles.dashboardLayout}>
+          {/* Live Classroom Alert Banner & Stream Viewer */}
+          <div className="w-full mb-2">
+            <StudentLiveClassroom currentStudent={student} />
+          </div>
+
           {/* 1. Unified Command Hero & "Resume Learning" Spotlight (Console) */}
           <DashboardHeader student={student} activeItem={continueLearningItem} />
 
