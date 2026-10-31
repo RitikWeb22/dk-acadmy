@@ -193,8 +193,8 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
       if (res && res.data) {
         setReviews(res.data);
       }
-    } catch (err) {
-      console.warn('[Reviews] Fetch fallback:', err);
+    } catch {
+      // Fallback handled silently
     }
   };
 
@@ -205,8 +205,8 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
       if (res && res.data) {
         setDoubts(res.data);
       }
-    } catch (err) {
-      console.warn('[Doubts] Fetch fallback:', err);
+    } catch {
+      // Fallback handled silently
     }
   };
 
@@ -296,9 +296,13 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
 
     setIsSubmittingAnswer(true);
     try {
+      const trimmedAnswer = answerText.trim();
+      const trimmedAdmin = adminName.trim();
       const res = await apiClient.put(`/doubts/${answeringDoubt._id}/answer`, {
-        answerText: answerText.trim(),
-        adminName: adminName.trim()
+        answerText: trimmedAnswer,
+        answer: trimmedAnswer,
+        adminName: trimmedAdmin,
+        facultyName: trimmedAdmin
       });
 
       if (res && res.success) {
@@ -307,7 +311,7 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
         setDoubts((prev) =>
           prev.map((d) => (d._id === answeringDoubt._id ? res.data : d))
         );
-        showToast(`✅ Answer submitted! Direct Socket.IO message dispatched to ${answeringDoubt.studentName} (${answeringDoubt.studentEmail})`);
+        showToast('✅ Answer submitted successfully!');
         handleCloseAnswerModal();
       } else {
         showToast(res?.message || 'Failed to submit answer');
@@ -1346,14 +1350,6 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
                   onChange={(e) => setAnswerText(e.target.value)}
                   placeholder="Type clear step-by-step mathematical reasoning, shortcuts, and key formula references for the student..."
                 />
-              </div>
-
-              {/* Live Socket.IO Broadcast Notice */}
-              <div className={styles.socketNoticeBox}>
-                <Radio size={16} />
-                <span>
-                  <strong>Socket.IO Live Delivery:</strong> Event <code>doubt:answered</code> will be emitted to <em>{answeringDoubt.studentEmail}</em> and show up in their student portal instantly.
-                </span>
               </div>
             </div>
 

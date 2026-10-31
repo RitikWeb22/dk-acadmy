@@ -88,8 +88,10 @@ export const createDoubt = async (req, res) => {
 export const answerDoubt = async (req, res) => {
     try {
         const { id } = req.params;
-        const { answerText, adminName, attachmentUrl } = req.body;
-        if (!answerText || !answerText.trim()) {
+        const answerText = (req.body.answerText || req.body.answer || '').trim();
+        const adminName = (req.body.adminName || req.body.facultyName || req.user?.name || 'DK Sir (Director)').trim();
+        const attachmentUrl = (req.body.attachmentUrl || req.body.answerImage || '').trim();
+        if (!answerText) {
             res.status(400).json({ success: false, message: 'Answer text cannot be empty' });
             return;
         }

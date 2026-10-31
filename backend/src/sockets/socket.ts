@@ -272,7 +272,6 @@ export const broadcastFreeLectureDeleted = (itemId: string): void => {
 
 export const broadcastDoubtAnswered = (doubt: any): void => {
   if (io) {
-    console.log(`[Socket.IO] Emitting doubt:answered for student: ${doubt.studentEmail} (Doubt ID: ${doubt._id || doubt.id})`);
     const payload = {
       doubtId: doubt._id || doubt.id,
       studentId: doubt.studentId,
