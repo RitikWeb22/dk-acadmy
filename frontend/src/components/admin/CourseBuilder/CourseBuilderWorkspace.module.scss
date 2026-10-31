@@ -243,6 +243,8 @@
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 24px;
   align-items: start;
+  width: 100%;
+  max-width: 100%;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -261,6 +263,13 @@
   min-height: 580px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
 
   :global(.darkMode) & {
     background: #0F172A;
@@ -272,14 +281,20 @@
 /* Horizontal modern stepper bar inside form card */
 .modernStepperTopBar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
   padding-bottom: 20px;
   margin-bottom: 24px;
   border-bottom: 1px solid #E2E8F0;
+  width: 100%;
+  min-width: 0;
 
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
+  @media (max-width: 1366px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 580px) {
+    grid-template-columns: 1fr;
   }
 
   :global(.darkMode) & {
@@ -290,14 +305,16 @@
 .stepNavPill {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 8px 10px;
   background: #F8FAFC;
   border: 1px solid #E2E8F0;
   border-radius: 10px;
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
+  min-width: 0;
+  overflow: hidden;
 
   &:hover {
     background: #F1F5F9;
@@ -379,6 +396,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
 
 .stepMiniLabel {

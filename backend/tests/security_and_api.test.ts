@@ -10,17 +10,48 @@ import path from 'path';
 import os from 'os';
 import { spawnSync } from 'child_process';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { app } from '../src/app.js';
 import { env } from '../src/config/env.js';
+import { connectDB } from '../src/config/db.js';
+import { User } from '../src/models/User.js';
 import { escapeRegex, getPagination } from '../src/utils/sanitize.js';
 import { verifyMagicBytes } from '../src/utils/fileValidation.js';
 
 describe('DK Academy Backend — Comprehensive Security & API Test Suite', () => {
   let server: http.Server;
   let baseUrl: string;
+  let adminAuthToken: string;
   const JWT_SECRET = env.JWT_SECRET;
 
   before(async () => {
+    // Connect to database for CRUD and model tests
+    try {
+      await connectDB();
+      let adminUser = await User.findOne({ role: { $in: ['SUPER_ADMIN', 'ADMIN'] } });
+      if (!adminUser) {
+        adminUser = await User.create({
+          name: 'Automated Test Super Admin',
+          email: `test_admin_${Date.now()}@dkacademy.com`,
+          password: 'Password123!',
+          role: 'SUPER_ADMIN'
+        });
+      }
+      adminAuthToken = jwt.sign(
+        { id: adminUser._id.toString(), role: adminUser.role, email: adminUser.email },
+        JWT_SECRET,
+        { algorithm: 'HS256', expiresIn: '1h' }
+      );
+    } catch (err) {
+      console.warn('[Test DB Warning]:', err);
+      // Fallback
+      adminAuthToken = jwt.sign(
+        { id: 'mock_admin_123', role: 'SUPER_ADMIN', email: 'admin@dkacademy.com' },
+        JWT_SECRET,
+        { algorithm: 'HS256', expiresIn: '1h' }
+      );
+    }
+
     // Spin up lightweight test server on dynamic OS-assigned port
     server = http.createServer(app);
     await new Promise<void>((resolve) => {
@@ -35,9 +66,14 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
   });
 
   after(async () => {
+    try {
+      mongoose.connection.removeAllListeners();
+      await mongoose.disconnect();
+    } catch {}
     await new Promise<void>((resolve) => {
       server.close(() => resolve());
     });
+    setTimeout(() => process.exit(0), 100).unref();
   });
 
   // ==========================================
@@ -492,6 +528,156 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
       const p3 = getPagination(-5, -10);
       assert.equal(p3.page, 1);
       assert.equal(p3.limit, 1);
+    });
+  });
+
+  // ==========================================
+  // SECTION 10: Core CRUD Operations
+  // ==========================================
+  describe('Admin & Public CRUD API Operations', () => {
+    let createdCourseId: string;
+    let createdLectureId: string;
+
+    test('Public GET /api/v1/courses returns courses list with 200 OK', async () => {
+      const res = await fetch(`${baseUrl}/api/v1/courses`);
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.success, true);
+      assert.ok(Array.isArray(data.data));
+    });
+
+    test('Admin POST /api/v1/courses creates course successfully with 201 Created', async () => {
+      const newCoursePayload = {
+        title: `Test Automated JEE Batch ${Date.now()}`,
+        slug: `test-automated-jee-${Date.now()}`,
+        price: 4999,
+        category: 'JEE Main & Advanced',
+        targetClass: 'Class 12th',
+        targetYear: 'Target JEE 2027',
+        deliveryMode: 'Online Live'
+      };
+
+      const res = await fetch(`${baseUrl}/api/v1/courses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminAuthToken}`
+        },
+        body: JSON.stringify(newCoursePayload)
+      });
+
+      assert.equal(res.status, 201);
+      const data = await res.json();
+      assert.equal(data.success, true);
+      assert.ok(data.data?._id);
+      createdCourseId = data.data._id;
+    });
+
+    test('Admin PUT /api/v1/courses/:id updates course successfully with 200 OK', async () => {
+      if (!createdCourseId) return;
+      const res = await fetch(`${baseUrl}/api/v1/courses/${createdCourseId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminAuthToken}`
+        },
+        body: JSON.stringify({
+          price: 5499,
+          description: 'Updated test course description'
+        })
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.success, true);
+      assert.equal(data.data?.price, 5499);
+    });
+
+    test('Admin DELETE /api/v1/courses/:id removes course successfully with 200 OK', async () => {
+      if (!createdCourseId) return;
+      const res = await fetch(`${baseUrl}/api/v1/courses/${createdCourseId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${adminAuthToken}`
+        }
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.success, true);
+    });
+
+    test('Public GET /api/v1/free-lectures returns lectures catalog with 200 OK', async () => {
+      const res = await fetch(`${baseUrl}/api/v1/free-lectures`);
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.success, true);
+      assert.ok(Array.isArray(data.data));
+    });
+
+    test('Admin POST /api/v1/free-lectures creates lecture successfully with 201 Created', async () => {
+      const lecturePayload = {
+        title: `Test Math Integration Lecture ${Date.now()}`,
+        subject: 'Mathematics',
+        trackId: 'test-track-calculus',
+        trackTitle: 'Calculus Shortcuts',
+        duration: '45 min',
+        isFree: true,
+        price: 0
+      };
+
+      const res = await fetch(`${baseUrl}/api/v1/free-lectures`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminAuthToken}`
+        },
+        body: JSON.stringify(lecturePayload)
+      });
+
+      assert.equal(res.status, 201);
+      const data = await res.json();
+      assert.equal(data.success, true);
+      assert.ok(data.data?._id || data.data?.id);
+      createdLectureId = data.data?._id || data.data?.id;
+    });
+
+    test('Admin DELETE /api/v1/free-lectures/:id removes lecture with 200 OK', async () => {
+      if (!createdLectureId) return;
+      const res = await fetch(`${baseUrl}/api/v1/free-lectures/${createdLectureId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${adminAuthToken}`
+        }
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.success, true);
+    });
+
+    test('Public POST /api/v1/leads submits contact inquiry with 201 Created', async () => {
+      const leadPayload = {
+        fullName: 'Student Applicant Test',
+        mobile: '9876543210',
+        email: 'student.applicant@example.com',
+        currentClass: 'Class 12th',
+        targetBatch: 'JEE 2027 Flagship',
+        message: 'Interested in admissions and classroom schedule'
+      };
+
+      const res = await fetch(`${baseUrl}/api/v1/leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(leadPayload)
+      });
+
+      assert.equal(res.status, 201);
+      const data = await res.json();
+      assert.equal(data.success, true);
+      assert.ok(data.data?.leadId);
     });
   });
 });

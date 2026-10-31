@@ -8,7 +8,7 @@ import {
   deleteCourse
 } from '../controllers/courseController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
-import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
+import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
 
@@ -71,14 +71,14 @@ router.put(
   '/:id',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
-  validate({ params: idParamSchema }),
+  validate({ params: idOrSlugParamSchema }),
   updateCourse
 );
 router.delete(
   '/:id',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
-  validate({ params: idParamSchema }),
+  validate({ params: idOrSlugParamSchema }),
   deleteCourse
 );
 
