@@ -16,3 +16,4 @@ router.put('/:id', updateCoupon);
 router.delete('/:id', deleteCoupon);
 
 export default router;
+

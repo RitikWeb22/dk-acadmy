@@ -320,6 +320,26 @@ export const CreatedCoursesCatalog: React.FC<CreatedCoursesCatalogProps> = ({
               (course.enrolledCount ? Math.floor(course.enrolledCount / 3.4) : isBestseller ? 906 : 255);
             const instructorText = (course as any).instructor || 'DK Sir (18+ Yrs Kota) & Team';
 
+            const isPopularCard =
+              (course.tags && course.tags.some((t: string) => t.toLowerCase() === 'popular')) ||
+              (course as any).isPopular ||
+              course.badge?.toLowerCase() === 'popular';
+
+            const deliveryTag =
+              (course.tags &&
+                course.tags.find((t: string) =>
+                  ['test series', 'self-study dlp', 'live online', 'classroom', 'hybrid'].includes(
+                    t.toLowerCase()
+                  )
+                )) ||
+              (course.courseType === 'dlp'
+                ? 'Self-Study DLP'
+                : course.courseType === 'test-series'
+                ? 'Test Series'
+                : course.mode === 'Live'
+                ? 'Live Online'
+                : course.category || course.targetExam || 'JEE Main');
+
             return (
               <article key={course.id || (course as any)._id} className={styles.courseCard}>
                 <div className={styles.cardTopContent}>
@@ -340,16 +360,18 @@ export const CreatedCoursesCatalog: React.FC<CreatedCoursesCatalogProps> = ({
                     <div className={styles.thumbnailOverlay} />
 
                     <div className={styles.thumbnailTopBadges}>
-                      <span className={styles.categoryBadge}>
-                        {course.category || course.targetExam || 'JEE Main'}
-                      </span>
-                      <span
-                        className={`${styles.tierBadge} ${
-                          isFree ? styles.tierBadgeFree : styles.tierBadgePaid
-                        }`}
-                      >
-                        {isFree ? 'Free Demo Track' : 'Paid Batch'}
-                      </span>
+                      <span className={styles.categoryBadge}>{deliveryTag}</span>
+                      {isPopularCard ? (
+                        <span className={styles.popularGoldBadge}>Popular</span>
+                      ) : (
+                        <span
+                          className={`${styles.tierBadge} ${
+                            isFree ? styles.tierBadgeFree : styles.tierBadgePaid
+                          }`}
+                        >
+                          {isFree ? 'Free Demo' : 'Paid Batch'}
+                        </span>
+                      )}
                     </div>
 
                     <div className={styles.thumbnailBottomBadges}>

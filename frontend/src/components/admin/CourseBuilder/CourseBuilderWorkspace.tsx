@@ -1170,6 +1170,31 @@ export const CourseBuilderWorkspace: React.FC = () => {
       >
         {/* ─── CENTER FORM STAGE (~75% Width) ─── */}
         <main className={styles.formStageCard} role="region" aria-label="Wizard Form Step">
+          {/* Horizontal Modern Stepper Top Bar */}
+          <div className={styles.modernStepperTopBar}>
+            {stepsList.map((step) => {
+              const isCompleted = step.stepNumber < currentStep;
+              const isActive = step.stepNumber === currentStep;
+              return (
+                <button
+                  key={step.stepNumber}
+                  type="button"
+                  className={`${styles.stepNavPill} ${isActive ? styles.stepNavPillActive : ''} ${
+                    isCompleted ? styles.stepNavPillCompleted : ''
+                  }`}
+                  onClick={() => handleStepSelect(step.stepNumber)}
+                >
+                  <div className={styles.stepNumCircle}>
+                    {isCompleted ? <Check size={13} /> : step.stepNumber}
+                  </div>
+                  <div className={styles.stepMetaText}>
+                    <span className={styles.stepMiniLabel}>STEP {step.stepNumber}</span>
+                    <span className={styles.stepMainTitle}>{step.title}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
           {/* ================================================== */}
           {/* STEP 1: COURSE INFORMATION (Matches image_22b698)  */}
           {/* ================================================== */}
@@ -1312,43 +1337,73 @@ export const CourseBuilderWorkspace: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Interactive clickable pills */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginRight: '4px' }}>
-                        Quick Select:
-                      </span>
-                      {PRESET_COURSE_TAGS.map((tag) => {
-                        const isSelected = selectedTags.includes(tag);
-                        const isPromo = ['popular', 'bestseller', 'new batch', 'trending'].includes(tag.toLowerCase());
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => handleToggleTag(tag)}
-                            style={{
-                              border: isSelected ? '1px solid transparent' : '1px solid #cbd5e1',
-                              background: isSelected
-                                ? (isPromo ? '#fef3c7' : '#0f172a')
-                                : '#f8fafc',
-                              color: isSelected
-                                ? (isPromo ? '#92400e' : '#ffffff')
-                                : '#475569',
-                              fontWeight: isSelected ? 700 : 500,
-                              borderRadius: '9999px',
-                              padding: '4px 11px',
-                              fontSize: '0.78rem',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <span>{tag}</span>
-                            {isSelected && <span style={{ fontSize: '0.7rem' }}>✕</span>}
-                          </button>
-                        );
-                      })}
+                    {/* Interactive clickable pills grouped cleanly */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {/* Delivery Mode Group */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.73rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.04em', minWidth: '105px' }}>
+                          Delivery Mode:
+                        </span>
+                        {['Live Online', 'Self-Study DLP', 'Classroom', 'Hybrid'].map((tag) => {
+                          const isSelected = selectedTags.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => handleToggleTag(tag)}
+                              style={{
+                                border: isSelected ? '1px solid #1e293b' : '1px solid #cbd5e1',
+                                background: isSelected ? '#0f172a' : '#ffffff',
+                                color: isSelected ? '#ffffff' : '#334155',
+                                fontWeight: isSelected ? 700 : 500,
+                                borderRadius: '6px',
+                                padding: '4px 10px',
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <span>{isSelected ? '✓ ' : '+ '} {tag}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Card Highlights & Promos Group */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.73rem', fontWeight: 700, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.04em', minWidth: '105px' }}>
+                          Card Badges:
+                        </span>
+                        {['Popular', 'Test Series', 'Bestseller', 'Trending', 'New Batch', 'Video Vault', 'Crash Course', 'Free Preview'].map((tag) => {
+                          const isSelected = selectedTags.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => handleToggleTag(tag)}
+                              style={{
+                                border: isSelected ? '1px solid #f59e0b' : '1px solid #e2e8f0',
+                                background: isSelected ? '#fef3c7' : '#f8fafc',
+                                color: isSelected ? '#92400e' : '#475569',
+                                fontWeight: isSelected ? 700 : 500,
+                                borderRadius: '6px',
+                                padding: '4px 10px',
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <span>{isSelected ? '★ ' : '+ '} {tag}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {/* Active Selected Tags Display */}
