@@ -48,6 +48,7 @@ import { lmsService, type CourseProgressMap } from '../../services/lmsService';
 import { apiClient } from '../../services/apiClient';
 import { soundEffects } from '../../utils/sound';
 import { DynamicWatermark } from '../../components/lms/DynamicWatermark/DynamicWatermark';
+import { parseVideoUrl } from '../../utils/videoUrl';
 import { COURSES_CATALOG, FREE_COURSES_CATALOG } from '../../data/coursesData';
 import type { Course, CourseCurriculumSection, CourseLectureItem } from '../../types';
 import styles from './CourseLmsPage.module.scss';
@@ -630,6 +631,10 @@ export const CourseLmsPage: React.FC = () => {
     return allLectures.find((l) => l.id === activeLectureId) || allLectures[0] || fallbackLecture;
   }, [allLectures, activeLectureId, fallbackLecture]);
 
+  const parsedActiveVideo = useMemo(() => {
+    return parseVideoUrl(activeLecture?.videoUrl || '');
+  }, [activeLecture?.videoUrl]);
+
   // Find section containing current lecture
   const currentSection = useMemo(() => {
     return curriculumSections.find((s) => s.lectures.some((l) => l.id === activeLectureId));
@@ -1031,7 +1036,7 @@ export const CourseLmsPage: React.FC = () => {
     if (!activeLecture || !activeLecture.id) return;
     let isCancelled = false;
     const rawUrl = activeLecture.videoUrl || '/videos/dk-sir-lecture-calculus.mp4';
-    const isHlsStream = rawUrl.includes('.m3u8') || rawUrl.includes('/api/v1/lms/stream/');
+    const parsed = parseVideoUrl(rawUrl);
 
     // Reset old Hls instance
     if (hlsInstance.current) {
@@ -1040,6 +1045,14 @@ export const CourseLmsPage: React.FC = () => {
     }
     setAvailableLevels([]);
     setCurrentQualityLevel(-1);
+
+    if (parsed.isIframe) {
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    const isHlsStream = rawUrl.includes('.m3u8') || rawUrl.includes('/api/v1/lms/stream/');
 
     const initPlayer = async () => {
       let finalStreamUrl = rawUrl;
@@ -1735,11 +1748,33 @@ export const CourseLmsPage: React.FC = () => {
                   </button>
                 </div>
               </div>
+            ) : parsedActiveVideo.isIframe ? (
+              <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '500px', background: '#000', borderRadius: '12px', overflow: 'hidden' }}>
+                <iframe
+                  src={parsedActiveVideo.embedUrl}
+                  title={activeLecture.title || 'DK Academy Lecture Video'}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 'none'
+                  }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+                <DynamicWatermark
+                  watermarkText={!isAuthenticated || !student ? 'Guest User' : watermarkData?.text}
+                  studentId={!isAuthenticated || !student ? 'GUEST-PREVIEW' : student?.id}
+                  studentEmail={!isAuthenticated || !student ? 'Guest User' : student?.email}
+                />
+              </div>
             ) : (
               <>
                 <video
                   ref={videoRef}
-                  src={activeLecture.videoUrl || '/videos/dk-sir-lecture-calculus.mp4'}
+                  src={parsedActiveVideo.directUrl || '/videos/dk-sir-lecture-calculus.mp4'}
                   className={styles.videoElement}
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}

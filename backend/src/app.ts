@@ -52,6 +52,18 @@ app.use(
           'https://*.razorpay.com',
           'https://cdn.razorpay.com',
           'https://lh3.googleusercontent.com',
+          'https://*.googleusercontent.com',
+          'https://img.youtube.com',
+          'https://i.ytimg.com',
+          'https://*.ytimg.com'
+        ],
+        mediaSrc: [
+          "'self'",
+          'blob:',
+          'data:',
+          'https://res.cloudinary.com',
+          'https://*.cloudinary.com',
+          'https://drive.google.com',
           'https://*.googleusercontent.com'
         ],
         connectSrc: [
@@ -72,7 +84,13 @@ app.use(
           'https://checkout.razorpay.com',
           'https://*.razorpay.com',
           'https://accounts.google.com',
-          'https://*.google.com'
+          'https://*.google.com',
+          'https://www.youtube.com',
+          'https://*.youtube.com',
+          'https://www.youtube-nocookie.com',
+          'https://*.youtube-nocookie.com',
+          'https://drive.google.com',
+          'https://docs.google.com'
         ],
         objectSrc: ["'none'"],
         baseUri: ["'self'"]

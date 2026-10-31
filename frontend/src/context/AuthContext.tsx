@@ -3,6 +3,7 @@ import type { StudentProfile, NotificationPreferences, AppNotification } from '.
 import { INITIAL_NOTIFICATIONS } from '../data/notificationsData';
 import { apiClient } from '../services/apiClient';
 import { generateStudentId } from '../utils/uuid';
+import { soundEffects } from '../utils/sound';
 
 export interface UserAccount {
   id: string;
@@ -210,19 +211,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [student?.id]);
 
-  // Listen for real-time doubt answers for the student
+  // Listen for real-time notifications across the entire platform for logged-in students
   useEffect(() => {
+    if (!student) return;
+
+    const pushStudentNotification = (notif: AppNotification) => {
+      // Avoid student popup interruption if currently navigating admin portal
+      const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
+      setNotifications((prev) => {
+        // Prevent duplicate spam within 5 seconds for the exact same resource ID or title
+        const isDuplicate = prev.some(
+          (n) => n.id === notif.id || (n.title === notif.title && Math.abs(n.timestamp - notif.timestamp) < 5000)
+        );
+        if (isDuplicate) return prev;
+
+        const next = [notif, ...prev].slice(0, 40);
+        try {
+          localStorage.setItem(`dk_academy_notifications_${student.id}`, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+
+      if (!isAdminPath) {
+        soundEffects.playNotificationChime();
+        window.dispatchEvent(
+          new CustomEvent('dk_live_toast', {
+            detail: {
+              title: notif.title,
+              message: notif.message,
+              type: 'info',
+              route: notif.linkUrl
+            }
+          })
+        );
+      }
+    };
+
+    // 1. Doubt Answered Notification
     const handleDoubtAnswered = (e: any) => {
       const data = e.detail;
       if (!data) return;
-
-      // Only notify student if NOT currently on admin portal
-      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
-        return;
-      }
-
       const answerSnippet = data.answer?.answerText || data.answerText || 'Your doubt has been answered by DK Sir.';
-      const newNotif: AppNotification = {
+      pushStudentNotification({
         id: `notif_doubt_${data.doubtId || Date.now()}`,
         title: `✅ Doubt Answered: ${data.subject || 'Academic'}`,
         message: `${data.answeredBy || 'DK Sir'} answered: "${answerSnippet.slice(0, 95)}..."`,
@@ -231,21 +262,105 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         read: false,
         linkText: 'Open Doubt in Course',
         linkUrl: `/learn/${data.courseId || 'jee-main-advanced-2yr-ultimate'}?tab=doubts`
-      };
+      });
+    };
 
-      setNotifications((prev) => {
-        const next = [newNotif, ...prev.filter((n) => n.id !== newNotif.id)].slice(0, 30);
-        if (student) {
-          try {
-            localStorage.setItem(`dk_academy_notifications_${student.id}`, JSON.stringify(next));
-          } catch {}
-        }
-        return next;
+    // 2. New Course Created / Uploaded Notification
+    const handleCourseCreated = (e: any) => {
+      const course = e.detail;
+      if (!course) return;
+      pushStudentNotification({
+        id: `notif_course_${course.id || course._id || course.slug || Date.now()}`,
+        title: `🚀 New Batch Released: ${course.title || 'JEE / BITSAT Course'}`,
+        message: `DK Sir has published "${course.title || 'a new course'}". Enroll now to access Kota classroom lectures, DPPs, and mentor guidance!`,
+        timestamp: Date.now(),
+        category: 'course',
+        read: false,
+        linkText: 'Explore Course',
+        linkUrl: `/courses/${course.slug || course.id || ''}`
+      });
+    };
+
+    // 3. New CBT Mock Test / Test Series Notification
+    const handleTestSeriesCreated = (e: any) => {
+      const test = e.detail;
+      if (!test) return;
+      pushStudentNotification({
+        id: `notif_test_${test.id || test._id || test.slug || Date.now()}`,
+        title: `📝 New CBT Mock Test Live: ${test.title || 'NTA Pattern Exam'}`,
+        message: `New CBT Mock Test (${test.examType || 'JEE'} • ${test.totalQuestions || 75} Questions) is now open. Test your Kota rank!`,
+        timestamp: Date.now(),
+        category: 'practice_test',
+        read: false,
+        linkText: 'Attempt Mock Test',
+        linkUrl: '/test-series'
+      });
+    };
+
+    // 4. New DPP or PYQ Set Notification
+    const handleDppPyqCreated = (e: any) => {
+      const item = e.detail;
+      if (!item) return;
+      const isPyq = item.type === 'pyq' || item.exam || item.year;
+      pushStudentNotification({
+        id: `notif_dpp_${item.id || item._id || Date.now()}`,
+        title: isPyq ? `📚 New PYQ Set: ${item.subject || 'JEE'} (${item.year || '2026/25'})` : `📝 New DPP Sheet: ${item.title || item.chapter || 'Daily Practice Problem'}`,
+        message: `New Kota ${isPyq ? 'PYQ question set with video walkthrough' : 'Daily Practice Problem sheet'} has been uploaded. Solve now!`,
+        timestamp: Date.now(),
+        category: 'practice_test',
+        read: false,
+        linkText: isPyq ? 'Solve PYQ' : 'Solve DPP',
+        linkUrl: isPyq ? '/pyq' : '/dpp'
+      });
+    };
+
+    // 5. New Free Lecture / Masterclass Notification
+    const handleFreeLectureCreated = (e: any) => {
+      const lec = e.detail;
+      if (!lec) return;
+      pushStudentNotification({
+        id: `notif_free_${lec.id || lec._id || Date.now()}`,
+        title: `🎥 New Free Masterclass Released!`,
+        message: `DK Sir published a new free masterclass: "${lec.title || 'Concept Shortcuts'}". Watch now in LMS!`,
+        timestamp: Date.now(),
+        category: 'announcement',
+        read: false,
+        linkText: 'Watch Masterclass',
+        linkUrl: '/free-lectures'
+      });
+    };
+
+    // 6. Real-time Announcements
+    const handleAnnouncement = (e: any) => {
+      const ann = e.detail;
+      if (!ann) return;
+      pushStudentNotification({
+        id: `notif_ann_${ann.id || Date.now()}`,
+        title: `📢 Announcement: ${ann.title || 'DK Academy Update'}`,
+        message: ann.content || ann.message || 'Important update from DK Sir and the Academic Department.',
+        timestamp: Date.now(),
+        category: 'announcement',
+        read: false,
+        linkText: 'Check Details',
+        linkUrl: ann.linkUrl || '/'
       });
     };
 
     window.addEventListener('dk_doubt_answered', handleDoubtAnswered);
-    return () => window.removeEventListener('dk_doubt_answered', handleDoubtAnswered);
+    window.addEventListener('dk_course_created', handleCourseCreated);
+    window.addEventListener('dk_test_series_created', handleTestSeriesCreated);
+    window.addEventListener('dk_dpp_pyq_created', handleDppPyqCreated);
+    window.addEventListener('dk_free_lecture_created', handleFreeLectureCreated);
+    window.addEventListener('dk_announcement_broadcast', handleAnnouncement);
+
+    return () => {
+      window.removeEventListener('dk_doubt_answered', handleDoubtAnswered);
+      window.removeEventListener('dk_course_created', handleCourseCreated);
+      window.removeEventListener('dk_test_series_created', handleTestSeriesCreated);
+      window.removeEventListener('dk_dpp_pyq_created', handleDppPyqCreated);
+      window.removeEventListener('dk_free_lecture_created', handleFreeLectureCreated);
+      window.removeEventListener('dk_announcement_broadcast', handleAnnouncement);
+    };
   }, [student]);
 
   const saveNotifications = useCallback((updated: AppNotification[]) => {
