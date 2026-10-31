@@ -51,6 +51,7 @@ export interface Course {
   ratingCount?: number;
   subjects?: ('Physics' | 'Chemistry' | 'Mathematics')[];
   coverImage?: string;
+  demoVideoUrl?: string;
   syllabusPdfUrl?: string;
   testSchedulePdfUrl?: string;
   brochurePdfUrl?: string;

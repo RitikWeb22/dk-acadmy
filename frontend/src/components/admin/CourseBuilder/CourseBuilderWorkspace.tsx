@@ -340,6 +340,7 @@ export const CourseBuilderWorkspace: React.FC = () => {
       setThumbnailPreview(course.coverImage);
       setCloudinaryCoverUrl(course.coverImage);
     }
+    setDemoVideoUrl(course.demoVideoUrl || (course as any).videoUrl || (course.curriculumSections?.[0]?.lectures?.[0]?.videoUrl) || '');
     setEditingCourseId(course.id || (course as any)._id || null);
     if (course.tags && Array.isArray(course.tags) && course.tags.length > 0) {
       setSelectedTags(course.tags);
@@ -1017,6 +1018,7 @@ export const CourseBuilderWorkspace: React.FC = () => {
         isPopular: isPopularTag,
         enrolledCount: 1,
         coverImage: finalCoverImage,
+        demoVideoUrl: demoVideoUrl.trim(),
         features: benefits.filter(Boolean),
         curriculumSections: mappedCurriculum,
         status: 'Published',
@@ -1557,16 +1559,57 @@ export const CourseBuilderWorkspace: React.FC = () => {
                   )}
                 </div>
 
-                {/* Field 8: Demo Video Stream URL (Half Width) */}
-                <div className={`${styles.fieldCol} ${styles.colHalf}`}>
-                  <label className={styles.fieldLabel}>Demo Video Stream URL</label>
+                {/* Field 8: Course Demo Video Link / Embed (Full Width) */}
+                <div className={`${styles.fieldCol} ${styles.colFull}`}>
+                  <label className={styles.fieldLabel} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Video size={16} color="#2563eb" />
+                      Course Demo Video Link / Embed URL (YouTube or Video Link)
+                    </span>
+                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8' }}>
+                      Plays on "Demo" Click
+                    </span>
+                  </label>
                   <input
                     type="url"
                     className={styles.formInput}
-                    placeholder="https://player.vimeo.com/... or AWS S3 HLS link"
+                    placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/... or .mp4 URL"
                     value={demoVideoUrl}
                     onChange={(e) => setDemoVideoUrl(e.target.value)}
                   />
+                  <span style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                    💡 When visitors or students click <strong>"Demo"</strong> or <strong>"Watch Demo"</strong> on this course card or detail page, this exact video will play. Supports YouTube, Vimeo, Cloudinary, and direct MP4/video links.
+                  </span>
+                  {demoVideoUrl.trim() && (
+                    <div style={{ marginTop: '10px', padding: '10px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
+                        <Play size={14} color="#16a34a" /> Live Demo Video Preview:
+                      </div>
+                      {demoVideoUrl.includes('youtube.com') || demoVideoUrl.includes('youtu.be') ? (
+                        <div style={{ position: 'relative', paddingBottom: '40%', height: 0, overflow: 'hidden', borderRadius: '6px' }}>
+                          <iframe
+                            src={
+                              demoVideoUrl.includes('youtu.be/')
+                                ? `https://www.youtube-nocookie.com/embed/${demoVideoUrl.split('youtu.be/')[1].split(/[?&]/)[0]}`
+                                : demoVideoUrl.includes('watch?v=')
+                                ? `https://www.youtube-nocookie.com/embed/${demoVideoUrl.split('watch?v=')[1].split(/[?&]/)[0]}`
+                                : demoVideoUrl
+                            }
+                            title="Course Demo Preview"
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : (
+                        <video
+                          src={demoVideoUrl}
+                          controls
+                          style={{ width: '100%', maxHeight: '200px', borderRadius: '6px', background: '#000' }}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Field 9: Course Thumbnail Dropzone & Live Preview (Full Width) */}

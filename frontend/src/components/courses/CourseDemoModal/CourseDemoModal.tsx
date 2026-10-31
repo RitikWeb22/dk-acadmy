@@ -30,6 +30,17 @@ interface CourseDemoModalProps {
 
 const SPEED_OPTIONS = [1.0, 1.25, 1.5, 2.0];
 
+const getYouTubeEmbedUrl = (rawUrl?: string): string | null => {
+  if (!rawUrl) return null;
+  const url = rawUrl.trim();
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://www.youtube-nocookie.com/embed/${match[2]}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1`;
+  }
+  return null;
+};
+
 export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
   course,
   isOpen,
@@ -57,6 +68,20 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
       ((course as any).slug && enrolledIds.includes((course as any).slug))
     );
   }, [course, isAuthenticated, student]);
+
+  const rawVideoUrl = useMemo(() => {
+    if (!course) return '/videos/1.mp4';
+    if (course.demoVideoUrl && course.demoVideoUrl.trim()) return course.demoVideoUrl.trim();
+    if ((course as any).videoUrl && (course as any).videoUrl.trim()) return (course as any).videoUrl.trim();
+    if ((course as any).previewVideoUrl && (course as any).previewVideoUrl.trim()) return (course as any).previewVideoUrl.trim();
+    const firstLectureVideo = course.curriculumSections?.[0]?.lectures?.[0]?.videoUrl;
+    if (firstLectureVideo && firstLectureVideo.trim()) return firstLectureVideo.trim();
+    return '/videos/1.mp4';
+  }, [course]);
+
+  const youtubeEmbedUrl = useMemo(() => {
+    return getYouTubeEmbedUrl(rawVideoUrl);
+  }, [rawVideoUrl]);
 
   useEffect(() => {
     if (isOpen) {
@@ -194,106 +219,130 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
           <div className={styles.leftVideoSection}>
             {/* Top Video Player Container */}
             <div className={styles.videoPlayerContainer}>
-              <video
-                ref={videoRef}
-                src="/videos/1.mp4"
-                poster="/images/pyq-straight-lines-banner.jpg"
-                className={styles.videoElement}
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={handleLoadedMetadata}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                playsInline
-                preload="metadata"
-              />
-
-              {/* Top Player Badges Overlay */}
-              <div className={`${styles.videoTopHeader} ${isPlaying ? styles.headerAutoHide : ''}`}>
-                <span className={styles.masterclassBadge}>
-                  <Zap size={13} className={styles.zapIcon} />
-                  100% Free Demo Masterclass
-                </span>
-                <span className={styles.resolutionBadge}>
-                  1080p Full HD • 60 FPS
-                </span>
-              </div>
-
-              {/* Large Centered Play Trigger */}
-              {!isPlaying && (
-                <button
-                  type="button"
-                  className={styles.centerPlayTrigger}
-                  onClick={togglePlay}
-                  aria-label="Play demo masterclass video"
-                >
-                  <Play size={26} fill="#ffffff" />
-                </button>
-              )}
-
-              {/* Bottom Integrated Media Controls Bar */}
-              <div className={`${styles.mediaScrubBar} ${isPlaying ? styles.controlsAutoHide : ''}`}>
-                {/* Play / Pause Toggle */}
-                <button
-                  type="button"
-                  className={styles.mediaIconBtn}
-                  onClick={togglePlay}
-                  aria-label={isPlaying ? 'Pause' : 'Play'}
-                >
-                  {isPlaying ? <Pause size={16} /> : <Play size={16} fill="#ffffff" />}
-                </button>
-
-                {/* Timestamps */}
-                <span className={styles.timeDisplay}>
-                  {formatTime(currentTimeSec)} / {formatTime(durationSec)}
-                </span>
-
-                {/* Seekbar */}
-                <div className={styles.seekbarContainer}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={progress}
-                    onChange={handleSeek}
-                    className={styles.seekbarInput}
-                    aria-label="Video seek slider"
+              {youtubeEmbedUrl ? (
+                <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '360px', background: '#000' }}>
+                  <iframe
+                    src={youtubeEmbedUrl}
+                    title={`${course.title} Demo Masterclass`}
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
                   />
-                  <div
-                    className={styles.seekbarFill}
-                    style={{ width: `${progress}%` }}
-                  />
+                  {/* Top Player Badges Overlay */}
+                  <div className={styles.videoTopHeader}>
+                    <span className={styles.masterclassBadge}>
+                      <Zap size={13} className={styles.zapIcon} />
+                      100% Free Demo Masterclass
+                    </span>
+                    <span className={styles.resolutionBadge}>
+                      1080p Full HD • 60 FPS
+                    </span>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <video
+                    ref={videoRef}
+                    src={rawVideoUrl}
+                    poster={course.coverImage || '/images/pyq-straight-lines-banner.jpg'}
+                    className={styles.videoElement}
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    playsInline
+                    preload="metadata"
+                  />
 
-                {/* Speed Selector */}
-                <button
-                  type="button"
-                  className={styles.speedSelectorBtn}
-                  onClick={handleCycleSpeed}
-                  title="Cycle playback speed"
-                >
-                  {playbackSpeed}x
-                </button>
+                  {/* Top Player Badges Overlay */}
+                  <div className={`${styles.videoTopHeader} ${isPlaying ? styles.headerAutoHide : ''}`}>
+                    <span className={styles.masterclassBadge}>
+                      <Zap size={13} className={styles.zapIcon} />
+                      100% Free Demo Masterclass
+                    </span>
+                    <span className={styles.resolutionBadge}>
+                      1080p Full HD • 60 FPS
+                    </span>
+                  </div>
 
-                {/* Volume Toggle */}
-                <button
-                  type="button"
-                  className={styles.mediaIconBtn}
-                  onClick={toggleMute}
-                  aria-label={isMuted ? 'Unmute' : 'Mute'}
-                >
-                  {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                </button>
+                  {/* Large Centered Play Trigger */}
+                  {!isPlaying && (
+                    <button
+                      type="button"
+                      className={styles.centerPlayTrigger}
+                      onClick={togglePlay}
+                      aria-label="Play demo masterclass video"
+                    >
+                      <Play size={26} fill="#ffffff" />
+                    </button>
+                  )}
 
-                {/* Fullscreen Trigger */}
-                <button
-                  type="button"
-                  className={styles.mediaIconBtn}
-                  onClick={handleFullScreen}
-                  aria-label="Toggle Fullscreen"
-                >
-                  <Maximize size={16} />
-                </button>
-              </div>
+                  {/* Bottom Integrated Media Controls Bar */}
+                  <div className={`${styles.mediaScrubBar} ${isPlaying ? styles.controlsAutoHide : ''}`}>
+                    {/* Play / Pause Toggle */}
+                    <button
+                      type="button"
+                      className={styles.mediaIconBtn}
+                      onClick={togglePlay}
+                      aria-label={isPlaying ? 'Pause' : 'Play'}
+                    >
+                      {isPlaying ? <Pause size={16} /> : <Play size={16} fill="#ffffff" />}
+                    </button>
+
+                    {/* Timestamps */}
+                    <span className={styles.timeDisplay}>
+                      {formatTime(currentTimeSec)} / {formatTime(durationSec)}
+                    </span>
+
+                    {/* Seekbar */}
+                    <div className={styles.seekbarContainer}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={progress}
+                        onChange={handleSeek}
+                        className={styles.seekbarInput}
+                        aria-label="Video seek slider"
+                      />
+                      <div
+                        className={styles.seekbarFill}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+
+                    {/* Speed Selector */}
+                    <button
+                      type="button"
+                      className={styles.speedSelectorBtn}
+                      onClick={handleCycleSpeed}
+                      title="Cycle playback speed"
+                    >
+                      {playbackSpeed}x
+                    </button>
+
+                    {/* Volume Toggle */}
+                    <button
+                      type="button"
+                      className={styles.mediaIconBtn}
+                      onClick={toggleMute}
+                      aria-label={isMuted ? 'Unmute' : 'Mute'}
+                    >
+                      {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                    </button>
+
+                    {/* Fullscreen Trigger */}
+                    <button
+                      type="button"
+                      className={styles.mediaIconBtn}
+                      onClick={handleFullScreen}
+                      aria-label="Toggle Fullscreen"
+                    >
+                      <Maximize size={16} />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Bottom Lecture Meta Card */}
@@ -303,16 +352,17 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
                   Lecture 1 (Free Preview)
                 </span>
                 <span className={styles.lectureDuration}>
-                  ⏱️ 5 Mins Video Walkthrough
+                  ⏱️ {course.duration || '54 Mins'} Concept Masterclass
                 </span>
               </div>
 
               <h4 className={styles.lectureTitle}>
-                Straight Lines Speed Shortcuts &amp; JEE Main PYQ Breakdown by DK Sir
+                {course.title} — 20-30s Speed Shortcuts &amp; Concept Breakdown
               </h4>
 
               <p className={styles.lectureExcerpt}>
-                Learn how Kota top rankers solve Coordinate Geometry and Straight Lines PYQs in 20-30 seconds with DK Sir’s visual inspection shortcuts. Includes official downloadable JEE Main Chapter PYQ booklet.
+                {course.description ||
+                  'Learn how Kota top rankers solve high-weightage JEE questions in 20-30 seconds with DK Sir’s visual inspection shortcuts.'}
               </p>
 
               <button
@@ -321,7 +371,7 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
                 onClick={handleDownloadNotes}
               >
                 <FileDown size={14} />
-                <span>Download Straight Lines PYQs PDF (Free Handout)</span>
+                <span>Download {course.targetExam || 'JEE'} Formula Notes &amp; DPP PDF (Free Handout)</span>
               </button>
             </div>
           </div>
@@ -430,15 +480,19 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
               <div className={styles.priceContainer}>
                 <div className={styles.priceRow}>
                   <span className={styles.currentPrice}>
-                    {course.price || '₹6,499'}
+                    {course.tier === 'Free' || course.numericPrice === 0 ? '₹0 Free' : (course.price || '₹6,499')}
                   </span>
-                  <span className={styles.originalPrice}>₹1,05,000</span>
+                  {course.originalPrice && course.tier !== 'Free' && course.numericPrice !== 0 && (
+                    <span className={styles.originalPrice}>{course.originalPrice}</span>
+                  )}
                   <span className={styles.scholarshipBadge}>
-                    20% Scholarship Applied
+                    {course.tier === 'Free' || course.numericPrice === 0 ? '100% Free Demo' : 'Scholarship Applied'}
                   </span>
                 </div>
                 <div className={styles.taxSubtext}>
-                  Inclusive of 18% GST • Printed Modules Shipped to Home
+                  {course.tier === 'Free' || course.numericPrice === 0
+                    ? 'No credit card or payment required • Instant video lecture access'
+                    : 'Inclusive of 18% GST • Printed Modules Shipped to Home'}
                 </div>
               </div>
 
@@ -467,6 +521,12 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
                     <>
                       <GraduationCap size={16} />
                       <span>Go to Classroom</span>
+                      <ArrowRight size={15} />
+                    </>
+                  ) : course.tier === 'Free' || course.numericPrice === 0 ? (
+                    <>
+                      <ShieldCheck size={16} />
+                      <span>Start Free Demo Now</span>
                       <ArrowRight size={15} />
                     </>
                   ) : (

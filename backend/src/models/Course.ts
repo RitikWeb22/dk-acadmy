@@ -67,6 +67,7 @@ export interface ICourse extends Document {
   brochurePdfUrl?: string;
   curriculumSections: ISection[];
   features?: string[];
+  demoVideoUrl?: string;
   isPublished: boolean;
   status: 'draft' | 'published' | 'archived';
   enrolmentCount: number;
@@ -161,6 +162,7 @@ const courseSchema = new Schema<ICourse>(
     brochurePdfUrl: { type: String },
     curriculumSections: [sectionSchema],
     features: [{ type: String }],
+    demoVideoUrl: { type: String, trim: true, default: '' },
     isPublished: { type: Boolean, default: true },
     status: {
       type: String,

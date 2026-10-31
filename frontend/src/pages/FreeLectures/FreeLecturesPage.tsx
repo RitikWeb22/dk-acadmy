@@ -26,6 +26,7 @@ import {
 import { Container } from '../../components/ui/Container/Container';
 import { FREE_COURSES_CATALOG } from '../../data/coursesData';
 import { ReferenceCourseCard } from '../../components/courses/ReferenceCourseCard/ReferenceCourseCard';
+import { CourseDemoModal } from '../../components/courses/CourseDemoModal/CourseDemoModal';
 import { useStudentAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { CallbackModal } from '../../components/leads/CallbackModal/CallbackModal';
@@ -133,12 +134,13 @@ export const FreeLecturesPage: React.FC = () => {
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<'All' | 'Mathematics' | 'Physics' | 'Chemistry'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSyllabusCourse, setSelectedSyllabusCourse] = useState<Course | null>(null);
+  const [demoModalCourse, setDemoModalCourse] = useState<Course | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [liveLecturesMap, setLiveLecturesMap] = useState<
     Record<string, { lectures: { title: string; duration: string; isFree: boolean; price?: number; dppName: string }[] }>
   >(DEMO_SYLLABUS_DETAILS);
 
-  const getCombinedFreeCourses = (): Course[] => {
+  const getCombinedFreeCourses = (dynamicTracks: Course[] = []): Course[] => {
     const cmsCourses = cmsService.getCourses().filter((c) => {
       const isFreePrice = c.numericPrice === 0 || c.price?.includes('Free') || c.price === '₹0';
       return isFreePrice || c.tier === 'Free' || (c as any).isFreePreview === true;
@@ -147,20 +149,29 @@ export const FreeLecturesPage: React.FC = () => {
     const map = new Map<string, Course>();
     FREE_COURSES_CATALOG.forEach((c) => map.set(c.id, c));
     cmsCourses.forEach((c) => map.set(c.id, c));
+    dynamicTracks.forEach((c) => {
+      if (!map.has(c.id)) {
+        map.set(c.id, c);
+      }
+    });
     return Array.from(map.values());
   };
 
-  const [allFreeCourses, setAllFreeCourses] = useState<Course[]>(getCombinedFreeCourses);
+  const [allFreeCourses, setAllFreeCourses] = useState<Course[]>(() => getCombinedFreeCourses());
 
   // Fetch live video masterclasses from MongoDB Atlas & listen for realtime updates
   useEffect(() => {
+    let latestDynamicTracks: Course[] = [];
+
     const fetchLiveLectures = async () => {
       try {
         const res = await apiClient.get('/free-lectures');
         if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
           const map: Record<string, { lectures: any[] }> = {};
+          const trackGroups = new Map<string, any[]>();
+
           res.data.forEach((lec: any) => {
-            const trackKey = lec.trackId;
+            const trackKey = lec.trackId || 'free-math-calculus-shortcuts';
             if (!map[trackKey]) {
               map[trackKey] = { lectures: [] };
             }
@@ -171,8 +182,51 @@ export const FreeLecturesPage: React.FC = () => {
               price: lec.price || (lec.isFree ? 0 : 499),
               dppName: lec.dppName || 'DPP Practice Sheet'
             });
+
+            if (!trackGroups.has(trackKey)) {
+              trackGroups.set(trackKey, []);
+            }
+            trackGroups.get(trackKey)!.push(lec);
           });
           setLiveLecturesMap((prev) => ({ ...prev, ...map }));
+
+          const dynamicTracks: Course[] = [];
+          trackGroups.forEach((trackLecs, tid) => {
+            const first = trackLecs[0];
+            dynamicTracks.push({
+              id: tid,
+              slug: tid,
+              title: first.trackTitle || first.title,
+              description: first.description || 'Kota demo masterclass track with 20-30s speed inspection techniques.',
+              targetExam: (first.targetExam || 'JEE Main & Advanced') as any,
+              targetClass: (first.targetClass || 'Class 11 & 12') as any,
+              targetYear: 'Target JEE 2026/27',
+              category: 'JEE Main & Advanced' as any,
+              price: '₹0 Free',
+              numericPrice: 0,
+              originalPrice: '₹999',
+              tier: 'Free',
+              mode: 'Structured Recorded',
+              courseType: 'recorded',
+              duration: `${trackLecs.length} Lectures`,
+              language: 'Hinglish (Hindi + Eng)',
+              subjects: [first.subject || 'Mathematics'],
+              features: [
+                `${trackLecs.length} In-Depth Video Masterclasses`,
+                'Downloadable Kota DPPs with Answer Keys',
+                'DK Sir 20-30s Inspection Shortcuts'
+              ],
+              coverImage: first.thumbnailUrl || '/img/dk-sir.jpg',
+              demoVideoUrl: first.videoUrl,
+              badge: first.badge || '100% Free Demo',
+              badgeUrgency: 'instant',
+              instructor: first.facultyName || 'Dharmendra Kumar (DK Sir)',
+              status: 'Published'
+            });
+          });
+
+          latestDynamicTracks = dynamicTracks;
+          setAllFreeCourses(getCombinedFreeCourses(dynamicTracks));
         }
       } catch (err) {
         console.warn('Using default demo syllabus:', err);
@@ -183,12 +237,12 @@ export const FreeLecturesPage: React.FC = () => {
 
     // Fetch dynamic courses from backend API to ensure freshly created free courses are included
     cmsService.fetchCoursesFromAPI().then(() => {
-      setAllFreeCourses(getCombinedFreeCourses());
+      setAllFreeCourses(getCombinedFreeCourses(latestDynamicTracks));
     }).catch(() => {});
 
     const handleSync = () => {
       fetchLiveLectures();
-      setAllFreeCourses(getCombinedFreeCourses());
+      setAllFreeCourses(getCombinedFreeCourses(latestDynamicTracks));
     };
 
     window.addEventListener(CMS_EVENT_KEY, handleSync);
@@ -549,7 +603,7 @@ export const FreeLecturesPage: React.FC = () => {
                   course={course}
                   actionLabel="Start Free"
                   onEnroll={(c) => handleEnrollAndStart(c)}
-                  onDemo={(c) => handleEnrollAndStart(c)}
+                  onDemo={(c) => setDemoModalCourse(c)}
                   onSyllabus={(c) => setSelectedSyllabusCourse(c)}
                 />
               ))}
@@ -789,6 +843,19 @@ export const FreeLecturesPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Interactive Course Demo Modal */}
+      {demoModalCourse && (
+        <CourseDemoModal
+          course={demoModalCourse}
+          isOpen={Boolean(demoModalCourse)}
+          onClose={() => setDemoModalCourse(null)}
+          onOpenSyllabus={(c) => {
+            setDemoModalCourse(null);
+            setSelectedSyllabusCourse(c);
+          }}
+        />
       )}
 
       {/* Counselor Callback Modal */}

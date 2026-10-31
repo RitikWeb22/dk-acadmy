@@ -6,7 +6,9 @@ import {
   Video,
   FileCheck,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  Play,
+  BookOpen
 } from 'lucide-react';
 import type { Course } from '../../../types';
 import { useStudentAuth } from '../../../context/AuthContext';
@@ -311,6 +313,40 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
         {promoBadge && (
           <span className={styles.promoBadge}>{promoBadge}</span>
         )}
+
+        {/* Thumbnail Action Pills (Bottom-Right: Demo & Syllabus) */}
+        <div className={styles.thumbnailActions}>
+          {_onDemo && (
+            <button
+              type="button"
+              className={styles.thumbActionBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                _onDemo(course);
+              }}
+              title={`Watch Demo for ${course.title}`}
+              aria-label={`Watch Demo for ${course.title}`}
+            >
+              <Play size={10} fill="currentColor" />
+              <span>Demo</span>
+            </button>
+          )}
+          {_onSyllabus && (
+            <button
+              type="button"
+              className={styles.thumbActionBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                _onSyllabus(course);
+              }}
+              title={`View Syllabus for ${course.title}`}
+              aria-label={`View Syllabus for ${course.title}`}
+            >
+              <BookOpen size={10} />
+              <span>Syllabus</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ─── B. Course Information Body (Exact Requested Order) ─── */}
