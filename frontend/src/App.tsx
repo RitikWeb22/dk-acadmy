@@ -96,22 +96,6 @@ export const App: React.FC = () => {
                       location.pathname.startsWith('/lms') || 
                       location.pathname.endsWith('/learn');
 
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isFadingOut, setIsFadingOut] = useState(false);
-
-  useEffect(() => {
-    const t1 = setTimeout(() => {
-      setIsFadingOut(true);
-    }, 380);
-    const t2 = setTimeout(() => {
-      setIsInitialLoading(false);
-    }, 620);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, []);
-
   return (
     <AuthProvider>
       <AdminAuthProvider>
@@ -119,19 +103,10 @@ export const App: React.FC = () => {
           <ScrollToTop />
           <TopLoadingBar />
 
-        {isInitialLoading && (
-          <PageLoader
-            message="DK ACADEMY"
-            subMessage="IIT JEE KOTA PEDAGOGY"
-            isFadingOut={isFadingOut}
-            fullScreen
-          />
-        )}
-
         {/* 1. Admin & Faculty Portal Flow (Completely isolated from public navbar & footer) */}
         {isAdminPortal ? (
           <PageTransitionWrapper>
-            <Suspense fallback={<PageLoader message="ADMIN PORTAL" isFadingOut={false} fullScreen />}>
+            <Suspense fallback={<PageLoader message="ADMIN PORTAL" isFadingOut={false} fullScreen={false} />}>
               <Routes>
                 {/* Dedicated Admin & Teacher Login */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -381,7 +356,7 @@ export const App: React.FC = () => {
         ) : isLmsPortal ? (
           /* 2. Interactive Video LMS Player (Distraction-Free Workspace) */
           <PageTransitionWrapper>
-            <Suspense fallback={<PageLoader message="LOADING LMS..." isFadingOut={false} fullScreen />}>
+            <Suspense fallback={<PageLoader message="LOADING LMS..." isFadingOut={false} fullScreen={false} />}>
               <Routes>
                 <Route path="/learn/course/:courseId" element={<CourseLmsPage />} />
                 <Route path="/learn/:courseId" element={<CourseLmsPage />} />
@@ -402,7 +377,7 @@ export const App: React.FC = () => {
           <div className="app-layout">
             <Navbar />
             <PageTransitionWrapper>
-              <Suspense fallback={<PageLoader message="DK ACADEMY" subMessage="Preparing classroom..." isFadingOut={false} fullScreen />}>
+              <Suspense fallback={<PageLoader message="DK ACADEMY" subMessage="Preparing classroom..." isFadingOut={false} fullScreen={false} />}>
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/courses" element={<CoursesPage />} />

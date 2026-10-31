@@ -28,7 +28,9 @@ app.use(helmet({
                 'https://checkout.razorpay.com',
                 'https://*.razorpay.com',
                 'https://cdn.razorpay.com',
-                'https://accounts.google.com'
+                'https://accounts.google.com',
+                'https://*.google.com',
+                'https://apis.google.com'
             ],
             styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
             fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
@@ -39,7 +41,8 @@ app.use(helmet({
                 'https://res.cloudinary.com',
                 'https://*.razorpay.com',
                 'https://cdn.razorpay.com',
-                'https://lh3.googleusercontent.com'
+                'https://lh3.googleusercontent.com',
+                'https://*.googleusercontent.com'
             ],
             connectSrc: [
                 "'self'",
@@ -49,18 +52,22 @@ app.use(helmet({
                 'ws:',
                 'wss:',
                 'https://res.cloudinary.com',
-                'https://accounts.google.com'
+                'https://accounts.google.com',
+                'https://*.google.com',
+                'https://apis.google.com'
             ],
             frameSrc: [
                 'https://api.razorpay.com',
                 'https://checkout.razorpay.com',
                 'https://*.razorpay.com',
-                'https://accounts.google.com'
+                'https://accounts.google.com',
+                'https://*.google.com'
             ],
             objectSrc: ["'none'"],
             baseUri: ["'self'"]
         }
     },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     crossOriginResourcePolicy: { policy: 'same-origin' }, // Protected by default; cross-origin scoped to /uploads & /stream only
     crossOriginEmbedderPolicy: false,
     frameguard: { action: 'deny' }, // Clickjacking protection
@@ -153,10 +160,19 @@ const candidateFrontendDirs = [
 ];
 const resolvedFrontendDir = candidateFrontendDirs.find((dir) => fs.existsSync(path.join(dir, 'index.html')));
 if (resolvedFrontendDir) {
-    // Serve static assets from frontend build
+    // Serve static assets from frontend build with high-performance immutable caching
     app.use(express.static(resolvedFrontendDir, {
-        maxAge: '1d',
-        index: false
+        maxAge: '1y',
+        immutable: true,
+        index: false,
+        setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.html')) {
+                res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+            }
+            else if (/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff2|woff|ttf|webp)$/i.test(filePath)) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            }
+        }
     }));
     // SPA fallback for all non-API / non-upload GET routes
     app.use((req, res, next) => {
