@@ -41,3 +41,8 @@ Thumbs.db
 .vite-temp/
 **/node_modules/.tmp/
 
+# Uploads directory (preserve folder, ignore user uploads)
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+
+

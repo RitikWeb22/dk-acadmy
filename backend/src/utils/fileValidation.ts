@@ -60,3 +60,4 @@ export function verifyMagicBytes(filePath: string, ext: string): boolean {
       return false;
   }
 }
+

@@ -35,3 +35,4 @@ id = "jwt-secret-string"
 description = "Hardcoded JWT Secret String"
 regex = '''(?i)(jwt_secret|jwtSecret).{0,20}['\"][a-zA-Z0-9]{20,}['\"]'''
 tags = ["auth", "jwt", "secret"]
+

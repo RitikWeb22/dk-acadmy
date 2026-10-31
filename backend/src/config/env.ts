@@ -46,3 +46,4 @@ export const validateEnv = (customEnv: Record<string, any> = process.env): EnvCo
 };
 
 export const env: EnvConfig = validateEnv();
+

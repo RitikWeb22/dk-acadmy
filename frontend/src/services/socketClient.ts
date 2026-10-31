@@ -8,7 +8,11 @@ import { cmsService, CMS_EVENT_KEY } from './cmsService';
 import { notificationService } from './notificationService';
 import { soundEffects } from '../utils/sound';
 
-const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
+const SOCKET_SERVER_URL =
+  import.meta.env.VITE_SOCKET_URL ||
+  (typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'http://localhost:5001');
 
 let socket: Socket | null = null;
 
