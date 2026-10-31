@@ -106,8 +106,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         },
         {
           key: 'coupons',
-          label: 'Coupons & Limits',
-          sublabel: 'Promo codes & student limits',
+          label: 'Discount Coupons',
+          sublabel: 'Promo codes & concessions',
           icon: Tag,
           route: '/admin/coupons'
         }

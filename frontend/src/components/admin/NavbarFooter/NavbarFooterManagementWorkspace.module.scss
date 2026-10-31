@@ -770,3 +770,97 @@
   border-bottom-right-radius: 16px;
 }
 
+:global(.darkMode) {
+  .workspaceContainer {
+    background: transparent;
+    color: #F8FAFC;
+  }
+
+  .headerTitle {
+    color: #F8FAFC;
+  }
+
+  .headerSubtitle {
+    color: #94A3B8;
+  }
+
+  .tabBtn {
+    color: #94A3B8;
+
+    &:hover {
+      color: #F8FAFC;
+    }
+
+    &.tabBtnActive {
+      color: #3B82F6;
+      border-bottom-color: #3B82F6;
+    }
+  }
+
+  .builderCard,
+  .footerSectionCard,
+  .previewCard {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .cardTitle,
+  .sectionTitle {
+    color: #F8FAFC;
+  }
+
+  .cardSubtitle,
+  .sectionSubtitle {
+    color: #94A3B8;
+  }
+
+  .navItemRow,
+  .dropdownItemRow,
+  .footerLinkItem {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &:hover {
+      border-color: #475569;
+    }
+  }
+
+  .itemLabel,
+  .linkTitle {
+    color: #F8FAFC;
+  }
+
+  .itemPath,
+  .linkUrl {
+    color: #94A3B8;
+  }
+
+  .inputField,
+  .selectField,
+  .textareaField {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .modalContent {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    .modalHeader {
+      border-color: #334155;
+      h3 {
+        color: #F8FAFC;
+      }
+    }
+
+    .modalFooter {
+      background: #0F172A;
+      border-color: #334155;
+    }
+  }
+}
+

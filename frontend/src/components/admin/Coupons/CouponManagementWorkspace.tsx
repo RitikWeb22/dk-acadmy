@@ -12,15 +12,27 @@ import {
   Users,
   ShieldCheck,
   X,
-  AlertCircle
+  AlertCircle,
+  FileSpreadsheet,
+  Printer
 } from 'lucide-react';
 import { couponService, type CouponItem } from '../../../services/couponService';
+import { exportToExcel, exportToPDF } from '../../../utils/exportUtils';
+import { AdminConfirmModal } from '../Common/AdminConfirmModal';
 import styles from './CouponManagementWorkspace.module.scss';
 
 export const CouponManagementWorkspace: React.FC = () => {
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Multi-select for bulk delete
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'single' | 'bulk';
+    coupon?: CouponItem;
+  }>({ isOpen: false, type: 'single' });
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +42,7 @@ export const CouponManagementWorkspace: React.FC = () => {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<CouponItem | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Form State
   const [formCode, setFormCode] = useState('');
@@ -89,21 +102,147 @@ export const CouponManagementWorkspace: React.FC = () => {
     }
   };
 
-  // Delete Handler
-  const handleDelete = async (coupon: CouponItem) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to permanently delete coupon "${coupon.code}"?`
-    );
-    if (!confirmDelete) return;
+  // Delete Request Handler (Replaces browser window.confirm with AdminConfirmModal)
+  const handleDelete = (coupon: CouponItem) => {
+    setConfirmModal({ isOpen: true, type: 'single', coupon });
+  };
 
-    const id = coupon._id || coupon.id || coupon.code;
-    try {
-      await couponService.deleteCoupon(id);
-      setCoupons((prev) => prev.filter((c) => (c._id !== id && c.id !== id && c.code !== coupon.code)));
-      showToast(`Deleted coupon: ${coupon.code}`);
-    } catch (err: any) {
-      showToast('Failed to delete coupon');
+  // Bulk Delete Request Handler
+  const handleRequestBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    setConfirmModal({ isOpen: true, type: 'bulk' });
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmModal.type === 'single' && confirmModal.coupon) {
+      const coupon = confirmModal.coupon;
+      const id = coupon._id || coupon.id || coupon.code;
+      try {
+        await couponService.deleteCoupon(id);
+        setCoupons((prev) => prev.filter((c) => c._id !== id && c.id !== id && c.code !== coupon.code));
+        setSelectedIds((prev) => prev.filter((i) => i !== id));
+        showToast(`Deleted coupon: ${coupon.code}`);
+      } catch {
+        showToast('Failed to delete coupon');
+      }
+      setConfirmModal({ isOpen: false, type: 'single' });
+    } else if (confirmModal.type === 'bulk') {
+      const idsToDelete = [...selectedIds];
+      for (const id of idsToDelete) {
+        try {
+          await couponService.deleteCoupon(id);
+        } catch {}
+      }
+      setCoupons((prev) => prev.filter((c) => !idsToDelete.includes(c._id || c.id || c.code)));
+      setSelectedIds([]);
+      showToast(`✓ Deleted ${idsToDelete.length} coupon(s) successfully!`);
+      setConfirmModal({ isOpen: false, type: 'single' });
     }
+  };
+
+  // Filtered coupons
+  const filteredCoupons = useMemo(() => {
+    return coupons.filter((c) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        c.code.toLowerCase().includes(q) ||
+        (c.label && c.label.toLowerCase().includes(q)) ||
+        (c.description && c.description.toLowerCase().includes(q));
+
+      if (!matchesSearch) return false;
+
+      const isExhausted = c.usageLimit > 0 && c.usedCount >= c.usageLimit;
+
+      if (statusFilter === 'active') return c.isActive && !isExhausted;
+      if (statusFilter === 'exhausted') return isExhausted;
+      if (statusFilter === 'inactive') return !c.isActive;
+      return true;
+    });
+  }, [coupons, searchQuery, statusFilter]);
+
+  // Aggregate stats
+  const stats = useMemo(() => {
+    const totalCoupons = coupons.length;
+    const activeCoupons = coupons.filter((c) => c.isActive && (c.usageLimit === 0 || c.usedCount < c.usageLimit)).length;
+    const totalRedeemed = coupons.reduce((acc, c) => acc + (c.usedCount || 0), 0);
+    const totalAvailableSlots = coupons.reduce(
+      (acc, c) => acc + Math.max(0, (c.usageLimit || 0) - (c.usedCount || 0)),
+      0
+    );
+    return { totalCoupons, activeCoupons, totalRedeemed, totalAvailableSlots };
+  }, [coupons]);
+
+  // Export to Excel / CSV
+  const handleExportExcel = () => {
+    const headers = [
+      'Coupon Code',
+      'Campaign Label',
+      'Description',
+      'Discount Type',
+      'Discount Value',
+      'Redeemed Count',
+      'Student Quota',
+      'Remaining Quota',
+      'Min Course Price',
+      'Status',
+      'Expiry Date'
+    ];
+    const rows = filteredCoupons.map((c) => [
+      c.code,
+      c.label || '',
+      c.description || '',
+      c.discountType === 'percent' ? 'Percentage' : 'Flat Off',
+      c.discountType === 'percent' ? `${c.discountValue}%` : `₹${c.discountValue}`,
+      c.usedCount || 0,
+      c.usageLimit || 0,
+      Math.max(0, (c.usageLimit || 0) - (c.usedCount || 0)),
+      c.minCoursePrice || 0,
+      c.isActive ? 'Active' : 'Disabled',
+      c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : 'Never'
+    ]);
+    exportToExcel(`DK_Academy_Coupons_${Date.now()}`, headers, rows);
+    showToast('Exported coupons to Excel (.xlsx / .csv)');
+  };
+
+  // Export to PDF Report
+  const handleExportPDF = () => {
+    const headers = [
+      'Coupon Code',
+      'Label',
+      'Discount',
+      'Redeemed / Quota',
+      'Min Order',
+      'Status'
+    ];
+    const rows = filteredCoupons.map((c) => [
+      c.code,
+      c.label || 'Promo Discount',
+      c.discountType === 'percent' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT`,
+      `${c.usedCount || 0} / ${c.usageLimit || '∞'}`,
+      `₹${(c.minCoursePrice || 0).toLocaleString('en-IN')}`,
+      c.isActive ? 'ACTIVE' : 'DISABLED'
+    ]);
+    exportToPDF({
+      title: 'Discount Coupons & Admissions Promo Codes',
+      subtitle: `Total Active Codes: ${stats.activeCoupons} | Total Redeemed: ${stats.totalRedeemed}`,
+      headers,
+      rows
+    });
+    showToast('PDF print preview generated');
+  };
+
+  // Multi-select helpers
+  const isAllSelected = filteredCoupons.length > 0 && filteredCoupons.every((c) => selectedIds.includes(c._id || c.id || c.code));
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredCoupons.map((c) => c._id || c.id || c.code));
+    }
+  };
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
   };
 
   // Open Create Modal
@@ -118,6 +257,7 @@ export const CouponManagementWorkspace: React.FC = () => {
     setFormDescription('');
     setFormExpiryDate('');
     setFormIsActive(true);
+    setFormError(null);
     setIsModalOpen(true);
   };
 
@@ -133,23 +273,25 @@ export const CouponManagementWorkspace: React.FC = () => {
     setFormDescription(coupon.description || '');
     setFormExpiryDate(coupon.expiryDate ? coupon.expiryDate.split('T')[0] : '');
     setFormIsActive(coupon.isActive);
+    setFormError(null);
     setIsModalOpen(true);
   };
 
   // Form Submit Handler
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     const cleanCode = formCode.trim().toUpperCase();
     if (!cleanCode) {
-      alert('Please enter a coupon code.');
+      setFormError('Please enter a coupon code.');
       return;
     }
     if (formDiscountValue <= 0) {
-      alert('Please enter a valid discount value greater than 0.');
+      setFormError('Please enter a valid discount value greater than 0.');
       return;
     }
     if (formUsageLimit < 1) {
-      alert('Student usage limit must be at least 1 student.');
+      setFormError('Student usage limit must be at least 1 student.');
       return;
     }
 
@@ -187,48 +329,15 @@ export const CouponManagementWorkspace: React.FC = () => {
           expiryDate: formExpiryDate || undefined
         });
         setCoupons((prev) => [created, ...prev]);
-        showToast(`Created new coupon "${cleanCode}" with limit of ${formUsageLimit} students!`);
+        showToast(`Created new coupon "${cleanCode}" for ${formUsageLimit} students!`);
       }
       setIsModalOpen(false);
     } catch (err: any) {
-      alert(err.message || 'Error saving coupon');
+      setFormError(err.message || 'Error saving coupon');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Filtered coupons
-  const filteredCoupons = useMemo(() => {
-    return coupons.filter((c) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        c.code.toLowerCase().includes(q) ||
-        (c.label && c.label.toLowerCase().includes(q)) ||
-        (c.description && c.description.toLowerCase().includes(q));
-
-      if (!matchesSearch) return false;
-
-      const isExhausted = c.usageLimit > 0 && c.usedCount >= c.usageLimit;
-
-      if (statusFilter === 'active') return c.isActive && !isExhausted;
-      if (statusFilter === 'exhausted') return isExhausted;
-      if (statusFilter === 'inactive') return !c.isActive;
-      return true;
-    });
-  }, [coupons, searchQuery, statusFilter]);
-
-  // Aggregate stats
-  const stats = useMemo(() => {
-    const totalCoupons = coupons.length;
-    const activeCoupons = coupons.filter((c) => c.isActive && (c.usageLimit === 0 || c.usedCount < c.usageLimit)).length;
-    const totalRedeemed = coupons.reduce((acc, c) => acc + (c.usedCount || 0), 0);
-    const totalAvailableSlots = coupons.reduce(
-      (acc, c) => acc + Math.max(0, (c.usageLimit || 0) - (c.usedCount || 0)),
-      0
-    );
-    return { totalCoupons, activeCoupons, totalRedeemed, totalAvailableSlots };
-  }, [coupons]);
 
   return (
     <div className={styles.couponsWorkspaceShell}>
@@ -248,16 +357,61 @@ export const CouponManagementWorkspace: React.FC = () => {
             <span>/</span>
             <span>ADMIN</span>
             <span>/</span>
-            <span>COUPONS &amp; SCHOLARSHIPS</span>
+            <span>DISCOUNT COUPONS</span>
           </div>
-          <h1 className={styles.pageMainHeading}>Discount Coupons &amp; Student Quota Limits</h1>
+          <h1 className={styles.pageMainHeading}>Discount Coupons</h1>
           <p className={styles.pageSubtitle}>
-            Create promo codes, define discount percentages or flat concessions, and set strict student usage limits
-            (e.g., maximum 50 students). Once the quota is full, redemptions are locked automatically.
+            Create promo codes, define discount percentages or flat concessions, and manage admissions discounts.
           </p>
         </div>
 
         <div className={styles.headerActionsGroup}>
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              className={styles.bulkDeleteBtn}
+              onClick={handleRequestBulkDelete}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                background: '#dc2626',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)'
+              }}
+              title="Delete all selected coupons"
+            >
+              <Trash2 size={14} />
+              <span>Delete Selected ({selectedIds.length})</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={styles.syncBtn}
+            onClick={handleExportExcel}
+            title="Download coupons list in Excel (.xlsx / .csv)"
+          >
+            <FileSpreadsheet size={14} />
+            <span>Export as Excel</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.syncBtn}
+            onClick={handleExportPDF}
+            title="Generate printable PDF report"
+          >
+            <Printer size={14} />
+            <span>Export as PDF</span>
+          </button>
+
           <button
             type="button"
             className={styles.syncBtn}
@@ -273,7 +427,7 @@ export const CouponManagementWorkspace: React.FC = () => {
             type="button"
             className={styles.createCouponBtn}
             onClick={handleOpenCreate}
-            title="Create a new discount coupon with student limit"
+            title="Create a new discount coupon"
           >
             <Plus size={16} />
             <span>+ Create Discount Coupon</span>
@@ -366,6 +520,14 @@ export const CouponManagementWorkspace: React.FC = () => {
           <table className={styles.couponsTable}>
             <thead>
               <tr>
+                <th style={{ width: '40px', textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all coupons"
+                  />
+                </th>
                 <th>Coupon Code &amp; Campaign</th>
                 <th>Discount Value</th>
                 <th>Student Quota &amp; Progress</th>
@@ -381,6 +543,8 @@ export const CouponManagementWorkspace: React.FC = () => {
                 const remaining = Math.max(0, limit - used);
                 const percentUsed = Math.min(100, Math.round((used / limit) * 100));
                 const isExhausted = limit > 0 && used >= limit;
+                const couponKey = coupon._id || coupon.id || coupon.code;
+                const isChecked = selectedIds.includes(couponKey);
 
                 let progressColorClass = styles.fillGreen;
                 let remainingBadgeClass = styles.plentyQuota;
@@ -393,7 +557,15 @@ export const CouponManagementWorkspace: React.FC = () => {
                 }
 
                 return (
-                  <tr key={coupon._id || coupon.id || coupon.code}>
+                  <tr key={couponKey} style={{ background: isChecked ? 'rgba(59, 130, 246, 0.08)' : undefined }}>
+                    <td style={{ textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleSelectOne(couponKey)}
+                        aria-label={`Select ${coupon.code}`}
+                      />
+                    </td>
                     {/* Code & Campaign */}
                     <td>
                       <div>
@@ -519,6 +691,11 @@ export const CouponManagementWorkspace: React.FC = () => {
 
             <form onSubmit={handleSubmitForm}>
               <div className={styles.modalFormBody}>
+                {formError && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px', fontWeight: 500 }}>
+                    ⚠️ {formError}
+                  </div>
+                )}
                 {/* Coupon Code */}
                 <div className={styles.formFieldGroup}>
                   <label>Coupon Code (Auto-Uppercase) *</label>
@@ -646,6 +823,29 @@ export const CouponManagementWorkspace: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal (Replaces browser window.confirm) */}
+      <AdminConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: 'single' })}
+        onConfirm={handleConfirmAction}
+        title={
+          confirmModal.type === 'bulk'
+            ? `Bulk Delete ${selectedIds.length} Coupon(s)?`
+            : `Delete Coupon "${confirmModal.coupon?.code}"?`
+        }
+        message={
+          confirmModal.type === 'bulk'
+            ? `Are you sure you want to permanently delete all ${selectedIds.length} selected discount coupons? Students will no longer be able to redeem these codes.`
+            : `Are you sure you want to permanently delete coupon "${confirmModal.coupon?.code}"? This promo code will be immediately deactivated.`
+        }
+        confirmText={
+          confirmModal.type === 'bulk'
+            ? `Delete ${selectedIds.length} Coupons`
+            : 'Delete Coupon'
+        }
+        variant="danger"
+      />
     </div>
   );
 };

@@ -23,11 +23,15 @@ import {
   ShieldCheck,
   ExternalLink,
   Flame,
-  Award
+  Award,
+  FileSpreadsheet,
+  Printer
 } from 'lucide-react';
 import styles from './CourseReviewManagementWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
 import { soundEffects } from '../../../utils/sound';
+import { exportToExcel, exportToPDF } from '../../../utils/exportUtils';
+import { AdminConfirmModal } from '../Common/AdminConfirmModal';
 
 export interface IDoubtAnswer {
   adminId: string;
@@ -156,6 +160,23 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
     rating: 5,
     title: 'Flawless doubt clearance and high-velocity problem solving',
     content: 'DK Sir explains tricky questions in 20 seconds. The live doubt solving mechanism and real-time alerts helped me maintain consistent test ranks.'
+  });
+
+  // Multi-select & Confirm Modal states
+  const [selectedReviewIds, setSelectedReviewIds] = useState<string[]>([]);
+  const [selectedDoubtIds, setSelectedDoubtIds] = useState<string[]>([]);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    action: () => Promise<void> | void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    action: () => {}
   });
 
   const showToast = (msg: string) => {
@@ -340,64 +361,6 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
     }
   };
 
-  const handleDeleteReview = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this course review?')) return;
-    try {
-      const res = await apiClient.delete(`/reviews/${id}`);
-      if (res && res.success) {
-        setReviews((prev) => prev.filter((r) => r._id !== id));
-        showToast('Review removed.');
-      }
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to delete review');
-    }
-  };
-
-  const handleDeleteDoubt = async (id: string) => {
-    if (!window.confirm('Delete this doubt query?')) return;
-    try {
-      const res = await apiClient.delete(`/doubts/${id}`);
-      if (res && res.success) {
-        setDoubts((prev) => prev.filter((d) => d._id !== id));
-        showToast('Doubt removed.');
-      }
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to delete doubt');
-    }
-  };
-
-  // Create Sample Doubt (Simulating Student)
-  const handleCreateSampleDoubt = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await apiClient.post('/doubts', newDoubtForm);
-      if (res && res.success) {
-        soundEffects.playAdminAlertChime();
-        setDoubts((prev) => [res.data, ...prev]);
-        setIsNewDoubtModalOpen(false);
-        showToast(`❓ New student doubt raised! Socket.IO event doubt:new broadcasted.`);
-      }
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to create student doubt');
-    }
-  };
-
-  // Create Sample Review
-  const handleCreateSampleReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await apiClient.post('/reviews', newReviewForm);
-      if (res && res.success) {
-        soundEffects.playNotificationChime();
-        setReviews((prev) => [res.data, ...prev]);
-        setIsNewReviewModalOpen(false);
-        showToast(`⭐ Course review submitted and published!`);
-      }
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to create course review');
-    }
-  };
-
   // Filtered Reviews
   const filteredReviews = useMemo(() => {
     return reviews.filter((r) => {
@@ -435,16 +398,215 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
     });
   }, [doubts, searchDoubt, filterDoubtSubject, filterDoubtStatus, filterDoubtPriority]);
 
-  // Metrics Calculations
+  // Average Rating
   const averageRating = useMemo(() => {
-    if (!reviews.length) return 5.0;
-    const sum = reviews.reduce((acc, cur) => acc + cur.rating, 0);
+    if (reviews.length === 0) return '5.0';
+    const sum = reviews.reduce((acc, r) => acc + (r.rating || 5), 0);
     return (sum / reviews.length).toFixed(1);
   }, [reviews]);
 
+  // Pending doubts count
   const pendingDoubtsCount = useMemo(() => {
     return doubts.filter((d) => d.status === 'PENDING').length;
   }, [doubts]);
+
+  // Create Sample Doubt (Simulating Student)
+  const handleCreateSampleDoubt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await apiClient.post('/doubts', newDoubtForm);
+      if (res && res.success) {
+        soundEffects.playAdminAlertChime();
+        setDoubts((prev) => [res.data, ...prev]);
+        setIsNewDoubtModalOpen(false);
+        showToast(`❓ New student doubt raised! Socket.IO event doubt:new broadcasted.`);
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to create student doubt');
+    }
+  };
+
+  // Create Sample Review
+  const handleCreateSampleReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await apiClient.post('/reviews', newReviewForm);
+      if (res && res.success) {
+        soundEffects.playNotificationChime();
+        setReviews((prev) => [res.data, ...prev]);
+        setIsNewReviewModalOpen(false);
+        showToast(`⭐ Course review submitted and published!`);
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to create course review');
+    }
+  };
+
+  // Custom Confirmation Dialog Handlers (No alert/window.confirm)
+  const handleDeleteReview = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Course Review',
+      message: 'Are you sure you want to delete this course review? This action cannot be undone.',
+      confirmText: 'Delete Review',
+      variant: 'danger',
+      action: async () => {
+        try {
+          const res = await apiClient.delete(`/reviews/${id}`);
+          if (res && res.success) {
+            setReviews((prev) => prev.filter((r) => r._id !== id));
+            setSelectedReviewIds((prev) => prev.filter((i) => i !== id));
+            showToast('✓ Review removed successfully.');
+          }
+        } catch (err: any) {
+          showToast(err?.message || 'Failed to delete review');
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
+  };
+
+  const handleDeleteDoubt = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Doubt Query',
+      message: 'Are you sure you want to delete this doubt question? This will permanently remove it.',
+      confirmText: 'Delete Doubt',
+      variant: 'danger',
+      action: async () => {
+        try {
+          const res = await apiClient.delete(`/doubts/${id}`);
+          if (res && res.success) {
+            setDoubts((prev) => prev.filter((d) => d._id !== id));
+            setSelectedDoubtIds((prev) => prev.filter((i) => i !== id));
+            showToast('✓ Doubt query removed.');
+          }
+        } catch (err: any) {
+          showToast(err?.message || 'Failed to delete doubt');
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
+  };
+
+  // Bulk Delete Handlers
+  const handleBulkDeleteReviews = () => {
+    if (selectedReviewIds.length === 0) return;
+    setConfirmModal({
+      isOpen: true,
+      title: `Delete ${selectedReviewIds.length} Reviews`,
+      message: `Are you sure you want to delete all ${selectedReviewIds.length} selected course reviews?`,
+      confirmText: 'Delete Selected',
+      variant: 'danger',
+      action: async () => {
+        const ids = [...selectedReviewIds];
+        for (const id of ids) {
+          try {
+            await apiClient.delete(`/reviews/${id}`);
+          } catch {}
+        }
+        setReviews((prev) => prev.filter((r) => !ids.includes(r._id)));
+        setSelectedReviewIds([]);
+        showToast(`✓ Removed ${ids.length} review(s) successfully!`);
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  const handleBulkDeleteDoubts = () => {
+    if (selectedDoubtIds.length === 0) return;
+    setConfirmModal({
+      isOpen: true,
+      title: `Delete ${selectedDoubtIds.length} Doubts`,
+      message: `Are you sure you want to delete all ${selectedDoubtIds.length} selected student doubts?`,
+      confirmText: 'Delete Selected',
+      variant: 'danger',
+      action: async () => {
+        const ids = [...selectedDoubtIds];
+        for (const id of ids) {
+          try {
+            await apiClient.delete(`/doubts/${id}`);
+          } catch {}
+        }
+        setDoubts((prev) => prev.filter((d) => !ids.includes(d._id)));
+        setSelectedDoubtIds([]);
+        showToast(`✓ Removed ${ids.length} doubt(s) successfully!`);
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  // Export Handlers
+  const handleExportReviewsExcel = () => {
+    const headers = ['Student Name', 'Course Title', 'Rating', 'Headline', 'Content', 'Status', 'Date'];
+    const rows = filteredReviews.map((r) => [
+      r.studentName,
+      r.courseTitle,
+      `${r.rating} Stars`,
+      r.title,
+      r.content,
+      r.status,
+      new Date(r.createdAt).toLocaleDateString('en-IN')
+    ]);
+    exportToExcel(`DK_Academy_Course_Reviews_${Date.now()}`, headers, rows);
+    showToast('Exported reviews to Excel (.xlsx / .csv)');
+  };
+
+  const handleExportReviewsPDF = () => {
+    const headers = ['Student', 'Course', 'Rating', 'Headline', 'Status'];
+    const rows = filteredReviews.map((r) => [
+      r.studentName,
+      r.courseTitle,
+      `${r.rating} ★`,
+      r.title,
+      r.status
+    ]);
+    exportToPDF({
+      title: 'DK Academy — Course Reviews & Ratings Report',
+      subtitle: `Total Reviews: ${filteredReviews.length} | Rating Average: ${averageRating} ★`,
+      headers,
+      rows
+    });
+    showToast('PDF print preview generated');
+  };
+
+  const handleExportDoubtsExcel = () => {
+    const headers = ['Student Name', 'Subject', 'Course', 'Chapter', 'Topic', 'Question', 'Priority', 'Status', 'Date'];
+    const rows = filteredDoubts.map((d) => [
+      d.studentName,
+      d.subject,
+      d.courseTitle,
+      d.chapter || '',
+      d.topic || '',
+      d.question,
+      d.priority,
+      d.status,
+      new Date(d.createdAt).toLocaleDateString('en-IN')
+    ]);
+    exportToExcel(`DK_Academy_Doubts_${Date.now()}`, headers, rows);
+    showToast('Exported doubts to Excel (.xlsx / .csv)');
+  };
+
+  const handleExportDoubtsPDF = () => {
+    const headers = ['Student', 'Subject', 'Chapter', 'Question Summary', 'Priority', 'Status'];
+    const rows = filteredDoubts.map((d) => [
+      d.studentName,
+      d.subject,
+      d.chapter || 'General',
+      d.question.slice(0, 70) + (d.question.length > 70 ? '...' : ''),
+      d.priority,
+      d.status
+    ]);
+    exportToPDF({
+      title: 'DK Academy — Doubt Resolution Desk Report',
+      subtitle: `Total Doubts: ${filteredDoubts.length} | Pending Resolution: ${pendingDoubtsCount}`,
+      headers,
+      rows
+    });
+    showToast('PDF print preview generated');
+  };
 
   const answeredDoubtsCount = useMemo(() => {
     return doubts.filter((d) => d.status === 'ANSWERED').length;
@@ -475,16 +637,88 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
         </div>
 
         <div className={styles.topActionsGroup}>
-          {activeTab === 'reviews' && (
-            <button
-              type="button"
-              className={styles.primaryActionBtn}
-              onClick={() => setIsNewReviewModalOpen(true)}
-              title="Submit a student course review"
-            >
-              <Plus size={15} />
-              <span>Add Course Review</span>
-            </button>
+          {activeTab === 'reviews' ? (
+            <>
+              {selectedReviewIds.length > 0 && (
+                <button
+                  type="button"
+                  className={styles.secondaryActionBtn}
+                  style={{ color: '#EF4444', borderColor: '#FCA5A5' }}
+                  onClick={handleBulkDeleteReviews}
+                >
+                  <Trash2 size={15} />
+                  <span>Delete Selected ({selectedReviewIds.length})</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.secondaryActionBtn}
+                onClick={handleExportReviewsExcel}
+                title="Export reviews list to Excel spreadsheet"
+              >
+                <FileSpreadsheet size={15} />
+                <span>Export Excel</span>
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryActionBtn}
+                onClick={handleExportReviewsPDF}
+                title="Export reviews printable PDF report"
+              >
+                <Printer size={15} />
+                <span>Export PDF</span>
+              </button>
+              <button
+                type="button"
+                className={styles.primaryActionBtn}
+                onClick={() => setIsNewReviewModalOpen(true)}
+                title="Submit a student course review"
+              >
+                <Plus size={15} />
+                <span>Add Course Review</span>
+              </button>
+            </>
+          ) : (
+            <>
+              {selectedDoubtIds.length > 0 && (
+                <button
+                  type="button"
+                  className={styles.secondaryActionBtn}
+                  style={{ color: '#EF4444', borderColor: '#FCA5A5' }}
+                  onClick={handleBulkDeleteDoubts}
+                >
+                  <Trash2 size={15} />
+                  <span>Delete Selected ({selectedDoubtIds.length})</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.secondaryActionBtn}
+                onClick={handleExportDoubtsExcel}
+                title="Export doubts list to Excel spreadsheet"
+              >
+                <FileSpreadsheet size={15} />
+                <span>Export Excel</span>
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryActionBtn}
+                onClick={handleExportDoubtsPDF}
+                title="Export doubts printable PDF report"
+              >
+                <Printer size={15} />
+                <span>Export PDF</span>
+              </button>
+              <button
+                type="button"
+                className={styles.primaryActionBtn}
+                onClick={() => setIsNewDoubtModalOpen(true)}
+                title="Post a test doubt inquiry"
+              >
+                <Plus size={15} />
+                <span>Simulate Student Doubt</span>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -1438,6 +1672,17 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal Dialog (Replaces native browser alert & confirm) */}
+      <AdminConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant || 'danger'}
+        onConfirm={confirmModal.action}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

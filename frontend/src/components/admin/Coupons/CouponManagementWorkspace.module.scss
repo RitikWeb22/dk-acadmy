@@ -791,3 +791,217 @@
   }
 }
 
+/* ─── DARK THEME OVERRIDES ─── */
+:global(.darkMode) {
+  .couponsWorkspaceShell {
+    color: #f8fafc;
+  }
+
+  .breadcrumbNav {
+    span {
+      color: #94a3b8;
+    }
+  }
+
+  .pageMainHeading {
+    color: #f8fafc;
+  }
+
+  .pageSubtitle {
+    color: #94a3b8;
+  }
+
+  .syncBtn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #cbd5e1;
+
+    &:hover {
+      background: #334155;
+      color: #f8fafc;
+    }
+  }
+
+  .statCard {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+    .statValue {
+      color: #f8fafc;
+    }
+
+    .statLabel {
+      color: #94a3b8;
+    }
+  }
+
+  .filterBar {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .searchInputBox {
+    background: #0f172a;
+    border-color: #334155;
+
+    input {
+      color: #f8fafc;
+
+      &::placeholder {
+        color: #64748b;
+      }
+    }
+  }
+
+  .filterSelect {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f8fafc;
+  }
+
+  .tableContainerCard {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .emptyStateBox {
+    h3 {
+      color: #f8fafc;
+    }
+    p {
+      color: #94a3b8;
+    }
+  }
+
+  .couponsTable {
+    thead th {
+      background: #0f172a;
+      border-color: #334155;
+      color: #94a3b8;
+    }
+
+    tbody td {
+      border-color: #334155;
+      color: #f8fafc;
+    }
+
+    tbody tr:hover {
+      background: rgba(15, 23, 42, 0.7);
+    }
+  }
+
+  .codePillGroup {
+    background: #0f172a;
+    border-color: #334155;
+    color: #60a5fa;
+
+    .copyCodeBtn {
+      color: #94a3b8;
+      &:hover {
+        background: #1e293b;
+        color: #f8fafc;
+      }
+    }
+  }
+
+  .couponLabelTitle {
+    color: #f8fafc;
+  }
+
+  .couponDescriptionText {
+    color: #94a3b8;
+  }
+
+  .discountValueText {
+    color: #38bdf8;
+  }
+
+  .discountConditionText {
+    color: #94a3b8;
+  }
+
+  .quotaTrackBg {
+    background: #334155;
+  }
+
+  .actionIconBtn {
+    background: #0f172a;
+    border-color: #334155;
+    color: #94a3b8;
+
+    &:hover {
+      background: #334155;
+      color: #f8fafc;
+    }
+  }
+
+  .modalContentCard {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  }
+
+  .modalHeader {
+    border-color: #334155;
+
+    h2 {
+      color: #f8fafc;
+    }
+
+    p {
+      color: #94a3b8;
+    }
+
+    .modalCloseBtn {
+      color: #94a3b8;
+      &:hover {
+        background: #334155;
+        color: #f8fafc;
+      }
+    }
+  }
+
+  .modalFormBody {
+    .formFieldGroup {
+      label {
+        color: #cbd5e1;
+      }
+
+      input,
+      select {
+        background: #0f172a;
+        border-color: #334155;
+        color: #f8fafc;
+
+        &:focus {
+          border-color: #3b82f6;
+        }
+      }
+
+      .fieldHelperText {
+        color: #94a3b8;
+      }
+    }
+  }
+
+  .modalFooter {
+    background: #0f172a;
+    border-color: #334155;
+
+    .cancelModalBtn {
+      background: #1e293b;
+      border-color: #334155;
+      color: #cbd5e1;
+
+      &:hover {
+        background: #334155;
+        color: #f8fafc;
+      }
+    }
+  }
+}
+
+

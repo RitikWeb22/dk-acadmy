@@ -10,8 +10,7 @@ try {
 catch {
     // ignore
 }
-// Enforce Mongoose query filter sanitization against NoSQL injection
-mongoose.set('sanitizeFilter', true);
+// Note: Global sanitizeFilter is omitted as it incorrectly treats Mongoose query operators ($in, $ne) as string literals
 let isReconnecting = false;
 export const connectDB = async () => {
     const uri = env.MONGO_URI;

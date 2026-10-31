@@ -1159,3 +1159,134 @@
     font-size: 13px;
   }
 }
+
+:global(.darkMode) {
+  .workspaceShell {
+    background: transparent;
+    color: #F8FAFC;
+  }
+
+  .pageTitle {
+    color: #F8FAFC;
+  }
+
+  .pageSubtitle {
+    color: #94A3B8;
+  }
+
+  .kpiCard {
+    background: #1E293B;
+    border-color: #334155;
+
+    .kpiLabel {
+      color: #94A3B8;
+    }
+
+    .kpiValue {
+      color: #F8FAFC;
+    }
+
+    .kpiSubtext {
+      color: #64748B;
+    }
+  }
+
+  .navTabBtn {
+    color: #94A3B8;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+
+    &.activeTab {
+      background: #2563EB;
+      color: #FFFFFF;
+    }
+  }
+
+  .filterStripBar {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .searchInputWrap input,
+  .filterSelectWrap select {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .doubtCard,
+  .reviewItemCard {
+    background: #1E293B;
+    border-color: #334155;
+
+    &:hover {
+      border-color: #475569;
+    }
+  }
+
+  .studentName,
+  .cardHeadline,
+  .doubtQuestionText {
+    color: #F8FAFC;
+  }
+
+  .questionBlock {
+    background: #0F172A;
+    border-color: #334155;
+    color: #E2E8F0;
+  }
+
+  .answerBlock {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: #1E3A8A;
+  }
+
+  .emptyStateCard {
+    background: #1E293B;
+    border-color: #334155;
+    color: #94A3B8;
+
+    h3 {
+      color: #F8FAFC;
+    }
+  }
+
+  .secondaryActionBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #E2E8F0;
+
+    &:hover {
+      background: #334155;
+      color: #FFFFFF;
+    }
+  }
+
+  .modalContent {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    .modalHeader {
+      border-color: #334155;
+      h3 {
+        color: #F8FAFC;
+      }
+    }
+
+    .modalFooter {
+      border-color: #334155;
+    }
+
+    .formInput,
+    .formSelect,
+    .formTextarea {
+      background: #0F172A;
+      border-color: #334155;
+      color: #F8FAFC;
+    }
+  }
+}

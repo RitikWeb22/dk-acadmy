@@ -96,7 +96,7 @@ app.use(
         baseUri: ["'self'"]
       }
     },
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    crossOriginOpenerPolicy: false, // Disabled to ensure Google Identity Services (GSI) & OAuth popups can communicate with window.opener / postMessage without getting blocked
     crossOriginResourcePolicy: { policy: 'same-origin' }, // Protected by default; cross-origin scoped to /uploads & /stream only
     crossOriginEmbedderPolicy: false,
     frameguard: { action: 'deny' }, // Clickjacking protection
