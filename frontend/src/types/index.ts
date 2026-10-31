@@ -20,6 +20,7 @@ export interface Course {
   targetYear: string;
   badge?: string;
   badgeUrgency?: 'urgency' | 'instant' | 'popular' | 'category';
+  tags?: string[];
   tier?: 'Free' | 'Paid' | string;
   level?: string;
   courseLevel?: string;
@@ -32,11 +33,12 @@ export interface Course {
   batchStartDate?: string;
   batchCloseDate?: string;
   lastBatchDate?: string;
-  courseType?: 'live' | 'recorded' | 'test-series' | 'dlp';
+  courseType?: 'live' | 'recorded' | 'test-series' | 'dlp' | string;
   description: string;
   features: string[];
   schedule?: string;
-  mode: 'Live + Recorded' | 'Structured Recorded' | 'Self-Paced' | 'Live' | 'Online Test Series';
+  mode: 'Live + Recorded' | 'Structured Recorded' | 'Self-Paced' | 'Live' | 'Online Test Series' | string;
+  deliveryMode?: string;
   duration?: string;
   language?: string;
   validity?: string;

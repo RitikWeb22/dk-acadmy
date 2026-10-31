@@ -18,20 +18,30 @@ interface AdminAuthContextType {
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<AdminSession | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Synchronous session initialization ensures zero unauthenticated flash/redirection on page reload
+  const [session, setSession] = useState<AdminSession | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      adminService.initStorage();
+      return adminService.getCurrentSession();
+    } catch {
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
 
   const refreshAuditLogs = useCallback(() => {
     setAuditLogs(adminService.getAuditLogs());
   }, []);
 
-  // Restore session on mount
+  // Sync session & audit logs on mount
   useEffect(() => {
-    adminService.initStorage();
     const existing = adminService.getCurrentSession();
     if (existing) {
       setSession(existing);
+    } else {
+      setSession(null);
     }
     refreshAuditLogs();
     setIsLoading(false);

@@ -497,14 +497,20 @@
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
-  white-space: nowrap; // Prevents text wrapping into deformed multi-line circles
-  flex-shrink: 0; // Prevents shrinking into deformed oval bubbles on mobile
+  white-space: nowrap !important; // Prevents text wrapping into deformed multi-line circles
+  flex-shrink: 0 !important; // Prevents shrinking into deformed oval bubbles on mobile
   color: var(--color-text-secondary);
   background-color: #fff;
   border: 1.5px solid var(--color-border);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
   box-sizing: border-box;
   transition: all $transition-fast;
+
+  span {
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   @include mobile {
     height: 38px;

@@ -74,22 +74,34 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
 
   // 3. Category Badge (Top-left of thumbnail)
   const categoryBadge = useMemo(() => {
+    const formatTag = course.tags?.find((t) =>
+      ['test series', 'live online', 'self-study dlp', 'classroom', 'hybrid', 'crash course', 'video vault', 'free preview'].includes(t.toLowerCase())
+    );
+    if (formatTag) return formatTag;
     if (isFree) return 'Free Preview';
     if (course.courseType === 'live') return 'Live Online';
     if (course.courseType === 'test-series') return 'Test Series';
     if (course.courseType === 'dlp') return 'Self-Study DLP';
+    if (course.tags && course.tags.length > 0 && !['popular', 'bestseller', 'new batch', 'trending'].includes(course.tags[0].toLowerCase())) {
+      return course.tags[0];
+    }
     if (course.targetExam) return course.targetExam;
     return course.category || 'Comprehensive';
-  }, [isFree, course.courseType, course.targetExam, course.category]);
+  }, [isFree, course.courseType, course.targetExam, course.category, course.tags]);
 
   // 4. Promotional Badge (Top-right, at most 1, only if genuine)
   const promoBadge = useMemo(() => {
+    const promoTag = course.tags?.find((t) =>
+      ['popular', 'bestseller', 'new batch', 'new', 'trending', 'best value', 'top rated'].includes(t.toLowerCase())
+    );
+    if (promoTag) return promoTag;
     if (course.isPopular) return 'Popular';
     if (course.isBestValue) return 'Best Value';
     if (course.badge && course.badge.toLowerCase().includes('bestseller')) return 'Bestseller';
     if (course.badge && course.badge.toLowerCase().includes('new')) return 'New Batch';
+    if (course.badge) return course.badge;
     return null;
-  }, [course.isPopular, course.isBestValue, course.badge]);
+  }, [course.isPopular, course.isBestValue, course.badge, course.tags]);
 
   // 5. Target Audience / Category Sub-line (Item 2 in hierarchy)
   const targetAudienceText = useMemo(() => {

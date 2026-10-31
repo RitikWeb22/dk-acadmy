@@ -594,6 +594,8 @@ export const createFreeLecture = async (req: Request, res: Response): Promise<vo
       targetExam = 'JEE Main & Advanced 2026/27',
       targetClass = 'Class 11 & 12',
       description,
+      tags,
+      badge,
       status = 'Published'
     } = req.body;
 
@@ -635,6 +637,8 @@ export const createFreeLecture = async (req: Request, res: Response): Promise<vo
       targetExam,
       targetClass,
       description: description || '',
+      tags: Array.isArray(tags) ? tags : typeof tags === 'string' ? tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+      badge: badge || '',
       status
     });
 

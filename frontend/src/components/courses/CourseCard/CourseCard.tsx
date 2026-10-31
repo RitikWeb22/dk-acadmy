@@ -56,15 +56,25 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
 
       <div className={styles.header}>
         <div className={styles.badgesRow}>
-          <Badge variant={isAdvanced ? 'primary' : 'muted'} size="sm">
-            {course.targetExam}
-          </Badge>
-          <Badge variant="outline" size="sm">
-            {course.targetYear}
-          </Badge>
-          <Badge variant={course.tier === 'Free' ? 'accent' : 'muted'} size="sm">
-            {course.tier}
-          </Badge>
+          {course.tags && course.tags.length > 0 ? (
+            course.tags.slice(0, 3).map((tag, idx) => (
+              <Badge key={idx} variant={tag.toLowerCase().includes('popular') ? 'accent' : idx === 0 ? 'primary' : 'outline'} size="sm">
+                {tag}
+              </Badge>
+            ))
+          ) : (
+            <>
+              <Badge variant={isAdvanced ? 'primary' : 'muted'} size="sm">
+                {course.targetExam}
+              </Badge>
+              <Badge variant="outline" size="sm">
+                {course.targetYear}
+              </Badge>
+              <Badge variant={course.tier === 'Free' ? 'accent' : 'muted'} size="sm">
+                {course.tier}
+              </Badge>
+            </>
+          )}
         </div>
 
         <h3 className={styles.title}>{course.title}</h3>
