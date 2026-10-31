@@ -26,7 +26,6 @@ import { FreeLecturesManagementWorkspace } from '../../../components/admin/FreeL
 import { ContactManagementWorkspace } from '../../../components/admin/ContactManagement/ContactManagementWorkspace';
 import { NavbarFooterManagementWorkspace } from '../../../components/admin/NavbarFooter/NavbarFooterManagementWorkspace';
 import { PageManagementWorkspace } from '../../../components/admin/PageManagement/PageManagementWorkspace';
-import { TeacherLiveDashboard } from '../../../components/live/TeacherLiveDashboard';
 
 // Modular Components
 import { Sidebar } from './components/Sidebar';
@@ -92,8 +91,6 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
       setActiveMenu('dpp-pyq');
     } else if (location.pathname.includes('/free-lectures') || location.pathname.includes('/lectures')) {
       setActiveMenu('free-lectures');
-    } else if (location.pathname.includes('/live')) {
-      setActiveMenu('live-classroom');
     } else if (location.pathname.includes('/reviews')) {
       setActiveMenu('reviews');
     } else if (location.pathname.includes('/contact') || location.pathname.includes('/leads')) {
@@ -311,8 +308,6 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
             <DppPyqManagementWorkspace />
           ) : activeMenu === 'free-lectures' ? (
             <FreeLecturesManagementWorkspace />
-          ) : activeMenu === 'live-classroom' ? (
-            <TeacherLiveDashboard teacherName={admin?.name || 'DK Sir'} />
           ) : activeMenu === 'reviews' ? (
             <CourseReviewManagementWorkspace />
           ) : activeMenu === 'contact' ? (

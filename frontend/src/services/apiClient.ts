@@ -104,12 +104,18 @@ const safeJsonParse = async <T = any>(res: Response): Promise<ApiResponse<T>> =>
   };
 };
 
+const formatEndpoint = (endpoint: string): string => {
+  const cleanBase = API_BASE_URL.replace(/\/+$/, '');
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${cleanBase}${cleanEndpoint}`;
+};
+
 export const apiClient = {
   baseUrl: API_BASE_URL,
 
   async get<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
-      const res = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
+      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'GET',
         headers: getAuthHeaders(),
         ...options
@@ -125,7 +131,7 @@ export const apiClient = {
 
   async post<T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
-      const res = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
+      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'POST',
         headers: getAuthHeaders(),
         body: body ? JSON.stringify(body) : undefined,
@@ -142,7 +148,7 @@ export const apiClient = {
 
   async put<T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
-      const res = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
+      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: body ? JSON.stringify(body) : undefined,
@@ -159,7 +165,7 @@ export const apiClient = {
 
   async delete<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
-      const res = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
+      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'DELETE',
         headers: getAuthHeaders(),
         ...options
