@@ -11,14 +11,15 @@ export const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().min(1, 'RAZORPAY_KEY_ID is required'),
   RAZORPAY_KEY_SECRET: z.string().min(1, 'RAZORPAY_KEY_SECRET is required'),
   RAZORPAY_WEBHOOK_SECRET: z.string().min(1, 'RAZORPAY_WEBHOOK_SECRET is required'),
-  CLIENT_URL: z.string().min(1, 'CLIENT_URL is required').transform((val) => {
-    const trimmed = val.trim();
+  CLIENT_URL: z.string().optional().default('http://localhost:5001').transform((val) => {
+    const trimmed = (val || 'http://localhost:5001').trim();
+    if (!trimmed) return 'http://localhost:5001';
     if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
       return `https://${trimmed}`;
     }
     return trimmed;
   }),
-  ALLOWED_ORIGINS: z.string().default('*'),
+  ALLOWED_ORIGINS: z.string().optional().default('*'),
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
