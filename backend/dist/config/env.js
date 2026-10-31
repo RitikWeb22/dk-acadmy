@@ -9,8 +9,14 @@ export const envSchema = z.object({
     RAZORPAY_KEY_ID: z.string().min(1, 'RAZORPAY_KEY_ID is required'),
     RAZORPAY_KEY_SECRET: z.string().min(1, 'RAZORPAY_KEY_SECRET is required'),
     RAZORPAY_WEBHOOK_SECRET: z.string().min(1, 'RAZORPAY_WEBHOOK_SECRET is required'),
-    CLIENT_URL: z.string().url('CLIENT_URL must be a valid URL'),
-    ALLOWED_ORIGINS: z.string().min(1, 'ALLOWED_ORIGINS is required'),
+    CLIENT_URL: z.string().min(1, 'CLIENT_URL is required').transform((val) => {
+        const trimmed = val.trim();
+        if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+            return `https://${trimmed}`;
+        }
+        return trimmed;
+    }),
+    ALLOWED_ORIGINS: z.string().default('*'),
     CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
     CLOUDINARY_API_KEY: z.string().optional().default(''),
     CLOUDINARY_API_SECRET: z.string().optional().default(''),
@@ -21,9 +27,9 @@ export const envSchema = z.object({
 export const validateEnv = (customEnv = process.env) => {
     const result = envSchema.safeParse(customEnv);
     if (!result.success) {
-        const invalidFields = result.error.issues.map((issue) => issue.path.join('.'));
+        const invalidFields = result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
         console.error('[FATAL CONFIGURATION ERROR]: Missing or invalid environment variables:');
-        invalidFields.forEach((field) => console.error(`  - ${field}`));
+        invalidFields.forEach((msg) => console.error(`  - ${msg}`));
         process.exit(1);
     }
     const originsArray = result.data.ALLOWED_ORIGINS.split(',')
