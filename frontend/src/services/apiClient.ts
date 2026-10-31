@@ -4,11 +4,23 @@
  * Supports automatic token injection, error handling, and offline fallback.
  */
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (typeof window !== 'undefined' && window.location.origin
-    ? `${window.location.origin}/api/v1`
-    : 'http://localhost:5001/api/v1');
+export const getApiBaseUrl = (): string => {
+  const configured = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  if (configured) {
+    if (
+      typeof window !== 'undefined' &&
+      window.location?.hostname &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      if (configured.includes('localhost') || configured.includes('127.0.0.1')) {
+        return '/api/v1';
+      }
+    }
+    return configured.replace(/\/+$/, '');
+  }
+  return '/api/v1';
+};
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -109,13 +121,15 @@ const safeJsonParse = async <T = any>(res: Response): Promise<ApiResponse<T>> =>
 };
 
 const formatEndpoint = (endpoint: string): string => {
-  const cleanBase = API_BASE_URL.replace(/\/+$/, '');
+  const cleanBase = getApiBaseUrl();
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${cleanBase}${cleanEndpoint}`;
 };
 
 export const apiClient = {
-  baseUrl: API_BASE_URL,
+  get baseUrl() {
+    return getApiBaseUrl();
+  },
 
   async get<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
@@ -211,7 +225,7 @@ export const apiClient = {
   }> {
     return new Promise((resolve) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${API_BASE_URL}/upload`);
+      xhr.open('POST', formatEndpoint('/upload'));
 
       const headers = getAuthHeaders();
       if (headers.Authorization) {
