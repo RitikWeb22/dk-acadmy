@@ -26,6 +26,8 @@ export interface IUser extends Document {
   googleId?: string;
   authProvider?: 'local' | 'google';
   enrolledCourses?: any[];
+  failedLoginAttempts?: number;
+  lockUntil?: Date;
   comparePassword(enteredPassword: string): Promise<boolean>;
   createdAt: Date;
   updatedAt: Date;
@@ -135,7 +137,14 @@ const userSchema = new Schema<IUser>(
       {
         type: Schema.Types.Mixed
       }
-    ]
+    ],
+    failedLoginAttempts: {
+      type: Number,
+      default: 0
+    },
+    lockUntil: {
+      type: Date
+    }
   },
   {
     timestamps: true
@@ -148,12 +157,12 @@ userSchema.index({ enrolledCourses: 1 });
 userSchema.index({ targetExam: 1, targetClass: 1 });
 userSchema.index({ name: 'text', email: 'text', phone: 'text' });
 
-// Hash password before saving
+// Hash password before saving (cost factor 12)
 userSchema.pre('save', async function () {
   if (!this.isModified('password') || !this.password) {
     return;
   }
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
 });
 

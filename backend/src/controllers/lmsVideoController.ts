@@ -361,7 +361,7 @@ export const lmsVideoController = {
       // Verify token
       let decoded: any;
       try {
-        decoded = jwt.verify(token, JWT_SECRET);
+        decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
       } catch (err) {
         res.status(403).json({ success: false, message: 'Forbidden: Playback token expired or invalid' });
         return;
@@ -422,7 +422,7 @@ export const lmsVideoController = {
       }
 
       try {
-        jwt.verify(token, JWT_SECRET);
+        jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
       } catch (err) {
         res.status(403).json({ success: false, message: 'Forbidden: Playback token expired or invalid' });
         return;
@@ -471,7 +471,7 @@ export const lmsVideoController = {
       }
 
       try {
-        jwt.verify(token, JWT_SECRET);
+        jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
       } catch (err) {
         res.status(403).json({ success: false, message: 'Forbidden: Segment authorization expired' });
         return;

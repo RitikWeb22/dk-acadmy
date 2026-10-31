@@ -31,7 +31,8 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
   try {
     const secret = env.JWT_SECRET;
-    const decoded = jwt.verify(token, secret) as DecodedToken;
+    // Explicitly enforce HS256 algorithm and reject none/tampered tokens
+    const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] }) as DecodedToken;
 
     if (!decoded || !decoded.id) {
       res.status(401).json({ success: false, message: 'Malformed authentication token payload.' });
@@ -44,10 +45,13 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
         req.user = user;
         next();
         return;
+      } else {
+        res.status(401).json({ success: false, message: 'The user belonging to this token no longer exists.' });
+        return;
       }
     }
 
-    // Cryptographically verified stateless / fallback user
+    // Cryptographically verified stateless fallback user (e.g. test runner mock IDs)
     req.user = {
       _id: decoded.id as any,
       id: decoded.id,
