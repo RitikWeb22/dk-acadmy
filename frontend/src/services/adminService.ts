@@ -442,14 +442,15 @@ export const adminService = {
           email: u.email,
           role: u.role as AdminRole,
           designation:
-            u.role === 'SUPER_ADMIN'
+            u.designation ||
+            (u.role === 'SUPER_ADMIN'
               ? 'Academic Director & Founder'
               : u.role === 'TEACHER'
               ? 'Senior Faculty & Academic Mentor'
-              : 'Staff Admin',
+              : 'Staff Admin'),
           phone: u.phone || '+91 93259 87875',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
-          department: 'Academic Administration',
+          avatarUrl: u.avatarUrl || '',
+          department: u.department || 'Academic Administration',
           isActive: true,
           permissions,
           lastLoginTimestamp: Date.now(),
@@ -600,6 +601,87 @@ export const adminService = {
       });
     }
     localStorage.removeItem(ADMIN_SESSION_KEY);
+  },
+
+  /**
+   * Update active administrator profile details and avatar
+   */
+  async updateCurrentAdminProfile(
+    updates: Partial<AdminUser>,
+    newPassword?: string
+  ): Promise<{ success: boolean; user?: AdminUser; error?: string }> {
+    try {
+      const currentSession = this.getCurrentSession();
+      if (!currentSession || !currentSession.user) {
+        return { success: false, error: 'No active administrative session found.' };
+      }
+
+      const updatedUser: AdminUser = {
+        ...currentSession.user,
+        ...updates
+      };
+
+      const updatedSession: AdminSession = {
+        ...currentSession,
+        user: updatedUser
+      };
+
+      // 1. Persist updated session to localStorage
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(updatedSession));
+
+      // 2. Also update in ADMIN_ACCOUNTS_KEY list if present
+      const accountsRaw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);
+      if (accountsRaw) {
+        try {
+          const accounts: any[] = JSON.parse(accountsRaw);
+          const index = accounts.findIndex(
+            (a) => a.id === updatedUser.id || a.email?.toLowerCase() === updatedUser.email?.toLowerCase()
+          );
+          if (index !== -1) {
+            accounts[index] = {
+              ...accounts[index],
+              ...updates,
+              ...(newPassword ? { passwordHash: newPassword } : {})
+            };
+            localStorage.setItem(ADMIN_ACCOUNTS_KEY, JSON.stringify(accounts));
+          }
+        } catch (e) {
+          console.warn('[AdminService] Failed updating account list:', e);
+        }
+      }
+
+      // 3. Sync to Backend API if user is authenticated with a token
+      try {
+        await apiClient.put('/auth/profile', {
+          name: updatedUser.name,
+          phone: updatedUser.phone,
+          avatarUrl: updatedUser.avatarUrl,
+          designation: updatedUser.designation,
+          department: updatedUser.department,
+          ...(newPassword ? { password: newPassword } : {})
+        });
+      } catch (apiErr) {
+        console.warn('[AdminService] Backend profile sync note:', apiErr);
+      }
+
+      // 4. Log audit event
+      this.logAudit({
+        adminId: updatedUser.id,
+        adminName: updatedUser.name,
+        adminRole: updatedUser.role,
+        action: 'SETTINGS_UPDATED',
+        module: 'Profile Management',
+        details: `Administrator profile information & avatar updated successfully`,
+        status: 'SUCCESS'
+      });
+
+      // 5. Broadcast custom event for immediate reactive re-render
+      window.dispatchEvent(new CustomEvent('dk_admin_profile_updated', { detail: updatedUser }));
+
+      return { success: true, user: updatedUser };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to update admin profile.' };
+    }
   },
 
   /**

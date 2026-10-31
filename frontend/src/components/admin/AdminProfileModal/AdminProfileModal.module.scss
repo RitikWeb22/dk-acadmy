@@ -1,0 +1,613 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.18s ease-out;
+}
+
+.modalDialog {
+  position: relative;
+  z-index: 10001;
+  width: 100%;
+  max-width: 580px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  overflow: hidden;
+  animation: slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+
+  :global(.darkMode) & {
+    background: #0f172a;
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(51, 65, 85, 0.4);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+
+  :global(.darkMode) & {
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+  }
+}
+
+.headerTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.headerIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+
+  :global(.darkMode) & {
+    background: rgba(37, 99, 235, 0.15);
+    color: #60a5fa;
+  }
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+
+  :global(.darkMode) & {
+    color: #f8fafc;
+  }
+}
+
+.modalSubtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+
+  :global(.darkMode) & {
+    color: #94a3b8;
+  }
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  :global(.darkMode) &:hover {
+    background: #334155;
+    color: #f8fafc;
+  }
+}
+
+.formContent {
+  padding: 1.5rem;
+  max-height: calc(85vh - 120px);
+  overflow-y: auto;
+}
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+
+  :global(.darkMode) & {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.3);
+    color: #f87171;
+  }
+}
+
+/* Avatar Section */
+.avatarSection {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+
+  :global(.darkMode) & {
+    background: #1e293b;
+    border-color: #334155;
+  }
+}
+
+.avatarPreviewWrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+
+  :global(.darkMode) & {
+    border-color: #0f172a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.uploadingOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 0.25rem;
+}
+
+.avatarActions {
+  flex: 1;
+}
+
+.avatarTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.25rem;
+}
+
+.avatarLabel {
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: #0f172a;
+
+  :global(.darkMode) & {
+    color: #f8fafc;
+  }
+}
+
+.roleBadge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  :global(.darkMode) & {
+    background: rgba(37, 99, 235, 0.2);
+    color: #93c5fd;
+  }
+}
+
+.avatarHint {
+  margin: 0 0 0.75rem;
+  font-size: 0.78125rem;
+  color: #64748b;
+  line-height: 1.4;
+
+  :global(.darkMode) & {
+    color: #94a3b8;
+  }
+}
+
+.avatarBtnRow {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.removeAvatarBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: #f1f5f9;
+  color: #ef4444;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #fee2e2;
+    border-color: #fca5a5;
+  }
+
+  :global(.darkMode) & {
+    background: #334155;
+    border-color: #475569;
+    color: #f87171;
+
+    &:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+  }
+}
+
+.sectionDivider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 1.25rem 0;
+
+  :global(.darkMode) & {
+    background: #334155;
+  }
+}
+
+/* Fields Grid */
+.fieldsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+
+  @media (max-width: 540px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+
+  &.fullWidth {
+    grid-column: 1 / -1;
+  }
+}
+
+.formLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+
+  :global(.darkMode) & {
+    color: #cbd5e1;
+  }
+}
+
+.reqStar {
+  color: #ef4444;
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 0.875rem;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.textInput {
+  width: 100%;
+  padding: 0.625rem 0.875rem 0.625rem 2.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #0f172a;
+  background: #ffffff;
+  transition: all 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  &.readOnlyInput {
+    background: #f8fafc;
+    color: #64748b;
+    cursor: not-allowed;
+  }
+
+  :global(.darkMode) & {
+    background: #1e293b;
+    border-color: #475569;
+    color: #f8fafc;
+
+    &:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    &.readOnlyInput {
+      background: #0f172a;
+      color: #94a3b8;
+    }
+  }
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+
+  &:hover {
+    color: #334155;
+  }
+
+  :global(.darkMode) &:hover {
+    color: #f1f5f9;
+  }
+}
+
+/* Password Change Accordion */
+.passwordAccordion {
+  margin-top: 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+
+  :global(.darkMode) & {
+    border-color: #334155;
+  }
+}
+
+.passwordToggleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+
+  :global(.darkMode) & {
+    background: #1e293b;
+    color: #f1f5f9;
+
+    &:hover {
+      background: #334155;
+    }
+  }
+}
+
+.passwordToggleLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #2563eb;
+
+  :global(.darkMode) & {
+    color: #60a5fa;
+  }
+}
+
+.passwordToggleAction {
+  font-size: 0.78125rem;
+  color: #64748b;
+
+  :global(.darkMode) & {
+    color: #94a3b8;
+  }
+}
+
+.passwordFields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+
+  @media (max-width: 540px) {
+    grid-template-columns: 1fr;
+  }
+
+  :global(.darkMode) & {
+    background: #0f172a;
+    border-top-color: #334155;
+  }
+}
+
+/* Modal Footer */
+.modalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+
+  :global(.darkMode) & {
+    border-top-color: #334155;
+  }
+}
+
+.cancelBtn {
+  padding: 0.625rem 1.125rem;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  :global(.darkMode) & {
+    background: #1e293b;
+    border-color: #475569;
+    color: #cbd5e1;
+
+    &:hover:not(:disabled) {
+      background: #334155;
+      color: #f8fafc;
+    }
+  }
+}
+
+.saveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

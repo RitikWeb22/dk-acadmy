@@ -9,6 +9,7 @@ interface AdminAuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  updateAdminProfile: (updates: Partial<AdminUser>, newPassword?: string) => Promise<{ success: boolean; error?: string }>;
   hasRole: (roles: AdminRole | AdminRole[]) => boolean;
   hasPermission: (permissions: PermissionId | PermissionId[]) => boolean;
   auditLogs: AdminAuditLog[];
@@ -35,7 +36,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setAuditLogs(adminService.getAuditLogs());
   }, []);
 
-  // Sync session & audit logs on mount
+  // Sync session & audit logs on mount & listen to profile updates
   useEffect(() => {
     const existing = adminService.getCurrentSession();
     if (existing) {
@@ -45,6 +46,18 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     refreshAuditLogs();
     setIsLoading(false);
+
+    const handleProfileUpdated = (e: any) => {
+      const updatedUser = e.detail;
+      if (updatedUser) {
+        setSession((prev) => (prev ? { ...prev, user: { ...prev.user, ...updatedUser } } : null));
+      }
+    };
+
+    window.addEventListener('dk_admin_profile_updated', handleProfileUpdated);
+    return () => {
+      window.removeEventListener('dk_admin_profile_updated', handleProfileUpdated);
+    };
   }, [refreshAuditLogs]);
 
   const login = async (
@@ -70,6 +83,27 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setSession(null);
     refreshAuditLogs();
   }, [refreshAuditLogs]);
+
+  const updateAdminProfile = useCallback(
+    async (
+      updates: Partial<AdminUser>,
+      newPassword?: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      setIsLoading(true);
+      try {
+        const result = await adminService.updateCurrentAdminProfile(updates, newPassword);
+        if (result.success && result.user) {
+          setSession((prev) => (prev ? { ...prev, user: result.user! } : null));
+          refreshAuditLogs();
+          return { success: true };
+        }
+        return { success: false, error: result.error || 'Failed to update profile' };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [refreshAuditLogs]
+  );
 
   const hasRole = useCallback(
     (required: AdminRole | AdminRole[]): boolean => {
@@ -105,6 +139,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isLoading,
         login,
         logout,
+        updateAdminProfile,
         hasRole,
         hasPermission,
         auditLogs,

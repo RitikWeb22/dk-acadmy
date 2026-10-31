@@ -10,9 +10,11 @@ import {
   CheckCircle2,
   Activity,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  UserCog
 } from 'lucide-react';
 import { useAdminAuth } from '../../../../context/AdminAuthContext';
+import { AdminProfileModal } from '../../../../components/admin/AdminProfileModal/AdminProfileModal';
 import { notificationService, type AdminNotificationItem, NOTIFICATIONS_EVENT_KEY } from '../../../../services/notificationService';
 import styles from './Topbar.module.scss';
 
@@ -35,6 +37,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   const { admin, logout } = useAdminAuth();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [searchVal, setSearchVal] = useState('');
   const [notifications, setNotifications] = useState<AdminNotificationItem[]>(() =>
     notificationService.getNotifications()
@@ -287,21 +290,44 @@ export const Topbar: React.FC<TopbarProps> = ({
             aria-label="User menu"
             aria-expanded={isUserDropdownOpen}
           >
-            <img
-              src="/img/dk-sir.jpg"
-              alt="Dharmendra Kumar"
-              className={styles.userAvatarImg}
-            />
-            <span className={styles.userNameText}>DK Sir</span>
+            {admin?.avatarUrl ? (
+              <img
+                src={admin.avatarUrl}
+                alt={admin.name || 'Admin'}
+                className={styles.userAvatarImg}
+              />
+            ) : (
+              <span className={styles.userAvatarFallback}>
+                {(admin?.name || 'Admin').charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span className={styles.userNameText}>
+              {admin?.name ? (admin.name.split(' ')[0] || admin.name) : 'Admin'}
+            </span>
             <ChevronDown size={13} className={styles.userChevron} />
           </button>
 
           {isUserDropdownOpen && (
             <div className={styles.userMenuDropdown}>
               <div className={styles.userMenuHeader}>
-                <span className={styles.userMenuName}>Dharmendra Kumar</span>
-                <span className={styles.userMenuRole}>Super Admin</span>
+                <span className={styles.userMenuName} title={admin?.name || 'Administrator'}>
+                  {admin?.name || 'Administrator'}
+                </span>
+                <span className={styles.userMenuRole} title={admin?.designation || admin?.role}>
+                  {admin?.designation || admin?.role?.replace('_', ' ') || 'Super Admin'}
+                </span>
               </div>
+              <button
+                type="button"
+                className={styles.userMenuItemAction}
+                onClick={() => {
+                  setIsUserDropdownOpen(false);
+                  setIsProfileModalOpen(true);
+                }}
+              >
+                <UserCog size={14} />
+                <span>Edit Profile</span>
+              </button>
               <button
                 type="button"
                 className={styles.userMenuItemLogout}
@@ -317,6 +343,12 @@ export const Topbar: React.FC<TopbarProps> = ({
           )}
         </div>
       </div>
+
+      {/* Admin Profile Modal */}
+      <AdminProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </header>
   );
 };

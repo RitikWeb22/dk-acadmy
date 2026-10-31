@@ -13,6 +13,8 @@ export interface IUser extends Document {
   targetClass?: string;
   targetYear?: string;
   avatarUrl?: string;
+  designation?: string;
+  department?: string;
   dob?: string;
   preferredLanguage?: string;
   city?: string;
@@ -94,6 +96,14 @@ const userSchema = new Schema<IUser>(
     },
     avatarUrl: {
       type: String
+    },
+    designation: {
+      type: String,
+      trim: true
+    },
+    department: {
+      type: String,
+      trim: true
     },
     dob: {
       type: String
