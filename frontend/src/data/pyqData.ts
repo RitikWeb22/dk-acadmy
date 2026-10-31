@@ -385,8 +385,19 @@ export const PYQ_QUESTIONS: PYQQuestion[] = [
   }
 ];
 
-// Comprehensive 25-Year JEE Archive: 2002 through 2026
-export const PYQ_YEARS: number[] = Array.from({ length: 2026 - 2002 + 1 }, (_, i) => 2026 - i);
+// Standard default archive years
+export const PYQ_YEARS: number[] = [2026, 2025, 2024, 2023, 2022, 2021];
+
+export const getCustomPyqYears = (): number[] => {
+  try {
+    const raw = localStorage.getItem('dk_admin_pyq_years');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return [];
+};
 export const PYQ_SUBJECTS: ('All' | 'Physics' | 'Chemistry' | 'Mathematics')[] = [
   'All',
   'Physics',

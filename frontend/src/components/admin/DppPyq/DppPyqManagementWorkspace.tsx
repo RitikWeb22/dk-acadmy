@@ -458,6 +458,33 @@ export const DppPyqManagementWorkspace: React.FC = () => {
     }, 3200);
   };
 
+  // Dynamic PYQ Years list created & managed by Admin
+  const [adminPyqYears, setAdminPyqYears] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('dk_admin_pyq_years');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [2026, 2025, 2024, 2023, 2022, 2021, 2020];
+  });
+  const [isCreatingYear, setIsCreatingYear] = useState<boolean>(false);
+  const [newYearInput, setNewYearInput] = useState<string>('');
+
+  const handleCreateYear = (yearNum: number) => {
+    if (!yearNum || yearNum < 1990 || yearNum > 2050) return;
+    if (!adminPyqYears.includes(yearNum)) {
+      const updated = [...adminPyqYears, yearNum].sort((a, b) => b - a);
+      setAdminPyqYears(updated);
+      localStorage.setItem('dk_admin_pyq_years', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('dk_pyq_years_updated', { detail: { years: updated } }));
+      showToast(`✓ Year ${yearNum} created and added to PYQ Archive!`);
+    }
+    setIsCreatingYear(false);
+    setNewYearInput('');
+  };
+
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1812,18 +1839,109 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                   </div>
 
                   <div className={styles.fieldItem}>
-                    <label className={styles.fieldLabel}>Target Examination</label>
-                    <select
-                      className={styles.fieldSelectEnhanced}
-                      value={newExamTarget}
-                      onChange={(e) => setNewExamTarget(e.target.value)}
-                    >
-                      <option value="JEE Main 2026">JEE Main 2026</option>
-                      <option value="JEE Advanced 2026">JEE Advanced 2026</option>
-                      <option value="JEE Main 2025">JEE Main 2025</option>
-                      <option value="BITSAT 2026">BITSAT 2026</option>
-                      <option value="Class 11/12 Foundation">Class 11/12 Foundation</option>
-                    </select>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <label className={styles.fieldLabel}>Target Examination &amp; Year</label>
+                      {!isCreatingYear && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCreatingYear(true)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#2563eb',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + Create Year
+                        </button>
+                      )}
+                    </div>
+
+                    {isCreatingYear ? (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          autoFocus
+                          placeholder="e.g. 2002"
+                          value={newYearInput}
+                          onChange={(e) => setNewYearInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const y = Number(newYearInput);
+                              if (y) {
+                                handleCreateYear(y);
+                                setNewExamTarget(`JEE Main ${y}`);
+                                if (newModuleType === 'PYQ') {
+                                  setNewTitle(`PYQ Archive: ${newChapter} (JEE Main ${y})`);
+                                }
+                              }
+                            } else if (e.key === 'Escape') {
+                              setIsCreatingYear(false);
+                            }
+                          }}
+                          className={styles.fieldInputEnhanced}
+                          style={{ maxWidth: '140px', height: '36px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const y = Number(newYearInput);
+                            if (y) {
+                              handleCreateYear(y);
+                              setNewExamTarget(`JEE Main ${y}`);
+                              if (newModuleType === 'PYQ') {
+                                setNewTitle(`PYQ Archive: ${newChapter} (JEE Main ${y})`);
+                              }
+                            }
+                          }}
+                          style={{
+                            background: '#2563eb',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '0 12px',
+                            height: '36px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsCreatingYear(false)}
+                          style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        className={styles.fieldSelectEnhanced}
+                        value={newExamTarget}
+                        onChange={(e) => {
+                          if (e.target.value === '__CREATE_NEW_YEAR__') {
+                            setIsCreatingYear(true);
+                          } else {
+                            setNewExamTarget(e.target.value);
+                          }
+                        }}
+                      >
+                        {adminPyqYears.map((yr) => (
+                          <React.Fragment key={yr}>
+                            <option value={`JEE Main ${yr}`}>JEE Main {yr}</option>
+                            <option value={`JEE Advanced ${yr}`}>JEE Advanced {yr}</option>
+                          </React.Fragment>
+                        ))}
+                        <option value="BITSAT 2026">BITSAT 2026</option>
+                        <option value="Class 11/12 Foundation">Class 11/12 Foundation</option>
+                        <option value="__CREATE_NEW_YEAR__">+ Create / Add Custom Year...</option>
+                      </select>
+                    )}
                   </div>
                 </div>
 
@@ -2242,15 +2360,131 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className={styles.metaField}>
-                    <label>Archive Year Tag:</label>
-                    <input
-                      type="text"
-                      className={styles.fieldInputSmall}
-                      placeholder="e.g. JEE Main 2024"
-                      value={editingItem.questions[editingQuestionIdx].examYear || ''}
-                      onChange={(e) => handleUpdateActiveQuestion({ examYear: e.target.value })}
-                    />
+                  <div className={styles.metaField} style={{ flex: '1 1 100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>
+                        Archive Exam Year:
+                      </label>
+                      {!isCreatingYear && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCreatingYear(true)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#2563eb',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}
+                        >
+                          + Create New Year
+                        </button>
+                      )}
+                    </div>
+
+                    {isCreatingYear && (
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          autoFocus
+                          placeholder="e.g. 2002, 2008, 2011"
+                          value={newYearInput}
+                          onChange={(e) => setNewYearInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const y = Number(newYearInput);
+                              if (y) {
+                                handleCreateYear(y);
+                                handleUpdateActiveQuestion({ examYear: `JEE ${y}` });
+                              }
+                            } else if (e.key === 'Escape') {
+                              setIsCreatingYear(false);
+                            }
+                          }}
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            border: '1px solid #2563eb',
+                            fontSize: '12px',
+                            outline: 'none',
+                            width: '180px'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const y = Number(newYearInput);
+                            if (y) {
+                              handleCreateYear(y);
+                              handleUpdateActiveQuestion({ examYear: `JEE ${y}` });
+                            }
+                          }}
+                          style={{
+                            background: '#2563eb',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Create &amp; Apply
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsCreatingYear(false)}
+                          style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Quick Year Selection Chips */}
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {adminPyqYears.map((yr) => {
+                        const currentYearStr = String(editingItem.questions[editingQuestionIdx].examYear || '');
+                        const isSelected = currentYearStr.includes(String(yr));
+                        return (
+                          <button
+                            key={yr}
+                            type="button"
+                            onClick={() => handleUpdateActiveQuestion({ examYear: `JEE ${yr}` })}
+                            style={{
+                              padding: '3px 9px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: isSelected ? 700 : 500,
+                              cursor: 'pointer',
+                              border: isSelected ? '1px solid #2563eb' : '1px solid #cbd5e1',
+                              background: isSelected ? '#eff6ff' : '#f8fafc',
+                              color: isSelected ? '#1d4ed8' : '#334155',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {isSelected ? '✓ ' : ''}{yr}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ marginTop: '6px' }}>
+                      <input
+                        type="text"
+                        className={styles.fieldInputSmall}
+                        placeholder="Custom label e.g. JEE Main 2002 Shift-1"
+                        value={editingItem.questions[editingQuestionIdx].examYear || ''}
+                        onChange={(e) => handleUpdateActiveQuestion({ examYear: e.target.value })}
+                        style={{ width: '100%', fontSize: '12px' }}
+                      />
+                    </div>
                   </div>
                 </div>
 
