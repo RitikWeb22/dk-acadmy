@@ -38,6 +38,7 @@ import {
 import styles from './CourseBuilderWorkspace.module.scss';
 import { cmsService } from '../../../services/cmsService';
 import { apiClient } from '../../../services/apiClient';
+import { parseVideoUrl, getVideoSourceBadge } from '../../../utils/videoUrl';
 import type { Course, CourseCurriculumSection } from '../../../types';
 import { CreatedCoursesCatalog } from './CreatedCoursesCatalog';
 
@@ -1031,9 +1032,11 @@ export const CourseBuilderWorkspace: React.FC = () => {
         const res = await cmsService.updateCourse(editingCourseId, newCourse);
         published = res || newCourse;
         showToast(`✓ Course "${published.title}" updated in MongoDB successfully!`);
+        window.dispatchEvent(new CustomEvent('dk_course_updated', { detail: published }));
       } else {
         published = await cmsService.createCourse(newCourse);
         showToast(`✓ Course "${published.title}" published & saved to MongoDB!`);
+        window.dispatchEvent(new CustomEvent('dk_course_created', { detail: published }));
       }
       setExistingCourses((prev) => [
         published,
@@ -1628,43 +1631,46 @@ export const CourseBuilderWorkspace: React.FC = () => {
                   <input
                     type="url"
                     className={styles.formInput}
-                    placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/... or .mp4 URL"
+                    placeholder="e.g. YouTube link (https://www.youtube.com/watch?v=...) or Google Drive link (https://drive.google.com/file/d/...)"
                     value={demoVideoUrl}
                     onChange={(e) => setDemoVideoUrl(e.target.value)}
                   />
                   <span style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                    💡 When visitors or students click <strong>"Demo"</strong> or <strong>"Watch Demo"</strong> on this course card or detail page, this exact video will play. Supports YouTube, Vimeo, Cloudinary, and direct MP4/video links.
+                    💡 When visitors or students click <strong>"Demo"</strong> or <strong>"Watch Demo"</strong> on this course card or detail page, this exact video will play. Supports <strong>Google Drive</strong> (share set to "Anyone with the link can view"), <strong>YouTube</strong>, Cloudinary, and direct MP4 streams.
                   </span>
-                  {demoVideoUrl.trim() && (
-                    <div style={{ marginTop: '10px', padding: '10px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
-                        <Play size={14} color="#16a34a" /> Live Demo Video Preview:
-                      </div>
-                      {demoVideoUrl.includes('youtube.com') || demoVideoUrl.includes('youtu.be') ? (
-                        <div style={{ position: 'relative', paddingBottom: '40%', height: 0, overflow: 'hidden', borderRadius: '6px' }}>
-                          <iframe
-                            src={
-                              demoVideoUrl.includes('youtu.be/')
-                                ? `https://www.youtube-nocookie.com/embed/${demoVideoUrl.split('youtu.be/')[1].split(/[?&]/)[0]}`
-                                : demoVideoUrl.includes('watch?v=')
-                                ? `https://www.youtube-nocookie.com/embed/${demoVideoUrl.split('watch?v=')[1].split(/[?&]/)[0]}`
-                                : demoVideoUrl
-                            }
-                            title="Course Demo Preview"
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
+                  {demoVideoUrl.trim() && (() => {
+                    const parsed = parseVideoUrl(demoVideoUrl);
+                    const badge = getVideoSourceBadge(parsed.type);
+                    return (
+                      <div style={{ marginTop: '10px', padding: '10px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
+                            <Play size={14} color="#16a34a" /> Live Demo Video Preview:
+                          </div>
+                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: badge.bg, color: badge.color, fontWeight: 600 }}>
+                            {badge.label}
+                          </span>
                         </div>
-                      ) : (
-                        <video
-                          src={demoVideoUrl}
-                          controls
-                          style={{ width: '100%', maxHeight: '200px', borderRadius: '6px', background: '#000' }}
-                        />
-                      )}
-                    </div>
-                  )}
+                        {parsed.isIframe ? (
+                          <div style={{ position: 'relative', paddingBottom: '50%', height: 0, overflow: 'hidden', borderRadius: '6px' }}>
+                            <iframe
+                              src={parsed.embedUrl}
+                              title="Course Demo Preview"
+                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                        ) : (
+                          <video
+                            src={parsed.directUrl}
+                            controls
+                            style={{ width: '100%', maxHeight: '200px', borderRadius: '6px', background: '#000' }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Field 9: Course Thumbnail Dropzone & Live Preview (Full Width) */}
@@ -2216,14 +2222,14 @@ export const CourseBuilderWorkspace: React.FC = () => {
                             <div className={styles.lectureTwoColRow}>
                               <div className={styles.lectureField}>
                                 <label className={styles.lectureSublabel}>
-                                  Video Stream URL (HLS / S3 / Vimeo)
+                                  Video URL (YouTube, Google Drive, MP4, HLS)
                                 </label>
                                 <div className={styles.urlInputWrap}>
                                   <Video size={14} className={styles.urlPrefixIcon} />
                                   <input
                                     type="url"
                                     className={styles.lectureSubInputPrefixed}
-                                    placeholder="https://stream.dkacademy.com/hls/lec-01.m3u8"
+                                    placeholder="https://drive.google.com/file/d/... or YouTube link or .m3u8"
                                     value={lecture.videoUrl}
                                     onChange={(e) =>
                                       updateLectureField(
@@ -2235,6 +2241,15 @@ export const CourseBuilderWorkspace: React.FC = () => {
                                     }
                                   />
                                 </div>
+                                {lecture.videoUrl && (() => {
+                                  const p = parseVideoUrl(lecture.videoUrl);
+                                  const b = getVideoSourceBadge(p.type);
+                                  return (
+                                    <span style={{ display: 'inline-block', fontSize: '11px', marginTop: '4px', padding: '2px 8px', borderRadius: '4px', background: b.bg, color: b.color, fontWeight: 600 }}>
+                                      ✓ {b.label} Detected
+                                    </span>
+                                  );
+                                })()}
                               </div>
 
                               <div className={styles.lectureFieldSmall}>

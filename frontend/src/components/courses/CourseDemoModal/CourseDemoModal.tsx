@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { Course } from '../../../types';
 import { useStudentAuth } from '../../../context/AuthContext';
+import { parseVideoUrl } from '../../../utils/videoUrl';
 import styles from './CourseDemoModal.module.scss';
 
 interface CourseDemoModalProps {
@@ -79,8 +80,8 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
     return '/videos/1.mp4';
   }, [course]);
 
-  const youtubeEmbedUrl = useMemo(() => {
-    return getYouTubeEmbedUrl(rawVideoUrl);
+  const parsedVideo = useMemo(() => {
+    return parseVideoUrl(rawVideoUrl);
   }, [rawVideoUrl]);
 
   useEffect(() => {
@@ -219,10 +220,10 @@ export const CourseDemoModal: React.FC<CourseDemoModalProps> = ({
           <div className={styles.leftVideoSection}>
             {/* Top Video Player Container */}
             <div className={styles.videoPlayerContainer}>
-              {youtubeEmbedUrl ? (
+              {parsedVideo.isIframe ? (
                 <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '360px', background: '#000' }}>
                   <iframe
-                    src={youtubeEmbedUrl}
+                    src={parsedVideo.embedUrl}
                     title={`${course.title} Demo Masterclass`}
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

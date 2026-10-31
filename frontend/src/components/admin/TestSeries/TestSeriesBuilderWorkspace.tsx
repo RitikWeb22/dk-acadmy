@@ -1161,11 +1161,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     try {
       await apiClient.post<any>('/test-series', payload);
+      window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: payload }));
       showToast('✓ Test Series scheduled and published successfully!');
       setIsPublishModalOpen(true);
       await fetchLiveTestSeries();
     } catch (err: any) {
       console.error('Error saving test series:', err);
+      window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: payload }));
       showToast(`Saved locally: ${err?.message || 'Network sync'}`);
       setIsPublishModalOpen(true);
     } finally {

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { X, ExternalLink, Download, FileText, CheckCircle2 } from 'lucide-react';
 import { YoutubeIcon } from '../../ui/YoutubeIcon/YoutubeIcon';
 import type { PYQQuestion } from '../../../types';
+import { parseVideoUrl } from '../../../utils/videoUrl';
 import styles from './PYQVideoModal.module.scss';
 
 interface PYQVideoModalProps {
@@ -33,32 +34,12 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
 
   if (!isOpen || !question) return null;
 
-  // Extract YouTube embed URL or video ID
-  const getEmbedUrl = (url?: string) => {
-    if (!url) return 'https://www.youtube.com/embed/dQw4w9WgXcQ';
-    try {
-      if (url.includes('embed/')) return url;
-      if (url.includes('youtu.be/')) {
-        const id = url.split('youtu.be/')[1]?.split('?')[0];
-        return `https://www.youtube.com/embed/${id}?autoplay=1`;
-      }
-      if (url.includes('watch?v=')) {
-        const id = url.split('watch?v=')[1]?.split('&')[0];
-        return `https://www.youtube.com/embed/${id}?autoplay=1`;
-      }
-    } catch {
-      // fallback
-    }
-    return url;
-  };
-
-  const isDirectVideo = Boolean(
-    (question.videoUrl && (question.videoUrl.endsWith('.mp4') || question.videoUrl.startsWith('/videos/') || question.videoUrl.startsWith('/assets/'))) ||
-    (question.youtubeUrl && (question.youtubeUrl.endsWith('.mp4') || question.youtubeUrl.startsWith('/videos/') || question.youtubeUrl.startsWith('/assets/')))
-  );
-  const directVideoSrc = question.videoUrl || (question.youtubeUrl?.endsWith('.mp4') ? question.youtubeUrl : '');
-  const embedUrl = isDirectVideo ? '' : getEmbedUrl(question.youtubeUrl);
-  const rawYoutubeUrl = question.youtubeUrl || 'https://www.youtube.com';
+  const targetVideoUrl = question.videoUrl || question.youtubeUrl || '';
+  const parsed = parseVideoUrl(targetVideoUrl);
+  const isDirectVideo = !parsed.isIframe;
+  const directVideoSrc = parsed.directUrl || '/videos/1.mp4';
+  const embedUrl = parsed.embedUrl || 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ';
+  const rawYoutubeUrl = targetVideoUrl || 'https://www.youtube.com';
 
   return (
     <div
