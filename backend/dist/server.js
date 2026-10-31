@@ -10,8 +10,8 @@ const server = http.createServer(app);
 initSocket(server);
 // Start Server and Connect DB
 const startServer = () => {
-    server.listen(PORT, () => {
-        console.log(`[Server] Running on http://localhost:${PORT} in ${env.NODE_ENV} mode`);
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log(`[Server] Running on http://0.0.0.0:${PORT} in ${env.NODE_ENV} mode`);
         console.log(`[Socket.io] Realtime gateway active on port ${PORT}`);
     });
     // Connect to DB in background and seed initial data
