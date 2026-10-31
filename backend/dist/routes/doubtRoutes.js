@@ -21,11 +21,17 @@ const createDoubtSchema = z
     .strict();
 const answerDoubtSchema = z
     .object({
-    answer: z.string().trim().min(1, 'Answer text is required'),
+    answer: z.string().trim().optional(),
+    answerText: z.string().trim().optional(),
     facultyName: z.string().optional(),
-    answerImage: z.string().optional()
+    adminName: z.string().optional(),
+    answerImage: z.string().optional(),
+    attachmentUrl: z.string().optional()
 })
-    .strict();
+    .refine((data) => (Boolean(data.answer && data.answer.trim().length > 0) || Boolean(data.answerText && data.answerText.trim().length > 0)), {
+    message: 'Answer text is required',
+    path: ['answerText']
+});
 // Retrieve doubts (admin & student view)
 router.get('/', getDoubts);
 // Student submits doubt

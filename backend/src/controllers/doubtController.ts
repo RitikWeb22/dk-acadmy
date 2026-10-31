@@ -112,9 +112,11 @@ export const createDoubt = async (req: AuthRequest, res: Response): Promise<void
 export const answerDoubt = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { answerText, adminName, attachmentUrl } = req.body;
+    const answerText = (req.body.answerText || req.body.answer || '').trim();
+    const adminName = (req.body.adminName || req.body.facultyName || req.user?.name || 'DK Sir (Director)').trim();
+    const attachmentUrl = (req.body.attachmentUrl || req.body.answerImage || '').trim();
 
-    if (!answerText || !answerText.trim()) {
+    if (!answerText) {
       res.status(400).json({ success: false, message: 'Answer text cannot be empty' });
       return;
     }
