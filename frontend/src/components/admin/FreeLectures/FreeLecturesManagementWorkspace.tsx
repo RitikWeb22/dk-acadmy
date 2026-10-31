@@ -894,6 +894,65 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* Field: Live Free Track Card Mockup */}
+                  <div className={`${styles.fieldCol} ${styles.colFull}`}>
+                    <div className={styles.liveTrackMockupSection}>
+                      <div className={styles.liveTrackMockupHeader}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Sparkles size={16} color="#059669" />
+                          <span className={styles.liveTrackMockupTitle}>
+                            Live Free Track Mockup (Aspirant Library View)
+                          </span>
+                        </div>
+                        <span className={styles.statusPillFree}>
+                          <Check size={11} /> Realtime Preview
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '8px' }}>
+                        <div className={styles.liveTrackMockupCard}>
+                          <div className={styles.liveTrackThumbWrap}>
+                            <img
+                              src={thumbnailUrl || '/img/founder.jpeg'}
+                              alt={trackTitle || 'Track Thumbnail'}
+                              className={styles.liveTrackThumbImg}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = '/img/founder.jpeg';
+                              }}
+                            />
+                            <div className={styles.liveTrackTopBadges}>
+                              <span className={styles.liveTrackSubjectBadge}>
+                                {subject}
+                              </span>
+                              {selectedLectureTags.some((t) => t.toLowerCase() === 'popular') && (
+                                <span className={styles.liveTrackPopularBadge}>Popular</span>
+                              )}
+                            </div>
+                            <span className={styles.liveTrackFreeDemoPill}>
+                              <Unlock size={11} /> 5 Free Lectures Included
+                            </span>
+                          </div>
+
+                          <div className={styles.liveTrackCardBody}>
+                            <span className={styles.liveTrackExamTag}>{targetExam}</span>
+                            <h3 className={styles.liveTrackTitle}>
+                              {trackTitle || 'Differential Calculus Shortcuts & 20s Inspection'}
+                            </h3>
+                            <div className={styles.liveTrackFacultyRow}>
+                              <GraduationCap size={14} color="#2563eb" />
+                              <span>{facultyName}</span>
+                            </div>
+
+                            <div className={styles.liveTrackFreePolicyHighlight}>
+                              <span>🎁 Lectures 1–5 Free</span>
+                              <span>₹0 Evaluation Tier</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Bottom Action Bar */}
@@ -989,6 +1048,48 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
                         value="First 5 Videos: ₹0 Free"
                       />
                       <span className={styles.stepCardSubtitle}>Zero payment barrier</span>
+                    </div>
+                  </div>
+
+                  {/* Visual 5-Free Distribution Meter */}
+                  <div className={styles.policyVisualMeter}>
+                    <div className={styles.policyMeterTitleRow}>
+                      <span>Interactive 5-Free Video Timeline Meter</span>
+                      <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600 }}>
+                        Auto-governed by Pedagogy Rules
+                      </span>
+                    </div>
+                    <div className={styles.policyMeterBar}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+                        const isFreeSegment = num <= 5;
+                        return (
+                          <div
+                            key={num}
+                            className={`${styles.policyMeterSegment} ${
+                              isFreeSegment
+                                ? styles.policyMeterSegmentFree
+                                : styles.policyMeterSegmentPaid
+                            }`}
+                            title={
+                              isFreeSegment
+                                ? `Lecture ${num}: 100% Free Demo (₹0)`
+                                : `Lecture ${num}: Paid Masterclass (₹${defaultPaidPrice})`
+                            }
+                          >
+                            #{num}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className={styles.policyMeterLegend}>
+                      <div className={styles.legendItem}>
+                        <span className={styles.legendDotFree} />
+                        <span>Lectures 1–5: 100% Free Demo for All Students (₹0)</span>
+                      </div>
+                      <div className={styles.legendItem}>
+                        <span className={styles.legendDotPaid} />
+                        <span>Lectures 6+: Paid Unlock Tier (₹{defaultPaidPrice})</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1116,6 +1217,20 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
                                   value={lec.duration}
                                   onChange={(e) => updateLessonField(lec.id, 'duration', e.target.value)}
                                 />
+                                <div className={styles.quickDurationRow}>
+                                  {['30 min', '45 min', '60 min', '90 min'].map((dur) => (
+                                    <button
+                                      key={dur}
+                                      type="button"
+                                      className={`${styles.quickDurationChip} ${
+                                        lec.duration === dur ? styles.quickDurationChipActive : ''
+                                      }`}
+                                      onClick={() => updateLessonField(lec.id, 'duration', dur)}
+                                    >
+                                      {dur}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
                             </div>
 

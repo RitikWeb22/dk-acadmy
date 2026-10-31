@@ -1760,6 +1760,130 @@ export const CourseBuilderWorkspace: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Field 10: Realtime Live Course Card Mockup (Instant Public Preview) */}
+                <div className={`${styles.fieldCol} ${styles.colFull}`}>
+                  <div className={styles.liveCardPreviewSection}>
+                    <div className={styles.liveCardPreviewHeader}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={16} color="#d97706" />
+                        <span className={styles.liveCardPreviewTitle}>
+                          Live Website Card Mockup (Realtime Student View)
+                        </span>
+                      </div>
+                      <span className={styles.liveSyncPill}>
+                        <span className={styles.pulsingGreenDot} /> Live Sync
+                      </span>
+                    </div>
+                    <p className={styles.liveCardPreviewSub}>
+                      Visual preview of how this course card will render to prospective students across the public course catalog, search filters, and batch listings.
+                    </p>
+
+                    <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '8px' }}>
+                      <div className={styles.mockupCardWrapper}>
+                        <div className={styles.mockupThumbnailWrap}>
+                          <img
+                            src={
+                              thumbnailPreview ||
+                              cloudinaryCoverUrl ||
+                              '/img/dk-results-banner.jpeg'
+                            }
+                            alt={courseName || 'Course Thumbnail Preview'}
+                            className={styles.mockupThumbImg}
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src =
+                                '/img/dk-results-banner.jpeg';
+                            }}
+                          />
+                          <div className={styles.mockupTopBadges}>
+                            <span className={styles.mockupDeliveryBadge}>
+                              {selectedTags.find((t) =>
+                                [
+                                  'test series',
+                                  'self-study dlp',
+                                  'live online',
+                                  'classroom',
+                                  'hybrid'
+                                ].includes(t.toLowerCase())
+                              ) || 'Live Online'}
+                            </span>
+                            {selectedTags.some((t) => t.toLowerCase() === 'popular') && (
+                              <span className={styles.mockupPopularBadge}>Popular</span>
+                            )}
+                          </div>
+                          {demoVideoUrl.trim() && (
+                            <div className={styles.mockupDemoPlayOverlay}>
+                              <Play size={11} fill="#ffffff" color="#ffffff" />
+                              <span>Demo Ready</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className={styles.mockupCardBody}>
+                          <div className={styles.mockupCategoryRow}>
+                            <span className={styles.mockupCategoryTag}>{category}</span>
+                            <span className={styles.mockupLevelTag}>{courseLevel}</span>
+                          </div>
+
+                          <h3 className={styles.mockupCourseTitle}>
+                            {courseName || 'All India Online CBT Test Series: Target JEE 2028'}
+                          </h3>
+
+                          <div className={styles.mockupFacultyRow}>
+                            <GraduationCap size={14} color="#2563eb" />
+                            <span>Dharmendra Kumar (DK Sir) • HOD Maths</span>
+                          </div>
+
+                          <div className={styles.mockupPricingRow}>
+                            <div className={styles.mockupPriceCol}>
+                              <span className={styles.mockupOfferPrice}>
+                                ₹{Number(coursePrice || '84000').toLocaleString('en-IN')}
+                              </span>
+                              {originalPrice &&
+                                Number(originalPrice) > Number(coursePrice || '0') && (
+                                  <span className={styles.mockupOriginalPrice}>
+                                    ₹{Number(originalPrice).toLocaleString('en-IN')}
+                                  </span>
+                                )}
+                            </div>
+                            {discountPercent > 0 && (
+                              <span className={styles.mockupSaveBadge}>
+                                {discountPercent}% OFF • Saves ₹{savingsAmount.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className={styles.mockupCardActions}>
+                            {demoVideoUrl.trim() ? (
+                              <a
+                                href={demoVideoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.mockupDemoBtn}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  window.open(demoVideoUrl, '_blank');
+                                }}
+                              >
+                                <Play size={12} fill="currentColor" />
+                                <span>Watch Demo</span>
+                              </a>
+                            ) : (
+                              <span className={styles.mockupDemoPlaceholder}>
+                                <Video size={12} />
+                                <span>No Demo Added</span>
+                              </span>
+                            )}
+                            <button type="button" className={styles.mockupEnrollBtn}>
+                              <span>Enroll Now</span>
+                              <ArrowRight size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Bottom Action Bar */}
@@ -2133,6 +2257,29 @@ export const CourseBuilderWorkspace: React.FC = () => {
                                       )
                                     }
                                   />
+                                </div>
+                                <div className={styles.quickDurationRow}>
+                                  {[30, 45, 60, 90].map((preset) => (
+                                    <button
+                                      key={preset}
+                                      type="button"
+                                      className={`${styles.quickDurationChip} ${
+                                        lecture.durationMinutes === preset
+                                          ? styles.quickDurationChipActive
+                                          : ''
+                                      }`}
+                                      onClick={() =>
+                                        updateLectureField(
+                                          section.id,
+                                          lecture.id,
+                                          'durationMinutes',
+                                          preset
+                                        )
+                                      }
+                                    >
+                                      {preset}m
+                                    </button>
+                                  ))}
                                 </div>
                               </div>
                             </div>
