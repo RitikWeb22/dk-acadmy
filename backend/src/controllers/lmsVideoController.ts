@@ -510,6 +510,11 @@ export const lmsVideoController = {
         return;
       }
 
+      if (req.user && session.studentId && session.studentId.toString() !== req.user._id.toString()) {
+        res.status(403).json({ success: false, message: 'Unauthorized session access' });
+        return;
+      }
+
       if (session.revoked || !session.isActive) {
         res.status(200).json({
           success: true,
