@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
+import { env } from '../config/env.js';
 import { LiveSession } from '../models/LiveSession.js';
 import { User } from '../models/User.js';
 
@@ -29,9 +30,9 @@ export const getLiveToken = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-    const livekitUrl = process.env.LIVEKIT_URL || 'wss://dk-acadmey-jpdi7yks.livekit.cloud';
+    const apiKey = env.LIVEKIT_API_KEY;
+    const apiSecret = env.LIVEKIT_API_SECRET;
+    const livekitUrl = env.LIVEKIT_URL || 'wss://dk-acadmey-jpdi7yks.livekit.cloud';
 
     if (!apiKey || !apiSecret) {
       res.status(500).json({
@@ -246,9 +247,9 @@ export const startLiveSession = async (req: Request, res: Response): Promise<voi
     );
 
     // Also auto-generate teacher token for convenience
-    const apiKey = process.env.LIVEKIT_API_KEY!;
-    const apiSecret = process.env.LIVEKIT_API_SECRET!;
-    const livekitUrl = process.env.LIVEKIT_URL || 'wss://dk-acadmey-jpdi7yks.livekit.cloud';
+    const apiKey = env.LIVEKIT_API_KEY;
+    const apiSecret = env.LIVEKIT_API_SECRET;
+    const livekitUrl = env.LIVEKIT_URL || 'wss://dk-acadmey-jpdi7yks.livekit.cloud';
 
     const at = new AccessToken(apiKey, apiSecret, {
       identity: teacherId || 'teacher_dk_sir',
@@ -302,9 +303,9 @@ export const endLiveSession = async (req: Request, res: Response): Promise<void>
     }
 
     // Try closing room via LiveKit RoomServiceClient
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-    const livekitUrl = process.env.LIVEKIT_URL;
+    const apiKey = env.LIVEKIT_API_KEY;
+    const apiSecret = env.LIVEKIT_API_SECRET;
+    const livekitUrl = env.LIVEKIT_URL;
 
     if (apiKey && apiSecret && livekitUrl) {
       try {

@@ -3,11 +3,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import helmet from 'helmet';
+import { env } from './config/env.js';
 import apiRoutes from './routes/apiRoutes.js';
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 import { sanitizeInputs, globalApiLimiter } from './middlewares/securityMiddleware.js';
-
-dotenv.config();
 
 export const app = express();
 
@@ -31,45 +30,27 @@ app.use(
   })
 );
 
-// Explicit CORS Allowlists
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'https://dk-acadmy.vercel.app',
-  'https://dkacademy.in',
-  'https://www.dkacademy.in',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000'
-].filter(Boolean) as string[];
+// Explicit CORS Allowlist from validated environment configuration
+const allowedOrigins = env.ALLOWED_ORIGINS_ARRAY;
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      // Allow requests with no origin (e.g. mobile native apps, curl, server-to-server)
       if (!origin) return callback(null, true);
 
-      // Local development origins
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        return callback(null, true);
-      }
-
-      // Vercel deployment preview and production domains
-      if (origin.endsWith('.vercel.app') || origin.includes('vercel.app')) {
-        return callback(null, true);
-      }
-
-      // Configured production client URLs
+      // Check strict allowlist match
       if (allowedOrigins.some((allowed) => allowed === origin || (allowed && allowed.includes(origin)))) {
         return callback(null, true);
       }
 
-      // In production, reject unverified third-party origins
-      if (process.env.NODE_ENV === 'production') {
-        return callback(new Error(`CORS Security Violation: Origin ${origin} not authorized.`));
+      // Vercel deployment preview domains
+      if (origin.endsWith('.vercel.app')) {
+        return callback(null, true);
       }
 
-      return callback(null, true);
+      // Reject unapproved origins in all environments (no arbitrary origin reflection with credentials)
+      return callback(new Error(`CORS Security Violation: Origin ${origin} not authorized.`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

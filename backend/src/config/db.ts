@@ -1,18 +1,6 @@
 import dns from 'dns';
 import mongoose from 'mongoose';
-
-// MongoDB Atlas connection URI loaded securely from environment variables
-const getMongoUri = (): string => {
-  const uri = process.env.MONGO_URI || process.env.DIRECT_ATLAS_URI;
-  if (!uri) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('[Security Exception]: MONGO_URI environment variable is missing.');
-    }
-    console.warn('[MongoDB Warning]: MONGO_URI is not set. Please configure backend/.env.');
-    return 'mongodb://127.0.0.1:27017/dk_academy_jee';
-  }
-  return uri;
-};
+import { env } from './env.js';
 
 // Prioritize IPv4 DNS lookups on Windows (prevents getaddrinfo ENOTFOUND with MongoDB Atlas replica sets)
 try {
@@ -26,7 +14,7 @@ try {
 let isReconnecting = false;
 
 export const connectDB = async (): Promise<void> => {
-  const uri = getMongoUri();
+  const uri = env.MONGO_URI;
 
   const tryConnect = async (targetUri: string) => {
     return await mongoose.connect(targetUri, {

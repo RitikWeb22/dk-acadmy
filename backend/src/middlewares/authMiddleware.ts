@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import { env } from '../config/env.js';
 import { User, type IUser } from '../models/User.js';
 
 export interface AuthRequest extends Request {
@@ -29,7 +30,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   }
 
   try {
-    const secret = process.env.JWT_SECRET || 'F7x6LaFFrx1V4PSoHdi4iP5pSta4h7Ay2M6fu5R8r0k';
+    const secret = env.JWT_SECRET;
     const decoded = jwt.verify(token, secret) as DecodedToken;
 
     if (!decoded || !decoded.id) {

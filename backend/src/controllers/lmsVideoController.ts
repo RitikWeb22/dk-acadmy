@@ -11,8 +11,9 @@ import path from 'path';
 import fs from 'fs';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { env } from '../config/env.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dk_academy_jwt_super_secret_key_2026_xyz123';
+const JWT_SECRET = env.JWT_SECRET;
 
 // Input validation schemas using zod
 export const uploadMetadataSchema = z.object({

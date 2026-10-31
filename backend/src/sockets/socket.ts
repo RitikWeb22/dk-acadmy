@@ -1,16 +1,11 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import type { Server as HTTPServer } from 'http';
 import jwt from 'jsonwebtoken';
+import { env } from '../config/env.js';
 
 let io: SocketIOServer | null = null;
 
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000'
-].filter(Boolean) as string[];
+const allowedOrigins = env.ALLOWED_ORIGINS_ARRAY;
 
 export const initSocket = (server: HTTPServer): SocketIOServer => {
   io = new SocketIOServer(server, {
@@ -19,10 +14,6 @@ export const initSocket = (server: HTTPServer): SocketIOServer => {
         // Allow requests with no origin (like mobile apps, curl or server-to-server)
         if (!origin) return callback(null, true);
         if (allowedOrigins.some((allowed) => allowed === origin || (allowed && allowed.includes(origin)))) {
-          return callback(null, true);
-        }
-        // In development, allow localhost variations
-        if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
           return callback(null, true);
         }
         return callback(new Error('CORS policy: Socket origin not allowed'), false);
@@ -43,8 +34,7 @@ export const initSocket = (server: HTTPServer): SocketIOServer => {
         socket.handshake.headers.authorization?.replace(/^Bearer\s+/i, '');
 
       if (rawToken && typeof rawToken === 'string') {
-        const secret = process.env.JWT_SECRET || 'jwt_secret_dk_institute_jee_2026';
-        const decoded = jwt.verify(rawToken, secret) as any;
+        const decoded = jwt.verify(rawToken, env.JWT_SECRET, { algorithms: ['HS256'] }) as any;
         socket.data.user = decoded;
       }
     } catch {
@@ -69,8 +59,7 @@ export const initSocket = (server: HTTPServer): SocketIOServer => {
     socket.on('authenticate', (data: { token?: string }) => {
       try {
         if (!data?.token || typeof data.token !== 'string') return;
-        const secret = process.env.JWT_SECRET || 'jwt_secret_dk_institute_jee_2026';
-        const decoded = jwt.verify(data.token, secret) as any;
+        const decoded = jwt.verify(data.token, env.JWT_SECRET, { algorithms: ['HS256'] }) as any;
         socket.data.user = decoded;
 
         // Auto-join admin room if role permits
@@ -99,11 +88,8 @@ export const initSocket = (server: HTTPServer): SocketIOServer => {
         const userRole = socket.data?.user?.role;
         const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'COUNSELOR', 'FACULTY', 'LEAD_MANAGER'];
         if (!userRole || !allowedRoles.includes(userRole)) {
-          // If in development mode or non-strict dev environment, log warning
-          if (process.env.NODE_ENV === 'production') {
-            socket.emit('unauthorized_room', { room });
-            return;
-          }
+          socket.emit('unauthorized_room', { room });
+          return;
         }
       }
 

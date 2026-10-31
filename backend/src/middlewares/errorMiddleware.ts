@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { env } from '../config/env.js';
 
 export const notFound = (req: Request, res: Response, next: NextFunction): void => {
   res.status(404).json({
@@ -46,14 +47,14 @@ export const errorHandler = (
     message = 'Authentication token has expired. Please sign in again.';
   }
 
-  if (process.env.NODE_ENV !== 'test') {
+  if (env.NODE_ENV !== 'test') {
     console.error(`[Error Handler] ${req.method} ${req.originalUrl} - ${statusCode}:`, message);
   }
 
   res.status(statusCode).json({
     success: false,
     message,
-    ...(process.env.NODE_ENV === 'production' ? {} : { stack: err.stack })
+    ...(env.NODE_ENV === 'production' ? {} : { stack: err.stack })
   });
 };
 

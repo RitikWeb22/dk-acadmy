@@ -72,3 +72,4 @@ export const sanitizeInputs = (req: Request, _res: Response, next: NextFunction)
   }
   next();
 };
+

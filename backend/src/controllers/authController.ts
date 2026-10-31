@@ -1,14 +1,14 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
+import { env } from '../config/env.js';
 import { User } from '../models/User.js';
 import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import { broadcastStudentRegistered } from '../sockets/socket.js';
 import { generateStudentId, generateTeacherId } from '../utils/uuid.js';
 
 const generateToken = (id: string, role: string): string => {
-  const secret = process.env.JWT_SECRET || 'dk_academy_jwt_super_secret_key_2026_xyz123';
-  return jwt.sign({ id, role, jti: uuidv4() }, secret, {
+  return jwt.sign({ id, role, jti: uuidv4() }, env.JWT_SECRET, {
     expiresIn: '7d'
   });
 };
