@@ -208,21 +208,51 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCK_TIME_MS = 15 * 60 * 1000; // 15 minutes
+
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
+    const genericErrorMessage = 'Invalid email or password';
 
     if (!email || !password) {
-      res.status(400).json({ success: false, message: 'Please provide email and password' });
+      res.status(400).json({ success: false, message: genericErrorMessage });
       return;
     }
 
     const cleanEmail = email.trim().toLowerCase();
     const user = await User.findOne({ email: cleanEmail }).select('+password');
 
-    if (!user || !(await user.comparePassword(password))) {
-      res.status(401).json({ success: false, message: 'Invalid email or password' });
+    if (!user) {
+      res.status(401).json({ success: false, message: genericErrorMessage });
       return;
+    }
+
+    // Check account lockout
+    if (user.lockUntil && user.lockUntil.getTime() > Date.now()) {
+      res.status(401).json({ success: false, message: genericErrorMessage });
+      return;
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      const currentAttempts = (user.failedLoginAttempts || 0) + 1;
+      const updates: any = { failedLoginAttempts: currentAttempts };
+      if (currentAttempts >= MAX_FAILED_ATTEMPTS) {
+        updates.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
+      }
+      await User.findByIdAndUpdate(user._id, updates);
+      res.status(401).json({ success: false, message: genericErrorMessage });
+      return;
+    }
+
+    // Reset lockout counters on success
+    if (user.failedLoginAttempts || user.lockUntil) {
+      await User.findByIdAndUpdate(user._id, {
+        $set: { failedLoginAttempts: 0 },
+        $unset: { lockUntil: 1 }
+      });
     }
 
     const token = generateToken(user._id.toString(), user.role);
@@ -262,44 +292,48 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 export const adminLogin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
+    const genericErrorMessage = 'Invalid email or password';
 
     if (!email || !password) {
-      res.status(400).json({ success: false, message: 'Please enter both email and password' });
+      res.status(400).json({ success: false, message: genericErrorMessage });
       return;
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    let user = await User.findOne({ email: cleanEmail }).select('+password');
+    const user = await User.findOne({ email: cleanEmail }).select('+password');
 
-    // If account not in database yet, auto-seed production Super Admin account
     if (!user) {
-      if (cleanEmail === 'ritikweb30@gmail.com') {
-        user = await User.create({
-          name: 'Ritik (Super Admin)',
-          email: 'ritikweb30@gmail.com',
-          password: password || 'ritik@123',
-          phone: '+91 93259 87875',
-          role: 'SUPER_ADMIN'
-        });
-      }
-    }
-
-    let passwordMatches = user ? await user.comparePassword(password) : false;
-    if (!passwordMatches && user) {
-      if (cleanEmail === 'ritikweb30@gmail.com' && password === 'ritik@123') {
-        user.password = 'ritik@123';
-        user.role = 'SUPER_ADMIN';
-        await user.save();
-        passwordMatches = true;
-      }
-    }
-
-    if (!user || !passwordMatches) {
-      res.status(401).json({ success: false, message: 'Invalid credentials. Please verify your staff password.' });
+      res.status(401).json({ success: false, message: genericErrorMessage });
       return;
     }
 
-    // Explicitly allow TEACHER, ADMIN, SUPER_ADMIN, and Portal roles
+    // Check account lockout
+    if (user.lockUntil && user.lockUntil.getTime() > Date.now()) {
+      res.status(401).json({ success: false, message: genericErrorMessage });
+      return;
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      const currentAttempts = (user.failedLoginAttempts || 0) + 1;
+      const updates: any = { failedLoginAttempts: currentAttempts };
+      if (currentAttempts >= MAX_FAILED_ATTEMPTS) {
+        updates.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
+      }
+      await User.findByIdAndUpdate(user._id, updates);
+      res.status(401).json({ success: false, message: genericErrorMessage });
+      return;
+    }
+
+    // Reset lockout counters on success
+    if (user.failedLoginAttempts || user.lockUntil) {
+      await User.findByIdAndUpdate(user._id, {
+        $set: { failedLoginAttempts: 0 },
+        $unset: { lockUntil: 1 }
+      });
+    }
+
+    // Explicitly allow TEACHER, ADMIN, SUPER_ADMIN, and Portal administrative roles
     const allowedAdminRoles = ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'LEAD_MANAGER', 'COUNSELOR'];
     if (!allowedAdminRoles.includes(user.role)) {
       res.status(403).json({ success: false, message: 'Access denied: not an administrative or faculty account' });
