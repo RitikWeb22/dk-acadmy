@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { FreeLecture, type IFreeLecture } from '../models/FreeLecture.js';
 import {
   broadcastFreeLectureCreated,
@@ -555,7 +556,9 @@ export const getFreeLectures = async (req: Request, res: Response): Promise<void
 export const getFreeLectureById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const lecture = await FreeLecture.findOne({ $or: [{ id }, { _id: id }] });
+    const idStr = String(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+    const lecture = await FreeLecture.findOne(isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr });
 
     if (!lecture) {
       res.status(404).json({ success: false, error: 'Lecture not found' });
@@ -669,8 +672,10 @@ export const updateFreeLecture = async (req: Request, res: Response): Promise<vo
       payload.price = 499;
     }
 
+    const idStr = String(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
     const updated = await FreeLecture.findOneAndUpdate(
-      { $or: [{ id }, { _id: id }] },
+      isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr },
       { $set: payload },
       { new: true, runValidators: true }
     );
@@ -695,7 +700,9 @@ export const updateFreeLecture = async (req: Request, res: Response): Promise<vo
 export const deleteFreeLecture = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const deleted = await FreeLecture.findOneAndDelete({ $or: [{ id }, { _id: id }] });
+    const idStr = String(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+    const deleted = await FreeLecture.findOneAndDelete(isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr });
 
     if (!deleted) {
       res.status(404).json({ success: false, error: 'Lecture not found' });

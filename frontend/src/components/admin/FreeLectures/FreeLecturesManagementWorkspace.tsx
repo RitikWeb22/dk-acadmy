@@ -26,10 +26,14 @@ import {
   Search,
   Filter,
   Eye,
-  ListFilter
+  ListFilter,
+  FileSpreadsheet,
+  Printer
 } from 'lucide-react';
 import { apiClient } from '../../../services/apiClient';
 import { cmsService, CMS_EVENT_KEY } from '../../../services/cmsService';
+import { AdminConfirmModal } from '../Common/AdminConfirmModal';
+import { exportToExcel, exportToPDF } from '../../../utils/exportUtils';
 import styles from './FreeLecturesManagementWorkspace.module.scss';
 
 export interface AdminLectureItem {
@@ -110,6 +114,20 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [isPublished, setIsPublished] = useState<boolean>(false);
+  const [selectedLectureIds, setSelectedLectureIds] = useState<string[]>([]);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    action: () => Promise<void> | void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    action: () => {}
+  });
 
   // ─── Step 1: Track Information ───
   const [trackTitle, setTrackTitle] = useState('Differential Calculus Shortcuts');
@@ -500,16 +518,19 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
   const handleDirectoryToggle = async (lec: AdminLectureItem) => {
     const nextIsFree = !lec.isFree;
     const nextPrice = nextIsFree ? 0 : lec.price > 0 ? lec.price : 499;
+    const lectureId = lec.id || (lec._id as string);
 
     try {
-      const res = await apiClient.put(`/free-lectures/${lec.id || lec._id}`, {
+      const res = await apiClient.put(`/free-lectures/${lectureId}`, {
         isFree: nextIsFree,
         price: nextPrice
       });
       if (res && res.success) {
         setDbLectures((prev) =>
           prev.map((item) =>
-            item.id === lec.id ? { ...item, isFree: nextIsFree, price: nextPrice } : item
+            item.id === lec.id || (item._id && item._id === lec._id)
+              ? { ...item, isFree: nextIsFree, price: nextPrice }
+              : item
           )
         );
         showToast(
@@ -518,22 +539,107 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
             : `🔒 "${lec.title}" marked as Paid Masterclass (₹${nextPrice}).`
         );
       }
-    } catch (err) {
-      showToast('❌ Error updating lecture status.');
+    } catch (err: any) {
+      showToast('❌ Error updating lecture status: ' + (err?.message || 'Server error'));
     }
   };
 
-  // Directory: Delete
-  const handleDirectoryDelete = async (id: string) => {
-    try {
-      const res = await apiClient.delete(`/free-lectures/${id}`);
-      if (res && res.success) {
-        setDbLectures((prev) => prev.filter((l) => l.id !== id && l._id !== id));
-        showToast('🗑️ Lecture removed.');
+  // Directory: Delete with confirmation popup
+  const confirmDeleteLecture = (lec: AdminLectureItem) => {
+    const lectureId = lec.id || (lec._id as string);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Masterclass Lecture',
+      message: `Are you sure you want to delete "${lec.title}" from the database? This action cannot be undone.`,
+      confirmText: 'Delete Lecture',
+      variant: 'danger',
+      action: async () => {
+        try {
+          const res = await apiClient.delete(`/free-lectures/${lectureId}`);
+          if (res && res.success) {
+            setDbLectures((prev) => prev.filter((l) => l.id !== lectureId && l._id !== lectureId));
+            setSelectedLectureIds((prev) => prev.filter((id) => id !== lectureId));
+            showToast('🗑️ Lecture removed.');
+          }
+        } catch (err: any) {
+          showToast('❌ Error deleting lecture: ' + (err.message || 'Server error'));
+        }
       }
-    } catch (err) {
-      showToast('❌ Error deleting lecture.');
+    });
+  };
+
+  // Bulk Delete
+  const handleBulkDeleteLectures = () => {
+    if (selectedLectureIds.length === 0) return;
+    setConfirmModal({
+      isOpen: true,
+      title: `Delete ${selectedLectureIds.length} Selected Lectures`,
+      message: `Are you sure you want to permanently delete ${selectedLectureIds.length} video lectures from the database? This action cannot be undone.`,
+      confirmText: 'Bulk Delete',
+      variant: 'danger',
+      action: async () => {
+        try {
+          for (const id of selectedLectureIds) {
+            await apiClient.delete(`/free-lectures/${id}`);
+          }
+          setDbLectures((prev) =>
+            prev.filter((l) => !selectedLectureIds.includes(l.id) && !selectedLectureIds.includes(l._id as string))
+          );
+          showToast(`🗑️ ${selectedLectureIds.length} lectures removed.`);
+          setSelectedLectureIds([]);
+        } catch (err: any) {
+          showToast('❌ Error deleting lectures: ' + (err.message || 'Server error'));
+        }
+      }
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedLectureIds.length === filteredDbLectures.length) {
+      setSelectedLectureIds([]);
+    } else {
+      setSelectedLectureIds(filteredDbLectures.map((l) => l.id || (l._id as string)));
     }
+  };
+
+  const handleToggleSelectOne = (id: string) => {
+    setSelectedLectureIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleExportExcel = () => {
+    const headers = ['Title', 'Subject', 'Track', 'Pricing', 'Duration', 'Faculty', 'DPP'];
+    const rows = filteredDbLectures.map((l) => [
+      l.title,
+      l.subject,
+      l.trackTitle,
+      l.isFree ? 'Free Demo (₹0)' : `Paid (₹${l.price})`,
+      l.duration,
+      l.facultyName || 'DK Sir',
+      l.dppName || 'Included'
+    ]);
+    exportToExcel('DK_Academy_Lectures_Roster', headers, rows);
+    showToast('📊 Lectures exported to Excel.');
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['Title', 'Subject', 'Track', 'Pricing', 'Duration'];
+    const rows = filteredDbLectures.map((l) => [
+      l.title,
+      l.subject,
+      l.trackTitle,
+      l.isFree ? 'Free (₹0)' : `₹${l.price}`,
+      l.duration
+    ]);
+    exportToPDF({
+      title: 'Free Lectures & Masterclasses Roster',
+      subtitle: 'DK Academy JEE Kota Video Masterclasses Directory',
+      filename: 'DK_Academy_Lectures_Report',
+      headers,
+      rows
+    });
+    showToast('📄 Lectures exported to PDF.');
   };
 
   // Metrics
@@ -1586,12 +1692,88 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
                   {acc.label}
                 </button>
               ))}
+
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {selectedLectureIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleBulkDeleteLectures}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    <span>Delete Selected ({selectedLectureIds.length})</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleExportExcel}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: 'pointer'
+                  }}
+                  title="Export to Excel"
+                >
+                  <FileSpreadsheet size={14} />
+                  <span>Export Excel</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportPDF}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#6366f1',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: 'pointer'
+                  }}
+                  title="Export to PDF"
+                >
+                  <Printer size={14} />
+                  <span>Export PDF</span>
+                </button>
+              </div>
             </div>
           </div>
 
           <div className={styles.directoryTableWrap}>
             <div className={styles.directoryTableHeader}>
-              <span>Lecture &amp; Track</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="checkbox"
+                  checked={filteredDbLectures.length > 0 && selectedLectureIds.length === filteredDbLectures.length}
+                  onChange={handleToggleSelectAll}
+                  aria-label="Select all lectures"
+                  style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                />
+                <span>Lecture &amp; Track</span>
+              </div>
               <span>Subject</span>
               <span>Access &amp; Pricing</span>
               <span>Attached DPP</span>
@@ -1599,66 +1781,89 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
             </div>
 
             <div className={styles.directoryTableBody}>
-              {filteredDbLectures.map((lec) => (
-                <div key={lec.id || lec._id} className={styles.directoryTableRow}>
-                  <div className={styles.rowLectureInfo}>
-                    <span className={styles.rowNumPill}>#{String(lec.order).padStart(2, '0')}</span>
-                    <div className={styles.rowDetails}>
-                      <span className={styles.rowTrackName}>{lec.trackTitle}</span>
-                      <h4 className={styles.rowTitle}>{lec.title}</h4>
-                      <div className={styles.rowMeta}>
-                        <span>⏱️ {lec.duration}</span>
-                        <span>👨‍🏫 {lec.facultyName}</span>
+              {filteredDbLectures.map((lec) => {
+                const lecIdentifier = lec.id || (lec._id as string);
+                const isSelected = selectedLectureIds.includes(lecIdentifier);
+
+                return (
+                  <div key={lecIdentifier} className={styles.directoryTableRow}>
+                    <div className={styles.rowLectureInfo}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelectOne(lecIdentifier)}
+                        aria-label={`Select ${lec.title}`}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px', marginRight: '6px' }}
+                      />
+                      <span className={styles.rowNumPill}>#{String(lec.order).padStart(2, '0')}</span>
+                      <div className={styles.rowDetails}>
+                        <span className={styles.rowTrackName}>{lec.trackTitle}</span>
+                        <h4 className={styles.rowTitle}>{lec.title}</h4>
+                        <div className={styles.rowMeta}>
+                          <span>⏱️ {lec.duration}</span>
+                          <span>👨‍🏫 {lec.facultyName}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <span className={styles.statusPillFree}>{lec.subject}</span>
-                  </div>
+                    <div>
+                      <span className={styles.statusPillFree}>{lec.subject}</span>
+                    </div>
 
-                  <div>
-                    {lec.isFree ? (
-                      <span className={styles.statusPillFree}>
-                        <Unlock size={11} /> 100% Free Demo (₹0)
-                      </span>
-                    ) : (
-                      <span className={styles.statusPillPaid}>
-                        <Lock size={11} /> Paid Masterclass • ₹{lec.price}
-                      </span>
-                    )}
-                  </div>
+                    <div>
+                      {lec.isFree ? (
+                        <span className={styles.statusPillFree}>
+                          <Unlock size={11} /> 100% Free Demo (₹0)
+                        </span>
+                      ) : (
+                        <span className={styles.statusPillPaid}>
+                          <Lock size={11} /> Paid Masterclass • ₹{lec.price}
+                        </span>
+                      )}
+                    </div>
 
-                  <div>
-                    <span className={styles.rowMeta}>{lec.dppName || 'DPP Included'}</span>
-                  </div>
+                    <div>
+                      <span className={styles.rowMeta}>{lec.dppName || 'DPP Included'}</span>
+                    </div>
 
-                  <div className={styles.rowActionButtons}>
-                    <button
-                      type="button"
-                      className={`${styles.quickToggleFreeBtn} ${
-                        lec.isFree ? styles.toggleMakePaid : styles.toggleMakeFree
-                      }`}
-                      onClick={() => handleDirectoryToggle(lec)}
-                    >
-                      {lec.isFree ? <Lock size={12} /> : <Unlock size={12} />}
-                      <span>{lec.isFree ? 'Make Paid' : 'Make Free'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.deleteLessonBtn}
-                      onClick={() => handleDirectoryDelete(lec.id || (lec._id as string))}
-                      title="Delete from database"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <div className={styles.rowActionButtons}>
+                      <button
+                        type="button"
+                        className={`${styles.quickToggleFreeBtn} ${
+                          lec.isFree ? styles.toggleMakePaid : styles.toggleMakeFree
+                        }`}
+                        onClick={() => handleDirectoryToggle(lec)}
+                      >
+                        {lec.isFree ? <Lock size={12} /> : <Unlock size={12} />}
+                        <span>{lec.isFree ? 'Make Paid' : 'Make Free'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.deleteLessonBtn}
+                        onClick={() => confirmDeleteLecture(lec)}
+                        title="Delete from database"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.action}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

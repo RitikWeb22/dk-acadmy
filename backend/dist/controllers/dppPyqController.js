@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { DppPyq } from '../models/DppPyq.js';
 import { broadcastDppPyqCreated, broadcastDppPyqUpdated, broadcastDppPyqDeleted } from '../sockets/socket.js';
 const SEED_QUESTIONS = [
@@ -333,7 +334,9 @@ export const updateDppPyq = async (req, res) => {
         if (updates.questions && Array.isArray(updates.questions)) {
             updates.questionsCount = updates.questions.length;
         }
-        const updated = await DppPyq.findOneAndUpdate({ $or: [{ id }, { _id: id }] }, { $set: updates }, { new: true, runValidators: true });
+        const idStr = String(id);
+        const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+        const updated = await DppPyq.findOneAndUpdate(isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr }, { $set: updates }, { new: true, runValidators: true });
         if (!updated) {
             res.status(404).json({ error: 'DPP/PYQ item not found' });
             return;
@@ -349,9 +352,9 @@ export const updateDppPyq = async (req, res) => {
 export const deleteDppPyq = async (req, res) => {
     try {
         const { id } = req.params;
-        const deleted = await DppPyq.findOneAndDelete({
-            $or: [{ id }, { _id: id }]
-        });
+        const idStr = String(id);
+        const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+        const deleted = await DppPyq.findOneAndDelete(isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr });
         if (!deleted) {
             res.status(404).json({ error: 'DPP/PYQ item not found' });
             return;

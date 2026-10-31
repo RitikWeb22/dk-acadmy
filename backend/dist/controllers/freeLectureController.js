@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { FreeLecture } from '../models/FreeLecture.js';
 import { broadcastFreeLectureCreated, broadcastFreeLectureUpdated, broadcastFreeLectureDeleted } from '../sockets/socket.js';
 const SEED_FREE_LECTURES = [
@@ -540,7 +541,9 @@ export const getFreeLectures = async (req, res) => {
 export const getFreeLectureById = async (req, res) => {
     try {
         const { id } = req.params;
-        const lecture = await FreeLecture.findOne({ $or: [{ id }, { _id: id }] });
+        const idStr = String(id);
+        const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+        const lecture = await FreeLecture.findOne(isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr });
         if (!lecture) {
             res.status(404).json({ success: false, error: 'Lecture not found' });
             return;
@@ -622,7 +625,9 @@ export const updateFreeLecture = async (req, res) => {
         else if (payload.isFree === false && (!payload.price || Number(payload.price) === 0)) {
             payload.price = 499;
         }
-        const updated = await FreeLecture.findOneAndUpdate({ $or: [{ id }, { _id: id }] }, { $set: payload }, { new: true, runValidators: true });
+        const idStr = String(id);
+        const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+        const updated = await FreeLecture.findOneAndUpdate(isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr }, { $set: payload }, { new: true, runValidators: true });
         if (!updated) {
             res.status(404).json({ success: false, error: 'Lecture not found' });
             return;
@@ -642,7 +647,9 @@ export const updateFreeLecture = async (req, res) => {
 export const deleteFreeLecture = async (req, res) => {
     try {
         const { id } = req.params;
-        const deleted = await FreeLecture.findOneAndDelete({ $or: [{ id }, { _id: id }] });
+        const idStr = String(id);
+        const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+        const deleted = await FreeLecture.findOneAndDelete(isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr });
         if (!deleted) {
             res.status(404).json({ success: false, error: 'Lecture not found' });
             return;
