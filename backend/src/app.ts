@@ -66,9 +66,9 @@ app.post(
   handleRazorpayWebhook
 );
 
-// Request body parsers with bounded content size
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// Request body parsers with strictly bounded content size (100kb)
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ limit: '100kb', extended: true }));
 
 // NoSQL Injection & Input Sanitizer (recursively cleans req.body, req.query, req.params)
 app.use(sanitizeInputs);

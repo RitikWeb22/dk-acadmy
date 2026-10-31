@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import {
   register,
   login,
@@ -16,39 +17,133 @@ import {
   deleteUserByAdmin
 } from '../controllers/authController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
+import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
 // Rate limiter for authentication endpoints (prevent brute-force attacks)
+// Strictly 5 requests per minute per IP per Phase 4 requirement
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 mins
-  max: 25, // max 25 attempts per 15 mins per IP
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // max 5 attempts per minute per IP
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many login attempts. Please try again after 15 minutes.' }
+  message: { success: false, message: 'Too many login attempts. Please wait 1 minute before trying again.' }
 });
 
+// Zod Validation Schemas
+const registerSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
+    email: z.string().trim().email('Valid email address required'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    phone: z.string().trim().optional(),
+    role: z
+      .enum(['STUDENT', 'TEACHER', 'COUNSELOR', 'LEAD_MANAGER', 'CMS_MANAGER', 'ADMIN', 'SUPER_ADMIN'])
+      .optional(),
+    targetExam: z.string().trim().optional(),
+    targetClass: z.string().trim().optional(),
+    targetYear: z.string().trim().optional()
+  })
+  .strict();
+
+const loginSchema = z
+  .object({
+    email: z.string().trim().email('Valid email address required'),
+    password: z.string().min(1, 'Password is required')
+  })
+  .strict();
+
+const googleAuthSchema = z
+  .object({
+    token: z.string().optional(),
+    credential: z.string().optional(),
+    idToken: z.string().optional(),
+    email: z.string().email().optional(),
+    name: z.string().optional(),
+    googleId: z.string().optional()
+  })
+  .strict();
+
+const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    phone: z.string().trim().optional(),
+    avatarUrl: z.string().trim().optional(),
+    targetExam: z.string().trim().optional(),
+    targetClass: z.string().trim().optional(),
+    targetYear: z.string().trim().optional(),
+    preferredLanguage: z.string().trim().optional(),
+    city: z.string().trim().optional(),
+    state: z.string().trim().optional(),
+    parentName: z.string().trim().optional(),
+    parentPhone: z.string().trim().optional(),
+    schoolName: z.string().trim().optional(),
+    board: z.string().trim().optional(),
+    dob: z.string().trim().optional(),
+    bio: z.string().trim().optional(),
+    designation: z.string().trim().optional(),
+    department: z.string().trim().optional()
+  })
+  .strict();
+
+const enrollCourseSchema = z
+  .object({
+    courseId: z.string().trim().min(1, 'courseId is required')
+  })
+  .strict();
+
+const updatePasswordSchema = z
+  .object({
+    password: z.string().min(6, 'New password must be at least 6 characters')
+  })
+  .strict();
+
 // Public Auth Endpoints
-router.post('/register', authLimiter, register);
-router.post('/login', authLimiter, login);
-router.post('/google', authLimiter, googleAuth);
-router.post('/admin-login', authLimiter, adminLogin);
+router.post('/register', authLimiter, validate({ body: registerSchema }), register);
+router.post('/login', authLimiter, validate({ body: loginSchema }), login);
+router.post('/google', authLimiter, validate({ body: googleAuthSchema }), googleAuth);
+router.post('/admin-login', authLimiter, validate({ body: loginSchema }), adminLogin);
 
 // Protected Student / User Endpoints
 router.get('/me', protect, getMe);
-router.put('/profile', protect, updateProfile);
-router.post('/enroll-course', protect, enrollCourse);
-router.post('/enroll', protect, enrollCourse);
+router.put('/profile', protect, validate({ body: updateProfileSchema }), updateProfile);
+router.post('/enroll-course', protect, validate({ body: enrollCourseSchema }), enrollCourse);
+router.post('/enroll', protect, validate({ body: enrollCourseSchema }), enrollCourse);
 
 // Admin-only User Lists & Management
 router.get('/students', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'LEAD_MANAGER'), getStudentsList);
 router.post('/students', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStudentByAdmin);
 router.get('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), getStaffList);
 router.post('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStaffByAdmin);
-router.put('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), updateStaffByAdmin);
-router.put('/staff/:id/password', protect, authorize('SUPER_ADMIN', 'ADMIN'), updateStaffPasswordByAdmin);
-router.delete('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), deleteUserByAdmin);
-router.delete('/users/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), deleteUserByAdmin);
+router.put(
+  '/staff/:id',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN'),
+  validate({ params: idParamSchema }),
+  updateStaffByAdmin
+);
+router.put(
+  '/staff/:id/password',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN'),
+  validate({ params: idParamSchema, body: updatePasswordSchema }),
+  updateStaffPasswordByAdmin
+);
+router.delete(
+  '/staff/:id',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN'),
+  validate({ params: idParamSchema }),
+  deleteUserByAdmin
+);
+router.delete(
+  '/users/:id',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN'),
+  validate({ params: idParamSchema }),
+  deleteUserByAdmin
+);
 
 export default router;

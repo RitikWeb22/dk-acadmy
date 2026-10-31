@@ -37,10 +37,6 @@ export const sensitiveActionLimiter = rateLimit({
  */
 function sanitizeObject(obj: any): any {
   if (!obj || typeof obj !== 'object') {
-    if (typeof obj === 'string') {
-      // Basic XSS mitigation: neutralize blatant executable script tags
-      return obj.replace(/<\s*script[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, '');
-    }
     return obj;
   }
 
