@@ -250,9 +250,21 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
     window.addEventListener('dk_payment_success', handleRealtimePayment);
     window.addEventListener('dk_order_created', handleRealtimePayment);
+    window.addEventListener('dk_course_created', fetchAnalytics);
+    window.addEventListener('dk_course_updated', fetchAnalytics);
+    window.addEventListener('dk_free_lecture_created', fetchAnalytics);
+    window.addEventListener('dk_dpp_pyq_created', fetchAnalytics);
+    window.addEventListener('dk_test_series_created', fetchAnalytics);
+    window.addEventListener('dk_student_registered', fetchAnalytics);
     return () => {
       window.removeEventListener('dk_payment_success', handleRealtimePayment);
       window.removeEventListener('dk_order_created', handleRealtimePayment);
+      window.removeEventListener('dk_course_created', fetchAnalytics);
+      window.removeEventListener('dk_course_updated', fetchAnalytics);
+      window.removeEventListener('dk_free_lecture_created', fetchAnalytics);
+      window.removeEventListener('dk_dpp_pyq_created', fetchAnalytics);
+      window.removeEventListener('dk_test_series_created', fetchAnalytics);
+      window.removeEventListener('dk_student_registered', fetchAnalytics);
     };
   }, []);
 

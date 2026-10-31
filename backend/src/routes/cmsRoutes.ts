@@ -8,7 +8,7 @@ const router = Router();
 router.get('/:type', getCMSConfig);
 
 // Admin-managed CMS updates
-router.post('/:type', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), saveCMSConfig);
-router.post('/:type/reset', protect, authorize('SUPER_ADMIN', 'ADMIN'), resetCMSConfig);
+router.post('/:type', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), saveCMSConfig);
+router.post('/:type/reset', protect, authorize('SUPER_ADMIN', 'ADMIN', 'TEACHER'), resetCMSConfig);
 
 export default router;

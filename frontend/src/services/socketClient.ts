@@ -307,14 +307,36 @@ export const initSocketClient = (): Socket => {
     window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'reviews', action: 'delete', id: data?.id } }));
   });
 
-  socket.on('review:updated', (review) => {
-    window.dispatchEvent(new CustomEvent('dk_review_updated', { detail: review }));
-    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'reviews', action: 'update', data: review } }));
+  // 11. Real-time Free Lectures Lifecycle Events
+  socket.on('free_lecture:created', (data) => {
+    window.dispatchEvent(new CustomEvent('dk_free_lecture_created', { detail: data }));
+    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'free_lectures', action: 'create', data } }));
   });
 
-  socket.on('review:deleted', (data) => {
-    window.dispatchEvent(new CustomEvent('dk_review_deleted', { detail: data }));
-    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'reviews', action: 'delete', id: data?.id } }));
+  socket.on('free_lecture:updated', (data) => {
+    window.dispatchEvent(new CustomEvent('dk_free_lecture_updated', { detail: data }));
+    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'free_lectures', action: 'update', data } }));
+  });
+
+  socket.on('free_lecture:deleted', (data) => {
+    window.dispatchEvent(new CustomEvent('dk_free_lecture_deleted', { detail: data }));
+    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'free_lectures', action: 'delete', id: data?.id } }));
+  });
+
+  // 12. Real-time DPP & PYQ Problem Sets Lifecycle Events
+  socket.on('dpp_pyq:created', (item) => {
+    window.dispatchEvent(new CustomEvent('dk_dpp_pyq_created', { detail: item }));
+    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'dpp_pyq', action: 'create', data: item } }));
+  });
+
+  socket.on('dpp_pyq:updated', (item) => {
+    window.dispatchEvent(new CustomEvent('dk_dpp_pyq_updated', { detail: item }));
+    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'dpp_pyq', action: 'update', data: item } }));
+  });
+
+  socket.on('dpp_pyq:deleted', (data) => {
+    window.dispatchEvent(new CustomEvent('dk_dpp_pyq_deleted', { detail: data }));
+    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'dpp_pyq', action: 'delete', id: data?.id } }));
   });
 
   socket.on('disconnect', () => {

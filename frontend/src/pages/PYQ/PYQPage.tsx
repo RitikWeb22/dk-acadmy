@@ -41,6 +41,10 @@ export const PYQPage: React.FC = () => {
   const [pyqList, setPyqList] = useState<PYQQuestion[]>(() => cmsService.getPYQs());
 
   React.useEffect(() => {
+    cmsService.fetchPYQsFromAPI().then((items) => {
+      if (items && items.length > 0) setPyqList(items);
+    }).catch(() => {});
+
     const handleUpdate = () => setPyqList(cmsService.getPYQs());
     window.addEventListener(CMS_EVENT_KEY, handleUpdate);
     return () => window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
