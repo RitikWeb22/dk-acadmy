@@ -23,3 +23,4 @@ console.log('===> [3/3] Compiling TypeScript Backend...');
 execSync('npm --prefix backend run build', { stdio: 'inherit' });
 
 console.log('\n[SUCCESS] DK Academy Unified Build Complete! Run with: npm start');
+

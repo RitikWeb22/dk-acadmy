@@ -33,6 +33,8 @@ app.use(
         scriptSrc: [
           "'self'",
           'https://checkout.razorpay.com',
+          'https://*.razorpay.com',
+          'https://cdn.razorpay.com',
           'https://accounts.google.com'
         ],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
@@ -43,11 +45,13 @@ app.use(
           'blob:',
           'https://res.cloudinary.com',
           'https://*.razorpay.com',
+          'https://cdn.razorpay.com',
           'https://lh3.googleusercontent.com'
         ],
         connectSrc: [
           "'self'",
           'https://api.razorpay.com',
+          'https://*.razorpay.com',
           'https://lvh.me:*',
           'ws:',
           'wss:',
@@ -57,6 +61,7 @@ app.use(
         frameSrc: [
           'https://api.razorpay.com',
           'https://checkout.razorpay.com',
+          'https://*.razorpay.com',
           'https://accounts.google.com'
         ],
         objectSrc: ["'none'"],
@@ -80,27 +85,62 @@ app.use(
 const allowedOrigins = env.ALLOWED_ORIGINS_ARRAY;
 
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile native apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
+  cors((req, callback) => {
+    const origin = req.headers.origin;
+    const host = req.headers.host;
 
-      // Check strict allowlist exact match
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    // Allow requests with no origin (e.g. mobile native apps, curl, server-to-server)
+    if (!origin) {
+      return callback(null, {
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+      });
+    }
 
-      // Vercel deployment preview domains with strict regex pattern
-      if (/^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/.test(origin)) {
-        return callback(null, true);
-      }
+    // Always allow SAME-ORIGIN requests (e.g. frontend loaded on same host:port)
+    if (host && (origin === `http://${host}` || origin === `https://${host}`)) {
+      return callback(null, {
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+      });
+    }
 
-      // Reject unapproved origins in all environments (no arbitrary origin reflection with credentials)
-      return callback(new Error(`CORS Security Violation: Origin ${origin} not authorized.`));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+    // Always allow localhost and loopback IP origins on any port for local development/testing
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, {
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+      });
+    }
+
+    // Check strict allowlist exact match
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, {
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+      });
+    }
+
+    // Vercel deployment preview domains with strict regex pattern
+    if (/^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/.test(origin)) {
+      return callback(null, {
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+      });
+    }
+
+    // Reject unapproved origins in all environments (no arbitrary origin reflection with credentials)
+    return callback(new Error(`CORS Security Violation: Origin ${origin} not authorized.`));
   })
 );
 

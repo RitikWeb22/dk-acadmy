@@ -153,3 +153,4 @@ git commit -m "feat: sync frontend dist and backend for Hostinger live deploymen
 git push origin main
 ```
 Hostinger Git integration will pull the commit, restart Node.js, and your website will be live in seconds!
+
