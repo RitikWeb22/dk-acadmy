@@ -18,7 +18,8 @@ import {
   Volume2,
   MessageSquare,
   Search,
-  Plus
+  Plus,
+  Tag
 } from 'lucide-react';
 import { useAdminAuth } from '../../../context/AdminAuthContext';
 import type { AdminRole } from '../../../types/admin';
@@ -86,6 +87,7 @@ const ALL_NAV_ITEMS: AdminNavItem[] = [
   { label: 'Navbar CMS', path: '/admin/navbar', icon: FileCode2, roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'Footer CMS', path: '/admin/footer', icon: FileCode2, roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'Promotional Banners', path: '/admin/banners', icon: FileCode2, roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { label: 'Discount Coupons & Limits', path: '/admin/coupons', icon: Tag, roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'Staff Management', path: '/admin/staff', icon: GraduationCap, roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'Counselors Desk', path: '/admin/counselors', icon: Users2, roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'Audit & Security Logs', path: '/admin/audit-logs', icon: Settings, roles: ['SUPER_ADMIN'] }

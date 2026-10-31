@@ -27,6 +27,7 @@ import { PYQEmptyState } from '../../components/pyq/PYQEmptyState/PYQEmptyState'
 import { PYQVideoModal } from '../../components/pyq/PYQVideoModal/PYQVideoModal';
 import { PYQCourseUnlockModal } from '../../components/pyq/PYQCourseUnlockModal/PYQCourseUnlockModal';
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
+import { apiClient } from '../../services/apiClient';
 import { useStudentAuth } from '../../context/AuthContext';
 import type { PYQQuestion } from '../../types';
 import styles from './PYQPage.module.scss';
@@ -41,13 +42,79 @@ export const PYQPage: React.FC = () => {
   const [pyqList, setPyqList] = useState<PYQQuestion[]>(() => cmsService.getPYQs());
 
   React.useEffect(() => {
-    cmsService.fetchPYQsFromAPI().then((items) => {
-      if (items && items.length > 0) setPyqList(items);
-    }).catch(() => {});
+    const syncAllPYQs = async () => {
+      try {
+        const cmsItems = await cmsService.fetchPYQsFromAPI();
+        const dppPyqRes = await apiClient.get<any>('/dpp-pyq');
+        const dppPyqList = Array.isArray(dppPyqRes) ? dppPyqRes : dppPyqRes?.data || [];
 
-    const handleUpdate = () => setPyqList(cmsService.getPYQs());
-    window.addEventListener(CMS_EVENT_KEY, handleUpdate);
-    return () => window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
+        const liveQuestions: PYQQuestion[] = [];
+        if (Array.isArray(dppPyqList)) {
+          dppPyqList.forEach((set: any) => {
+            if (set.moduleType === 'PYQ' && Array.isArray(set.questions)) {
+              set.questions.forEach((q: any, idx: number) => {
+                const yearNum = Number(q.year) || (q.examYear ? parseInt(String(q.examYear).replace(/\D/g, ''), 10) : 2024);
+                liveQuestions.push({
+                  id: q.id || `pyq-${set.id}-${idx + 1}`,
+                  exam: (set.examTarget?.includes('Advanced') ? 'JEE Advanced' : 'JEE Main') as any,
+                  year: yearNum,
+                  subject: (set.subject === 'Physics' || set.subject === 'Chemistry' ? set.subject : 'Mathematics') as any,
+                  chapter: set.chapter || 'Coordinate Geometry',
+                  topic: q.topic || set.title || 'JEE Practice',
+                  type: 'Single Choice MCQ',
+                  marks: '+4 / -1',
+                  statement: q.statement || 'Question statement',
+                  options: Array.isArray(q.options)
+                    ? q.options.map((opt: any) => ({
+                        id: opt.key || opt.id || 'A',
+                        text: opt.text || ''
+                      }))
+                    : [
+                        { id: 'A', text: 'Option A' },
+                        { id: 'B', text: 'Option B' },
+                        { id: 'C', text: 'Option C' },
+                        { id: 'D', text: 'Option D' }
+                      ],
+                  correctAnswer: q.correctKey || q.correctAnswer || 'A',
+                  formulaKey: q.dkSirShortcut || 'DK Sir 20s Inspection Rule',
+                  explanation: q.stepSolution || q.explanation || 'Detailed step-by-step solution.',
+                  isFree: q.isFree !== false,
+                  youtubeUrl: q.videoUrl || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                  videoUrl: q.videoUrl || '/videos/1.mp4',
+                  pdfUrl: q.pdfUrl || '/assets/downloads/st line-2.pdf',
+                  courseId: 'jee-pyq-archive-mastery',
+                  courseName: set.title || '10-Year JEE Chapter-Wise PYQ Mastery Course',
+                  videoDuration: '05:00'
+                });
+              });
+            }
+          });
+        }
+
+        const combinedMap = new Map<string, PYQQuestion>();
+        (cmsItems || []).forEach((q) => combinedMap.set(q.id, q));
+        liveQuestions.forEach((q) => combinedMap.set(q.id, q));
+        const combined = Array.from(combinedMap.values());
+        if (combined.length > 0) {
+          setPyqList(combined);
+          localStorage.setItem('dk_cms_pyqs', JSON.stringify(combined));
+        }
+      } catch (err) {
+        console.warn('Error loading PYQs:', err);
+      }
+    };
+
+    syncAllPYQs();
+
+    window.addEventListener(CMS_EVENT_KEY, syncAllPYQs);
+    window.addEventListener('dk_dpp_pyq_created', syncAllPYQs);
+    window.addEventListener('dk_dpp_pyq_updated', syncAllPYQs);
+
+    return () => {
+      window.removeEventListener(CMS_EVENT_KEY, syncAllPYQs);
+      window.removeEventListener('dk_dpp_pyq_created', syncAllPYQs);
+      window.removeEventListener('dk_dpp_pyq_updated', syncAllPYQs);
+    };
   }, []);
 
   // Course enrollment status
@@ -95,7 +162,7 @@ export const PYQPage: React.FC = () => {
     if (urlSubject === 'Chemistry') return 'Chemistry';
     return 'All';
   });
-  const [selectedYear, setSelectedYear] = useState<number | 'All'>('All');
+  const [selectedYear, setSelectedYear] = useState<number | string>('All');
   const [selectedChapter, setSelectedChapter] = useState('All');
 
   // Practice session state
@@ -129,9 +196,14 @@ export const PYQPage: React.FC = () => {
   const availableChapters = useMemo(() => {
     const chapters = new Set<string>();
     pyqList.forEach((q) => {
-      if (q.exam === selectedExam) {
+      const matchesExam =
+        !q.exam ||
+        q.exam === selectedExam ||
+        q.exam.includes(selectedExam) ||
+        q.exam.includes('JEE Main & Advanced');
+      if (matchesExam) {
         if (selectedSubject === 'All' || q.subject === selectedSubject) {
-          chapters.add(q.chapter);
+          if (q.chapter) chapters.add(q.chapter);
         }
       }
     });
@@ -141,10 +213,28 @@ export const PYQPage: React.FC = () => {
   // Filter questions
   const filteredQuestions = useMemo(() => {
     return pyqList.filter((q) => {
-      if (q.exam !== selectedExam) return false;
-      if (selectedSubject !== 'All' && q.subject !== selectedSubject) return false;
-      if (selectedYear !== 'All' && q.year !== selectedYear) return false;
-      if (selectedChapter !== 'All' && q.chapter !== selectedChapter) return false;
+      const matchesExam =
+        !q.exam ||
+        q.exam === selectedExam ||
+        q.exam.includes(selectedExam) ||
+        q.exam.includes('JEE Main & Advanced');
+      if (!matchesExam) return false;
+
+      if (selectedSubject !== 'All' && q.subject && q.subject !== selectedSubject) return false;
+
+      if (selectedYear !== 'All') {
+        const qYear = Number(q.year) || ((q as any).examYear ? parseInt(String((q as any).examYear).replace(/\D/g, ''), 10) : 2024);
+        if (typeof selectedYear === 'string' && selectedYear.startsWith('range:')) {
+          const [startStr, endStr] = selectedYear.replace('range:', '').split('-');
+          const start = Number(startStr);
+          const end = Number(endStr);
+          if (qYear < start || qYear > end) return false;
+        } else if (qYear !== Number(selectedYear)) {
+          return false;
+        }
+      }
+
+      if (selectedChapter !== 'All' && q.chapter && q.chapter !== selectedChapter) return false;
 
       if (searchQuery.trim().length > 0) {
         const query = searchQuery.toLowerCase().trim();

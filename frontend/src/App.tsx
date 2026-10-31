@@ -316,6 +316,14 @@ export const App: React.FC = () => {
                   }
                 />
                 <Route
+                  path="/admin/coupons"
+                  element={
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
+                      <AdminDashboardPage initialMenu="coupons" />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
                   path="/admin/counselors"
                   element={
                     <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']}>

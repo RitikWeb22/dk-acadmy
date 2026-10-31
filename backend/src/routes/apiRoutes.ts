@@ -13,6 +13,7 @@ import dppPyqRoutes from './dppPyqRoutes.js';
 import freeLectureRoutes from './freeLectureRoutes.js';
 import doubtRoutes from './doubtRoutes.js';
 import liveRoutes from './liveRoutes.js';
+import couponRoutes from './couponRoutes.js';
 
 import mongoose from 'mongoose';
 
@@ -72,6 +73,7 @@ router.use('/reviews', reviewRoutes);
 router.use('/doubts', doubtRoutes);
 router.use('/live', liveRoutes);
 router.use('/analytics', analyticsRoutes);
+router.use('/coupons', couponRoutes);
 
 
 export default router;

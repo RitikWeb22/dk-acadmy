@@ -16,6 +16,7 @@ import { useToast } from '../../context/ToastContext';
 import { COURSES_CATALOG, FREE_COURSES_CATALOG } from '../../data/coursesData';
 import { cmsService } from '../../services/cmsService';
 import { paymentService } from '../../services/paymentService';
+import { couponService } from '../../services/couponService';
 import type { Course } from '../../types';
 import styles from './PaymentPage.module.scss';
 
@@ -189,7 +190,7 @@ export const PaymentPage: React.FC = () => {
   const igstAmount = !isIntraState ? totalGstAmount : 0;
 
   // Coupon Handlers
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     const cleanCode = couponCodeInput.trim().toUpperCase();
     setCouponError(null);
     setCouponSuccess(null);
@@ -199,14 +200,34 @@ export const PaymentPage: React.FC = () => {
       return;
     }
 
-    const matched = VERIFIED_COUPONS[cleanCode];
-    if (matched) {
-      setAppliedCoupon({ code: cleanCode, data: matched });
-      setCouponCodeInput('');
-      setCouponSuccess(`✓ ${cleanCode} applied! ${matched.label}`);
-      showToast(`Coupon ${cleanCode} applied successfully!`, 'success');
-    } else {
-      setCouponError('Invalid coupon code. Try KOTA10 or EARLYBIRD.');
+    try {
+      const res = await couponService.validateAndApply(cleanCode, baseMRP);
+      if (res.success && res.data) {
+        const discountVal = res.discountAmount || 0;
+        setAppliedCoupon({
+          code: cleanCode,
+          data: {
+            type: res.data.discountType || 'percent',
+            value: res.data.discountValue || discountVal,
+            label: res.label || `${cleanCode} Applied`
+          }
+        });
+        setCouponCodeInput('');
+        setCouponSuccess(`✓ ${cleanCode} applied! Saved ₹${discountVal.toLocaleString('en-IN')}`);
+        showToast(`Coupon ${cleanCode} applied! Saved ₹${discountVal.toLocaleString('en-IN')}`, 'success');
+      } else {
+        setCouponError(res.message || 'Invalid or expired coupon code.');
+      }
+    } catch (err: any) {
+      const matched = VERIFIED_COUPONS[cleanCode];
+      if (matched) {
+        setAppliedCoupon({ code: cleanCode, data: matched });
+        setCouponCodeInput('');
+        setCouponSuccess(`✓ ${cleanCode} applied! ${matched.label}`);
+        showToast(`Coupon ${cleanCode} applied successfully!`, 'success');
+      } else {
+        setCouponError(err.message || 'Invalid or expired coupon code.');
+      }
     }
   };
 
@@ -240,6 +261,9 @@ export const PaymentPage: React.FC = () => {
         studentPhone: whatsapp.trim(),
         onSuccess: (paymentId: string) => {
           setIsProcessing(false);
+          if (appliedCoupon?.code) {
+            couponService.validateAndApply(appliedCoupon.code, baseMRP, true).catch(() => {});
+          }
           localStorage.setItem(`course_paid_${course.id}`, 'true');
           enrollCourse(course.id);
           showToast(`Payment successful via Razorpay (Txn #${paymentId})! Welcome to ${course.title}`, 'success');

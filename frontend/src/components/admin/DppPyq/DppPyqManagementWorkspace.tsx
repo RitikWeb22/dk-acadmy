@@ -770,6 +770,7 @@ export const DppPyqManagementWorkspace: React.FC = () => {
       };
       setNewTitle('');
       setNewSlug('');
+      window.dispatchEvent(new CustomEvent('dk_dpp_pyq_created', { detail: payload }));
       handleOpenEditModal(formattedForAuthoring);
       await fetchLiveDppPyq();
     } catch (err: any) {
@@ -800,6 +801,7 @@ export const DppPyqManagementWorkspace: React.FC = () => {
     setIsSaving(true);
     try {
       await apiClient.put(`/dpp-pyq/${editingItem.id}`, editingItem);
+      window.dispatchEvent(new CustomEvent('dk_dpp_pyq_updated', { detail: editingItem }));
       showToast(`✓ Saved question bank changes for "${editingItem.title}"!`);
       setEditingItem(null);
       await fetchLiveDppPyq();

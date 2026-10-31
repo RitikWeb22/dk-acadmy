@@ -516,16 +516,13 @@ export const FacultyManagementWorkspace: React.FC = () => {
                 <th scope="col" className={styles.thRole}>Status &amp; Role</th>
                 <th scope="col" className={styles.thCourses}>Assigned Batches</th>
                 <th scope="col" className={styles.thJoined}>Joined At</th>
-                <th scope="col" className={styles.thActions}>Edit</th>
-                <th scope="col" className={styles.thActions}>Suspend</th>
-                <th scope="col" className={styles.thActions}>Delete</th>
-                <th scope="col" className={styles.thActions}>Direct Message</th>
+                <th scope="col" className={styles.thActions} style={{ textAlign: 'center', width: '150px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginatedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className={styles.emptyTableState}>
+                  <td colSpan={8} className={styles.emptyTableState}>
                     <AlertCircle size={22} className={styles.emptyIcon} />
                     <p>No faculty members match your search criteria.</p>
                     <button
@@ -560,19 +557,19 @@ export const FacultyManagementWorkspace: React.FC = () => {
                         />
                       </td>
 
-                      {/* 2. ID (Monospace font with one-click copy) */}
+                      {/* 2. ID (Compact Badge with one-click copy) */}
                       <td className={styles.tdId}>
                         <button
                           type="button"
                           className={styles.idCopyButton}
                           onClick={() => handleCopyId(faculty.id)}
-                          title="Click to copy Faculty ID"
+                          title={`Click to copy Faculty ID: ${faculty.id}`}
                         >
-                          <code className={styles.idCode}>{faculty.id}</code>
+                          <code className={styles.idCode}>#{faculty.id.length > 8 ? faculty.id.slice(-6) : faculty.id}</code>
                           {copiedId === faculty.id ? (
-                            <Check size={12} className={styles.copiedIcon} />
+                            <Check size={11} className={styles.copiedIcon} />
                           ) : (
-                            <Copy size={11} className={styles.copyIcon} />
+                            <Copy size={10} className={styles.copyIcon} />
                           )}
                         </button>
                       </td>
@@ -644,77 +641,67 @@ export const FacultyManagementWorkspace: React.FC = () => {
                         <span className={styles.joinedAtText}>{faculty.joinedAt}</span>
                       </td>
 
-                      {/* 8. Edit Action (CRUD Option) */}
+                      {/* 8. Combined Actions (Edit, Suspend, Message, Delete) */}
                       <td className={styles.tdAction}>
-                        <button
-                          type="button"
-                          className={styles.editActionBtn}
-                          onClick={() => setEditingFaculty({ ...faculty })}
-                          title={`Edit record for ${faculty.name}`}
-                          aria-label={`Edit ${faculty.name}`}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                      </td>
-
-                      {/* 9. Suspend / Activate Action */}
-                      <td className={styles.tdAction}>
-                        <button
-                          type="button"
-                          className={
-                            isSuspended
-                              ? styles.activateActionBtn
-                              : styles.suspendActionBtn
-                          }
-                          onClick={() => handleToggleSuspend(faculty)}
-                          title={
-                            isSuspended
-                              ? `Reactivate privileges for ${faculty.name}`
-                              : `Suspend privileges for ${faculty.name}`
-                          }
-                          aria-label={
-                            isSuspended
-                              ? `Reactivate ${faculty.name}`
-                              : `Suspend ${faculty.name}`
-                          }
-                        >
-                          {isSuspended ? (
-                            <UserCheck size={14} />
-                          ) : (
-                            <UserX size={14} />
-                          )}
-                        </button>
-                      </td>
-
-                      {/* 10. Delete (Trash icon) */}
-                      <td className={styles.tdAction}>
-                        <button
-                          type="button"
-                          className={styles.deleteActionBtn}
-                          onClick={() => setDeleteCandidate(faculty)}
-                          title={`Delete ${faculty.name}`}
-                          aria-label={`Delete ${faculty.name}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-
-                      {/* 11. Email / Direct Message */}
-                      <td className={styles.tdAction}>
-                        <button
-                          type="button"
-                          className={styles.messageActionBtn}
-                          onClick={() => {
-                            setMessageStaff(faculty);
-                            setMessageText(
-                              `Dear ${faculty.name},\nRegarding your academic schedules and batch assignments at DK Academy...`
-                            );
-                          }}
-                          title={`Send administrative notice to ${faculty.name}`}
-                          aria-label={`Send message to ${faculty.name}`}
-                        >
-                          <Mail size={14} />
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            className={styles.editActionBtn}
+                            onClick={() => setEditingFaculty({ ...faculty })}
+                            title={`Edit record for ${faculty.name}`}
+                            aria-label={`Edit ${faculty.name}`}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className={
+                              isSuspended
+                                ? styles.activateActionBtn
+                                : styles.suspendActionBtn
+                            }
+                            onClick={() => handleToggleSuspend(faculty)}
+                            title={
+                              isSuspended
+                                ? `Reactivate ${faculty.name}`
+                                : `Suspend ${faculty.name}`
+                            }
+                            aria-label={
+                              isSuspended
+                                ? `Reactivate ${faculty.name}`
+                                : `Suspend ${faculty.name}`
+                            }
+                          >
+                            {isSuspended ? (
+                              <UserCheck size={13} />
+                            ) : (
+                              <UserX size={13} />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.messageActionBtn}
+                            onClick={() => {
+                              setMessageStaff(faculty);
+                              setMessageText(
+                                `Dear ${faculty.name},\nRegarding your academic schedules and batch assignments at DK Academy...`
+                              );
+                            }}
+                            title={`Send message to ${faculty.name}`}
+                            aria-label={`Send message to ${faculty.name}`}
+                          >
+                            <Mail size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.deleteActionBtn}
+                            onClick={() => setDeleteCandidate(faculty)}
+                            title={`Delete ${faculty.name}`}
+                            aria-label={`Delete ${faculty.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

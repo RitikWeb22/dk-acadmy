@@ -10,6 +10,7 @@ import {
   Check,
   X
 } from 'lucide-react';
+import { couponService } from '../../services/couponService';
 
 // ─── Constants & Configuration ───
 const BRAND_NAME = 'DK Academy JEE';
@@ -121,7 +122,7 @@ export const CourseCheckout: React.FC = () => {
   const igstAmount = !isIntraState ? totalGstAmount : 0;
 
   // ─── Coupon Handlers ───
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     const cleanCode = couponCodeInput.trim().toUpperCase();
     setCouponError(null);
     setCouponSuccess(null);
@@ -131,13 +132,32 @@ export const CourseCheckout: React.FC = () => {
       return;
     }
 
-    const matched = VERIFIED_COUPONS[cleanCode];
-    if (matched) {
-      setAppliedCoupon({ code: cleanCode, data: matched });
-      setCouponCodeInput('');
-      setCouponSuccess(`✓ ${cleanCode} applied! ${matched.label}`);
-    } else {
-      setCouponError('Invalid coupon code. Try KOTA10 or EARLYBIRD.');
+    try {
+      const res = await couponService.validateAndApply(cleanCode, BASE_COURSE_MRP);
+      if (res.success && res.data) {
+        const discountVal = res.discountAmount || 0;
+        setAppliedCoupon({
+          code: cleanCode,
+          data: {
+            type: res.data.discountType || 'percent',
+            value: res.data.discountValue || discountVal,
+            label: res.label || `${cleanCode} Applied`
+          }
+        });
+        setCouponCodeInput('');
+        setCouponSuccess(`✓ ${cleanCode} applied! Saved ₹${discountVal.toLocaleString('en-IN')}`);
+      } else {
+        setCouponError(res.message || 'Invalid or expired coupon code.');
+      }
+    } catch (err: any) {
+      const matched = VERIFIED_COUPONS[cleanCode];
+      if (matched) {
+        setAppliedCoupon({ code: cleanCode, data: matched });
+        setCouponCodeInput('');
+        setCouponSuccess(`✓ ${cleanCode} applied! ${matched.label}`);
+      } else {
+        setCouponError(err.message || 'Invalid or expired coupon code.');
+      }
     }
   };
 
@@ -174,6 +194,9 @@ export const CourseCheckout: React.FC = () => {
         },
         handler: function (response: any) {
           setIsProcessing(false);
+          if (appliedCoupon?.code) {
+            couponService.validateAndApply(appliedCoupon.code, BASE_COURSE_MRP, true).catch(() => {});
+          }
           alert(`Payment Successful! Razorpay Payment ID: ${response.razorpay_payment_id}\nLMS classroom credentials will be sent to ${email}`);
         },
         modal: {

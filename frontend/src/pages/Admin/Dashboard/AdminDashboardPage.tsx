@@ -13,7 +13,8 @@ import {
   ArrowUpRight,
   Sparkles,
   Video,
-  Mail
+  Mail,
+  Tag
 } from 'lucide-react';
 import { StudentManagementWorkspace } from '../../../components/admin/StudentManagement/StudentManagementWorkspace';
 import { FacultyManagementWorkspace } from '../../../components/admin/FacultyManagement/FacultyManagementWorkspace';
@@ -26,6 +27,7 @@ import { FreeLecturesManagementWorkspace } from '../../../components/admin/FreeL
 import { ContactManagementWorkspace } from '../../../components/admin/ContactManagement/ContactManagementWorkspace';
 import { NavbarFooterManagementWorkspace } from '../../../components/admin/NavbarFooter/NavbarFooterManagementWorkspace';
 import { PageManagementWorkspace } from '../../../components/admin/PageManagement/PageManagementWorkspace';
+import { CouponManagementWorkspace } from '../../../components/admin/Coupons/CouponManagementWorkspace';
 
 // Modular Components
 import { Sidebar } from './components/Sidebar';
@@ -71,6 +73,8 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
         ? 'navbar-footer'
         : location.pathname.includes('/pages')
         ? 'pages'
+        : location.pathname.includes('/coupons')
+        ? 'coupons'
         : 'dashboard')
   );
 
@@ -99,6 +103,8 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
       setActiveMenu('navbar-footer');
     } else if (location.pathname.includes('/pages')) {
       setActiveMenu('pages');
+    } else if (location.pathname.includes('/coupons')) {
+      setActiveMenu('coupons');
     }
   }, [initialMenu, location.pathname]);
 
@@ -328,6 +334,8 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
             <NavbarFooterManagementWorkspace />
           ) : activeMenu === 'pages' ? (
             <PageManagementWorkspace />
+          ) : activeMenu === 'coupons' ? (
+            <CouponManagementWorkspace />
           ) : (
             <div className={styles.dashboardContainerStack}>
               {/* ─── EXECUTIVE COMMAND HEADER STRIP ─── */}
@@ -520,6 +528,25 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                     <span className={styles.moduleValue}>Active Leads</span>
                     <span className={styles.moduleLabel}>Contact Us Desk</span>
                     <span className={styles.moduleSubText}>Callbacks &amp; Inquiries</span>
+                  </div>
+                </div>
+
+                {/* 9. Discount Coupons & Limits */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('coupons', '/admin/coupons')}
+                  title="Open Discount Coupons & Student Limits"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.purpleModuleTile}`}>
+                      <Tag size={18} />
+                    </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
+                  </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>Promo Codes</span>
+                    <span className={styles.moduleLabel}>Coupons &amp; Limits</span>
+                    <span className={styles.moduleSubText}>Student Quota Controls</span>
                   </div>
                 </div>
               </div>
