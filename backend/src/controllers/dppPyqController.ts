@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { DppPyq } from '../models/DppPyq.js';
 import {
   broadcastDppPyqCreated,
@@ -362,8 +363,10 @@ export const updateDppPyq = async (req: Request, res: Response): Promise<void> =
       updates.questionsCount = updates.questions.length;
     }
 
+    const idStr = String(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
     const updated = await DppPyq.findOneAndUpdate(
-      { $or: [{ id }, { _id: id }] },
+      isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr },
       { $set: updates },
       { new: true, runValidators: true }
     );
@@ -384,9 +387,11 @@ export const updateDppPyq = async (req: Request, res: Response): Promise<void> =
 export const deleteDppPyq = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const deleted = await DppPyq.findOneAndDelete({
-      $or: [{ id }, { _id: id }]
-    });
+    const idStr = String(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+    const deleted = await DppPyq.findOneAndDelete(
+      isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr }
+    );
 
     if (!deleted) {
       res.status(404).json({ error: 'DPP/PYQ item not found' });

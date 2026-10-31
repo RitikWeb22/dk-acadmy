@@ -89,7 +89,7 @@ app.use(helmet({
             baseUri: ["'self'"]
         }
     },
-    crossOriginOpenerPolicy: false, // Disabled to ensure Google Identity Services (GSI) & OAuth popups can communicate with window.opener / postMessage without getting blocked
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, // Enables Google Identity Services (GSI) & OAuth popups to communicate with window.opener / postMessage without getting blocked
     crossOriginResourcePolicy: { policy: 'same-origin' }, // Protected by default; cross-origin scoped to /uploads & /stream only
     crossOriginEmbedderPolicy: false,
     frameguard: { action: 'deny' }, // Clickjacking protection
