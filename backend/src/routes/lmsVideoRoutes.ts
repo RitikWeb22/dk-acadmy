@@ -43,7 +43,11 @@ router.post(
 // 3. Playback Token Generation (Feature A & B)
 router.post('/playback-token', tokenLimiter, protect, lmsVideoController.getPlaybackToken);
 
-// 4. Secure HLS Streaming (Token verified in controller)
+// 4. Secure HLS Streaming (Token verified in controller; scoped cross-origin policy for media elements)
+router.use('/stream', (_req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
 router.get('/stream/:videoId/master.m3u8', lmsVideoController.streamMasterPlaylist);
 router.get('/stream/:videoId/:assetName', (req, res, next) => {
   const assetName = String(req.params.assetName);
