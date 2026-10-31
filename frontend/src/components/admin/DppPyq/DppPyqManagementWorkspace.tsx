@@ -728,45 +728,61 @@ export const DppPyqManagementWorkspace: React.FC = () => {
     }
 
     setIsSaving(true);
+    const subShort =
+      newSubject === 'Mathematics'
+        ? 'MTH'
+        : newSubject === 'Physics'
+        ? 'PHY'
+        : newSubject === 'Chemistry'
+        ? 'CHM'
+        : 'ALL';
+    const badgeCode = newModuleType === 'BITSAT' ? 'BITSAT' : `${newModuleType} • ${subShort}`;
+    const categoryLabel =
+      newModuleType === 'BITSAT' ? 'BITSAT Speed Drill' : `${newSubject} ${newModuleType}`;
+
+    const payload = {
+      title: newTitle.trim(),
+      slug: newSlug.trim() || newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
+      moduleType: newModuleType,
+      subject: newSubject,
+      chapter: newChapter,
+      examTarget: newExamTarget,
+      badgeCode,
+      categoryLabel,
+      questionsCount: Number(newQuestionsCount) || 5,
+      solutionNote: newSolutionNote.trim() || `${newQuestionsCount} questions with step solutions`,
+      status: newStatus,
+      attemptsCount: 0,
+      questions: SAMPLE_QUESTIONS.slice(0, Number(newQuestionsCount) || 4)
+    };
+
     try {
-      const subShort =
-        newSubject === 'Mathematics'
-          ? 'MTH'
-          : newSubject === 'Physics'
-          ? 'PHY'
-          : newSubject === 'Chemistry'
-          ? 'CHM'
-          : 'ALL';
-      const badgeCode = newModuleType === 'BITSAT' ? 'BITSAT' : `${newModuleType} • ${subShort}`;
-      const categoryLabel =
-        newModuleType === 'BITSAT' ? 'BITSAT Speed Drill' : `${newSubject} ${newModuleType}`;
-
-      const payload = {
-        title: newTitle.trim(),
-        slug: newSlug.trim() || newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
-        moduleType: newModuleType,
-        subject: newSubject,
-        chapter: newChapter,
-        examTarget: newExamTarget,
-        badgeCode,
-        categoryLabel,
-        questionsCount: Number(newQuestionsCount) || 5,
-        solutionNote: newSolutionNote.trim() || `${newQuestionsCount} questions with step solutions`,
-        status: newStatus,
-        attemptsCount: 0,
-        questions: SAMPLE_QUESTIONS.slice(0, Number(newQuestionsCount) || 4)
-      };
-
-      await apiClient.post('/dpp-pyq', payload);
-      showToast(`✓ Created new practice set "${newTitle}"!`);
+      const res = await apiClient.post<any>('/dpp-pyq', payload);
+      showToast(`✓ Created new practice set "${newTitle}"! Opening Question Studio...`);
       setIsCreateModalOpen(false);
+      const createdDoc = res?.data || res || payload;
+      const formattedForAuthoring: DppPyqItem = {
+        ...payload,
+        id: createdDoc.id || createdDoc._id || `dpp-pyq-${Date.now()}`,
+        indexNo: problemSets.length + 1,
+        createdAtFormatted: 'Just now',
+        questions: payload.questions
+      };
       setNewTitle('');
       setNewSlug('');
+      handleOpenEditModal(formattedForAuthoring);
       await fetchLiveDppPyq();
     } catch (err: any) {
       console.error('Failed to create:', err);
       showToast(`Created locally: ${err?.message || 'Sync'}`);
       setIsCreateModalOpen(false);
+      handleOpenEditModal({
+        ...payload,
+        id: `dpp-pyq-${Date.now()}`,
+        indexNo: problemSets.length + 1,
+        createdAtFormatted: 'Just now',
+        questions: payload.questions
+      });
     } finally {
       setIsSaving(false);
     }

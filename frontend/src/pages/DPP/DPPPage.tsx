@@ -19,6 +19,10 @@ export const DPPPage: React.FC = () => {
   const [dppList, setDppList] = useState<DPPSet[]>(() => cmsService.getDPPSets());
 
   useEffect(() => {
+    cmsService.fetchDPPSetsFromAPI().then((items) => {
+      if (items && items.length > 0) setDppList(items);
+    }).catch(() => {});
+
     const handleUpdate = () => setDppList(cmsService.getDPPSets());
     window.addEventListener(CMS_EVENT_KEY, handleUpdate);
     return () => window.removeEventListener(CMS_EVENT_KEY, handleUpdate);

@@ -31,6 +31,7 @@ import { useToast } from '../../context/ToastContext';
 import { CallbackModal } from '../../components/leads/CallbackModal/CallbackModal';
 import { getStudentWhatsAppUrl } from '../../utils/whatsapp';
 import { apiClient } from '../../services/apiClient';
+import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import type { Course } from '../../types';
 import styles from './FreeLecturesPage.module.scss';
 
@@ -137,7 +138,21 @@ export const FreeLecturesPage: React.FC = () => {
     Record<string, { lectures: { title: string; duration: string; isFree: boolean; price?: number; dppName: string }[] }>
   >(DEMO_SYLLABUS_DETAILS);
 
-  // Fetch live video masterclasses from MongoDB Atlas
+  const getCombinedFreeCourses = (): Course[] => {
+    const cmsCourses = cmsService.getCourses().filter((c) => {
+      const isFreePrice = c.numericPrice === 0 || c.price?.includes('Free') || c.price === '₹0';
+      return isFreePrice || c.tier === 'Free' || (c as any).isFreePreview === true;
+    });
+
+    const map = new Map<string, Course>();
+    FREE_COURSES_CATALOG.forEach((c) => map.set(c.id, c));
+    cmsCourses.forEach((c) => map.set(c.id, c));
+    return Array.from(map.values());
+  };
+
+  const [allFreeCourses, setAllFreeCourses] = useState<Course[]>(getCombinedFreeCourses);
+
+  // Fetch live video masterclasses from MongoDB Atlas & listen for realtime updates
   useEffect(() => {
     const fetchLiveLectures = async () => {
       try {
@@ -165,6 +180,30 @@ export const FreeLecturesPage: React.FC = () => {
     };
 
     fetchLiveLectures();
+
+    // Fetch dynamic courses from backend API to ensure freshly created free courses are included
+    cmsService.fetchCoursesFromAPI().then(() => {
+      setAllFreeCourses(getCombinedFreeCourses());
+    }).catch(() => {});
+
+    const handleSync = () => {
+      fetchLiveLectures();
+      setAllFreeCourses(getCombinedFreeCourses());
+    };
+
+    window.addEventListener(CMS_EVENT_KEY, handleSync);
+    window.addEventListener('dk_free_lecture_created', handleSync);
+    window.addEventListener('dk_free_lecture_updated', handleSync);
+    window.addEventListener('dk_course_created', handleSync);
+    window.addEventListener('dk_course_updated', handleSync);
+
+    return () => {
+      window.removeEventListener(CMS_EVENT_KEY, handleSync);
+      window.removeEventListener('dk_free_lecture_created', handleSync);
+      window.removeEventListener('dk_free_lecture_updated', handleSync);
+      window.removeEventListener('dk_course_created', handleSync);
+      window.removeEventListener('dk_course_updated', handleSync);
+    };
   }, []);
 
   const handleEnrollAndStart = (course: Course) => {
@@ -182,7 +221,7 @@ export const FreeLecturesPage: React.FC = () => {
     navigate(`/learn/${course.id}`);
   };
 
-  const filteredCourses = FREE_COURSES_CATALOG.filter((c) => {
+  const filteredCourses = allFreeCourses.filter((c) => {
     const matchesSubject = selectedSubjectFilter === 'All' || c.subjects?.includes(selectedSubjectFilter);
     const matchesSearch =
       searchQuery.trim() === '' ||

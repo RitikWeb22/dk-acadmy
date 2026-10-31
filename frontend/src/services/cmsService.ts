@@ -1794,10 +1794,25 @@ export const cmsService = {
     try {
       const stored = localStorage.getItem(PYQ_STORAGE_KEY);
       if (stored) return JSON.parse(stored);
+      this.fetchPYQsFromAPI().catch(() => {});
     } catch {
       // fallback
     }
     return PYQ_QUESTIONS;
+  },
+
+  async fetchPYQsFromAPI(): Promise<PYQQuestion[]> {
+    try {
+      const res = await apiClient.get<any>('/cms/pyqs');
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        localStorage.setItem(PYQ_STORAGE_KEY, JSON.stringify(res.data));
+        this.notifyUpdate('pyqs');
+        return res.data;
+      }
+    } catch (err) {
+      console.warn('[cmsService] Failed to sync PYQs from API:', err);
+    }
+    return this.getPYQs();
   },
 
   savePYQs(items: PYQQuestion[]): void {
@@ -1812,8 +1827,8 @@ export const cmsService = {
       ...item,
       id: `pyq_${Date.now()}`
     };
-    items.unshift(newItem);
-    this.savePYQs(items);
+    const updated = [newItem, ...items];
+    this.savePYQs(updated);
     return newItem;
   },
 
@@ -1844,10 +1859,25 @@ export const cmsService = {
     try {
       const stored = localStorage.getItem(DPP_STORAGE_KEY);
       if (stored) return JSON.parse(stored);
+      this.fetchDPPSetsFromAPI().catch(() => {});
     } catch {
       // fallback
     }
     return DPP_SETS;
+  },
+
+  async fetchDPPSetsFromAPI(): Promise<DPPSet[]> {
+    try {
+      const res = await apiClient.get<any>('/cms/dpp');
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        localStorage.setItem(DPP_STORAGE_KEY, JSON.stringify(res.data));
+        this.notifyUpdate('dpp');
+        return res.data;
+      }
+    } catch (err) {
+      console.warn('[cmsService] Failed to sync DPP sets from API:', err);
+    }
+    return this.getDPPSets();
   },
 
   getDPPSetById(id: string): DPPSet | undefined {
