@@ -15,8 +15,7 @@ import {
   ChevronRight,
   LogOut,
   MoreVertical,
-  Video,
-  Radio
+  Video
 } from 'lucide-react';
 import { useAdminAuth } from '../../../../context/AdminAuthContext';
 import styles from './Sidebar.module.scss';
@@ -125,13 +124,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           sublabel: '5-free rule & unlock pricing',
           icon: Video,
           route: '/admin/free-lectures'
-        },
-        {
-          key: 'live-classroom',
-          label: 'Live Broadcast Studio',
-          sublabel: 'LiveKit stream & live doubt queue',
-          icon: Radio,
-          route: '/admin/live'
         },
         {
           key: 'reviews',
