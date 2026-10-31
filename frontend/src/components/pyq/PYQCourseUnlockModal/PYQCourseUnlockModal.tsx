@@ -110,7 +110,7 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
                 onClose();
               }}
             >
-              <span>Unlock All Questions &amp; Enroll Now</span>
+              <span>Proceed to Razorpay Checkout (₹1,499)</span>
               <ArrowRight size={16} />
             </button>
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
   Home,
@@ -34,6 +34,7 @@ import type { PYQQuestion } from '../../types';
 import styles from './PYQPage.module.scss';
 
 export const PYQPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlExam = searchParams.get('exam');
   const urlSubject = searchParams.get('subject');
@@ -140,8 +141,7 @@ export const PYQPage: React.FC = () => {
   };
 
   const handleEnrollCourse = () => {
-    enrollCourse('jee-pyq-archive-mastery');
-    showToast('Enrolled in 10-Year JEE PYQ Mastery Course! All questions, YouTube videos & PDF solutions unlocked.');
+    navigate('/payment/jee-pyq-archive-mastery');
   };
 
   const handleOpenUnlockModal = (qNumber?: number) => {
