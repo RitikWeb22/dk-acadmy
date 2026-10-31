@@ -14,6 +14,7 @@ interface PYQFiltersProps {
   selectedChapter: string;
   onSelectChapter: (c: string) => void;
   availableChapters: string[];
+  availableYears?: number[];
   isFilterActive: boolean;
   onResetFilters: () => void;
   resultCount: number;
@@ -29,6 +30,7 @@ export const PYQFilters: React.FC<PYQFiltersProps> = ({
   selectedChapter,
   onSelectChapter,
   availableChapters,
+  availableYears,
   isFilterActive,
   onResetFilters,
   resultCount
@@ -66,23 +68,15 @@ export const PYQFilters: React.FC<PYQFiltersProps> = ({
             id="year-select"
             value={selectedYear}
             onChange={(e) => {
-              const val = e.target.value === 'All' ? 'All' : e.target.value.startsWith('range:') ? e.target.value : Number(e.target.value);
+              const val = e.target.value === 'All' ? 'All' : Number(e.target.value);
               onSelectYear(val);
             }}
             className={styles.selectInput}
           >
-            <option value="All">All Years (2002–2026 Archive)</option>
-            <optgroup label="Era / Decade Ranges">
-              <option value="range:2020-2026">2020–2026 (Recent NTA Era)</option>
-              <option value="range:2015-2019">2015–2019 (Online CBT Era)</option>
-              <option value="range:2010-2014">2010–2014 (IIT JEE &amp; AIEEE)</option>
-              <option value="range:2002-2009">2002–2009 (Classic Archive)</option>
-            </optgroup>
-            <optgroup label="Single Exam Year (2002–2026)">
-              {PYQ_YEARS.map((yr) => (
-                <option key={yr} value={yr}>Year {yr}</option>
-              ))}
-            </optgroup>
+            <option value="All">All Years</option>
+            {(availableYears && availableYears.length > 0 ? availableYears : PYQ_YEARS).map((yr) => (
+              <option key={yr} value={yr}>Year {yr}</option>
+            ))}
           </select>
         </div>
 

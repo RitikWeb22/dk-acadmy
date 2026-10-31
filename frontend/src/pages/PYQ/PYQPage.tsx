@@ -29,6 +29,7 @@ import { PYQCourseUnlockModal } from '../../components/pyq/PYQCourseUnlockModal/
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { apiClient } from '../../services/apiClient';
 import { useStudentAuth } from '../../context/AuthContext';
+import { getCustomPyqYears } from '../../data/pyqData';
 import type { PYQQuestion } from '../../types';
 import styles from './PYQPage.module.scss';
 
@@ -210,6 +211,20 @@ export const PYQPage: React.FC = () => {
     return Array.from(chapters).sort();
   }, [selectedExam, selectedSubject, pyqList]);
 
+  // Derive available years dynamically from questions & admin custom created years
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    pyqList.forEach((q) => {
+      const qYear = Number(q.year) || ((q as any).examYear ? parseInt(String((q as any).examYear).replace(/\D/g, ''), 10) : 0);
+      if (qYear > 1990 && qYear < 2050) {
+        years.add(qYear);
+      }
+    });
+    getCustomPyqYears().forEach((y) => years.add(y));
+    [2026, 2025, 2024, 2023, 2022, 2021].forEach((y) => years.add(y));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [pyqList]);
+
   // Filter questions
   const filteredQuestions = useMemo(() => {
     return pyqList.filter((q) => {
@@ -224,12 +239,7 @@ export const PYQPage: React.FC = () => {
 
       if (selectedYear !== 'All') {
         const qYear = Number(q.year) || ((q as any).examYear ? parseInt(String((q as any).examYear).replace(/\D/g, ''), 10) : 2024);
-        if (typeof selectedYear === 'string' && selectedYear.startsWith('range:')) {
-          const [startStr, endStr] = selectedYear.replace('range:', '').split('-');
-          const start = Number(startStr);
-          const end = Number(endStr);
-          if (qYear < start || qYear > end) return false;
-        } else if (qYear !== Number(selectedYear)) {
+        if (qYear !== Number(selectedYear)) {
           return false;
         }
       }
@@ -513,6 +523,7 @@ export const PYQPage: React.FC = () => {
             selectedChapter={selectedChapter}
             onSelectChapter={setSelectedChapter}
             availableChapters={availableChapters}
+            availableYears={availableYears}
             isFilterActive={isFilterActive}
             onResetFilters={handleResetFilters}
             resultCount={filteredQuestions.length}
