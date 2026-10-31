@@ -15,7 +15,8 @@ import {
   ChevronRight,
   LogOut,
   MoreVertical,
-  Video
+  Video,
+  Tag
 } from 'lucide-react';
 import { useAdminAuth } from '../../../../context/AdminAuthContext';
 import styles from './Sidebar.module.scss';
@@ -91,6 +92,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           sublabel: 'Razorpay & offline receipts',
           icon: CreditCard,
           route: '/admin/invoices'
+        },
+        {
+          key: 'coupons',
+          label: 'Coupons & Limits',
+          sublabel: 'Promo codes & student limits',
+          icon: Tag,
+          route: '/admin/coupons'
         }
       ]
     },

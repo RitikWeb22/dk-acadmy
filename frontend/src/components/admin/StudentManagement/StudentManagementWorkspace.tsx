@@ -467,16 +467,13 @@ export const StudentManagementWorkspace: React.FC = () => {
                 <th scope="col" className={styles.thRole}>Status &amp; Role</th>
                 <th scope="col" className={styles.thCourses}>Purchased Courses</th>
                 <th scope="col" className={styles.thJoined}>Joined At</th>
-                <th scope="col" className={styles.thActions}>Edit</th>
-                <th scope="col" className={styles.thActions}>Suspend</th>
-                <th scope="col" className={styles.thActions}>Delete</th>
-                <th scope="col" className={styles.thActions}>Direct Message</th>
+                <th scope="col" className={styles.thActions} style={{ textAlign: 'center', width: '150px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginatedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className={styles.emptyTableState}>
+                  <td colSpan={8} className={styles.emptyTableState}>
                     <AlertCircle size={22} className={styles.emptyIcon} />
                     <p>No students match your search criteria.</p>
                     <button
@@ -511,19 +508,19 @@ export const StudentManagementWorkspace: React.FC = () => {
                         />
                       </td>
 
-                      {/* 2. ID (Monospace font with one-click copy) */}
+                      {/* 2. ID (Compact Badge with one-click copy) */}
                       <td className={styles.tdId}>
                         <button
                           type="button"
                           className={styles.idCopyButton}
                           onClick={() => handleCopyId(student.id)}
-                          title="Click to copy Student ID"
+                          title={`Click to copy Student ID: ${student.id}`}
                         >
-                          <code className={styles.idCode}>{student.id}</code>
+                          <code className={styles.idCode}>#{student.id.length > 8 ? student.id.slice(-6) : student.id}</code>
                           {copiedId === student.id ? (
-                            <Check size={12} className={styles.copiedIcon} />
+                            <Check size={11} className={styles.copiedIcon} />
                           ) : (
-                            <Copy size={11} className={styles.copyIcon} />
+                            <Copy size={10} className={styles.copyIcon} />
                           )}
                         </button>
                       </td>
@@ -595,77 +592,67 @@ export const StudentManagementWorkspace: React.FC = () => {
                         <span className={styles.joinedAtText}>{student.joinedAt}</span>
                       </td>
 
-                      {/* 8. Edit Action (CRUD Option) */}
+                      {/* 8. Combined Actions (Edit, Suspend, Message, Delete) */}
                       <td className={styles.tdAction}>
-                        <button
-                          type="button"
-                          className={styles.editActionBtn}
-                          onClick={() => setEditingStudent({ ...student })}
-                          title={`Edit details for ${student.name}`}
-                          aria-label={`Edit ${student.name}`}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                      </td>
-
-                      {/* 9. Suspend / Activate Action */}
-                      <td className={styles.tdAction}>
-                        <button
-                          type="button"
-                          className={
-                            isSuspended
-                              ? styles.activateActionBtn
-                              : styles.suspendActionBtn
-                          }
-                          onClick={() => handleToggleSuspend(student)}
-                          title={
-                            isSuspended
-                              ? `Reactivate account for ${student.name}`
-                              : `Suspend account for ${student.name}`
-                          }
-                          aria-label={
-                            isSuspended
-                              ? `Reactivate ${student.name}`
-                              : `Suspend ${student.name}`
-                          }
-                        >
-                          {isSuspended ? (
-                            <UserCheck size={14} />
-                          ) : (
-                            <UserX size={14} />
-                          )}
-                        </button>
-                      </td>
-
-                      {/* 10. Delete (Trash icon) */}
-                      <td className={styles.tdAction}>
-                        <button
-                          type="button"
-                          className={styles.deleteActionBtn}
-                          onClick={() => setDeleteCandidate(student)}
-                          title={`Delete ${student.name}`}
-                          aria-label={`Delete ${student.name}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-
-                      {/* 11. Email / Direct Message */}
-                      <td className={styles.tdAction}>
-                        <button
-                          type="button"
-                          className={styles.messageActionBtn}
-                          onClick={() => {
-                            setMessageStudent(student);
-                            setMessageText(
-                              `Dear ${student.name},\nRegarding your enrolled batches at DK Academy...`
-                            );
-                          }}
-                          title={`Send message to ${student.name}`}
-                          aria-label={`Send message to ${student.name}`}
-                        >
-                          <Mail size={14} />
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            className={styles.editActionBtn}
+                            onClick={() => setEditingStudent({ ...student })}
+                            title={`Edit details for ${student.name}`}
+                            aria-label={`Edit ${student.name}`}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className={
+                              isSuspended
+                                ? styles.activateActionBtn
+                                : styles.suspendActionBtn
+                            }
+                            onClick={() => handleToggleSuspend(student)}
+                            title={
+                              isSuspended
+                                ? `Reactivate account for ${student.name}`
+                                : `Suspend account for ${student.name}`
+                            }
+                            aria-label={
+                              isSuspended
+                                ? `Reactivate ${student.name}`
+                                : `Suspend ${student.name}`
+                            }
+                          >
+                            {isSuspended ? (
+                              <UserCheck size={13} />
+                            ) : (
+                              <UserX size={13} />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.messageActionBtn}
+                            onClick={() => {
+                              setMessageStudent(student);
+                              setMessageText(
+                                `Dear ${student.name},\nRegarding your enrolled batches at DK Academy...`
+                              );
+                            }}
+                            title={`Send message to ${student.name}`}
+                            aria-label={`Send message to ${student.name}`}
+                          >
+                            <Mail size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.deleteActionBtn}
+                            onClick={() => setDeleteCandidate(student)}
+                            title={`Delete ${student.name}`}
+                            aria-label={`Delete ${student.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

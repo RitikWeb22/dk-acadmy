@@ -6,7 +6,7 @@ import styles from './PYQEmptyState.module.scss';
 interface PYQEmptyStateProps {
   searchQuery: string;
   selectedSubject: string;
-  selectedYear: number | 'All';
+  selectedYear: number | string;
   selectedExam: string;
   onResetFilters: () => void;
 }
