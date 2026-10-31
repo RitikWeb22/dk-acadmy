@@ -1,11 +1,13 @@
 import dns from 'dns';
 import mongoose from 'mongoose';
 
-// Resolve MongoDB Atlas SRV records reliably on Windows & local networks
+// Prioritize IPv4 DNS lookups on Windows (prevents getaddrinfo ENOTFOUND with MongoDB Atlas replica sets)
 try {
-  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+  if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+  }
 } catch {
-  // ignore if network permissions restrict custom DNS
+  // ignore
 }
 
 export const connectDB = async (): Promise<void> => {
@@ -15,7 +17,10 @@ export const connectDB = async (): Promise<void> => {
       maxPoolSize: 25,
       minPoolSize: 5,
       socketTimeoutMS: 45000,
-      serverSelectionTimeoutMS: 15000
+      serverSelectionTimeoutMS: 30000,
+      family: 4,
+      retryWrites: true,
+      retryReads: true
     });
     console.log(`[MongoDB] Connected successfully to host: ${conn.connection.host}`);
 

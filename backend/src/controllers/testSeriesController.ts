@@ -381,8 +381,13 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
       data: items
     });
   } catch (error: any) {
-    console.error('[getAllTestSeries Error]:', error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[getAllTestSeries Notice]: Serving fallback test series during DB reconnection:', error?.message || error);
+    res.status(200).json({
+      success: true,
+      count: SEED_TEST_SERIES.length,
+      data: SEED_TEST_SERIES,
+      isFallback: true
+    });
   }
 };
 
@@ -398,12 +403,23 @@ export const getTestSeriesByIdOrSlug = async (req: Request, res: Response): Prom
     });
 
     if (!item) {
+      const fallbackItem = SEED_TEST_SERIES.find((s) => s.id === param || s.slug === param);
+      if (fallbackItem) {
+        res.status(200).json({ success: true, data: fallbackItem });
+        return;
+      }
       res.status(404).json({ success: false, message: 'Test Series not found' });
       return;
     }
 
     res.status(200).json({ success: true, data: item });
   } catch (error: any) {
+    const param = String(req.params.id);
+    const fallbackItem = SEED_TEST_SERIES.find((s) => s.id === param || s.slug === param);
+    if (fallbackItem) {
+      res.status(200).json({ success: true, data: fallbackItem, isFallback: true });
+      return;
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
