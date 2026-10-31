@@ -203,13 +203,13 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
     totalEnrolments: 0,
     revenueGrowth: '+0.0%',
     studentsGrowth: '0 this week',
-    totalStudents: 1,
-    totalTeachers: 1,
-    totalCourses: 4,
-    totalTestSeries: 13,
-    totalDppPyq: 13,
-    totalFreeLectures: 15,
-    totalPaidLectures: 7
+    totalStudents: 0,
+    totalTeachers: 0,
+    totalCourses: 0,
+    totalTestSeries: 0,
+    totalDppPyq: 0,
+    totalFreeLectures: 0,
+    totalPaidLectures: 0
   });
 
   const fetchAnalytics = async () => {
@@ -222,13 +222,13 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
           totalEnrolments: res.summary.totalEnrolments ?? res.summary.successfulPurchases ?? 0,
           revenueGrowth: res.summary.comparisons?.revenueGrowth || '+0.0%',
           studentsGrowth: res.summary.comparisons?.studentsGrowth || '0 this week',
-          totalStudents: res.summary.totalStudents ?? 1,
-          totalTeachers: res.summary.totalTeachers ?? 1,
-          totalCourses: res.summary.totalCourses ?? 4,
-          totalTestSeries: res.summary.totalTestSeries ?? 13,
-          totalDppPyq: res.summary.totalDppPyq ?? 13,
-          totalFreeLectures: res.summary.totalFreeLectures ?? 15,
-          totalPaidLectures: res.summary.totalPaidLectures ?? 7
+          totalStudents: res.summary.totalStudents ?? 0,
+          totalTeachers: res.summary.totalTeachers ?? 0,
+          totalCourses: res.summary.totalCourses ?? 0,
+          totalTestSeries: res.summary.totalTestSeries ?? 0,
+          totalDppPyq: res.summary.totalDppPyq ?? 0,
+          totalFreeLectures: res.summary.totalFreeLectures ?? 0,
+          totalPaidLectures: res.summary.totalPaidLectures ?? 0
         });
       }
     } catch (err) {

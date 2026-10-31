@@ -9,6 +9,7 @@ import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute/Admi
 import { AdminLayout } from './components/admin/AdminLayout/AdminLayout';
 import { TopLoadingBar, PageTransitionWrapper, PageLoader } from './components/ui/PageTransition';
 import { FloatingLeadWidget } from './components/leads/FloatingLeadWidget/FloatingLeadWidget';
+import { initSocketClient } from './services/socketClient';
 
 // Helper for dynamic named imports with React.lazy
 const lazyNamed = <T extends Record<string, any>, K extends keyof T>(
@@ -78,6 +79,10 @@ function ScrollToTop() {
 
 export const App: React.FC = () => {
   const location = useLocation();
+
+  useEffect(() => {
+    initSocketClient();
+  }, []);
 
   const isAuthPortalPage = 
     location.pathname === '/admin/login' || 
