@@ -39,6 +39,9 @@ app.use(helmet({
                 'data:',
                 'blob:',
                 'https://res.cloudinary.com',
+                'https://images.unsplash.com',
+                'https://*.unsplash.com',
+                'https://unsplash.com',
                 'https://*.razorpay.com',
                 'https://cdn.razorpay.com',
                 'https://lh3.googleusercontent.com',
@@ -47,6 +50,7 @@ app.use(helmet({
             connectSrc: [
                 "'self'",
                 'https://api.razorpay.com',
+                'https://lumberjack.razorpay.com',
                 'https://*.razorpay.com',
                 'https://lvh.me:*',
                 'ws:',

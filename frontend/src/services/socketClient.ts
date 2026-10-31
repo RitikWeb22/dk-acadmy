@@ -8,11 +8,23 @@ import { cmsService, CMS_EVENT_KEY } from './cmsService';
 import { notificationService } from './notificationService';
 import { soundEffects } from '../utils/sound';
 
-const SOCKET_SERVER_URL =
-  import.meta.env.VITE_SOCKET_URL ||
-  (typeof window !== 'undefined' && window.location.origin
-    ? window.location.origin
-    : 'http://localhost:5001');
+const getSocketServerUrl = (): string | undefined => {
+  const configured = (import.meta.env.VITE_SOCKET_URL as string | undefined)?.trim();
+  if (configured) {
+    if (
+      typeof window !== 'undefined' &&
+      window.location?.hostname &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      if (configured.includes('localhost') || configured.includes('127.0.0.1')) {
+        return undefined;
+      }
+    }
+    return configured;
+  }
+  return undefined;
+};
 
 let socket: Socket | null = null;
 
@@ -21,13 +33,22 @@ export const initSocketClient = (): Socket => {
     return socket;
   }
 
-  socket = io(SOCKET_SERVER_URL, {
-    transports: ['websocket', 'polling'],
-    withCredentials: true,
-    reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 2000
-  });
+  const serverUrl = getSocketServerUrl();
+  socket = serverUrl
+    ? io(serverUrl, {
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 2000
+      })
+    : io({
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 2000
+      });
 
   // Helper to determine if current browser tab/session is Admin portal
   const isCurrentClientAdmin = (): boolean => {

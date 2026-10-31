@@ -54,19 +54,24 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     }
   }, [loginWithGoogle, location.state, navigate]);
 
+  const isInitializedRef = useRef(false);
+
   useEffect(() => {
-    const initGoogleGsi = () => {
+    const setupGoogleGsi = () => {
       if (!window.google?.accounts?.id || !clientId) return;
 
       try {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-          itp_support: true,
-          ux_mode: 'popup'
-        });
+        if (!isInitializedRef.current) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            itp_support: true,
+            ux_mode: 'popup'
+          });
+          isInitializedRef.current = true;
+        }
 
         if (googleBtnContainerRef.current) {
           googleBtnContainerRef.current.innerHTML = '';
@@ -81,7 +86,6 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
           const availableWidth = measuredWidth > 50 ? measuredWidth : fallbackWidth;
 
           // Google Identity Services renderButton strictly enforces [200, 400]
-          // Subtract a small buffer (8px) so borders never touch or clip card edges
           const screenSafeMax = typeof window !== 'undefined' ? Math.max(200, window.innerWidth - 64) : 340;
           const targetWidth = Math.max(200, Math.min(380, screenSafeMax, Math.floor(availableWidth - 8)));
 
@@ -109,12 +113,12 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     };
 
     if (window.google?.accounts?.id) {
-      initGoogleGsi();
+      setupGoogleGsi();
     } else {
       const interval = setInterval(() => {
         if (window.google?.accounts?.id) {
           clearInterval(interval);
-          initGoogleGsi();
+          setupGoogleGsi();
         }
       }, 300);
       return () => clearInterval(interval);
@@ -125,7 +129,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         if (window.google?.accounts?.id && googleBtnContainerRef.current) {
-          initGoogleGsi();
+          setupGoogleGsi();
         }
       }, 200);
     };
