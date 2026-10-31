@@ -29,6 +29,7 @@ import {
   ListFilter
 } from 'lucide-react';
 import { apiClient } from '../../../services/apiClient';
+import { cmsService, CMS_EVENT_KEY } from '../../../services/cmsService';
 import styles from './FreeLecturesManagementWorkspace.module.scss';
 
 export interface AdminLectureItem {
@@ -422,6 +423,67 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
           status: 'Published'
         });
       }
+
+      // Also register as a course in cmsService so it is synchronized across the whole website
+      try {
+        await cmsService.createCourse({
+          id: generatedTrackId,
+          slug: generatedTrackId,
+          title: trackTitle,
+          description: trackDescription || 'Free Kota Demo Masterclass with 20-30s speed inspection algorithms.',
+          category: 'JEE Main & Advanced',
+          targetClass: (targetClass || 'Class 11 & 12') as any,
+          targetYear: 'Target JEE 2026/27',
+          targetExam: (targetExam || 'JEE Main & Advanced') as any,
+          price: '₹0 Free',
+          numericPrice: 0,
+          originalPrice: `₹${defaultOrigPrice || '999'}`,
+          tier: 'Free',
+          mode: 'Structured Recorded',
+          courseType: 'recorded',
+          duration: `${lessons.length} Lectures`,
+          coverImage: thumbnailUrl || '/img/dk-sir.jpg',
+          demoVideoUrl: lessons[0]?.videoUrl || '',
+          instructor: facultyName || 'Dharmendra Kumar (DK Sir)',
+          tags: selectedLectureTags,
+          badge: selectedLectureTags.find((t) => ['Popular', 'Trending', 'Most Watched', 'New'].includes(t)) || '100% Free Demo',
+          badgeUrgency: 'instant',
+          features: [
+            `${lessons.length} Kota Video Lessons`,
+            'Free Downloadable DPPs & Notes',
+            '20-30s Visual Inspection Shortcuts'
+          ],
+          curriculumSections: [
+            {
+              id: `sec-${generatedTrackId}`,
+              title: trackTitle,
+              description: trackDescription,
+              durationText: `${lessons.length} lessons`,
+              lectures: lessons.map((l, idx) => ({
+                id: l.id || `lec-${generatedTrackId}-${idx + 1}`,
+                title: l.title,
+                duration: l.duration || '45 min',
+                isPreview: l.isFree,
+                isFreePreview: l.isFree,
+                lessonType: 'recorded_video',
+                videoStatus: 'ready',
+                videoUrl: l.videoUrl,
+                description: l.title,
+                notesPdfUrl: l.notesPdfUrl,
+                dppPdfUrl: l.dppUrl
+              }))
+            }
+          ],
+          status: 'Published'
+        });
+      } catch (cmsErr) {
+        console.warn('Error syncing course object:', cmsErr);
+      }
+
+      // Dispatch global events so FreeLecturesPage, CoursesPage, and LMS update in real time
+      window.dispatchEvent(new CustomEvent('dk_free_lecture_created', { detail: { trackId: generatedTrackId } }));
+      window.dispatchEvent(new CustomEvent('dk_course_created', { detail: { courseId: generatedTrackId } }));
+      window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { module: 'courses' } }));
 
       setIsPublished(true);
       showToast('✓ Masterclass track & video lectures published successfully!');

@@ -92,6 +92,7 @@ export const AdminCoursesPage: React.FC = () => {
     description: '',
     shortDescription: '',
     coverImage: '/img/dk-results-banner.jpeg',
+    demoVideoUrl: '',
     promotionalBanner: '',
     instructor: 'DK Sir (IIT Delhi Alum, 18+ Yrs Exp)',
     targetAudience: 'Class 11, 12 & Droppers targeting top 500 AIR in JEE',
@@ -226,6 +227,7 @@ export const AdminCoursesPage: React.FC = () => {
       description: '',
       shortDescription: '',
       coverImage: '/img/dk-results-banner.jpeg',
+      demoVideoUrl: '',
       promotionalBanner: '',
       instructor: 'DK Sir (IIT Delhi Alum, 18+ Yrs Exp)',
       targetAudience: 'Class 11, 12 & Droppers targeting top 500 AIR in JEE',
@@ -289,6 +291,7 @@ export const AdminCoursesPage: React.FC = () => {
       description: c.description || '',
       shortDescription: c.description?.slice(0, 150) || '',
       coverImage: c.coverImage || '/img/dk-results-banner.jpeg',
+      demoVideoUrl: c.demoVideoUrl || (c as any).videoUrl || '',
       promotionalBanner: c.promotionalBanner || '',
       instructor: c.instructor || 'DK Sir (IIT Delhi Alum, 18+ Yrs Exp)',
       targetAudience: c.targetAudience || 'Class 11, 12 & Droppers targeting top 500 AIR',
@@ -507,6 +510,7 @@ export const AdminCoursesPage: React.FC = () => {
       schedule: formData.schedule,
       features: featuresList,
       coverImage: formData.coverImage,
+      demoVideoUrl: formData.demoVideoUrl || '',
       instructor: formData.instructor,
       targetAudience: formData.targetAudience,
       outcomes: formData.outcomes,
@@ -1026,6 +1030,20 @@ export const AdminCoursesPage: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       required
                     />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>Course Demo Video Link / Embed URL (YouTube or Direct Video)</span>
+                      <small style={{ color: '#2563eb', fontWeight: 600 }}>Plays on "Demo" Click</small>
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/... or .mp4 link"
+                      value={formData.demoVideoUrl}
+                      onChange={(e) => setFormData({ ...formData, demoVideoUrl: e.target.value })}
+                    />
+                    <small>When students click "Demo" on this course, this video will play in the masterclass player.</small>
                   </div>
 
                   <div className={styles.formGrid}>

@@ -70,6 +70,7 @@ export const CreatedCoursesCatalog: React.FC<CreatedCoursesCatalogProps> = ({
     mode: 'Live' as Course['mode'],
     description: '',
     coverImage: '',
+    demoVideoUrl: '',
     badge: '',
     tier: 'Paid',
     instructor: 'Dharmendra Kumar (DK Sir)',
@@ -90,6 +91,7 @@ export const CreatedCoursesCatalog: React.FC<CreatedCoursesCatalogProps> = ({
       mode: course.mode || 'Live',
       description: course.description || '',
       coverImage: course.coverImage || '',
+      demoVideoUrl: course.demoVideoUrl || (course as any).videoUrl || '',
       badge: course.badge || 'Newly Launched',
       tier: course.tier || 'Paid',
       instructor: (course as any).instructor || 'Dharmendra Kumar (DK Sir)',
@@ -114,6 +116,7 @@ export const CreatedCoursesCatalog: React.FC<CreatedCoursesCatalogProps> = ({
         description: editForm.description.trim(),
         mode: editForm.mode,
         coverImage: editForm.coverImage.trim() || editingCourse.coverImage,
+        demoVideoUrl: editForm.demoVideoUrl.trim(),
         badge: editForm.badge.trim(),
         tier: (numPrice === 0 ? 'Free' : editForm.tier) as any,
         price: numPrice === 0 ? '₹0 Free' : `₹${numPrice.toLocaleString('en-IN')}`,
@@ -669,6 +672,20 @@ export const CreatedCoursesCatalog: React.FC<CreatedCoursesCatalogProps> = ({
                     onChange={(e) => setEditForm({ ...editForm, coverImage: e.target.value })}
                     className={styles.formInput}
                   />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Course Demo Video Link (YouTube / MP4)</label>
+                  <input
+                    type="url"
+                    placeholder="https://www.youtube.com/watch?v=... or .mp4 video URL"
+                    value={editForm.demoVideoUrl}
+                    onChange={(e) => setEditForm({ ...editForm, demoVideoUrl: e.target.value })}
+                    className={styles.formInput}
+                  />
+                  <small style={{ color: '#64748b', fontSize: '11px', marginTop: '2px', display: 'block' }}>
+                    Plays inside the masterclass modal when students click "Demo".
+                  </small>
                 </div>
 
                 <div className={styles.formGroup}>
