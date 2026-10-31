@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import test, { describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'http';
@@ -8,7 +11,7 @@ import { escapeRegex, getPagination } from '../src/utils/sanitize.js';
 describe('DK Academy Backend — Comprehensive Security & API Test Suite', () => {
   let server: http.Server;
   let baseUrl: string;
-  const JWT_SECRET = process.env.JWT_SECRET || 'dk_academy_jwt_super_secret_key_2026_xyz123';
+  const JWT_SECRET = process.env.JWT_SECRET || 'F7x6LaFFrx1V4PSoHdi4iP5pSta4h7Ay2M6fu5R8r0k';
 
   before(async () => {
     // Spin up lightweight test server on dynamic OS-assigned port

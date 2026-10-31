@@ -1,9 +1,18 @@
 import dns from 'dns';
 import mongoose from 'mongoose';
 
-// Fallback direct replica set URI to bypass Windows querySrv ECONNREFUSED issues
-const DIRECT_ATLAS_URI =
-  'mongodb://ritikweb30_db_user:LcIQJeKuxVDp0Q8g@ac-mqptae5-shard-00-00.bpriw9o.mongodb.net:27017,ac-mqptae5-shard-00-01.bpriw9o.mongodb.net:27017,ac-mqptae5-shard-00-02.bpriw9o.mongodb.net:27017/dk_academy_jee?ssl=true&replicaSet=atlas-cdcqa2-shard-0&authSource=admin&retryWrites=true&w=majority';
+// MongoDB Atlas connection URI loaded securely from environment variables
+const getMongoUri = (): string => {
+  const uri = process.env.MONGO_URI || process.env.DIRECT_ATLAS_URI;
+  if (!uri) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[Security Exception]: MONGO_URI environment variable is missing.');
+    }
+    console.warn('[MongoDB Warning]: MONGO_URI is not set. Please configure backend/.env.');
+    return 'mongodb://127.0.0.1:27017/dk_academy_jee';
+  }
+  return uri;
+};
 
 // Prioritize IPv4 DNS lookups on Windows (prevents getaddrinfo ENOTFOUND with MongoDB Atlas replica sets)
 try {
@@ -17,10 +26,10 @@ try {
 let isReconnecting = false;
 
 export const connectDB = async (): Promise<void> => {
-  const primaryUri = process.env.MONGO_URI || DIRECT_ATLAS_URI;
+  const uri = getMongoUri();
 
-  const tryConnect = async (uri: string) => {
-    return await mongoose.connect(uri, {
+  const tryConnect = async (targetUri: string) => {
+    return await mongoose.connect(targetUri, {
       maxPoolSize: 25,
       minPoolSize: 5,
       socketTimeoutMS: 45000,
@@ -32,17 +41,11 @@ export const connectDB = async (): Promise<void> => {
   };
 
   try {
-    const conn = await tryConnect(primaryUri);
+    const conn = await tryConnect(uri);
     console.log(`[MongoDB] Connected successfully to host: ${conn.connection.host}`);
   } catch (error: any) {
-    console.warn(`[MongoDB] Primary connection failed (${error.code || error.message}). Attempting direct replica set fallback...`);
-    try {
-      const conn = await tryConnect(DIRECT_ATLAS_URI);
-      console.log(`[MongoDB] Connected successfully via direct replica set: ${conn.connection.host}`);
-    } catch (fallbackError: any) {
-      console.error('[MongoDB] Database connection failed:', fallbackError.message || fallbackError);
-      scheduleReconnect();
-    }
+    console.error('[MongoDB] Database connection failed:', error.message || error);
+    scheduleReconnect();
   }
 
   // Register connection events only once

@@ -73,7 +73,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     res.status(200).json({
       success: true,
       order,
-      key: process.env.RAZORPAY_KEY_ID || 'rzp_test_TmqM7yD9Sgy60G',
+      key: process.env.RAZORPAY_KEY_ID || '',
       isMock
     });
   } catch (error: any) {
@@ -93,28 +93,36 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
     const secret = process.env.RAZORPAY_KEY_SECRET;
     let isValid = false;
 
-    if (secret && secret !== 'placeholder_secret_key') {
+    if (secret && razorpay_order_id && razorpay_payment_id && razorpay_signature) {
       try {
         const body = `${razorpay_order_id}|${razorpay_payment_id}`;
         const expectedSignature = crypto
           .createHmac('sha256', secret)
           .update(body)
           .digest('hex');
-        isValid = expectedSignature === razorpay_signature;
+
+        const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+        const receivedBuf = Buffer.from(String(razorpay_signature), 'utf8');
+
+        // Timing-safe comparison prevents timing attacks on HMAC signatures
+        if (expectedBuf.length === receivedBuf.length && crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
+          isValid = true;
+        }
       } catch {
         isValid = false;
       }
     }
 
-    // Accept if signature verified OR if operating in simulated test mode
-    if (
-      isValid ||
-      razorpay_signature === 'mock_signature' ||
-      razorpay_order_id?.startsWith('order_test_') ||
-      razorpay_order_id?.startsWith('order_mock_') ||
-      !secret ||
-      secret === 'placeholder_secret_key'
-    ) {
+    // In production, reject any non-cryptographically verified payments
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isDevMockAllowed =
+      !isProduction &&
+      (razorpay_signature === 'mock_signature' ||
+        razorpay_order_id?.startsWith('order_test_') ||
+        razorpay_order_id?.startsWith('order_mock_') ||
+        !secret);
+
+    if (isValid || isDevMockAllowed) {
       // 1. Update Order status in MongoDB
       let updatedOrder = null;
       if (razorpay_order_id) {
