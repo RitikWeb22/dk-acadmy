@@ -531,11 +531,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                   </div>
                 </div>
 
-                {/* 9. Discount Coupons & Limits */}
+                {/* 9. Discount Coupons */}
                 <div
                   className={styles.moduleCard}
                   onClick={() => handleNavClick('coupons', '/admin/coupons')}
-                  title="Open Discount Coupons & Student Limits"
+                  title="Open Discount Coupons & Promo Offers"
                 >
                   <div className={styles.moduleCardHeader}>
                     <div className={`${styles.moduleIconTile} ${styles.purpleModuleTile}`}>
@@ -545,8 +545,8 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                   </div>
                   <div className={styles.moduleCardBody}>
                     <span className={styles.moduleValue}>Promo Codes</span>
-                    <span className={styles.moduleLabel}>Coupons &amp; Limits</span>
-                    <span className={styles.moduleSubText}>Student Quota Controls</span>
+                    <span className={styles.moduleLabel}>Discount Coupons</span>
+                    <span className={styles.moduleSubText}>Fee Concessions</span>
                   </div>
                 </div>
               </div>

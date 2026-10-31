@@ -361,8 +361,16 @@
     border-color: #334155;
 
     &.stepNavPillActive {
-      background: rgba(37, 99, 235, 0.15);
+      background: rgba(37, 99, 235, 0.25);
       border-color: #60A5FA;
+
+      .stepMainTitle {
+        color: #F8FAFC;
+      }
+
+      .stepMiniLabel {
+        color: #93C5FD;
+      }
     }
 
     &.stepNavPillCompleted {

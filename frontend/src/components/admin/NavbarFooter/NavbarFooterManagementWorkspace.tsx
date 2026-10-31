@@ -29,6 +29,7 @@ import type {
   FooterLinkItem
 } from '../../../types/admin';
 import styles from './NavbarFooterManagementWorkspace.module.scss';
+import { AdminConfirmModal } from '../Common/AdminConfirmModal';
 
 export const NavbarFooterManagementWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'navbar' | 'footer'>('navbar');
@@ -37,6 +38,19 @@ export const NavbarFooterManagementWorkspace: React.FC = () => {
   const [expandedDropdownId, setExpandedDropdownId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    action: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    action: () => {}
+  });
 
   // Available pages for quick-pick
   const availablePages = cmsService.getPagesList();
@@ -98,11 +112,19 @@ export const NavbarFooterManagementWorkspace: React.FC = () => {
   };
 
   const handleResetNavbar = () => {
-    if (window.confirm('Reset Navbar navigation to system default Kota Pedagogy layout?')) {
-      cmsService.resetNavbarToDefault();
-      loadData();
-      showToast('Navbar reset to defaults.');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Reset Navbar Navigation',
+      message: 'Reset Navbar navigation to system default Kota Pedagogy layout?',
+      confirmText: 'Reset to Defaults',
+      variant: 'warning',
+      action: () => {
+        cmsService.resetNavbarToDefault();
+        loadData();
+        showToast('Navbar reset to defaults.');
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleMoveNavItem = (index: number, direction: 'up' | 'down') => {
@@ -125,11 +147,20 @@ export const NavbarFooterManagementWorkspace: React.FC = () => {
   };
 
   const handleDeleteNavItem = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this navbar item?')) {
-      const updated = navbarItems.filter((i) => i.id !== id);
-      setNavbarItems(updated);
-      cmsService.saveNavbarItems(updated);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Navigation Item',
+      message: 'Are you sure you want to delete this navbar item from the website header?',
+      confirmText: 'Delete Item',
+      variant: 'danger',
+      action: () => {
+        const updated = navbarItems.filter((i) => i.id !== id);
+        setNavbarItems(updated);
+        cmsService.saveNavbarItems(updated);
+        showToast('Navbar item deleted.');
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleSaveNavItemModal = (e: React.FormEvent) => {
@@ -252,11 +283,19 @@ export const NavbarFooterManagementWorkspace: React.FC = () => {
   };
 
   const handleResetFooter = () => {
-    if (window.confirm('Reset Footer details to system default?')) {
-      cmsService.resetFooterToDefault();
-      loadData();
-      showToast('Footer reset to defaults.');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Reset Footer Layout',
+      message: 'Reset Footer details, badges, and quick links to system default Kota Pedagogy layout?',
+      confirmText: 'Reset Footer',
+      variant: 'warning',
+      action: () => {
+        cmsService.resetFooterToDefault();
+        loadData();
+        showToast('Footer reset to defaults.');
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleSaveFooterLinkModal = (e: React.FormEvent) => {
@@ -1443,6 +1482,17 @@ export const NavbarFooterManagementWorkspace: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Action Confirmation Modal (Replaces browser window.confirm) */}
+      <AdminConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant || 'warning'}
+        onConfirm={confirmModal.action}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

@@ -34,6 +34,7 @@ import type {
   PageFaqItem
 } from '../../../types/admin';
 import styles from './PageManagementWorkspace.module.scss';
+import { AdminConfirmModal } from '../Common/AdminConfirmModal';
 
 export const PageManagementWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'directory' | 'builder'>('directory');
@@ -43,6 +44,19 @@ export const PageManagementWorkspace: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    action: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    action: () => {}
+  });
 
   // Modals state
   const [isCreatePageModalOpen, setIsCreatePageModalOpen] = useState(false);
@@ -150,11 +164,19 @@ export const PageManagementWorkspace: React.FC = () => {
   };
 
   const handleResetCurrentPage = () => {
-    if (window.confirm(`Reset "${currentPageConfig.pageTitle}" to system Kota Pedagogy defaults?`)) {
-      cmsService.resetPageToDefault(selectedPageId);
-      loadData();
-      showToast('Page reset to default.');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Reset Page Content',
+      message: `Reset "${currentPageConfig.pageTitle || selectedPageId}" to system Kota Pedagogy defaults?`,
+      confirmText: 'Reset to Defaults',
+      variant: 'warning',
+      action: () => {
+        cmsService.resetPageToDefault(selectedPageId);
+        loadData();
+        showToast('Page reset to default.');
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleFetchAllHomeSections = () => {
@@ -229,14 +251,22 @@ export const PageManagementWorkspace: React.FC = () => {
   };
 
   const handleDeleteSection = (secId: string) => {
-    if (window.confirm('Are you sure you want to delete this section from the page?')) {
-      const sections = (currentPageConfig.customSections || []).filter((sec) => sec.id !== secId);
-      const updated = { ...currentPageConfig, customSections: sections };
-      setAllPageConfigs({ ...allPageConfigs, [selectedPageId]: updated });
-      cmsService.savePageConfig(selectedPageId, { customSections: sections });
-      loadData();
-      showToast('Section deleted from page!');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Section',
+      message: 'Are you sure you want to delete this section from the page? This action cannot be undone.',
+      confirmText: 'Delete Section',
+      variant: 'danger',
+      action: () => {
+        const sections = (currentPageConfig.customSections || []).filter((sec) => sec.id !== secId);
+        const updated = { ...currentPageConfig, customSections: sections };
+        setAllPageConfigs({ ...allPageConfigs, [selectedPageId]: updated });
+        cmsService.savePageConfig(selectedPageId, { customSections: sections });
+        loadData();
+        showToast('Section deleted from page!');
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   // ─── Save Add / Edit Section Modal ───
@@ -465,11 +495,19 @@ export const PageManagementWorkspace: React.FC = () => {
                           type="button"
                           className={`${styles.iconBtn} ${styles.deleteBtn}`}
                           onClick={() => {
-                            if (window.confirm(`Delete custom page "${page.name}"?`)) {
-                              cmsService.deleteCustomPage(page.id);
-                              loadData();
-                              showToast(`Page "${page.name}" removed.`);
-                            }
+                            setConfirmModal({
+                              isOpen: true,
+                              title: `Delete Custom Page`,
+                              message: `Are you sure you want to delete custom page "${page.name}"? This will permanently delete the page and its contents.`,
+                              confirmText: 'Delete Page',
+                              variant: 'danger',
+                              action: () => {
+                                cmsService.deleteCustomPage(page.id);
+                                loadData();
+                                showToast(`Page "${page.name}" removed.`);
+                                setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+                              }
+                            });
                           }}
                           title="Delete Page"
                         >
@@ -1630,6 +1668,17 @@ export const PageManagementWorkspace: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal (Replaces browser window.confirm) */}
+      <AdminConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant || 'warning'}
+        onConfirm={confirmModal.action}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

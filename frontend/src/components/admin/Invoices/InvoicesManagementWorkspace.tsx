@@ -28,6 +28,8 @@ import {
   Trash2
 } from 'lucide-react';
 import styles from './InvoicesManagementWorkspace.module.scss';
+import { exportToExcel, exportToPDF } from '../../../utils/exportUtils';
+import { AdminConfirmModal } from '../Common/AdminConfirmModal';
 
 export interface FeeInvoiceItem {
   id: string;
@@ -294,8 +296,8 @@ export const InvoicesManagementWorkspace: React.FC = () => {
     );
   };
 
-  // CSV Export action
-  const handleExportCsv = () => {
+  // Export to Excel / CSV action
+  const handleExportExcel = () => {
     const headers = [
       'Invoice No',
       'SAC Code',
@@ -308,6 +310,7 @@ export const InvoicesManagementWorkspace: React.FC = () => {
       'GST 18% (INR)',
       'Gross Total (INR)',
       'Payment Mode',
+      'Payment Channel',
       'Reference No',
       'Payment Status',
       'Issued Date'
@@ -315,32 +318,90 @@ export const InvoicesManagementWorkspace: React.FC = () => {
     const rows = filteredInvoices.map((item) => [
       item.invoiceNo,
       item.sacCode,
-      `"${item.studentName}"`,
+      item.studentName,
       item.rollNo,
       item.mobile,
-      `"${item.batchName}"`,
-      `"${item.centerType}"`,
+      item.batchName,
+      item.centerType,
       item.baseAmount,
       item.gstAmount,
       item.grossAmount,
-      `"${item.paymentMethod}"`,
+      item.paymentMethod,
+      item.paymentChannel,
       item.paymentRef,
       item.paymentStatus,
-      `"${item.issuedAt}"`
+      item.issuedAt
     ]);
+    exportToExcel(`DK_Academy_Invoices_Ledger_${Date.now()}`, headers, rows);
+    triggerToast('Excel (.xlsx / .csv) ledger exported successfully');
+  };
 
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+  // Export to PDF report action
+  const handleExportPDF = () => {
+    const headers = [
+      'Invoice #',
+      'Student Name',
+      'Roll No',
+      'Batch',
+      'Channel',
+      'Status',
+      'Gross Total'
+    ];
+    const rows = filteredInvoices.map((inv) => [
+      inv.invoiceNo,
+      inv.studentName,
+      inv.rollNo,
+      inv.batchName,
+      inv.paymentChannel,
+      inv.paymentStatus,
+      `₹${inv.grossAmount.toLocaleString('en-IN')}`
+    ]);
+    exportToPDF({
+      title: 'Fee Invoices & Student Accounts Summary',
+      subtitle: `Total Invoices: ${filteredInvoices.length} | Gross Revenue: ₹${dynamicMetrics.totalGross.toLocaleString('en-IN')}`,
+      headers,
+      rows
+    });
+    triggerToast('PDF report opened for printing/saving');
+  };
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `DK_Academy_GST_Ledger_Oct_2026.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    triggerToast('GST Ledger exported successfully as CSV');
+  // Delete modal state (replaces browser window.confirm)
+  const [confirmDeleteState, setConfirmDeleteState] = useState<{
+    isOpen: boolean;
+    type: 'single' | 'bulk';
+    id?: string;
+  }>({ isOpen: false, type: 'single' });
+
+  const handleRequestDelete = (id?: string) => {
+    if (id) {
+      setConfirmDeleteState({ isOpen: true, type: 'single', id });
+    } else {
+      if (selectedIds.length === 0) return;
+      setConfirmDeleteState({ isOpen: true, type: 'bulk' });
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteState.type === 'single' && confirmDeleteState.id) {
+      const id = confirmDeleteState.id;
+      try {
+        await apiClient.delete(`/payment/orders/${id}`);
+      } catch {}
+      setInvoices((prev) => prev.filter((i) => i.id !== id));
+      setSelectedIds((prev) => prev.filter((item) => item !== id));
+      triggerToast('Invoice deleted successfully');
+    } else if (confirmDeleteState.type === 'bulk') {
+      const idsToDelete = [...selectedIds];
+      for (const id of idsToDelete) {
+        try {
+          await apiClient.delete(`/payment/orders/${id}`);
+        } catch {}
+      }
+      setInvoices((prev) => prev.filter((i) => !idsToDelete.includes(i.id)));
+      setSelectedIds([]);
+      triggerToast(`✓ Deleted ${idsToDelete.length} invoice(s) successfully`);
+    }
+    setConfirmDeleteState({ isOpen: false, type: 'single' });
   };
 
   // WhatsApp Slip action
@@ -359,7 +420,7 @@ export const InvoicesManagementWorkspace: React.FC = () => {
   const handleManualSlipSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualForm.studentName || !manualForm.grossAmount) {
-      alert('Please fill student name and gross amount');
+      triggerToast('⚠️ Please fill student name and gross amount');
       return;
     }
     const gross = parseFloat(manualForm.grossAmount) || 0;
@@ -428,16 +489,8 @@ export const InvoicesManagementWorkspace: React.FC = () => {
     setReceiptModalInvoice(newInvoice);
   };
 
-  const handleDeleteInvoice = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this invoice/fee slip?')) return;
-    try {
-      await apiClient.delete(`/payment/orders/${id}`);
-      setInvoices((prev) => prev.filter((i) => i.id !== id));
-      triggerToast('Invoice deleted from database successfully');
-    } catch {
-      setInvoices((prev) => prev.filter((i) => i.id !== id));
-      triggerToast('Invoice removed from view');
-    }
+  const handleDeleteInvoice = (id: string) => {
+    handleRequestDelete(id);
   };
 
   return (
@@ -469,14 +522,50 @@ export const InvoicesManagementWorkspace: React.FC = () => {
         </div>
 
         <div className={styles.actionButtonGroup}>
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              className={styles.bulkDeleteBtn}
+              onClick={() => handleRequestDelete()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                background: '#dc2626',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)'
+              }}
+              title="Delete all selected invoices"
+            >
+              <Trash2 size={14} />
+              <span>Delete Selected ({selectedIds.length})</span>
+            </button>
+          )}
+
           <button
             type="button"
             className={styles.exportReportBtn}
-            onClick={handleExportCsv}
-            title="Download full GST reconciliation ledger in Excel/CSV"
+            onClick={handleExportExcel}
+            title="Download full GST reconciliation ledger in Excel (.xlsx / .csv)"
           >
             <FileSpreadsheet size={15} />
-            <span>Export GST Ledger (Excel / CSV) ⤓</span>
+            <span>Export as Excel</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.exportReportBtn}
+            onClick={handleExportPDF}
+            title="Export printable accounts & fee summary PDF report"
+          >
+            <Printer size={15} />
+            <span>Export as PDF</span>
           </button>
 
           <button
@@ -1424,6 +1513,29 @@ export const InvoicesManagementWorkspace: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal (Replaces browser window.confirm popup) */}
+      <AdminConfirmModal
+        isOpen={confirmDeleteState.isOpen}
+        onClose={() => setConfirmDeleteState({ isOpen: false, type: 'single' })}
+        onConfirm={handleConfirmDelete}
+        title={
+          confirmDeleteState.type === 'bulk'
+            ? `Bulk Delete ${selectedIds.length} Invoice(s)?`
+            : 'Delete Fee Invoice / Slip?'
+        }
+        message={
+          confirmDeleteState.type === 'bulk'
+            ? `Are you sure you want to delete all ${selectedIds.length} selected invoices? This will remove these records from the verified ledger.`
+            : 'Are you sure you want to delete this invoice? This transaction record will be removed.'
+        }
+        confirmText={
+          confirmDeleteState.type === 'bulk'
+            ? `Delete ${selectedIds.length} Records`
+            : 'Delete Invoice'
+        }
+        variant="danger"
+      />
     </div>
   );
 };

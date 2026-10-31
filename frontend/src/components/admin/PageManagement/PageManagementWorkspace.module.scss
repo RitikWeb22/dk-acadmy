@@ -820,3 +820,82 @@
   border-bottom-right-radius: 16px;
 }
 
+:global(.darkMode) {
+  .workspaceContainer {
+    background: transparent;
+    color: #F8FAFC;
+  }
+
+  .headerTitle {
+    color: #F8FAFC;
+  }
+
+  .headerSubtitle {
+    color: #94A3B8;
+  }
+
+  .tabBtn {
+    color: #94A3B8;
+
+    &:hover {
+      color: #F8FAFC;
+    }
+
+    &.tabBtnActive {
+      color: #3B82F6;
+      border-bottom-color: #3B82F6;
+    }
+  }
+
+  .pageCard,
+  .sectionItem,
+  .builderCard,
+  .previewBox {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .pageName,
+  .sectionTitle {
+    color: #F8FAFC;
+  }
+
+  .pageSlug,
+  .sectionSubtitle {
+    color: #94A3B8;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .searchBar input {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .modalContent {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    .modalHeader {
+      border-color: #334155;
+      h3 {
+        color: #F8FAFC;
+      }
+    }
+
+    .modalFooter {
+      background: #0F172A;
+      border-color: #334155;
+    }
+  }
+}
+
