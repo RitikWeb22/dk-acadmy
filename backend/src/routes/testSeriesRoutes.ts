@@ -8,7 +8,7 @@ import {
   deleteTestSeries
 } from '../controllers/testSeriesController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
-import { validate } from '../middlewares/validateMiddleware.js';
+import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
 
@@ -40,7 +40,19 @@ router.post(
   validate({ body: createTestSeriesSchema }),
   createTestSeries
 );
-router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateTestSeries);
-router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), deleteTestSeries);
+router.put(
+  '/:id',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  validate({ params: idParamSchema }),
+  updateTestSeries
+);
+router.delete(
+  '/:id',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'),
+  validate({ params: idParamSchema }),
+  deleteTestSeries
+);
 
 export default router;

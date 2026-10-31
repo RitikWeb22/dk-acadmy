@@ -8,7 +8,7 @@ import {
   deleteDppPyq
 } from '../controllers/dppPyqController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
-import { validate } from '../middlewares/validateMiddleware.js';
+import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
 
@@ -40,7 +40,19 @@ router.post(
   validate({ body: createDppPyqSchema }),
   createDppPyq
 );
-router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateDppPyq);
-router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), deleteDppPyq);
+router.put(
+  '/:id',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  validate({ params: idParamSchema }),
+  updateDppPyq
+);
+router.delete(
+  '/:id',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'),
+  validate({ params: idParamSchema }),
+  deleteDppPyq
+);
 
 export default router;

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { env } from '../config/env.js';
 import { razorpayInstance } from '../config/razorpay.js';
 import { User } from '../models/User.js';
@@ -171,10 +172,13 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
+// In-memory bounded cache for fast deduplication + fallback
+const processedWebhookEvents = new Set<string>();
+
 /**
  * Razorpay Webhook Handler
  * Verifies X-Razorpay-Signature using RAZORPAY_WEBHOOK_SECRET against raw request body
- * Enforces idempotency via WebhookEvent collection
+ * Enforces idempotency via WebhookEvent collection and memory cache
  */
 export const handleRazorpayWebhook = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -207,20 +211,32 @@ export const handleRazorpayWebhook = async (req: Request, res: Response): Promis
     const eventId = (req.headers['x-razorpay-event-id'] as string) || payload.event_id || payload.id;
 
     if (eventId) {
-      const alreadyProcessed = await WebhookEvent.findOne({ eventId });
-      if (alreadyProcessed) {
+      if (processedWebhookEvents.has(eventId)) {
         res.status(200).json({ success: true, message: 'Event already processed (idempotent)' });
         return;
       }
-      await WebhookEvent.create({
-        eventId,
-        eventType: payload.event || 'unknown',
-        payload
-      });
+      processedWebhookEvents.add(eventId);
+      if (processedWebhookEvents.size > 10000) {
+        const oldest = processedWebhookEvents.values().next().value;
+        if (oldest) processedWebhookEvents.delete(oldest);
+      }
+
+      if (mongoose.connection.readyState === 1) {
+        const alreadyProcessed = await WebhookEvent.findOne({ eventId });
+        if (alreadyProcessed) {
+          res.status(200).json({ success: true, message: 'Event already processed (idempotent)' });
+          return;
+        }
+        await WebhookEvent.create({
+          eventId,
+          eventType: payload.event || 'unknown',
+          payload
+        });
+      }
     }
 
-    // Process event types
-    if (payload.event === 'order.paid' || payload.event === 'payment.captured') {
+    // Process event types if DB is ready
+    if ((payload.event === 'order.paid' || payload.event === 'payment.captured') && mongoose.connection.readyState === 1) {
       const paymentEntity = payload.payload?.payment?.entity;
       const orderId = paymentEntity?.order_id;
       const paymentId = paymentEntity?.id;
