@@ -23,13 +23,23 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Allowed extensions and MIME types whitelist
+const ALLOWED_EXTENSIONS = new Set([
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg',
+  '.mp4', '.mov', '.webm', '.mkv',
+  '.pdf', '.doc', '.docx'
+]);
+
+const ALLOWED_MIME_PREFIXES = ['image/', 'video/', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument'];
+
 const storage = multer.diskStorage({
   destination: (_req: any, _file: any, cb: any) => {
     cb(null, uploadDir);
   },
   filename: (_req: any, file: any, cb: any) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+    // Sanitize filename to prevent directory traversal and special character injection
+    const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
     cb(null, `dk_${Date.now()}_${cleanBase}${ext}`);
   }
 });
@@ -37,7 +47,24 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    fileSize: 200 * 1024 * 1024 // 200MB limit for high-res images & video trailers
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  },
+  fileFilter: (_req: any, file: any, cb: any) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mime = file.mimetype.toLowerCase();
+
+    // 1. Whitelist extension check
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return cb(new Error(`Security Alert: Unsupported or unsafe file type (${ext}). Only standard images, videos, and PDFs are permitted.`));
+    }
+
+    // 2. Whitelist MIME check
+    const isAllowedMime = ALLOWED_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix));
+    if (!isAllowedMime) {
+      return cb(new Error(`Security Alert: Invalid MIME type (${mime}) for uploaded content.`));
+    }
+
+    cb(null, true);
   }
 });
 
