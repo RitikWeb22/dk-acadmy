@@ -18,6 +18,12 @@ export const idParamSchema = z
   })
   .strict();
 
+export const idOrSlugParamSchema = z
+  .object({
+    id: z.string().trim().min(1).max(128).regex(/^[a-zA-Z0-9_\-\.]+$/, 'Invalid identifier format')
+  })
+  .strict();
+
 export const validate = (schemas: ValidationSchemas) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

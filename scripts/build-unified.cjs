@@ -13,6 +13,10 @@ if (fs.existsSync(distPath)) {
   if (!fs.existsSync(publicPath)) {
     fs.mkdirSync(publicPath, { recursive: true });
   }
+  const assetsPath = path.join(publicPath, 'assets');
+  if (fs.existsSync(assetsPath)) {
+    fs.rmSync(assetsPath, { recursive: true, force: true });
+  }
   fs.cpSync(distPath, publicPath, { recursive: true });
   console.log(`Successfully copied ${distPath} -> ${publicPath}`);
 } else {
