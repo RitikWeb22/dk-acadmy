@@ -8,8 +8,12 @@ import apiRoutes from './routes/apiRoutes.js';
 import { handleRazorpayWebhook } from './controllers/paymentController.js';
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 import { sanitizeInputs, globalApiLimiter } from './middlewares/securityMiddleware.js';
+import { requestLogger } from './middlewares/loggerMiddleware.js';
 
 export const app = express();
+
+// Assign correlation IDs and log structured requests with sensitive data redaction
+app.use(requestLogger);
 
 // Trust reverse proxy (for rate limiting, IP resolution behind Nginx/Render/Cloudflare)
 app.set('trust proxy', 1);
