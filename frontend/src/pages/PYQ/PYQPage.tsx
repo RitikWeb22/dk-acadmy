@@ -44,12 +44,18 @@ export const PYQPage: React.FC = () => {
   const [pyqList, setPyqList] = useState<PYQQuestion[]>(() => cmsService.getPYQs());
 
   React.useEffect(() => {
+    let isMounted = true;
+
     const syncAllPYQs = async () => {
       try {
-        const cmsItems = await cmsService.fetchPYQsFromAPI();
-        const dppPyqRes = await apiClient.get<any>('/dpp-pyq');
-        const dppPyqList = Array.isArray(dppPyqRes) ? dppPyqRes : dppPyqRes?.data || [];
+        const [cmsItems, dppPyqRes] = await Promise.all([
+          cmsService.fetchPYQsFromAPI(),
+          apiClient.get<any>('/dpp-pyq').catch(() => [])
+        ]);
 
+        if (!isMounted) return;
+
+        const dppPyqList = Array.isArray(dppPyqRes) ? dppPyqRes : dppPyqRes?.data || [];
         const liveQuestions: PYQQuestion[] = [];
         if (Array.isArray(dppPyqList)) {
           dppPyqList.forEach((set: any) => {
@@ -97,9 +103,8 @@ export const PYQPage: React.FC = () => {
         (cmsItems || []).forEach((q) => combinedMap.set(q.id, q));
         liveQuestions.forEach((q) => combinedMap.set(q.id, q));
         const combined = Array.from(combinedMap.values());
-        if (combined.length > 0) {
+        if (combined.length > 0 && isMounted) {
           setPyqList(combined);
-          localStorage.setItem('dk_cms_pyqs', JSON.stringify(combined));
         }
       } catch (err) {
         console.warn('Error loading PYQs:', err);
@@ -108,12 +113,19 @@ export const PYQPage: React.FC = () => {
 
     syncAllPYQs();
 
-    window.addEventListener(CMS_EVENT_KEY, syncAllPYQs);
+    const handleCmsUpdate = (e: any) => {
+      if (e?.detail?.type === 'pyqs' && isMounted) {
+        setPyqList(cmsService.getPYQs());
+      }
+    };
+
+    window.addEventListener(CMS_EVENT_KEY, handleCmsUpdate);
     window.addEventListener('dk_dpp_pyq_created', syncAllPYQs);
     window.addEventListener('dk_dpp_pyq_updated', syncAllPYQs);
 
     return () => {
-      window.removeEventListener(CMS_EVENT_KEY, syncAllPYQs);
+      isMounted = false;
+      window.removeEventListener(CMS_EVENT_KEY, handleCmsUpdate);
       window.removeEventListener('dk_dpp_pyq_created', syncAllPYQs);
       window.removeEventListener('dk_dpp_pyq_updated', syncAllPYQs);
     };
@@ -248,10 +260,10 @@ export const PYQPage: React.FC = () => {
 
       if (searchQuery.trim().length > 0) {
         const query = searchQuery.toLowerCase().trim();
-        const matchesStatement = q.statement.toLowerCase().includes(query);
-        const matchesTopic = q.topic.toLowerCase().includes(query);
-        const matchesChapter = q.chapter.toLowerCase().includes(query);
-        const matchesSubject = q.subject.toLowerCase().includes(query);
+        const matchesStatement = (q.statement || '').toLowerCase().includes(query);
+        const matchesTopic = (q.topic || '').toLowerCase().includes(query);
+        const matchesChapter = (q.chapter || '').toLowerCase().includes(query);
+        const matchesSubject = (q.subject || '').toLowerCase().includes(query);
         return matchesStatement || matchesTopic || matchesChapter || matchesSubject;
       }
 

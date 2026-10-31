@@ -19,13 +19,24 @@ export const DPPPage: React.FC = () => {
   const [dppList, setDppList] = useState<DPPSet[]>(() => cmsService.getDPPSets());
 
   useEffect(() => {
+    let isMounted = true;
+
     cmsService.fetchDPPSetsFromAPI().then((items) => {
-      if (items && items.length > 0) setDppList(items);
+      if (isMounted && items && items.length > 0) {
+        setDppList(items);
+      }
     }).catch(() => {});
 
-    const handleUpdate = () => setDppList(cmsService.getDPPSets());
+    const handleUpdate = (e: any) => {
+      if (e?.detail?.type === 'dpp' && isMounted) {
+        setDppList(cmsService.getDPPSets());
+      }
+    };
     window.addEventListener(CMS_EVENT_KEY, handleUpdate);
-    return () => window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
+    };
   }, []);
 
   // Session attempts state: persisted in localStorage so student progress is remembered during practice sessions
@@ -73,9 +84,10 @@ export const DPPPage: React.FC = () => {
     };
 
     dppList.forEach((set) => {
-      counts.All += set.questions.length;
+      const qLen = Array.isArray(set.questions) ? set.questions.length : 0;
+      counts.All += qLen;
       if (set.subject === 'Physics' || set.subject === 'Chemistry' || set.subject === 'Mathematics') {
-        counts[set.subject] += set.questions.length;
+        counts[set.subject] += qLen;
       }
     });
 
@@ -84,7 +96,7 @@ export const DPPPage: React.FC = () => {
 
   // Total questions count
   const totalQuestions = useMemo(() => {
-    return dppList.reduce((sum, s) => sum + s.questions.length, 0);
+    return dppList.reduce((sum, s) => sum + (Array.isArray(s.questions) ? s.questions.length : 0), 0);
   }, [dppList]);
 
   // Attempted sets count
@@ -119,16 +131,16 @@ export const DPPPage: React.FC = () => {
       // 4. Search query
       if (searchQuery.trim().length > 0) {
         const q = searchQuery.toLowerCase().trim();
-        const matchesTitle = set.title.toLowerCase().includes(q);
-        const matchesChapter = set.chapter.toLowerCase().includes(q);
-        const matchesTopic = set.topic.toLowerCase().includes(q);
-        const matchesSubject = set.subject.toLowerCase().includes(q);
+        const matchesTitle = (set.title || '').toLowerCase().includes(q);
+        const matchesChapter = (set.chapter || '').toLowerCase().includes(q);
+        const matchesTopic = (set.topic || '').toLowerCase().includes(q);
+        const matchesSubject = (set.subject || '').toLowerCase().includes(q);
         return matchesTitle || matchesChapter || matchesTopic || matchesSubject;
       }
 
       return true;
     });
-  }, [selectedSubject, selectedDifficulty, selectedStatus, searchQuery, attempts]);
+  }, [selectedSubject, selectedDifficulty, selectedStatus, searchQuery, attempts, dppList]);
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
