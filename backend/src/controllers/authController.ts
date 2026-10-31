@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../config/env.js';
 import { User } from '../models/User.js';
+import { Course } from '../models/Course.js';
 import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import { broadcastStudentRegistered } from '../sockets/socket.js';
 import { generateStudentId, generateTeacherId } from '../utils/uuid.js';
@@ -398,6 +399,31 @@ export const enrollCourse = async (req: AuthRequest, res: Response): Promise<voi
 
     if (!courseId) {
       res.status(400).json({ success: false, message: 'Please provide courseId' });
+      return;
+    }
+
+    // Verify course exists and verify if course is free or requires payment
+    let course = null;
+    try {
+      course = await Course.findById(courseId);
+    } catch {
+      course = await Course.findOne({ slug: courseId });
+    }
+
+    if (!course) {
+      res.status(404).json({ success: false, message: 'Course not found' });
+      return;
+    }
+
+    // Check if course requires payment
+    const isFree = course.price === 0 || (course as any).isFree === true;
+    const isAdmin = req.user.role === 'SUPER_ADMIN' || req.user.role === 'ADMIN';
+
+    if (!isFree && !isAdmin) {
+      res.status(402).json({
+        success: false,
+        message: 'Payment required: Paid courses require successful payment verification.'
+      });
       return;
     }
 

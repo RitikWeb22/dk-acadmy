@@ -5,6 +5,7 @@ import path from 'path';
 import helmet from 'helmet';
 import { env } from './config/env.js';
 import apiRoutes from './routes/apiRoutes.js';
+import { handleRazorpayWebhook } from './controllers/paymentController.js';
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 import { sanitizeInputs, globalApiLimiter } from './middlewares/securityMiddleware.js';
 
@@ -56,6 +57,13 @@ app.use(
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
   })
+);
+
+// Razorpay Webhook endpoint mounted with raw body parser BEFORE global express.json()
+app.post(
+  ['/api/v1/payment/webhook', '/api/payment/webhook'],
+  express.raw({ type: 'application/json' }),
+  handleRazorpayWebhook
 );
 
 // Request body parsers with bounded content size
