@@ -1,7 +1,9 @@
 import type { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { cloudinary } from '../config/cloudinary.js';
+import { verifyMagicBytes } from '../utils/fileValidation.js';
 
 /**
  * Upload single media asset (image, video, document)
@@ -18,9 +20,23 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
     // CASE 1: Multipart File Upload (req.file)
     // -------------------------------------------------------------
     if (uploadedFile) {
+      const ext = path.extname(uploadedFile.path).toLowerCase();
+
+      // Magic bytes verification to detect extension spoofing
+      if (!verifyMagicBytes(uploadedFile.path, ext)) {
+        if (fs.existsSync(uploadedFile.path)) {
+          fs.unlinkSync(uploadedFile.path);
+        }
+        res.status(400).json({
+          success: false,
+          message: `Security Alert: File signature (magic bytes) does not match declared extension (${ext}). Upload rejected.`
+        });
+        return;
+      }
+
       const mime = uploadedFile.mimetype || '';
-      const isVideo = mime.startsWith('video/') || /\.(mp4|mkv|mov|webm|avi|m4v)$/i.test(uploadedFile.originalname);
-      const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(uploadedFile.originalname);
+      const isVideo = mime.startsWith('video/') || /\.(mp4|mkv|mov|webm)$/i.test(uploadedFile.filename);
+      const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(uploadedFile.filename);
       const mediaType = isVideo ? 'video' : isImage ? 'image' : 'raw';
 
       const uploadOptions: any = {
@@ -115,22 +131,36 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
           if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
           else if (mimeType.includes('png')) ext = 'png';
           else if (mimeType.includes('webp')) ext = 'webp';
-          else if (mimeType.includes('svg')) ext = 'svg';
           else if (mimeType.includes('mp4')) ext = 'mp4';
           else if (mimeType.includes('webm')) ext = 'webm';
           else if (mimeType.includes('quicktime') || mimeType.includes('mov')) ext = 'mov';
           else if (mimeType.includes('pdf')) ext = 'pdf';
+          else {
+            res.status(400).json({ success: false, message: 'Unsupported file type for upload' });
+            return;
+          }
 
           const isVideo = ext === 'mp4' || ext === 'webm' || ext === 'mov';
-          const filename = `dk_asset_${Date.now()}_${Math.floor(Math.random() * 10000)}.${ext}`;
-          const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+          const filename = `${crypto.randomUUID()}.${ext}`;
+          const uploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
 
           if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
           }
 
           const filePath = path.join(uploadsDir, filename);
+          if (!path.resolve(filePath).startsWith(uploadsDir)) {
+            res.status(400).json({ success: false, message: 'Invalid target path' });
+            return;
+          }
+
           fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+
+          if (!verifyMagicBytes(filePath, ext)) {
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            res.status(400).json({ success: false, message: 'Invalid file signature in payload' });
+            return;
+          }
 
           const host = req.get('host') || 'localhost:5000';
           const protocol = req.protocol || 'http';
