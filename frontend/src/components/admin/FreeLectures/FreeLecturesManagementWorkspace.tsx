@@ -613,6 +613,31 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
         <div className={styles.builderStageGrid}>
           {/* ─── LEFT FORM STAGE CARD (~75% Width) ─── */}
           <main className={styles.formStageCard} role="region" aria-label="Free Lectures Builder Step">
+            {/* Horizontal Modern Stepper Top Bar */}
+            <div className={styles.modernStepperTopBar}>
+              {STEPS_LIST.map((step) => {
+                const isCompleted = step.stepNumber < currentStep;
+                const isActive = step.stepNumber === currentStep;
+                return (
+                  <button
+                    key={step.stepNumber}
+                    type="button"
+                    className={`${styles.stepNavPill} ${isActive ? styles.stepNavPillActive : ''} ${
+                      isCompleted ? styles.stepNavPillCompleted : ''
+                    }`}
+                    onClick={() => handleStepSelect(step.stepNumber)}
+                  >
+                    <div className={styles.stepNumCircle}>
+                      {isCompleted ? <Check size={13} /> : step.stepNumber}
+                    </div>
+                    <div className={styles.stepMetaText}>
+                      <span className={styles.stepMiniLabel}>STEP {step.stepNumber}</span>
+                      <span className={styles.stepMainTitle}>{step.title}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
             {/* ================================================== */}
             {/* STEP 1: TRACK & PEDAGOGY INFORMATION               */}
             {/* ================================================== */}
@@ -650,16 +675,36 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
                   {/* Subject */}
                   <div className={styles.fieldCol}>
                     <label className={styles.fieldLabel}>Subject Classification *</label>
-                    <select
-                      className={styles.formSelect}
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value as any)}
-                    >
-                      <option value="Mathematics">Mathematics</option>
-                      <option value="Physics">Physics</option>
-                      <option value="Chemistry">Chemistry</option>
-                      <option value="Mixed">Mixed Advanced Sprint</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {[
+                        { key: 'Mathematics', label: '📐 Mathematics', color: '#2563eb', bg: '#eff6ff' },
+                        { key: 'Physics', label: '⚡ Physics', color: '#7c3aed', bg: '#f5f3ff' },
+                        { key: 'Chemistry', label: '🧪 Chemistry', color: '#d97706', bg: '#fffbeb' },
+                        { key: 'Mixed', label: '🎯 Mixed Sprint', color: '#059669', bg: '#ecfdf5' }
+                      ].map((item) => {
+                        const isSelected = subject === item.key;
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setSubject(item.key as any)}
+                            style={{
+                              padding: '7px 12px',
+                              borderRadius: '8px',
+                              fontSize: '12.5px',
+                              fontWeight: isSelected ? 700 : 500,
+                              cursor: 'pointer',
+                              border: isSelected ? `2px solid ${item.color}` : '1px solid #cbd5e1',
+                              background: isSelected ? item.bg : '#ffffff',
+                              color: isSelected ? item.color : '#475569',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Target Exam */}

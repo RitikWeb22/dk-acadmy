@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { apiClient } from '../../../services/apiClient';
 import {
@@ -564,6 +566,45 @@ export const InvoicesManagementWorkspace: React.FC = () => {
 
       {/* ─── 3. FILTER & RECONCILIATION TOOLBAR ─── */}
       <div className={styles.filterToolbarCard}>
+        {/* Quick Filter Pill Chips */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', width: '100%', paddingBottom: '10px', borderBottom: '1px solid #f1f5f9' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Fast Filter:
+          </span>
+          {[
+            { label: `All Invoices (${invoices.length})`, chan: 'ALL', stat: 'ALL' },
+            { label: '✓ Paid Full', chan: 'ALL', stat: 'PAID_FULL' },
+            { label: '⏳ Partial Due', chan: 'ALL', stat: 'PARTIAL' },
+            { label: '💳 Razorpay Gateway', chan: 'Razorpay', stat: 'ALL' },
+            { label: '🏢 Janakpuri Cash Desk', chan: 'Cash Desk', stat: 'ALL' }
+          ].map((chip) => {
+            const isChipActive = channelFilter === chip.chan && statusFilter === chip.stat;
+            return (
+              <button
+                key={chip.label}
+                type="button"
+                onClick={() => {
+                  setChannelFilter(chip.chan);
+                  setStatusFilter(chip.stat);
+                }}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: '9999px',
+                  fontSize: '11.5px',
+                  fontWeight: isChipActive ? 700 : 500,
+                  cursor: 'pointer',
+                  border: isChipActive ? '1px solid #2563eb' : '1px solid #cbd5e1',
+                  background: isChipActive ? '#eff6ff' : '#ffffff',
+                  color: isChipActive ? '#1d4ed8' : '#475569',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+
         <div className={styles.filtersLeftRow}>
           {/* Search Input (300px width) */}
           <div className={styles.searchBox}>
