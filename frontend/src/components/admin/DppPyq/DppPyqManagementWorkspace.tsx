@@ -357,6 +357,47 @@ type PresetFilter = 'ALL' | 'DPP' | 'PYQ' | 'BITSAT' | 'MATH' | 'PHY' | 'CHM' | 
 type SortField = 'indexNo' | 'title' | 'moduleType' | 'questionsCount' | 'status' | 'attemptsCount';
 type SortOrder = 'asc' | 'desc';
 
+export const HIGH_YIELD_CHAPTERS: Record<ProblemSubject, string[]> = {
+  Mathematics: [
+    'Straight Lines',
+    'Conic Sections & Parabola',
+    'Definite Integrals',
+    'Limits, Continuity & Differentiability',
+    'Matrices & Determinants',
+    'Vectors & 3D Geometry',
+    'Complex Numbers & Quadratic Equations',
+    'Binomial Theorem & Progressions',
+    'Probability & Statistics',
+    'Differential Equations'
+  ],
+  Physics: [
+    'Rotational Dynamics & COM',
+    'Electrostatics & Gauss Law',
+    'Current Electricity & Circuits',
+    'Magnetic Effects & EMI',
+    'Optics (Ray & Wave)',
+    'Thermodynamics & Kinetic Theory',
+    'Modern Physics & Nuclear Physics',
+    'Kinematics & Newton Laws'
+  ],
+  Chemistry: [
+    'Reaction Mechanism & GOC',
+    'Chemical Bonding & Periodic Properties',
+    'Coordination Compounds',
+    'Chemical Thermodynamics',
+    'Electrochemistry & Kinetics',
+    'Solutions & Colligative Properties',
+    'Hydrocarbons & Alkyl Halides',
+    'Aldehydes, Ketones & Carboxylic Acids'
+  ],
+  Mixed: [
+    'Full Syllabus Mock Drill 01',
+    'Class 11 Foundation Mastery',
+    'Class 12 High-Yield Revision',
+    'Top 50 NTA Pattern Traps'
+  ]
+};
+
 export const DppPyqManagementWorkspace: React.FC = () => {
   // Problem sets list & loading
   const [problemSets, setProblemSets] = useState<DppPyqItem[]>(INITIAL_PROBLEMS);
@@ -392,8 +433,10 @@ export const DppPyqManagementWorkspace: React.FC = () => {
   // Create Modal Form fields
   const [newModuleType, setNewModuleType] = useState<ProblemModuleType>('DPP');
   const [newSubject, setNewSubject] = useState<ProblemSubject>('Mathematics');
-  const [newTitle, setNewTitle] = useState<string>('');
-  const [newSlug, setNewSlug] = useState<string>('');
+  const [newChapter, setNewChapter] = useState<string>('Straight Lines');
+  const [newExamTarget, setNewExamTarget] = useState<string>('JEE Main 2026');
+  const [newTitle, setNewTitle] = useState<string>('DPP: Straight Lines (Speed Inspection & Concepts)');
+  const [newSlug, setNewSlug] = useState<string>('/dpp-straight-lines');
   const [newQuestionsCount, setNewQuestionsCount] = useState<number>(5);
   const [newSolutionNote, setNewSolutionNote] = useState<string>('5 with step solutions');
   const [newStatus, setNewStatus] = useState<ProblemStatus>('Published');
@@ -703,6 +746,8 @@ export const DppPyqManagementWorkspace: React.FC = () => {
         slug: newSlug.trim() || newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
         moduleType: newModuleType,
         subject: newSubject,
+        chapter: newChapter,
+        examTarget: newExamTarget,
         badgeCode,
         categoryLabel,
         questionsCount: Number(newQuestionsCount) || 5,
@@ -902,8 +947,8 @@ export const DppPyqManagementWorkspace: React.FC = () => {
             className={styles.primaryCreateBtn}
             onClick={() => setIsCreateModalOpen(true)}
           >
-            <Plus size={18} />
-            <span>+ Create Problem Set</span>
+            <Plus size={16} />
+            <span>Create Problem Set</span>
           </button>
         </div>
       </div>
@@ -1582,166 +1627,366 @@ export const DppPyqManagementWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* ─── 7. CREATE PROBLEM SET MODAL ─── */}
+      {/* ─── 7. CREATE PROBLEM SET MODAL (PREMIUM CURRICULUM AUTHORING STUDIO) ─── */}
       {isCreateModalOpen && (
         <div className={styles.modalOverlay} onClick={() => setIsCreateModalOpen(false)}>
-          <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalCardEnhanced} onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
             <div className={styles.modalHeader}>
               <div className={styles.modalHeaderLeft}>
-                <div className={styles.modalIconBubble}>
+                <div className={styles.modalIconTileGradient}>
                   <Sparkles size={20} />
                 </div>
                 <div>
+                  <div className={styles.modalPreHeadingRow}>
+                    <span className={styles.modalPreBadge}>CURRICULUM BUILDER</span>
+                    <span className={styles.modalDot}>•</span>
+                    <span className={styles.modalHintText}>DPP • PYQ • BITSAT</span>
+                  </div>
                   <h2 className={styles.modalTitle}>Create New Problem Set</h2>
-                  <p className={styles.modalSub}>
-                    Configure module metadata and seed questions for chapter drills or test archives.
-                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 className={styles.modalCloseBtn}
                 onClick={() => setIsCreateModalOpen(false)}
+                title="Close modal (Esc)"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className={styles.modalForm}>
-              {/* Module Type Selector */}
-              <div className={styles.formRow}>
-                <label className={styles.fieldLabel}>Practice Category / Module *</label>
-                <div className={styles.typeSelectorRow}>
-                  {(['DPP', 'PYQ', 'BITSAT'] as ProblemModuleType[]).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      className={`${styles.typeChoiceBtn} ${
-                        newModuleType === t ? styles.typeActive : ''
-                      }`}
-                      onClick={() => setNewModuleType(t)}
-                    >
-                      {t === 'DPP'
-                        ? 'Daily Practice Problem (DPP)'
-                        : t === 'PYQ'
-                        ? 'Chapter PYQ Archive'
-                        : 'BITSAT Speed Drill'}
-                    </button>
-                  ))}
+            <form onSubmit={handleCreateSubmit} className={styles.modalFormEnhanced}>
+              {/* Step 1: Category Selector Cards */}
+              <div className={styles.formSectionBox}>
+                <div className={styles.fieldSectionHeading}>
+                  <span>1. Practice Module &amp; Category *</span>
+                  <span className={styles.requiredIndicator}>Select format</span>
                 </div>
-              </div>
-
-              {/* Title & Slug */}
-              <div className={styles.formRow}>
-                <label className={styles.fieldLabel}>Problem Set Title *</label>
-                <input
-                  type="text"
-                  className={styles.fieldInput}
-                  placeholder="e.g. DPP-06: Conic Sections & Hyperbola Dynamics"
-                  value={newTitle}
-                  onChange={(e) => {
-                    setNewTitle(e.target.value);
-                    if (!newSlug || newSlug.startsWith('/')) {
-                      setNewSlug(
-                        `/${e.target.value
-                          .toLowerCase()
-                          .replace(/[^a-z0-9]+/g, '-')
-                          .replace(/(^-|-$)+/g, '')}`
-                      );
-                    }
-                  }}
-                  required
-                />
-              </div>
-
-              <div className={styles.formRow}>
-                <label className={styles.fieldLabel}>URL Slug Path</label>
-                <input
-                  type="text"
-                  className={styles.fieldInput}
-                  placeholder="/dpp-06-conic-sections"
-                  value={newSlug}
-                  onChange={(e) => setNewSlug(e.target.value)}
-                />
-              </div>
-
-              {/* 2-Col Subject & Questions Count */}
-              <div className={styles.formTwoCol}>
-                <div className={styles.formRow}>
-                  <label className={styles.fieldLabel}>Subject Domain *</label>
-                  <select
-                    className={styles.fieldSelect}
-                    value={newSubject}
-                    onChange={(e) => setNewSubject(e.target.value as ProblemSubject)}
+                <div className={styles.categoryCardsGrid}>
+                  {/* Card 1: DPP */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className={`${styles.categoryCard} ${newModuleType === 'DPP' ? styles.categoryCardActiveDpp : ''}`}
+                    onClick={() => {
+                      setNewModuleType('DPP');
+                      if (newChapter) {
+                        setNewTitle(`DPP: ${newChapter} (Speed Shortcuts)`);
+                        setNewSlug(`/dpp-${newChapter.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+                      }
+                    }}
                   >
-                    <option value="Mathematics">Mathematics</option>
-                    <option value="Physics">Physics</option>
-                    <option value="Chemistry">Chemistry</option>
-                    <option value="Mixed">Mixed (Full Syllabus)</option>
-                  </select>
-                </div>
+                    <div className={styles.categoryCardTop}>
+                      <div className={`${styles.catIconPill} ${styles.catDppIcon}`}>
+                        <Flame size={18} />
+                      </div>
+                      <span className={styles.catBadgePill}>DPP Drill</span>
+                    </div>
+                    <div className={styles.catCardBody}>
+                      <h4 className={styles.catCardTitle}>Daily Practice (DPP)</h4>
+                      <p className={styles.catCardDesc}>
+                        Chapter-wise high yield drills with 20-30s speed inspection shortcuts.
+                      </p>
+                    </div>
+                    <div className={styles.catSelectionIndicator}>
+                      <div className={styles.catRadioDot} />
+                    </div>
+                  </div>
 
-                <div className={styles.formRow}>
-                  <label className={styles.fieldLabel}>Initial Questions Count</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={50}
-                    className={styles.fieldInput}
-                    value={newQuestionsCount}
-                    onChange={(e) => setNewQuestionsCount(Number(e.target.value))}
-                  />
+                  {/* Card 2: PYQ */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className={`${styles.categoryCard} ${newModuleType === 'PYQ' ? styles.categoryCardActivePyq : ''}`}
+                    onClick={() => {
+                      setNewModuleType('PYQ');
+                      if (newChapter) {
+                        setNewTitle(`PYQ Archive: ${newChapter} (${newExamTarget})`);
+                        setNewSlug(`/pyq-${newChapter.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+                      }
+                    }}
+                  >
+                    <div className={styles.categoryCardTop}>
+                      <div className={`${styles.catIconPill} ${styles.catPyqIcon}`}>
+                        <BookOpen size={18} />
+                      </div>
+                      <span className={styles.catBadgePill}>PYQ Bank</span>
+                    </div>
+                    <div className={styles.catCardBody}>
+                      <h4 className={styles.catCardTitle}>JEE Main &amp; Adv PYQs</h4>
+                      <p className={styles.catCardDesc}>
+                        Solved past exam archives with video solutions and step answers.
+                      </p>
+                    </div>
+                    <div className={styles.catSelectionIndicator}>
+                      <div className={styles.catRadioDot} />
+                    </div>
+                  </div>
+
+                  {/* Card 3: BITSAT */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className={`${styles.categoryCard} ${newModuleType === 'BITSAT' ? styles.categoryCardActiveBitsat : ''}`}
+                    onClick={() => {
+                      setNewModuleType('BITSAT');
+                      if (newChapter) {
+                        setNewTitle(`BITSAT Speed Drill: ${newChapter} Rapid Fire`);
+                        setNewSlug(`/bitsat-${newChapter.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+                      }
+                    }}
+                  >
+                    <div className={styles.categoryCardTop}>
+                      <div className={`${styles.catIconPill} ${styles.catBitsatIcon}`}>
+                        <Zap size={18} />
+                      </div>
+                      <span className={styles.catBadgePill}>Speed Test</span>
+                    </div>
+                    <div className={styles.catCardBody}>
+                      <h4 className={styles.catCardTitle}>BITSAT Speed Drill</h4>
+                      <p className={styles.catCardDesc}>
+                        Rapid-fire timer CBT mode calibrated for speed and accuracy.
+                      </p>
+                    </div>
+                    <div className={styles.catSelectionIndicator}>
+                      <div className={styles.catRadioDot} />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Solution Note & Initial Status */}
-              <div className={styles.formTwoCol}>
-                <div className={styles.formRow}>
-                  <label className={styles.fieldLabel}>Solution Note</label>
+              {/* Step 2: Subject, Chapter & High-Yield Topic */}
+              <div className={styles.formSectionBox}>
+                <div className={styles.fieldSectionHeading}>
+                  <span>2. Subject Domain &amp; Chapter Selection *</span>
+                  <span className={styles.sectionSubtitle}>1-Click populate title</span>
+                </div>
+
+                <div className={styles.formTwoColGrid}>
+                  <div className={styles.fieldItem}>
+                    <label className={styles.fieldLabel}>Subject Domain *</label>
+                    <select
+                      className={styles.fieldSelectEnhanced}
+                      value={newSubject}
+                      onChange={(e) => {
+                        const sub = e.target.value as ProblemSubject;
+                        setNewSubject(sub);
+                        const firstCh = HIGH_YIELD_CHAPTERS[sub]?.[0] || 'Chapter 1';
+                        setNewChapter(firstCh);
+                        if (newModuleType === 'DPP') {
+                          setNewTitle(`DPP: ${firstCh} (DK Sir Inspection)`);
+                          setNewSlug(`/dpp-${firstCh.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+                        } else if (newModuleType === 'PYQ') {
+                          setNewTitle(`PYQ Archive: ${firstCh} (${newExamTarget})`);
+                          setNewSlug(`/pyq-${firstCh.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+                        } else {
+                          setNewTitle(`BITSAT Drill: ${firstCh}`);
+                          setNewSlug(`/bitsat-${firstCh.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+                        }
+                      }}
+                    >
+                      <option value="Mathematics">Mathematics</option>
+                      <option value="Physics">Physics</option>
+                      <option value="Chemistry">Chemistry</option>
+                      <option value="Mixed">Mixed (Full Syllabus Mock)</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.fieldItem}>
+                    <label className={styles.fieldLabel}>Target Examination</label>
+                    <select
+                      className={styles.fieldSelectEnhanced}
+                      value={newExamTarget}
+                      onChange={(e) => setNewExamTarget(e.target.value)}
+                    >
+                      <option value="JEE Main 2026">JEE Main 2026</option>
+                      <option value="JEE Advanced 2026">JEE Advanced 2026</option>
+                      <option value="JEE Main 2025">JEE Main 2025</option>
+                      <option value="BITSAT 2026">BITSAT 2026</option>
+                      <option value="Class 11/12 Foundation">Class 11/12 Foundation</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* High-yield Chapter Quick Pick Pills */}
+                <div className={styles.chapterQuickPickRow}>
+                  <span className={styles.quickPickPrompt}>High-Yield Chapters:</span>
+                  <div className={styles.chapterPillsStrip}>
+                    {(HIGH_YIELD_CHAPTERS[newSubject] || []).map((ch) => (
+                      <button
+                        key={ch}
+                        type="button"
+                        className={`${styles.chapterPill} ${newChapter === ch ? styles.chapterPillActive : ''}`}
+                        onClick={() => {
+                          setNewChapter(ch);
+                          if (newModuleType === 'DPP') {
+                            setNewTitle(`DPP: ${ch} (Speed Inspection & Concepts)`);
+                            setNewSlug(`/dpp-${ch.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+                          } else if (newModuleType === 'PYQ') {
+                            setNewTitle(`PYQ Archive: ${ch} (${newExamTarget})`);
+                            setNewSlug(`/pyq-${ch.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+                          } else {
+                            setNewTitle(`BITSAT Speed Drill: ${ch}`);
+                            setNewSlug(`/bitsat-${ch.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+                          }
+                        }}
+                      >
+                        {ch}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: Title & Custom Slug */}
+              <div className={styles.formSectionBox}>
+                <div className={styles.fieldSectionHeading}>
+                  <span>3. Problem Set Title &amp; Web URL *</span>
+                </div>
+
+                <div className={styles.fieldItem}>
+                  <label className={styles.fieldLabel}>Display Title *</label>
                   <input
                     type="text"
-                    className={styles.fieldInput}
-                    placeholder="e.g. 5 with step video solutions"
-                    value={newSolutionNote}
-                    onChange={(e) => setNewSolutionNote(e.target.value)}
+                    className={styles.fieldInputEnhanced}
+                    placeholder="e.g. DPP-06: Conic Sections & Hyperbola Dynamics"
+                    value={newTitle}
+                    onChange={(e) => {
+                      setNewTitle(e.target.value);
+                      if (!newSlug || newSlug.startsWith('/')) {
+                        setNewSlug(
+                          `/${e.target.value
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, '-')
+                            .replace(/(^-|-$)+/g, '')}`
+                        );
+                      }
+                    }}
+                    required
                   />
                 </div>
 
-                <div className={styles.formRow}>
-                  <label className={styles.fieldLabel}>Initial Release Status</label>
-                  <select
-                    className={styles.fieldSelect}
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as ProblemStatus)}
-                  >
-                    <option value="Published">Published (Live for Students)</option>
-                    <option value="Draft">Draft (Editorial Review)</option>
-                    <option value="Scheduled">Scheduled</option>
-                  </select>
+                <div className={styles.fieldItem} style={{ marginTop: '12px' }}>
+                  <label className={styles.fieldLabel}>URL Slug Path</label>
+                  <div className={styles.slugInputContainer}>
+                    <span className={styles.slugPrefix}>dkacademy.in/practice</span>
+                    <input
+                      type="text"
+                      className={styles.slugInputField}
+                      placeholder="/dpp-06-conic-sections"
+                      value={newSlug.startsWith('/') ? newSlug : `/${newSlug}`}
+                      onChange={(e) => setNewSlug(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className={styles.modalFooterActions}>
-                <button
-                  type="button"
-                  className={styles.btnSecondary}
-                  onClick={() => setIsCreateModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className={styles.btnPrimary} disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 size={16} className={styles.spinIcon} />
-                      <span>Saving to Database...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check size={16} />
-                      <span>Create &amp; Author Questions</span>
-                    </>
-                  )}
-                </button>
+              {/* Step 4: Questions, Solution Note & Status */}
+              <div className={styles.formSectionBox}>
+                <div className={styles.fieldSectionHeading}>
+                  <span>4. Drill Parameters &amp; Release Status</span>
+                </div>
+
+                <div className={styles.formThreeColGrid}>
+                  <div className={styles.fieldItem}>
+                    <label className={styles.fieldLabel}>Questions Count</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      className={styles.fieldInputEnhanced}
+                      value={newQuestionsCount}
+                      onChange={(e) => {
+                        const count = Number(e.target.value);
+                        setNewQuestionsCount(count);
+                        setNewSolutionNote(`${count} with step solutions`);
+                      }}
+                    />
+                  </div>
+
+                  <div className={styles.fieldItem}>
+                    <label className={styles.fieldLabel}>Solution Note</label>
+                    <input
+                      type="text"
+                      className={styles.fieldInputEnhanced}
+                      placeholder="e.g. 5 with step video solutions"
+                      value={newSolutionNote}
+                      onChange={(e) => setNewSolutionNote(e.target.value)}
+                    />
+                  </div>
+
+                  <div className={styles.fieldItem}>
+                    <label className={styles.fieldLabel}>Release Status</label>
+                    <select
+                      className={styles.fieldSelectEnhanced}
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value as ProblemStatus)}
+                    >
+                      <option value="Published">Published (Live for Students)</option>
+                      <option value="Draft">Draft (Editorial Review)</option>
+                      <option value="Scheduled">Scheduled</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Card Preview Box */}
+              <div className={styles.livePreviewCardBox}>
+                <div className={styles.previewBoxHeader}>
+                  <span className={styles.previewBadgeTitle}>LIVE CARD PREVIEW</span>
+                  <span className={styles.previewNote}>How students will see this in the practice hub</span>
+                </div>
+                <div className={styles.previewCardRow}>
+                  <div className={styles.previewBadge}>
+                    {newModuleType === 'BITSAT'
+                      ? 'BITSAT'
+                      : `${newModuleType} • ${newSubject.slice(0, 3).toUpperCase()}`}
+                  </div>
+                  <div className={styles.previewCardDetails}>
+                    <h5 className={styles.previewTitleText}>
+                      {newTitle.trim() || 'Untitled Practice Problem Set'}
+                    </h5>
+                    <div className={styles.previewMetaRow}>
+                      <span>{newQuestionsCount} Questions</span>
+                      <span>•</span>
+                      <span>{newSolutionNote || 'Step video solutions'}</span>
+                      <span>•</span>
+                      <span className={newStatus === 'Published' ? styles.statusGreen : styles.statusAmber}>
+                        ● {newStatus}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className={styles.modalFooterActionsEnhanced}>
+                <div className={styles.footerHint}>
+                  <span>💡 Tip: You can edit and author individual question statements right after saving.</span>
+                </div>
+                <div className={styles.footerBtnGroup}>
+                  <button
+                    type="button"
+                    className={styles.btnSecondary}
+                    onClick={() => setIsCreateModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className={styles.btnPrimaryEnhanced} disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 size={16} className={styles.spinIcon} />
+                        <span>Saving to Database...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} />
+                        <span>Create &amp; Author Questions</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
