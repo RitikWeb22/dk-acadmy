@@ -5,6 +5,7 @@ import { razorpayInstance } from '../config/razorpay.js';
 import { User } from '../models/User.js';
 import { Order } from '../models/Order.js';
 import { Course } from '../models/Course.js';
+import { WebhookEvent } from '../models/WebhookEvent.js';
 import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import { broadcastPaymentSuccess, broadcastCMSUpdated } from '../sockets/socket.js';
 
@@ -12,8 +13,8 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
   try {
     const { amount, courseId, courseTitle, studentName, studentEmail, studentPhone } = req.body;
 
-    if (!amount) {
-      res.status(400).json({ success: false, message: 'Please provide payment amount' });
+    if (!amount || Number(amount) <= 0) {
+      res.status(400).json({ success: false, message: 'Please provide valid payment amount' });
       return;
     }
 
@@ -29,26 +30,17 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     };
 
     let order: any;
-    let isMock = false;
 
     try {
       order = await razorpayInstance.orders.create(options);
     } catch (rzpErr: any) {
-      console.warn('[Razorpay API Warning]:', rzpErr.error?.description || rzpErr.message, '- Using seamless development test order.');
-      order = {
-        id: `order_test_${Date.now()}`,
-        entity: 'order',
-        amount: options.amount,
-        amount_paid: 0,
-        amount_due: options.amount,
-        currency: 'INR',
-        receipt: options.receipt,
-        status: 'created',
-        attempts: 0,
-        notes: options.notes,
-        created_at: Math.floor(Date.now() / 1000)
-      };
-      isMock = true;
+      console.error('[Razorpay Order Creation Failed]:', rzpErr.error?.description || rzpErr.message);
+      res.status(502).json({
+        success: false,
+        message: 'Failed to create payment order with payment gateway',
+        error: rzpErr.error?.description || rzpErr.message
+      });
+      return;
     }
 
     // Persist order in MongoDB
@@ -64,7 +56,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
         amount: Number(amount),
         currency: 'INR',
         status: 'PENDING',
-        paymentGateway: isMock ? 'Direct' : 'Razorpay',
+        paymentGateway: 'Razorpay',
         notes: options.notes
       });
     } catch (dbErr) {
@@ -74,8 +66,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     res.status(200).json({
       success: true,
       order,
-      key: env.RAZORPAY_KEY_ID,
-      isMock
+      key: env.RAZORPAY_KEY_ID
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -91,95 +82,167 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
       courseId
     } = req.body;
 
-    const secret = env.RAZORPAY_KEY_SECRET;
-    let isValid = false;
-
-    if (secret && razorpay_order_id && razorpay_payment_id && razorpay_signature) {
-      try {
-        const body = `${razorpay_order_id}|${razorpay_payment_id}`;
-        const expectedSignature = crypto
-          .createHmac('sha256', secret)
-          .update(body)
-          .digest('hex');
-
-        const expectedBuf = Buffer.from(expectedSignature, 'utf8');
-        const receivedBuf = Buffer.from(String(razorpay_signature), 'utf8');
-
-        // Timing-safe comparison prevents timing attacks on HMAC signatures
-        if (expectedBuf.length === receivedBuf.length && crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
-          isValid = true;
-        }
-      } catch {
-        isValid = false;
-      }
-    }
-
-    // In production, reject any non-cryptographically verified payments
-    const isProduction = env.NODE_ENV === 'production';
-    const isDevMockAllowed =
-      !isProduction &&
-      (razorpay_signature === 'mock_signature' ||
-        razorpay_order_id?.startsWith('order_test_') ||
-        razorpay_order_id?.startsWith('order_mock_') ||
-        !secret);
-
-    if (isValid || isDevMockAllowed) {
-      // 1. Update Order status in MongoDB
-      let updatedOrder = null;
-      if (razorpay_order_id) {
-        updatedOrder = await Order.findOneAndUpdate(
-          { orderId: razorpay_order_id },
-          {
-            status: 'SUCCESS',
-            paymentId: razorpay_payment_id || `pay_verified_${Date.now()}`,
-            signature: razorpay_signature
-          },
-          { new: true }
-        );
-      }
-
-      // 2. Enroll user in Course
-      if (courseId) {
-        if (req.user) {
-          const courses = req.user.enrolledCourses || [];
-          if (!courses.map((c) => c.toString()).includes(courseId)) {
-            courses.push(courseId as any);
-            req.user.enrolledCourses = courses;
-            await req.user.save();
-          }
-        }
-
-        // Increment course enrolment count
-        try {
-          await Course.findByIdAndUpdate(courseId, { $inc: { enrolmentCount: 1 } });
-        } catch {
-          await Course.findOneAndUpdate({ slug: courseId }, { $inc: { enrolmentCount: 1 } });
-        }
-      }
-
-      // 3. Broadcast real-time payment success via WebSockets
-      broadcastPaymentSuccess({
-        orderId: razorpay_order_id,
-        paymentId: razorpay_payment_id || `pay_verified_${Date.now()}`,
-        courseId,
-        studentName: updatedOrder?.studentName || req.user?.name || 'Enrolled Student',
-        studentEmail: updatedOrder?.studentEmail || req.user?.email || 'student@dkacademy.com',
-        amount: updatedOrder?.amount || 0,
-        status: 'SUCCESS',
-        timestamp: Date.now()
-      });
-      broadcastCMSUpdated('courses', courseId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Payment verified and enrollment confirmed',
-        paymentId: razorpay_payment_id || `pay_test_${Date.now()}`,
-        order: updatedOrder
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      res.status(400).json({
+        success: false,
+        message: 'Missing required payment verification parameters'
       });
       return;
     }
 
-    res.status(400).json({ success: false, message: 'Invalid payment signature' });
+    const secret = env.RAZORPAY_KEY_SECRET;
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(body)
+      .digest('hex');
+
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    const receivedBuf = Buffer.from(String(razorpay_signature), 'utf8');
+
+    // Timing-safe comparison prevents timing attacks on HMAC signatures
+    if (expectedBuf.length !== receivedBuf.length || !crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
+      res.status(400).json({ success: false, message: 'Invalid payment signature' });
+      return;
+    }
+
+    // Confirm the order exists in the DB and belongs to req.user (if user is authenticated)
+    const existingOrder = await Order.findOne({ orderId: razorpay_order_id });
+    if (!existingOrder) {
+      res.status(404).json({ success: false, message: 'Order record not found in system' });
+      return;
+    }
+
+    if (req.user && existingOrder.userId && existingOrder.userId.toString() !== req.user._id.toString()) {
+      res.status(403).json({
+        success: false,
+        message: 'Security violation: Order belongs to a different student account'
+      });
+      return;
+    }
+
+    // 1. Update Order status in MongoDB
+    existingOrder.status = 'SUCCESS';
+    existingOrder.paymentId = razorpay_payment_id;
+    existingOrder.signature = razorpay_signature;
+    await existingOrder.save();
+
+    // 2. Enroll user in Course (server-side verified only)
+    const targetCourseId = courseId || existingOrder.courseId;
+    if (targetCourseId && req.user) {
+      const courses = req.user.enrolledCourses || [];
+      if (!courses.map((c) => c.toString()).includes(targetCourseId)) {
+        courses.push(targetCourseId as any);
+        req.user.enrolledCourses = courses;
+        await req.user.save();
+      }
+
+      // Increment course enrolment count
+      try {
+        await Course.findByIdAndUpdate(targetCourseId, { $inc: { enrolmentCount: 1 } });
+      } catch {
+        await Course.findOneAndUpdate({ slug: targetCourseId }, { $inc: { enrolmentCount: 1 } });
+      }
+    }
+
+    // 3. Broadcast real-time payment success via WebSockets
+    broadcastPaymentSuccess({
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      courseId: targetCourseId,
+      studentName: existingOrder.studentName || req.user?.name || 'Enrolled Student',
+      studentEmail: existingOrder.studentEmail || req.user?.email || 'student@dkacademy.com',
+      amount: existingOrder.amount || 0,
+      status: 'SUCCESS',
+      timestamp: Date.now()
+    });
+    if (targetCourseId) {
+      broadcastCMSUpdated('courses', targetCourseId);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment verified and enrollment confirmed',
+      paymentId: razorpay_payment_id,
+      order: existingOrder
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Razorpay Webhook Handler
+ * Verifies X-Razorpay-Signature using RAZORPAY_WEBHOOK_SECRET against raw request body
+ * Enforces idempotency via WebhookEvent collection
+ */
+export const handleRazorpayWebhook = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const signature = req.headers['x-razorpay-signature'] as string;
+    if (!signature) {
+      res.status(400).json({ success: false, message: 'Missing X-Razorpay-Signature header' });
+      return;
+    }
+
+    const secret = env.RAZORPAY_WEBHOOK_SECRET;
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body), 'utf8');
+
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(rawBody)
+      .digest('hex');
+
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    const receivedBuf = Buffer.from(signature, 'utf8');
+
+    if (expectedBuf.length !== receivedBuf.length || !crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
+      res.status(400).json({ success: false, message: 'Invalid webhook signature' });
+      return;
+    }
+
+    // Safe payload parse
+    const payload = JSON.parse(rawBody.toString('utf8'));
+    const eventId = (req.headers['x-razorpay-event-id'] as string) || payload.event_id || payload.id;
+
+    if (eventId) {
+      const alreadyProcessed = await WebhookEvent.findOne({ eventId });
+      if (alreadyProcessed) {
+        res.status(200).json({ success: true, message: 'Event already processed (idempotent)' });
+        return;
+      }
+      await WebhookEvent.create({
+        eventId,
+        eventType: payload.event || 'unknown',
+        payload
+      });
+    }
+
+    // Process event types
+    if (payload.event === 'order.paid' || payload.event === 'payment.captured') {
+      const paymentEntity = payload.payload?.payment?.entity;
+      const orderId = paymentEntity?.order_id;
+      const paymentId = paymentEntity?.id;
+
+      if (orderId) {
+        const order = await Order.findOne({ orderId });
+        if (order) {
+          order.status = 'SUCCESS';
+          if (paymentId) order.paymentId = paymentId;
+          await order.save();
+
+          if (order.userId && order.courseId) {
+            await User.findByIdAndUpdate(order.userId, {
+              $addToSet: { enrolledCourses: order.courseId }
+            });
+            await Course.findByIdAndUpdate(order.courseId, { $inc: { enrolmentCount: 1 } });
+          }
+        }
+      }
+    }
+
+    res.status(200).json({ success: true, received: true });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

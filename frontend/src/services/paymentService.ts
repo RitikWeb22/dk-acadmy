@@ -103,19 +103,22 @@ export const paymentService = {
               try {
                 const verifyRes = await apiClient.post('/payment/verify', {
                   razorpay_order_id: response.razorpay_order_id || order.id,
-                  razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
-                  razorpay_signature: response.razorpay_signature || 'direct_signature',
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
                   courseId: options.courseId
                 });
 
                 if (verifyRes && verifyRes.success) {
-                  options.onSuccess(response.razorpay_payment_id || `pay_verified_${Date.now()}`);
+                  options.onSuccess(response.razorpay_payment_id);
                 } else {
-                  // In development / test mode with direct signature, consider payment approved
-                  options.onSuccess(response.razorpay_payment_id || `pay_verified_${Date.now()}`);
+                  options.onError(verifyRes?.message || 'Payment verification failed on server.');
                 }
               } catch (verifyErr: any) {
-                options.onSuccess(response.razorpay_payment_id || `pay_verified_${Date.now()}`);
+                options.onError(
+                  verifyErr?.response?.data?.message ||
+                  verifyErr?.message ||
+                  'Payment verification failed on server. Please contact support.'
+                );
               }
             },
             modal: {
@@ -125,8 +128,7 @@ export const paymentService = {
             }
           };
 
-          // Attach order_id only if verified from active Razorpay API
-          if (order.id && !order.id.startsWith('order_test_') && !order.id.startsWith('order_mock_')) {
+          if (order.id) {
             rzpOptions.order_id = order.id;
           }
 
@@ -143,15 +145,10 @@ export const paymentService = {
         }
       }
 
-      // Fallback if Razorpay SDK was blocked by an extension / adblocker
-      const fallbackConfirmed = window.confirm(
-        `Razorpay payment gateway script was blocked by browser or offline.\n\nSimulate successful payment for "${options.courseTitle}" (₹${options.amount.toLocaleString('en-IN')})?`
+      // If Razorpay SDK failed to load
+      options.onError(
+        'Razorpay Payment Gateway could not be loaded. Please ensure you are connected to the internet and disable any ad/script blockers.'
       );
-      if (fallbackConfirmed) {
-        options.onSuccess(`pay_simulated_${Date.now()}`);
-      } else {
-        options.onError('Razorpay Payment Gateway failed to load. Please disable ad-blockers and try again.');
-      }
     } catch (error: any) {
       options.onError(error.message || 'An error occurred during checkout');
     }
