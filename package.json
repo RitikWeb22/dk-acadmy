@@ -1,0 +1,21 @@
+{
+  "name": "dk-academy",
+  "version": "1.0.0",
+  "description": "DK Academy - JEE & BITSAT Coaching Portal (Unified Express + React Deployment)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-unified.cjs",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "start": "node backend/dist/server.js",
+    "test": "npm --prefix backend test"
+  },
+  "keywords": [
+    "dk-academy",
+    "jee",
+    "education"
+  ],
+  "author": "DK Academy",
+  "license": "ISC"
+}
