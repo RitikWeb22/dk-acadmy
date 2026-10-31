@@ -307,7 +307,7 @@ export const Navbar: React.FC = () => {
         <Container size="wide" className={styles.navContainer}>
           {/* Top Brand Logo */}
           <Link to="/" className={styles.brand} aria-label="DK Academy - Return to Homepage">
-            <img src="/img/logo.jpeg" alt="DK Academy" className={styles.brandLogoImg} />
+            <img src="/img/logo.jpeg" alt="DK Academy" className={styles.brandLogoImg} width={40} height={40} />
           </Link>
 
           {/* Desktop Navigation Links */}
@@ -696,7 +696,7 @@ export const Navbar: React.FC = () => {
             {/* Drawer Header */}
             <div className={styles.mobileHeader}>
               <Link to="/" onClick={closeMobileMenu} className={styles.mobileBrandWrap}>
-                <img src="/img/logo.jpeg" alt="DK Academy" className={styles.brandLogoImg} />
+                <img src="/img/logo.jpeg" alt="DK Academy" className={styles.brandLogoImg} width={40} height={40} />
                 <div className={styles.mobileBrandMeta}>
                   <span className={styles.mobileBrandTitle}>DK Academy</span>
                   <span className={styles.mobileBrandSub}>IIT JEE &amp; Foundation</span>

@@ -63,7 +63,9 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
           client_id: clientId,
           callback: handleCredentialResponse,
           auto_select: false,
-          cancel_on_tap_outside: true
+          cancel_on_tap_outside: true,
+          itp_support: true,
+          ux_mode: 'popup'
         });
 
         if (googleBtnContainerRef.current) {

@@ -199,9 +199,9 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
             <div className={styles.socialProofRow}>
               {/* Overlapping student avatar stack */}
               <div className={styles.studentAvatarStack} aria-hidden="true">
-                <img src="/images/students/aarav.jpg" alt="Aarav Sharma - IIT Bombay" className={styles.avatarImg} />
-                <img src="/images/students/priya.jpg" alt="Priya Singhania - IIT Delhi" className={styles.avatarImg} />
-                <img src="/images/students/rohan.jpg" alt="Rohan Verma - IIT Roorkee" className={styles.avatarImg} />
+                <img src="/images/students/aarav.jpg" alt="Aarav Sharma - IIT Bombay" className={styles.avatarImg} width={36} height={36} loading="lazy" />
+                <img src="/images/students/priya.jpg" alt="Priya Singhania - IIT Delhi" className={styles.avatarImg} width={36} height={36} loading="lazy" />
+                <img src="/images/students/rohan.jpg" alt="Rohan Verma - IIT Roorkee" className={styles.avatarImg} width={36} height={36} loading="lazy" />
                 <span className={styles.avatarMore}>+10k</span>
               </div>
 
