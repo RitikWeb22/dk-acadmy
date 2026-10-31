@@ -14,6 +14,7 @@ import {
   ChevronRight,
   GraduationCap,
   User,
+  UserCog,
   Activity,
   Volume2,
   MessageSquare,
@@ -27,6 +28,7 @@ import type { ProspectiveLead } from '../../../types/lead';
 import { leadService } from '../../../services/leadService';
 import { notificationService, type AdminNotificationItem, NOTIFICATIONS_EVENT_KEY } from '../../../services/notificationService';
 import { soundEffects } from '../../../utils/sound';
+import { AdminProfileModal } from '../AdminProfileModal/AdminProfileModal';
 import styles from './AdminLayout.module.scss';
 
 export interface AdminNavItem {
@@ -97,6 +99,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   const { admin, logout, hasRole } = useAdminAuth();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotificationItem[]>(() =>
     notificationService.getNotifications()
@@ -286,9 +289,22 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
         {/* Current Admin Quick Info Strip */}
         {admin && (
-          <div className={styles.sidebarAdminInfo}>
+          <div
+            className={styles.sidebarAdminInfo}
+            onClick={() => setIsProfileModalOpen(true)}
+            style={{ cursor: 'pointer' }}
+            title="Click to edit profile"
+          >
             <div className={styles.adminAvatar}>
-              {admin.name.charAt(0)}
+              {admin.avatarUrl ? (
+                <img
+                  src={admin.avatarUrl}
+                  alt={admin.name}
+                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                admin.name.charAt(0).toUpperCase()
+              )}
             </div>
             <div className={styles.adminMeta}>
               <span className={styles.adminName} title={admin.name}>{admin.name}</span>
@@ -575,7 +591,15 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                 aria-expanded={isProfileDropdownOpen}
               >
                 <div className={styles.profileAvatar}>
-                  <User size={16} />
+                  {admin?.avatarUrl ? (
+                    <img
+                      src={admin.avatarUrl}
+                      alt={admin.name || 'Admin'}
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <User size={16} />
+                  )}
                 </div>
                 <div className={styles.profileText}>
                   <span className={styles.profileName}>{admin?.name}</span>
@@ -591,6 +615,18 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                     <small>{admin?.designation}</small>
                   </div>
                   <div className={styles.menuDivider} />
+                  <button
+                    type="button"
+                    className={styles.menuItem}
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      setIsProfileModalOpen(true);
+                    }}
+                    style={{ width: '100%', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer' }}
+                  >
+                    <UserCog size={15} />
+                    <span>Edit Admin Profile</span>
+                  </button>
                   <Link
                     to="/admin/settings"
                     className={styles.menuItem}
@@ -624,6 +660,12 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           </div>
         </div>
       </header>
+
+      {/* Profile & Avatar Modal */}
+      <AdminProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
 
         {/* Dynamic Content Outlet */}
         <main className={styles.pageContent}>{children}</main>

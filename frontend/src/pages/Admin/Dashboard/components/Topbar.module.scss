@@ -328,6 +328,25 @@
   }
 }
 
+.userAvatarFallback {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563EB, #7C3AED);
+  color: #FFFFFF;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid #CBD5E1;
+
+  :global(.darkMode) & {
+    border-color: #475569;
+  }
+}
+
 .userNameText {
   font-size: 0.78125rem;
   font-weight: 600;
@@ -515,6 +534,37 @@
 
   :global(.darkMode) & {
     color: #94A3B8;
+  }
+}
+
+.userMenuItemAction {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #2563EB;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s ease;
+
+  &:hover {
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+  }
+
+  :global(.darkMode) & {
+    color: #60A5FA;
+
+    &:hover {
+      background-color: rgba(37, 99, 235, 0.15);
+      color: #93C5FD;
+    }
   }
 }
 

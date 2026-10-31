@@ -15,10 +15,12 @@ import {
   ChevronRight,
   LogOut,
   MoreVertical,
+  UserCog,
   Video,
   Tag
 } from 'lucide-react';
 import { useAdminAuth } from '../../../../context/AdminAuthContext';
+import { AdminProfileModal } from '../../../../components/admin/AdminProfileModal/AdminProfileModal';
 import styles from './Sidebar.module.scss';
 
 interface SidebarProps {
@@ -55,6 +57,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { admin, logout } = useAdminAuth();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  const adminInitials = (admin?.name || 'Admin')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
   // Grouped Navigation structure matching reference layout
   const navSections: NavSectionDef[] = [
@@ -216,25 +227,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Admin Profile Widget (Placed under header, matching reference dashboard) */}
+        {/* Admin Profile Widget (Placed under header, dynamic logged-in admin) */}
         <div className={styles.profileWidget}>
-          <div className={styles.avatarWrap}>
-            <img
-              src="/img/dk-sir.jpg"
-              alt="Dharmendra Kumar"
-              className={styles.profileAvatarImg}
-            />
+          <div
+            className={styles.avatarWrap}
+            style={{ cursor: 'pointer' }}
+            onClick={() => setIsProfileModalOpen(true)}
+            title="Edit Admin Profile & Avatar"
+          >
+            {admin?.avatarUrl ? (
+              <img
+                src={admin.avatarUrl}
+                alt={admin.name || 'Admin'}
+                className={styles.profileAvatarImg}
+              />
+            ) : (
+              <div className={styles.profileAvatarFallback}>
+                {adminInitials}
+              </div>
+            )}
             <span className={styles.onlineStatusDot} />
           </div>
 
           {!isCollapsed && (
-            <div className={styles.profileDetails}>
+            <div
+              className={styles.profileDetails}
+              style={{ cursor: 'pointer' }}
+              onClick={() => setIsProfileModalOpen(true)}
+              title="Click to edit profile"
+            >
               <div className={styles.profileNameRow}>
-                <span className={styles.profileName} title="Dharmendra Kumar (DK Sir)">
-                  Dharmendra Kumar (DK Sir)
+                <span className={styles.profileName} title={admin?.name || 'Administrator'}>
+                  {admin?.name || 'Administrator'}
                 </span>
               </div>
-              <span className={styles.profileRole}>- Super Admin</span>
+              <span className={styles.profileRole} title={admin?.designation || admin?.role}>
+                - {admin?.designation || (admin?.role ? admin.role.replace('_', ' ') : 'Super Admin')}
+              </span>
             </div>
           )}
 
@@ -256,8 +285,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className={styles.dropdownEmail}>
                       {admin?.email || 'admin@dkacademy.in'}
                     </span>
-                    <span className={styles.dropdownRole}>Super Admin (Janakpuri HQ)</span>
+                    <span className={styles.dropdownRole}>
+                      {admin?.role?.replace('_', ' ') || 'SUPER ADMIN'}
+                      {admin?.department ? ` • ${admin.department}` : ''}
+                    </span>
                   </div>
+                  <button
+                    type="button"
+                    className={styles.editProfileBtn}
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsProfileModalOpen(true);
+                    }}
+                  >
+                    <UserCog size={14} />
+                    <span>Edit Profile &amp; Photo</span>
+                  </button>
                   <button
                     type="button"
                     className={styles.logoutBtn}
@@ -345,6 +388,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </aside>
+
+      {/* Admin Profile & Avatar Cloudinary Editor Modal */}
+      <AdminProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </>
   );
 };

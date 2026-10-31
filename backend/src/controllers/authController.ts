@@ -317,7 +317,10 @@ export const adminLogin = async (req: Request, res: Response): Promise<void> => 
           name: user.name,
           email: user.email,
           role: user.role,
-          phone: user.phone
+          phone: user.phone,
+          avatarUrl: user.avatarUrl,
+          designation: user.designation,
+          department: user.department
         }
       }
     });
@@ -351,6 +354,8 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       'targetClass',
       'targetYear',
       'avatarUrl',
+      'designation',
+      'department',
       'dob',
       'preferredLanguage',
       'city',
@@ -366,6 +371,10 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
         (req.user as any)[field] = req.body[field];
       }
     });
+
+    if (req.body.password && typeof req.body.password === 'string' && req.body.password.trim().length >= 6) {
+      req.user.password = req.body.password.trim();
+    }
 
     await req.user.save();
 
