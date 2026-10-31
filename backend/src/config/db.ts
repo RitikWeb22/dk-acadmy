@@ -11,6 +11,9 @@ try {
   // ignore
 }
 
+// Enforce Mongoose query filter sanitization against NoSQL injection
+mongoose.set('sanitizeFilter', true);
+
 let isReconnecting = false;
 
 export const connectDB = async (): Promise<void> => {
