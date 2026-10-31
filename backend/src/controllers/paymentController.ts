@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import crypto from 'crypto';
+import { env } from '../config/env.js';
 import { razorpayInstance } from '../config/razorpay.js';
 import { User } from '../models/User.js';
 import { Order } from '../models/Order.js';
@@ -73,7 +74,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     res.status(200).json({
       success: true,
       order,
-      key: process.env.RAZORPAY_KEY_ID || '',
+      key: env.RAZORPAY_KEY_ID,
       isMock
     });
   } catch (error: any) {
@@ -90,7 +91,7 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
       courseId
     } = req.body;
 
-    const secret = process.env.RAZORPAY_KEY_SECRET;
+    const secret = env.RAZORPAY_KEY_SECRET;
     let isValid = false;
 
     if (secret && razorpay_order_id && razorpay_payment_id && razorpay_signature) {
@@ -114,7 +115,7 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     // In production, reject any non-cryptographically verified payments
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = env.NODE_ENV === 'production';
     const isDevMockAllowed =
       !isProduction &&
       (razorpay_signature === 'mock_signature' ||

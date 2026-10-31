@@ -1,12 +1,10 @@
 import http from 'http';
-import dotenv from 'dotenv';
+import { env } from './config/env.js';
 import { app } from './app.js';
 import { connectDB, disconnectDB } from './config/db.js';
 import { initSocket } from './sockets/socket.js';
 
-dotenv.config();
-
-const PORT = process.env.PORT || 5000;
+const PORT = env.PORT;
 
 // Create HTTP server
 const server = http.createServer(app);
@@ -17,7 +15,7 @@ initSocket(server);
 // Start Server and Connect DB
 const startServer = () => {
   server.listen(PORT, () => {
-    console.log(`[Server] Running on http://localhost:${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log(`[Server] Running on http://localhost:${PORT} in ${env.NODE_ENV} mode`);
     console.log(`[Socket.io] Realtime gateway active on port ${PORT}`);
   });
 
