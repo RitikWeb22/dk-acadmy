@@ -79,6 +79,20 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
     if (!courseData.deliveryMode) {
       courseData.deliveryMode = courseData.mode || 'Online Live';
     }
+    if (!courseData.mode) {
+      courseData.mode = courseData.deliveryMode;
+    }
+
+    // Normalize tags
+    if (courseData.tags) {
+      if (!Array.isArray(courseData.tags)) {
+        courseData.tags = typeof courseData.tags === 'string'
+          ? courseData.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+          : [];
+      }
+    } else {
+      courseData.tags = [];
+    }
 
     // Check if course with this slug exists
     const existing = await Course.findOne({ slug: courseData.slug });
@@ -122,6 +136,14 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
     if (typeof updates.price === 'string') {
       const parsed = parseInt(updates.price.replace(/\D/g, ''), 10);
       updates.price = isNaN(parsed) ? 0 : parsed;
+    }
+
+    if (updates.tags) {
+      if (!Array.isArray(updates.tags)) {
+        updates.tags = typeof updates.tags === 'string'
+          ? updates.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+          : [];
+      }
     }
 
     const updated = await Course.findOneAndUpdate(

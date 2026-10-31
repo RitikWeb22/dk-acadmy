@@ -91,6 +91,21 @@ const DEFAULT_COURSE_LEVELS: string[] = [
   'Free / Public Demo Tier'
 ];
 
+export const PRESET_COURSE_TAGS: string[] = [
+  'Test Series',
+  'Live Online',
+  'Self-Study DLP',
+  'Classroom',
+  'Hybrid',
+  'Popular',
+  'Bestseller',
+  'New Batch',
+  'Trending',
+  'Crash Course',
+  'Video Vault',
+  'Free Preview'
+];
+
 export const CourseBuilderWorkspace: React.FC = () => {
   // Current Active Wizard Step: 1, 2, 3, or 4
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -101,6 +116,24 @@ export const CourseBuilderWorkspace: React.FC = () => {
   const [originalPrice, setOriginalPrice] = useState('');
   const [coursePrice, setCoursePrice] = useState('');
   const [courseTags, setCourseTags] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>(['Live Online', 'Popular']);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [customTagInput, setCustomTagInput] = useState('');
+
+  const handleToggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleAddCustomTag = () => {
+    const trimmed = customTagInput.trim();
+    if (!trimmed) return;
+    if (!selectedTags.includes(trimmed)) {
+      setSelectedTags((prev) => [...prev, trimmed]);
+    }
+    setCustomTagInput('');
+  };
 
   // Dynamic Course Categories
   const [categoriesList, setCategoriesList] = useState<string[]>(() => {
@@ -272,7 +305,7 @@ export const CourseBuilderWorkspace: React.FC = () => {
 
   const handleUpdateExistingCourse = async (courseId: string, updates: Partial<Course>) => {
     try {
-      const updated = cmsService.updateCourse(courseId, updates);
+      const updated = await cmsService.updateCourse(courseId, updates);
       if (updated) {
         setExistingCourses((prev) =>
           prev.map((c) =>
@@ -306,6 +339,18 @@ export const CourseBuilderWorkspace: React.FC = () => {
     if (course.coverImage) {
       setThumbnailPreview(course.coverImage);
       setCloudinaryCoverUrl(course.coverImage);
+    }
+    setEditingCourseId(course.id || (course as any)._id || null);
+    if (course.tags && Array.isArray(course.tags) && course.tags.length > 0) {
+      setSelectedTags(course.tags);
+    } else {
+      const derived: string[] = [];
+      if (course.courseType === 'test-series') derived.push('Test Series');
+      else if (course.courseType === 'dlp') derived.push('Self-Study DLP');
+      else derived.push('Live Online');
+      if (course.isPopular) derived.push('Popular');
+      if (course.badge) derived.push(course.badge);
+      setSelectedTags(Array.from(new Set(derived)));
     }
     if (Array.isArray(course.curriculumSections) && course.curriculumSections.length > 0) {
       const mappedSections: SectionBlock[] = course.curriculumSections.map((sec, sIdx) => ({
@@ -924,8 +969,18 @@ export const CourseBuilderWorkspace: React.FC = () => {
 
       const isFreeCourse = courseLevel.toLowerCase().includes('free') || numPrice === 0;
 
+      const isTestSeries = selectedTags.some((t) => t.toLowerCase().includes('test series'));
+      const isDlp = selectedTags.some((t) => t.toLowerCase().includes('dlp') || t.toLowerCase().includes('self-study'));
+      const isLiveOnline = selectedTags.some((t) => t.toLowerCase().includes('live'));
+      const isPopularTag = selectedTags.some((t) => t.toLowerCase().includes('popular'));
+      const promoBadge = selectedTags.find((t) => ['Popular', 'Bestseller', 'New Batch', 'Trending'].includes(t)) || (isPopularTag ? 'Popular' : 'Newly Launched');
+      const formatMode = isTestSeries ? 'Online Test Series' : isDlp ? 'Self-Paced' : isLiveOnline ? 'Live + Recorded' : 'Live';
+      const calculatedCourseType = isTestSeries ? 'test-series' : isDlp ? 'dlp' : 'live';
+
+      const targetId = editingCourseId || generatedSlug;
+
       const newCourse: Course = {
-        id: generatedSlug,
+        id: targetId,
         slug: generatedSlug,
         title: courseName.trim(),
         description: courseDescription.trim(),
@@ -943,7 +998,8 @@ export const CourseBuilderWorkspace: React.FC = () => {
           ? 'Dropper'
           : 'Class 11th',
         targetYear: 'Target JEE 2028',
-        badge: 'Newly Launched',
+        tags: selectedTags,
+        badge: promoBadge,
         badgeUrgency: 'instant',
         tier: isFreeCourse ? 'Free' : 'Paid',
         level: courseLevel.trim(),
@@ -951,13 +1007,14 @@ export const CourseBuilderWorkspace: React.FC = () => {
         price: numPrice === 0 ? '₹0 Free' : `₹${numPrice.toLocaleString('en-IN')}`,
         numericPrice: numPrice,
         originalPrice: `₹${numOrigPrice.toLocaleString('en-IN')}`,
-        mode: 'Live',
-        courseType: 'live',
+        mode: formatMode,
+        deliveryMode: formatMode,
+        courseType: calculatedCourseType,
         schedule: '4 Days / Week (MWF + Sun)',
         duration: '2-Year Full Program',
         language: 'Hinglish (Hindi + Eng)',
         taughtByIitians: true,
-        isPopular: true,
+        isPopular: isPopularTag,
         enrolledCount: 1,
         coverImage: finalCoverImage,
         features: benefits.filter(Boolean),
@@ -967,10 +1024,26 @@ export const CourseBuilderWorkspace: React.FC = () => {
       };
 
       // 3. Persist to MongoDB backend and dispatch real-time events
-      const published = cmsService.createCourse(newCourse);
-      setExistingCourses((prev) => [published, ...prev.filter((c) => c.id !== published.id)]);
+      let published: Course;
+      if (editingCourseId) {
+        const res = await cmsService.updateCourse(editingCourseId, newCourse);
+        published = res || newCourse;
+        showToast(`✓ Course "${published.title}" updated in MongoDB successfully!`);
+      } else {
+        published = await cmsService.createCourse(newCourse);
+        showToast(`✓ Course "${published.title}" published & saved to MongoDB!`);
+      }
+      setExistingCourses((prev) => [
+        published,
+        ...prev.filter(
+          (c) =>
+            c.id !== published.id &&
+            (c as any)._id !== (published as any)._id &&
+            c.id !== targetId
+        )
+      ]);
       setIsPublished(true);
-      showToast('✓ Course published successfully!');
+      setEditingCourseId(null);
     } catch (publishErr: any) {
       console.error('[handlePublishCourse Error]:', publishErr);
       showToast('Error publishing course: ' + (publishErr?.message || 'Check fields'));
@@ -1179,16 +1252,147 @@ export const CourseBuilderWorkspace: React.FC = () => {
                   <span className={styles.pricingNote}>Final payable amount by student at checkout</span>
                 </div>
 
-                {/* Field 5: Course Tags (Half Width) */}
-                <div className={`${styles.fieldCol} ${styles.colHalf}`}>
-                  <label className={styles.fieldLabel}>Course Tags</label>
-                  <input
-                    type="text"
-                    className={styles.formInput}
-                    placeholder="JEE Main, JEE Advanced, Calculus, Kota Method, DK Sir"
-                    value={courseTags}
-                    onChange={(e) => setCourseTags(e.target.value)}
-                  />
+                {/* Field 5: Course Tags & Badges (Dropdown + Quick Selector) */}
+                <div className={`${styles.fieldCol} ${styles.colFull}`}>
+                  <div className={styles.fieldLabelRow}>
+                    <label className={styles.fieldLabel}>
+                      Course Tags &amp; Card Badges (e.g. Test Series, Popular, Live Online) *
+                    </label>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Choose tags that will display on the course card
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Dropdown to select preset tags + Custom input */}
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <select
+                        className={styles.formSelect}
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleToggleTag(e.target.value);
+                          }
+                        }}
+                        style={{ flex: '1 1 240px', minWidth: '220px' }}
+                        aria-label="Add course tag from dropdown"
+                      >
+                        <option value="">▼ Select Tag / Badge to Add...</option>
+                        {PRESET_COURSE_TAGS.map((tag) => (
+                          <option key={tag} value={tag}>
+                            {selectedTags.includes(tag) ? '✓ ' : '+ '} {tag}
+                          </option>
+                        ))}
+                      </select>
+
+                      <div style={{ display: 'flex', gap: '6px', flex: '1 1 200px' }}>
+                        <input
+                          type="text"
+                          placeholder="Type custom tag..."
+                          className={styles.formInput}
+                          value={customTagInput}
+                          onChange={(e) => setCustomTagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCustomTag();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className={styles.btnSecondary}
+                          onClick={handleAddCustomTag}
+                          style={{ padding: '6px 14px', whiteSpace: 'nowrap' }}
+                        >
+                          Add Tag
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Interactive clickable pills */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginRight: '4px' }}>
+                        Quick Select:
+                      </span>
+                      {PRESET_COURSE_TAGS.map((tag) => {
+                        const isSelected = selectedTags.includes(tag);
+                        const isPromo = ['popular', 'bestseller', 'new batch', 'trending'].includes(tag.toLowerCase());
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => handleToggleTag(tag)}
+                            style={{
+                              border: isSelected ? '1px solid transparent' : '1px solid #cbd5e1',
+                              background: isSelected
+                                ? (isPromo ? '#fef3c7' : '#0f172a')
+                                : '#f8fafc',
+                              color: isSelected
+                                ? (isPromo ? '#92400e' : '#ffffff')
+                                : '#475569',
+                              fontWeight: isSelected ? 700 : 500,
+                              borderRadius: '9999px',
+                              padding: '4px 11px',
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <span>{tag}</span>
+                            {isSelected && <span style={{ fontSize: '0.7rem' }}>✕</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Active Selected Tags Display */}
+                    {selectedTags.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', paddingTop: '2px' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>
+                          Active on Course Card ({selectedTags.length}):
+                        </span>
+                        {selectedTags.map((t) => (
+                          <span
+                            key={t}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: '6px',
+                              padding: '2px 8px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}
+                          >
+                            {t}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTag(t)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#1d4ed8',
+                                cursor: 'pointer',
+                                padding: 0,
+                                fontSize: '0.7rem',
+                                lineHeight: 1
+                              }}
+                              aria-label={`Remove tag ${t}`}
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Field 6: Course Categories (Half Width) - with Create Option */}

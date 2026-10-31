@@ -20,6 +20,8 @@ export interface IFreeLecture extends Document {
   targetExam: string;
   targetClass: string;
   description?: string;
+  tags?: string[];
+  badge?: string;
   status: 'Published' | 'Draft';
   viewsCount: number;
   createdAt: Date;
@@ -52,6 +54,8 @@ const freeLectureSchema = new Schema<IFreeLecture>(
     targetExam: { type: String, default: 'JEE Main & Advanced 2026/27' },
     targetClass: { type: String, default: 'Class 11 & 12' },
     description: { type: String, default: '' },
+    tags: [{ type: String, trim: true }],
+    badge: { type: String, trim: true },
     status: {
       type: String,
       enum: ['Published', 'Draft'],

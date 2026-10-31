@@ -71,16 +71,17 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
 
           // Accurately determine available container width
           const container = googleBtnContainerRef.current;
-          const rectWidth = container.getBoundingClientRect()?.width || container.clientWidth;
-          const parentWidth = container.parentElement?.clientWidth;
-          const measuredWidth = (rectWidth && rectWidth > 50) ? rectWidth : (parentWidth && parentWidth > 50 ? parentWidth : 0);
+          const rectWidth = container?.getBoundingClientRect()?.width || container?.clientWidth || 0;
+          const parentWidth = container?.parentElement?.getBoundingClientRect()?.width || container?.parentElement?.clientWidth || 0;
+          const validWidths = [rectWidth, parentWidth].filter((w) => w > 100);
+          const measuredWidth = validWidths.length > 0 ? Math.min(...validWidths) : 0;
           const fallbackWidth = typeof window !== 'undefined' ? Math.max(200, window.innerWidth - 64) : 280;
-          const availableWidth = measuredWidth || fallbackWidth;
+          const availableWidth = measuredWidth > 50 ? measuredWidth : fallbackWidth;
 
           // Google Identity Services renderButton strictly enforces [200, 400]
-          // Subtract a small buffer (4px) and screen safe bounds so borders never clip
+          // Subtract a small buffer (8px) so borders never touch or clip card edges
           const screenSafeMax = typeof window !== 'undefined' ? Math.max(200, window.innerWidth - 64) : 340;
-          const targetWidth = Math.max(200, Math.min(380, screenSafeMax, Math.floor(availableWidth - 4)));
+          const targetWidth = Math.max(200, Math.min(380, screenSafeMax, Math.floor(availableWidth - 8)));
 
           window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
             type: 'standard',
@@ -90,6 +91,13 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
             shape: 'rectangular',
             logo_alignment: 'left',
             width: targetWidth
+          });
+
+          // Ensure rendered iframes never overflow width
+          const iframes = googleBtnContainerRef.current.querySelectorAll('iframe');
+          iframes.forEach((iframe) => {
+            iframe.style.maxWidth = '100%';
+            iframe.style.boxSizing = 'border-box';
           });
         }
         setGisLoaded(true);

@@ -304,13 +304,13 @@ export const adminService = {
       try {
         const parsed: any[] = JSON.parse(rawAccounts);
         const filtered = parsed.filter((a) => a.email !== 'teacher@dkacademy.com');
-        const hasRitik = filtered.some((a) => a.email === 'ritikweb30@gmail.com');
-        if (!hasRitik) {
-          localStorage.setItem(ADMIN_ACCOUNTS_KEY, JSON.stringify(INITIAL_ADMIN_ACCOUNTS));
-          localStorage.removeItem(ADMIN_SESSION_KEY);
-        } else {
-          localStorage.setItem(ADMIN_ACCOUNTS_KEY, JSON.stringify(filtered));
+        // Ensure standard initial accounts exist in accounts list without wiping user-created accounts
+        for (const initialAcc of INITIAL_ADMIN_ACCOUNTS) {
+          if (!filtered.some((a) => a.email.toLowerCase() === initialAcc.email.toLowerCase())) {
+            filtered.push(initialAcc);
+          }
         }
+        localStorage.setItem(ADMIN_ACCOUNTS_KEY, JSON.stringify(filtered));
       } catch {
         localStorage.setItem(ADMIN_ACCOUNTS_KEY, JSON.stringify(INITIAL_ADMIN_ACCOUNTS));
       }
@@ -326,11 +326,12 @@ export const adminService = {
       localStorage.setItem(COUNSELORS_KEY, JSON.stringify(INITIAL_COUNSELORS));
     }
 
+    // Preserve valid active administrator session across reloads; only remove if truly expired
     const currentSessionRaw = localStorage.getItem(ADMIN_SESSION_KEY);
     if (currentSessionRaw) {
       try {
         const parsed = JSON.parse(currentSessionRaw);
-        if (parsed.user?.email !== 'ritikweb30@gmail.com') {
+        if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
           localStorage.removeItem(ADMIN_SESSION_KEY);
         }
       } catch {
@@ -459,7 +460,7 @@ export const adminService = {
           token: backendRes.data.token,
           user: adminUser,
           createdAt: Date.now(),
-          expiresAt: Date.now() + 8 * 60 * 60 * 1000
+          expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days validity
         };
 
         localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
@@ -540,7 +541,7 @@ export const adminService = {
       token: `dka_sess_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
       user: userWithoutPassword,
       createdAt: Date.now(),
-      expiresAt: Date.now() + 8 * 60 * 60 * 1000 // 8 hours
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days validity
     };
 
     localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));

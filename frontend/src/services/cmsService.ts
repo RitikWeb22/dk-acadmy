@@ -1417,7 +1417,7 @@ export const cmsService = {
     this.notifyUpdate('courses');
   },
 
-  createCourse(course: Omit<Course, 'id'> & { id?: string }): Course {
+  async createCourse(course: Omit<Course, 'id'> & { id?: string }): Promise<Course> {
     const courses = this.getCourses();
     const id = course.id && course.id.trim() ? course.id.trim() : `course_${Date.now()}`;
     const slug = (course as any).slug || id;
@@ -1451,7 +1451,8 @@ export const cmsService = {
       originalPrice: typeof (newCourse as any).originalPrice === 'number'
         ? (newCourse as any).originalPrice
         : parseInt(String((newCourse as any).originalPrice || '').replace(/\D/g, '') || '0', 10) || numPrice + 15000,
-      deliveryMode: newCourse.mode || 'Online Live',
+      deliveryMode: (newCourse as any).deliveryMode || newCourse.mode || 'Online Live',
+      mode: newCourse.mode || 'Online Live',
       coverImage: newCourse.coverImage || '/img/dk-results-banner.jpeg',
       features: newCourse.features || [],
       curriculumSections: (newCourse as any).curriculumSections || [],
@@ -1459,15 +1460,35 @@ export const cmsService = {
       status: (newCourse as any).status === 'Draft' ? 'draft' : 'published',
       level: (newCourse as any).level || (newCourse as any).courseLevel || '',
       tier: newCourse.tier || 'Paid',
-      instructor: (newCourse as any).instructor || 'Prof. R.K. Verma & DK Sir'
+      instructor: (newCourse as any).instructor || 'Prof. R.K. Verma & DK Sir',
+      tags: newCourse.tags || [],
+      badge: newCourse.badge || '',
+      isPopular: Boolean(newCourse.isPopular),
+      courseType: newCourse.courseType || 'live'
     };
 
-    apiClient.post('/courses', mongoPayload).catch(() => {});
+    try {
+      const res = await apiClient.post<any>('/courses', mongoPayload);
+      if (res && res.success && res.data) {
+        const mongoDoc = res.data;
+        const enriched: Course = {
+          ...newCourse,
+          _id: mongoDoc._id,
+          id: mongoDoc._id || newCourse.id
+        };
+        const synced = [enriched, ...courses.filter((c) => c.id !== id && c._id !== mongoDoc._id)];
+        localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(synced));
+        this.notifyUpdate('courses');
+        return enriched;
+      }
+    } catch (apiErr) {
+      console.warn('[cmsService] MongoDB save warning:', apiErr);
+    }
 
     return newCourse;
   },
 
-  updateCourse(id: string, updates: Partial<Course>): Course | null {
+  async updateCourse(id: string, updates: Partial<Course>): Promise<Course | null> {
     const courses = this.getCourses();
     const index = courses.findIndex((c) => c.id === id || (c as any)._id === id || (c as any).slug === id);
     if (index === -1) return null;
@@ -1482,12 +1503,16 @@ export const cmsService = {
 
     // Sync update to MongoDB backend API
     const targetKey = (courses[index] as any)._id || courses[index].slug || courses[index].id;
-    apiClient.put(`/courses/${targetKey}`, updates).catch(() => {});
+    try {
+      await apiClient.put(`/courses/${targetKey}`, updates);
+    } catch (err) {
+      console.warn('[cmsService] MongoDB update warning:', err);
+    }
 
     return updatedCourse;
   },
 
-  deleteCourse(id: string): boolean {
+  async deleteCourse(id: string): Promise<boolean> {
     const courses = this.getCourses();
     const target = courses.find((c) => c.id === id || (c as any)._id === id || (c as any).slug === id);
     const filtered = courses.filter((c) => c.id !== id && (c as any)._id !== id && (c as any).slug !== id);
@@ -1498,7 +1523,11 @@ export const cmsService = {
 
     // Delete from MongoDB backend API
     const targetKey = (target as any)?._id || target?.slug || id;
-    apiClient.delete(`/courses/${targetKey}`).catch(() => {});
+    try {
+      await apiClient.delete(`/courses/${targetKey}`);
+    } catch (err) {
+      console.warn('[cmsService] MongoDB delete warning:', err);
+    }
 
     return true;
   },

@@ -47,6 +47,21 @@ const STEP_LABELS = [
   '7. Publish'
 ];
 
+const PRESET_COURSE_TAGS = [
+  'Test Series',
+  'Live Online',
+  'Self-Study DLP',
+  'Classroom',
+  'Hybrid',
+  'Popular',
+  'Bestseller',
+  'New Batch',
+  'Trending',
+  'Crash Course',
+  'Video Vault',
+  'Free Preview'
+];
+
 export const AdminCoursesPage: React.FC = () => {
   const { admin } = useAdminAuth();
   const [courses, setCourses] = useState<Course[]>(() => cmsService.getCourses());
@@ -94,6 +109,7 @@ export const AdminCoursesPage: React.FC = () => {
     batchStartDate: '28th May 2026',
     schedule: '4 Days / Week (MWF + Sun)',
     badge: 'Admissions Open 2026-27',
+    tags: ['Live Online', 'Popular'] as string[],
     featuresText: 'DK Sir 20s Techniques, Live Doubts Counter, Complete Study Modules, NTA CBT Mock Series',
     tier: 'Paid' as Course['tier'],
     numericPrice: 78000,
@@ -227,6 +243,7 @@ export const AdminCoursesPage: React.FC = () => {
       batchStartDate: '28th May 2026',
       schedule: '4 Days / Week (MWF + Sun)',
       badge: 'Admissions Open 2026-27',
+      tags: ['Live Online', 'Popular'] as string[],
       featuresText: 'DK Sir 20s Techniques, Live Doubts Counter, Complete Study Modules, NTA CBT Mock Series',
       tier: 'Paid',
       numericPrice: 78000,
@@ -289,6 +306,7 @@ export const AdminCoursesPage: React.FC = () => {
       batchStartDate: c.batchStartDate || '28th May 2026',
       schedule: c.schedule || '4 Days / Week',
       badge: c.badge || 'Admissions Open',
+      tags: c.tags || (['Live Online', 'Popular'] as string[]),
       featuresText: Array.isArray(c.features) ? c.features.join(', ') : '',
       tier: c.tier || 'Paid',
       numericPrice: c.numericPrice || 78000,
@@ -441,7 +459,7 @@ export const AdminCoursesPage: React.FC = () => {
   };
 
   // Submit 7-Step Wizard Form
-  const handleSaveWizardCourse = (publishDirectly: boolean = false) => {
+  const handleSaveWizardCourse = async (publishDirectly: boolean = false) => {
     if (!formData.title.trim()) {
       showToast('Error: Course Title is required.');
       setWizardStep(1);
@@ -458,6 +476,14 @@ export const AdminCoursesPage: React.FC = () => {
       formData.tier === 'Free' ? 'Free Course' : `₹${formData.numericPrice.toLocaleString('en-IN')}`;
     const origPriceFormatted = `₹${formData.mrpPrice.toLocaleString('en-IN')}`;
 
+    const isTestSeries = (formData.tags || []).some((t) => t.toLowerCase().includes('test series'));
+    const isDlp = (formData.tags || []).some((t) => t.toLowerCase().includes('dlp') || t.toLowerCase().includes('self-study'));
+    const isLiveOnline = (formData.tags || []).some((t) => t.toLowerCase().includes('live'));
+    const isPopular = (formData.tags || []).some((t) => t.toLowerCase().includes('popular'));
+    const promoBadge = (formData.tags || []).find((t) => ['Popular', 'Bestseller', 'New Batch', 'Trending'].includes(t)) || formData.badge;
+    const formatMode = isTestSeries ? 'Online Test Series' : isDlp ? 'Self-Paced' : isLiveOnline ? 'Live + Recorded' : formData.mode;
+    const calculatedCourseType = isTestSeries ? 'test-series' : isDlp ? 'dlp' : 'live';
+
     const coursePayload: Partial<Course> = {
       title: formData.title.trim(),
       slug: formData.slug.trim() || formData.title.toLowerCase().replace(/[^a-z0-9]/g, '-'),
@@ -466,8 +492,12 @@ export const AdminCoursesPage: React.FC = () => {
       category: formData.category,
       targetClass: formData.targetClass,
       targetYear: formData.targetYear,
-      mode: formData.mode,
-      badge: formData.badge,
+      mode: formatMode,
+      deliveryMode: formatMode,
+      courseType: calculatedCourseType,
+      tags: formData.tags || [],
+      badge: promoBadge,
+      isPopular,
       tier: formData.tier,
       price: priceFormatted,
       originalPrice: origPriceFormatted,
@@ -491,7 +521,7 @@ export const AdminCoursesPage: React.FC = () => {
     };
 
     if (editingCourseId) {
-      cmsService.updateCourse(editingCourseId, coursePayload);
+      await cmsService.updateCourse(editingCourseId, coursePayload);
       if (admin) {
         adminService.logAudit({
           adminId: admin.id,
@@ -499,15 +529,15 @@ export const AdminCoursesPage: React.FC = () => {
           adminRole: admin.role,
           action: 'COURSE_UPDATED',
           module: 'Course Management',
-          details: `Updated course "${formData.title}" (Status: ${calculatedStatus})`,
+          details: `Updated course "${formData.title}" in MongoDB (Status: ${calculatedStatus})`,
           status: 'SUCCESS'
         });
       }
-      showToast(`Course "${formData.title}" updated successfully!`);
+      showToast(`Course "${formData.title}" updated in database successfully!`);
     } else {
       const newCourseId =
         formData.slug.trim() || formData.title.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      cmsService.createCourse({
+      await cmsService.createCourse({
         ...coursePayload,
         id: newCourseId,
         enrolledCount: 0,
@@ -521,11 +551,11 @@ export const AdminCoursesPage: React.FC = () => {
           adminRole: admin.role,
           action: 'COURSE_CREATED',
           module: 'Course Management',
-          details: `Created new course "${formData.title}" (Status: ${calculatedStatus})`,
+          details: `Created new course "${formData.title}" in MongoDB (Status: ${calculatedStatus})`,
           status: 'SUCCESS'
         });
       }
-      showToast(`Course "${formData.title}" created and saved!`);
+      showToast(`Course "${formData.title}" created & saved to database!`);
     }
 
     setIsWizardOpen(false);
@@ -1040,6 +1070,106 @@ export const AdminCoursesPage: React.FC = () => {
                         <option value="Hindi Medium">Hindi Medium</option>
                       </select>
                     </div>
+                  </div>
+
+                  {/* Course Tags & Badges Selector */}
+                  <div className={styles.formGroup} style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <label style={{ fontWeight: 700, margin: 0 }}>Course Tags &amp; Card Badges (e.g. Test Series, Popular, Live Online) *</label>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>Displayed on top of course card thumbnails</span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const current = formData.tags || [];
+                            if (!current.includes(e.target.value)) {
+                              setFormData({ ...formData, tags: [...current, e.target.value] });
+                            }
+                          }
+                        }}
+                        style={{ flex: '1 1 200px', height: '38px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px' }}
+                      >
+                        <option value="">▼ Select Tag to Add to Card...</option>
+                        {PRESET_COURSE_TAGS.map((tag) => (
+                          <option key={tag} value={tag}>
+                            {(formData.tags || []).includes(tag) ? '✓ ' : '+ '} {tag}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginRight: '4px' }}>
+                        Quick Select:
+                      </span>
+                      {PRESET_COURSE_TAGS.map((tag) => {
+                        const isSelected = (formData.tags || []).includes(tag);
+                        const isPromo = ['popular', 'bestseller', 'new batch', 'trending'].includes(tag.toLowerCase());
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              const current = formData.tags || [];
+                              const updated = current.includes(tag)
+                                ? current.filter((t) => t !== tag)
+                                : [...current, tag];
+                              setFormData({ ...formData, tags: updated });
+                            }}
+                            style={{
+                              border: isSelected ? '1px solid transparent' : '1px solid #cbd5e1',
+                              background: isSelected
+                                ? (isPromo ? '#fef3c7' : '#0f172a')
+                                : '#ffffff',
+                              color: isSelected
+                                ? (isPromo ? '#92400e' : '#ffffff')
+                                : '#475569',
+                              fontWeight: isSelected ? 700 : 500,
+                              borderRadius: '9999px',
+                              padding: '4px 10px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <span>{tag}</span>
+                            {isSelected && <span style={{ fontSize: '10px' }}>✕</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {(formData.tags || []).length > 0 && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
+                        <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>
+                          Active on Card ({formData.tags.length}):
+                        </span>
+                        {formData.tags.map((t) => (
+                          <span
+                            key={t}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: '4px',
+                              padding: '2px 6px',
+                              fontSize: '11px',
+                              fontWeight: 600
+                            }}
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className={styles.formGrid}>

@@ -23,7 +23,9 @@ import {
   ShieldAlert,
   AlertTriangle,
   GraduationCap,
-  ShieldCheck
+  ShieldCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import styles from './FacultyManagementWorkspace.module.scss';
 
@@ -96,6 +98,9 @@ export const FacultyManagementWorkspace: React.FC = () => {
   const [deleteCandidate, setDeleteCandidate] = useState<FacultyItem | null>(null);
   const [messageStaff, setMessageStaff] = useState<FacultyItem | null>(null);
   const [messageText, setMessageText] = useState('');
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [editPassword, setEditPassword] = useState('');
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   // New Faculty Form State
   const [newFaculty, setNewFaculty] = useState({
@@ -104,6 +109,7 @@ export const FacultyManagementWorkspace: React.FC = () => {
     specialization: 'JEE Advanced Mentor',
     email: '',
     mobile: '',
+    password: '',
     role: 'Faculty' as 'Super Admin' | 'Faculty' | 'Admin' | 'Lead HOD',
     primaryBatch: 'Ultimate 2-Year Live Classroom (Janakpuri HQ)'
   });
@@ -227,14 +233,47 @@ export const FacultyManagementWorkspace: React.FC = () => {
   };
 
   // Edit / Update CRUD handler
-  const handleEditSave = (e: React.FormEvent) => {
+  const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingFaculty) return;
     setFacultyList((prev) =>
       prev.map((f) => (f.id === editingFaculty.id ? editingFaculty : f))
     );
-    showToast(`Updated record for ${editingFaculty.name} successfully.`);
+
+    // If new password provided, update it via backend & local storage
+    if (editPassword && editPassword.trim().length >= 6) {
+      const cleanPass = editPassword.trim();
+      try {
+        await apiClient.put(`/auth/staff/${editingFaculty.id}/password`, {
+          password: cleanPass
+        });
+      } catch (err) {
+        console.warn('Password update backend sync:', err);
+      }
+
+      try {
+        const existingRaw = localStorage.getItem('dk_academy_admin_accounts_v1');
+        if (existingRaw) {
+          const list = JSON.parse(existingRaw);
+          const found = list.find(
+            (a: any) =>
+              a.email?.toLowerCase() === editingFaculty.email.toLowerCase() ||
+              a.id === editingFaculty.id
+          );
+          if (found) {
+            found.passwordHash = cleanPass;
+            localStorage.setItem('dk_academy_admin_accounts_v1', JSON.stringify(list));
+          }
+        }
+      } catch {}
+
+      showToast(`Updated record & login password for ${editingFaculty.name} successfully.`);
+    } else {
+      showToast(`Updated record for ${editingFaculty.name} successfully.`);
+    }
+
     setEditingFaculty(null);
+    setEditPassword('');
   };
 
   // Delete handler
@@ -293,6 +332,12 @@ export const FacultyManagementWorkspace: React.FC = () => {
       return;
     }
 
+    const assignedPassword = (newFaculty.password || '').trim() || 'Verma@2026';
+    if (assignedPassword.length < 6) {
+      showToast('Password must be at least 6 characters long.');
+      return;
+    }
+
     const uniqueTeacherId = generateTeacherId();
     const created: FacultyItem = {
       id: uniqueTeacherId,
@@ -316,6 +361,7 @@ export const FacultyManagementWorkspace: React.FC = () => {
         name: created.name,
         email: created.email,
         phone: created.mobile,
+        password: assignedPassword,
         role: created.role === 'Super Admin' ? 'SUPER_ADMIN' : created.role === 'Admin' ? 'ADMIN' : 'TEACHER',
         department: created.department,
         specialization: created.specialization
@@ -324,16 +370,30 @@ export const FacultyManagementWorkspace: React.FC = () => {
       console.warn('Backend staff create note:', err);
     }
 
+    try {
+      const existingRaw = localStorage.getItem('dk_academy_admin_accounts_v1');
+      const list = existingRaw ? JSON.parse(existingRaw) : [];
+      list.push({
+        id: created.id,
+        name: created.name,
+        email: created.email,
+        passwordHash: assignedPassword,
+        role: created.role === 'Super Admin' ? 'SUPER_ADMIN' : created.role === 'Admin' ? 'ADMIN' : 'TEACHER'
+      });
+      localStorage.setItem('dk_academy_admin_accounts_v1', JSON.stringify(list));
+    } catch {}
+
     setNewFaculty({
       name: '',
       department: 'Mathematics',
       specialization: 'JEE Advanced Mentor',
       email: '',
       mobile: '',
+      password: '',
       role: 'Faculty',
       primaryBatch: 'Ultimate 2-Year Live Classroom (Janakpuri HQ)'
     });
-    showToast(`Successfully onboarded ${created.name} into Faculty directory.`);
+    showToast(`Successfully onboarded ${created.name} | Login: ${created.email} | Pass: ${assignedPassword}`);
   };
 
   return (
@@ -386,15 +446,14 @@ export const FacultyManagementWorkspace: React.FC = () => {
             )}
           </div>
 
-          {/* Action: [+ Add Faculty / Admin] (Solid Electric Blue #2563EB) */}
+          {/* Action: [Add Faculty / Admin] (Solid Electric Blue #2563EB) */}
           <button
             type="button"
             className={styles.addAspirantBtn}
             onClick={() => setIsAddModalOpen(true)}
             aria-label="Add new faculty or admin"
           >
-            <Plus size={14} />
-            <span>+ Add Faculty / Admin</span>
+            <span>Add Faculty / Admin</span>
           </button>
         </div>
       </section>
@@ -894,6 +953,43 @@ export const FacultyManagementWorkspace: React.FC = () => {
                 />
               </div>
 
+              <div className={styles.formField}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className={styles.formLabel}>Update Login Password (optional)</label>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Leave blank to keep existing</span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showEditPassword ? 'text' : 'password'}
+                    minLength={6}
+                    placeholder="Enter new password (min 6 characters)"
+                    className={styles.formInput}
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    style={{ paddingRight: '2.5rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#64748b',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                    aria-label={showEditPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
               <div className={styles.modalActions}>
                 <button
                   type="button"
@@ -1108,6 +1204,46 @@ export const FacultyManagementWorkspace: React.FC = () => {
                     20-30s Speed Math &amp; Calculus (Online LMS)
                   </option>
                 </select>
+              </div>
+
+              <div className={styles.formField}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className={styles.formLabel}>Login Password *</label>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Min 6 characters (for faculty / admin login)</span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showAddPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    placeholder="Set login password (e.g. Verma@2026)"
+                    className={styles.formInput}
+                    value={newFaculty.password}
+                    onChange={(e) =>
+                      setNewFaculty({ ...newFaculty, password: e.target.value })
+                    }
+                    style={{ paddingRight: '2.5rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAddPassword(!showAddPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#64748b',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                    aria-label={showAddPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showAddPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <div className={styles.modalActions}>

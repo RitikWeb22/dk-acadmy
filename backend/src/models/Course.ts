@@ -51,7 +51,13 @@ export interface ICourse extends Document {
   originalPrice?: number;
   level?: string;
   tier?: string;
-  deliveryMode: 'Offline' | 'Hybrid' | 'Online Live';
+  deliveryMode?: string;
+  mode?: string;
+  courseType?: string;
+  tags?: string[];
+  badge?: string;
+  isPopular?: boolean;
+  isBestValue?: boolean;
   startDate?: string;
   duration?: string;
   coverImage?: string;
@@ -138,9 +144,14 @@ const courseSchema = new Schema<ICourse>(
     tier: { type: String },
     deliveryMode: {
       type: String,
-      enum: ['Offline', 'Hybrid', 'Online Live'],
-      default: 'Offline'
+      default: 'Online Live'
     },
+    mode: { type: String, default: 'Online Live' },
+    courseType: { type: String, default: 'live' },
+    tags: [{ type: String, trim: true }],
+    badge: { type: String, trim: true },
+    isPopular: { type: Boolean, default: false },
+    isBestValue: { type: Boolean, default: false },
     startDate: { type: String },
     duration: { type: String },
     coverImage: { type: String },

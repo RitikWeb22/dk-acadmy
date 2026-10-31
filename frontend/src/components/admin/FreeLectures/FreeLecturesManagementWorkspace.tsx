@@ -48,14 +48,27 @@ export interface AdminLectureItem {
   dppName?: string;
   dppUrl?: string;
   notesPdfUrl?: string;
-  facultyName: string;
-  targetExam: string;
-  targetClass: string;
-  description?: string;
-  status: 'Published' | 'Draft';
-  createdAt?: string;
-  updatedAt?: string;
+  facultyName?: string;
+  targetExam?: string;
+  targetClass?: string;
+  tags?: string[];
+  badge?: string;
+  viewsCount?: number;
+  status?: 'Published' | 'Draft';
 }
+
+export const PRESET_LECTURE_TAGS: string[] = [
+  'Free Preview',
+  'PYQ Solutions',
+  'Concept Masterclass',
+  'Important Questions',
+  '20-30s Short Tricks',
+  'Formula Revision',
+  'Popular',
+  'Trending',
+  'Most Watched',
+  'New'
+];
 
 interface StepMilestone {
   stepNumber: number;
@@ -107,6 +120,23 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
     "Evaluate DK Sir's proprietary 20-30s speed inspection rule and conceptual graphical mechanics for indeterminate limits and derivatives before taking any admission decision."
   );
   const [thumbnailUrl, setThumbnailUrl] = useState('/img/founder.jpeg');
+  const [selectedLectureTags, setSelectedLectureTags] = useState<string[]>(['Free Preview', 'Popular']);
+  const [customLectureTag, setCustomLectureTag] = useState('');
+
+  const handleToggleLectureTag = (tag: string) => {
+    setSelectedLectureTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleAddCustomLectureTag = () => {
+    const trimmed = customLectureTag.trim();
+    if (!trimmed) return;
+    if (!selectedLectureTags.includes(trimmed)) {
+      setSelectedLectureTags((prev) => [...prev, trimmed]);
+    }
+    setCustomLectureTag('');
+  };
 
   // ─── Step 2: 5-Free Policy & Pricing ───
   const [defaultPaidPrice, setDefaultPaidPrice] = useState('499');
@@ -387,6 +417,8 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
           targetExam,
           targetClass,
           description: trackDescription,
+          tags: selectedLectureTags,
+          badge: selectedLectureTags.find((t) => ['Popular', 'Trending', 'Most Watched', 'New'].includes(t)) || 'Free Preview',
           status: 'Published'
         });
       }
@@ -614,6 +646,146 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
                       value={thumbnailUrl}
                       onChange={(e) => setThumbnailUrl(e.target.value)}
                     />
+                  </div>
+
+                  {/* Lecture Tags & Badges */}
+                  <div className={`${styles.fieldCol} ${styles.colFull}`}>
+                    <div className={styles.fieldLabelRow}>
+                      <label className={styles.fieldLabel}>Lecture Tags &amp; Badges (e.g. Free Preview, Popular, PYQ Solutions)</label>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        Tags for students to filter and identify this track
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <select
+                          className={styles.formSelect}
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleToggleLectureTag(e.target.value);
+                            }
+                          }}
+                          style={{ flex: '1 1 240px', minWidth: '220px' }}
+                          aria-label="Add lecture tag from dropdown"
+                        >
+                          <option value="">▼ Select Lecture Tag to Add...</option>
+                          {PRESET_LECTURE_TAGS.map((tag) => (
+                            <option key={tag} value={tag}>
+                              {selectedLectureTags.includes(tag) ? '✓ ' : '+ '} {tag}
+                            </option>
+                          ))}
+                        </select>
+
+                        <div style={{ display: 'flex', gap: '6px', flex: '1 1 200px' }}>
+                          <input
+                            type="text"
+                            placeholder="Type custom tag..."
+                            className={styles.formInput}
+                            value={customLectureTag}
+                            onChange={(e) => setCustomLectureTag(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddCustomLectureTag();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className={styles.btnSecondary}
+                            onClick={handleAddCustomLectureTag}
+                            style={{ padding: '6px 14px', whiteSpace: 'nowrap' }}
+                          >
+                            Add Tag
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Interactive clickable pills */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginRight: '4px' }}>
+                          Quick Select:
+                        </span>
+                        {PRESET_LECTURE_TAGS.map((tag) => {
+                          const isSelected = selectedLectureTags.includes(tag);
+                          const isPromo = ['popular', 'trending', 'most watched', 'new'].includes(tag.toLowerCase());
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => handleToggleLectureTag(tag)}
+                              style={{
+                                border: isSelected ? '1px solid transparent' : '1px solid #cbd5e1',
+                                background: isSelected
+                                  ? (isPromo ? '#fef3c7' : '#0f172a')
+                                  : '#f8fafc',
+                                color: isSelected
+                                  ? (isPromo ? '#92400e' : '#ffffff')
+                                  : '#475569',
+                                fontWeight: isSelected ? 700 : 500,
+                                borderRadius: '9999px',
+                                padding: '4px 11px',
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <span>{tag}</span>
+                              {isSelected && <span style={{ fontSize: '0.7rem' }}>✕</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Active Selected Tags Display */}
+                      {selectedLectureTags.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', paddingTop: '2px' }}>
+                          <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>
+                            Active Tags ({selectedLectureTags.length}):
+                          </span>
+                          {selectedLectureTags.map((t) => (
+                            <span
+                              key={t}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: '#eff6ff',
+                                color: '#1d4ed8',
+                                border: '1px solid #bfdbfe',
+                                borderRadius: '6px',
+                                padding: '2px 8px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600
+                              }}
+                            >
+                              {t}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleLectureTag(t)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#1d4ed8',
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                  fontSize: '0.7rem',
+                                  lineHeight: 1
+                                }}
+                                aria-label={`Remove tag ${t}`}
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
