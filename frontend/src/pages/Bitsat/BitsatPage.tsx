@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   ChevronRight,
@@ -1358,16 +1359,17 @@ export const BitsatPage: React.FC = () => {
       )}
 
       {/* Video Solution Modal */}
-      {activeVideoUrl && (
+      {activeVideoUrl && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-            backdropFilter: 'blur(4px)',
+            zIndex: 999999,
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1381,10 +1383,11 @@ export const BitsatPage: React.FC = () => {
             style={{
               background: '#0f172a',
               borderRadius: '16px',
-              maxWidth: '800px',
+              maxWidth: '560px',
               width: '100%',
               overflow: 'hidden',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.6)',
+              margin: 'auto'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
@@ -1413,20 +1416,22 @@ export const BitsatPage: React.FC = () => {
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Drill Result & AIR Benchmark Modal */}
-      {isDrillSubmitted && (
+      {isDrillSubmitted && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 99999,
+            zIndex: 999999,
             backgroundColor: 'rgba(15, 23, 42, 0.85)',
             backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1447,7 +1452,8 @@ export const BitsatPage: React.FC = () => {
               padding: '32px 28px',
               boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.4)',
               textAlign: 'center',
-              position: 'relative'
+              position: 'relative',
+              margin: 'auto'
             }}
           >
             {/* Close X button */}
@@ -1590,7 +1596,7 @@ export const BitsatPage: React.FC = () => {
                 <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '2px' }}>Attempted</div>
               </div>
 
-              <div style={{ background: '#f8fafc', padding: '12px 10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <div style={{ background: '#f8fafc', padding: '12px 10px', borderRadius: '12px', border: '1px solid #d97706' }}>
                 <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#d97706' }}>
                   {drillStats.attempted > 0 ? Math.round(overallElapsedSeconds / drillStats.attempted) : 45}s
                 </div>
@@ -1672,7 +1678,8 @@ export const BitsatPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── 3. BITSAT Exam Pattern Blueprint ─── */}
