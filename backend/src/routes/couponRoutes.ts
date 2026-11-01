@@ -7,7 +7,7 @@ import {
   deleteCoupon,
   validateAndApplyCoupon
 } from '../controllers/couponController.js';
-import { protect, authorize } from '../middlewares/authMiddleware.js';
+import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
@@ -37,10 +37,10 @@ const validateCouponSchema = z
   .strict();
 
 router.get('/', getAllCoupons);
-router.post('/', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ body: createCouponSchema }), createCoupon);
+router.post('/', directoryProtect, validate({ body: createCouponSchema }), createCoupon);
 router.post('/validate', validate({ body: validateCouponSchema }), validateAndApplyCoupon);
-router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), updateCoupon);
-router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), deleteCoupon);
+router.put('/:id', directoryProtect, updateCoupon);
+router.delete('/:id', directoryProtect, deleteCoupon);
 
 export default router;
 
