@@ -15,11 +15,12 @@
 
 .modalBox {
   width: 100%;
-  max-width: 860px;
+  max-width: 680px;
+  max-height: 92vh;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: $radius-2xl;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  border-radius: $radius-xl;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -27,9 +28,9 @@
 
 .modalHeader {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  padding: $space-4 $space-6;
+  padding: 0.75rem 1.25rem;
   border-bottom: 1px solid var(--color-border);
   background-color: var(--color-surface);
 }
@@ -37,7 +38,7 @@
 .titleInfo {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .brandBadge {
@@ -46,24 +47,24 @@
   gap: 0.35rem;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #dc2626;
+  color: #2563eb;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
-.ytIcon {
-  color: #dc2626;
+.playIcon {
+  color: #2563eb;
 }
 
 .modalHeading {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
 }
 
 .topicName {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
@@ -71,8 +72,8 @@
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
   color: var(--color-text-secondary);
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -92,6 +93,7 @@
   width: 100%;
   padding-top: 56.25%; /* 16:9 Aspect Ratio */
   background-color: #000;
+  overflow: hidden;
 }
 
 .iframe {
@@ -106,8 +108,8 @@
 .modalFooter {
   display: flex;
   flex-direction: column;
-  gap: $space-3;
-  padding: $space-4 $space-6;
+  gap: $space-2;
+  padding: 0.65rem 1.25rem;
   background-color: var(--color-surface-muted);
   border-top: 1px solid var(--color-border);
 
@@ -138,7 +140,7 @@
 .buttonActions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
 }
 
@@ -149,17 +151,38 @@
   background-color: #eff6ff;
   color: #1d4ed8;
   border: 1px solid #bfdbfe;
-  font-size: 0.8125rem;
-  font-weight: 600;
   padding: 0.45rem 0.85rem;
   border-radius: $radius-md;
+  font-size: 0.8125rem;
+  font-weight: 600;
   text-decoration: none;
+  cursor: pointer;
   transition: all $transition-fast;
 
   &:hover {
     background-color: #dbeafe;
     border-color: #93c5fd;
-    color: #1e40af;
+  }
+}
+
+.openVideoBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  padding: 0.45rem 0.85rem;
+  border-radius: $radius-md;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: #dcfce7;
+    border-color: #86efac;
   }
 }
 

@@ -146,7 +146,7 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
               </div>
               <div className={styles.featurePill}>
                 <YoutubeIcon size={14} className={styles.pillYt} />
-                <span>DK Sir Video Solutions on YouTube</span>
+                <span>DK Sir Video Solutions</span>
               </div>
               <div className={styles.featurePill}>
                 <FileText size={14} className={styles.pillPdf} />
@@ -283,19 +283,19 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
                 </div>
 
                 <div className={styles.resourceButtonsGrid}>
-                  {/* YouTube Video Solution Button */}
+                  {/* Video Solution Button */}
                   <button
                     type="button"
                     onClick={handleVideoClick}
                     className={`${styles.ytSolutionBtn} ${!isUnlocked ? styles.resourceBtnDisabled : ''}`}
-                    title={isUnlocked ? 'Watch step-by-step video solution on YouTube' : 'Unlock full course to watch'}
+                    title={isUnlocked ? 'Watch step-by-step video solution' : 'Unlock full course to watch'}
                   >
                     <div className={styles.ytIconWrap}>
                       <YoutubeIcon size={18} className={styles.ytIcon} />
                     </div>
                     <div className={styles.btnTextWrap}>
                       <span className={styles.primaryActionText}>
-                        {isUnlocked ? 'Watch YouTube Solution' : 'Video Solution (Locked)'}
+                        {isUnlocked ? 'Watch Video Solution' : 'Video Solution (Locked)'}
                       </span>
                       <span className={styles.subActionText}>
                         {isUnlocked

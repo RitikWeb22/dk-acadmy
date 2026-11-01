@@ -158,7 +158,7 @@ export const PYQQuestionCard: React.FC<PYQQuestionCardProps> = ({
             type="button"
             onClick={handleVideoClick}
             className={`${styles.actionBtn} ${styles.videoBtn}`}
-            title={isUnlocked ? 'Watch DK Sir video solution on YouTube' : 'Unlock course to watch video solution'}
+            title={isUnlocked ? 'Watch DK Sir video solution' : 'Unlock course to watch video solution'}
             aria-label={`View Video Solution for Question ${index + 1}`}
           >
             <YoutubeIcon size={16} className={styles.ytRedIcon} aria-hidden="true" />

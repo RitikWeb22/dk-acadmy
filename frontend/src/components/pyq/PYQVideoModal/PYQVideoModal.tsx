@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, ExternalLink, Download, FileText, CheckCircle2 } from 'lucide-react';
-import { YoutubeIcon } from '../../ui/YoutubeIcon/YoutubeIcon';
+import { X, ExternalLink, Download, FileText, CheckCircle2, PlayCircle } from 'lucide-react';
 import type { PYQQuestion } from '../../../types';
 import { parseVideoUrl } from '../../../utils/videoUrl';
 import styles from './PYQVideoModal.module.scss';
@@ -39,7 +38,7 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
   const isDirectVideo = !parsed.isIframe;
   const directVideoSrc = parsed.directUrl || '/videos/1.mp4';
   const embedUrl = parsed.embedUrl || 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ';
-  const rawYoutubeUrl = targetVideoUrl || 'https://www.youtube.com';
+  const rawVideoUrl = targetVideoUrl || '';
 
   return (
     <div
@@ -54,13 +53,13 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
         <div className={styles.modalHeader}>
           <div className={styles.titleInfo}>
             <div className={styles.brandBadge}>
-              <YoutubeIcon size={16} className={styles.ytIcon} />
-              <span>{isDirectVideo ? 'DK Sir Masterclass Video Walkthrough' : 'DK Academy Video Solution'}</span>
+              <PlayCircle size={16} className={styles.playIcon} />
+              <span>Watch Video Solution</span>
             </div>
             <h3 className={styles.modalHeading}>
               {question.exam} {question.year} • {question.subject}: {question.chapter}
             </h3>
-            <span className={styles.topicName}>Topic: {question.topic}</span>
+            {question.topic && <span className={styles.topicName}>Topic: {question.topic}</span>}
           </div>
 
           <button
@@ -69,7 +68,7 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
             onClick={onClose}
             aria-label="Close video player"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
@@ -99,10 +98,9 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
         {/* Resource Action Bar */}
         <div className={styles.modalFooter}>
           <div className={styles.facultyHighlight}>
-            <CheckCircle2 size={16} className={styles.checkIcon} />
+            <CheckCircle2 size={15} className={styles.checkIcon} />
             <span>
-              Taught with DK Sir Kota 20-30s inspection shortcuts • Duration:{' '}
-              <strong>{question.videoDuration || '12:45'}</strong>
+              DK Sir Kota 20-30s shortcuts {question.videoDuration ? `• ${question.videoDuration}` : ''}
             </span>
           </div>
 
@@ -115,22 +113,21 @@ export const PYQVideoModal: React.FC<PYQVideoModalProps> = ({
                 rel="noopener noreferrer"
                 className={styles.pdfDownloadBtn}
               >
-                <FileText size={15} />
-                <span>Download PYQ PDF</span>
-                <Download size={14} />
+                <FileText size={14} />
+                <span>PDF Solution</span>
+                <Download size={13} />
               </a>
             )}
 
-            {!isDirectVideo && (
+            {rawVideoUrl && (
               <a
-                href={rawYoutubeUrl}
+                href={rawVideoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={styles.openYoutubeBtn}
+                className={styles.openVideoBtn}
               >
-                <YoutubeIcon size={15} />
-                <span>Open in YouTube</span>
                 <ExternalLink size={13} />
+                <span>Watch Video Solution</span>
               </a>
             )}
           </div>
