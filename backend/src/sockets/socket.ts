@@ -224,9 +224,30 @@ export const broadcastTestSeriesDeleted = (testSeriesId: string): void => {
 
 export const broadcastDppPyqCreated = (item: any): void => {
   if (io) {
+    const rawType = (item.moduleType || item.type || 'DPP').toString().toUpperCase();
+    const isBitsat = rawType === 'BITSAT' || (item.badgeCode && item.badgeCode.includes('BITSAT')) || (item.title && item.title.includes('BITSAT'));
+    const isPyq = !isBitsat && (rawType === 'PYQ' || (item.badgeCode && item.badgeCode.includes('PYQ')) || (item.title && item.title.includes('PYQ')));
+
+    let notifTitle = `📝 New DPP Sheet: ${item.title || item.chapter || 'Practice Problem'}`;
+    let notifRoute = '/dpp';
+    if (isBitsat) {
+      notifTitle = `⚡ New BITSAT Speed Drill: ${item.title || 'BITSAT Speed Test'}`;
+      notifRoute = '/bitsat';
+    } else if (isPyq) {
+      notifTitle = `📚 New PYQ Archive: ${item.title || 'Solved Past Year Archive'}`;
+      notifRoute = '/pyq';
+    }
+
     console.log(`[Socket.IO] Emitting dpp_pyq:created for: ${item.title || item.slug}`);
     io.emit('dpp_pyq:created', item);
     io.emit('cms_updated', { type: 'dpp_pyq', action: 'create', data: item, timestamp: Date.now() });
+    io.emit('notification:new', {
+      title: notifTitle,
+      description: `${item.subject || 'All Subjects'} • ${item.questionsCount || item.questions?.length || 20} Questions`,
+      route: notifRoute,
+      meta: item,
+      timestamp: Date.now()
+    });
   }
 };
 

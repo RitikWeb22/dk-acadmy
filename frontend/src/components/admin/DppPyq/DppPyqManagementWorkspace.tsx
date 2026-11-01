@@ -2153,6 +2153,8 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                     className={`${styles.categoryCard} ${newModuleType === 'BITSAT' ? styles.categoryCardActiveBitsat : ''}`}
                     onClick={() => {
                       setNewModuleType('BITSAT');
+                      setNewExamTarget('BITSAT 2026');
+                      setNewSolutionNote('Strict 45s timer format with step solutions');
                       if (newChapter) {
                         setNewTitle(`BITSAT Speed Drill: ${newChapter} Rapid Fire`);
                         setNewSlug(`/bitsat-${newChapter.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);

@@ -336,8 +336,53 @@ export const initSocketClient = (): Socket => {
 
   // 12. Real-time DPP & PYQ Problem Sets Lifecycle Events
   socket.on('dpp_pyq:created', (item) => {
+    const rawType = String(item?.moduleType || item?.type || '').toUpperCase();
+    const isBitsat = rawType === 'BITSAT' || String(item?.title || '').toUpperCase().includes('BITSAT');
+    const isPyq = !isBitsat && (rawType === 'PYQ' || String(item?.title || '').toUpperCase().includes('PYQ'));
+
+    if (!isCurrentClientAdmin()) {
+      soundEffects.playNotificationChime();
+      let notifTitle = '📝 New DPP Sheet Published';
+      let notifRoute = '/dpp';
+      if (isBitsat) {
+        notifTitle = '⚡ New BITSAT Speed Drill Live!';
+        notifRoute = '/bitsat';
+      } else if (isPyq) {
+        notifTitle = '📚 New PYQ Archive Uploaded';
+        notifRoute = '/pyq';
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('dk_live_toast', {
+          detail: {
+            title: notifTitle,
+            message: `${item?.title || 'Practice set'} (${item?.subject || 'All Subjects'})`,
+            type: 'info',
+            route: notifRoute
+          }
+        })
+      );
+    }
+
     window.dispatchEvent(new CustomEvent('dk_dpp_pyq_created', { detail: item }));
     window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'dpp_pyq', action: 'create', data: item } }));
+  });
+
+  // 13. General New Notification event
+  socket.on('notification:new', (notifData) => {
+    if (!isCurrentClientAdmin()) {
+      soundEffects.playNotificationChime();
+      window.dispatchEvent(
+        new CustomEvent('dk_live_toast', {
+          detail: {
+            title: notifData.title || '🔔 New Update',
+            message: notifData.description || notifData.message || 'Check latest practice sheets',
+            type: 'info',
+            route: notifData.route || '/'
+          }
+        })
+      );
+    }
   });
 
   socket.on('dpp_pyq:updated', (item) => {
