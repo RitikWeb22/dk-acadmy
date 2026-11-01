@@ -1836,10 +1836,11 @@ export const cmsService = {
 
   async updateTestSeries(id: string, updates: Partial<TestSeriesItem>): Promise<TestSeriesItem> {
     const items = this.getTestSeries();
-    const idx = items.findIndex((t) => t.id === id);
-    if (idx === -1) throw new Error('Test series not found');
-    items[idx] = { ...items[idx], ...updates };
-    this.saveTestSeries(items);
+    const idx = items.findIndex((t) => t.id === id || (t as any)._id === id || t.slug === id);
+    if (idx !== -1) {
+      items[idx] = { ...items[idx], ...updates };
+      this.saveTestSeries(items);
+    }
 
     try {
       await apiClient.put(`/test-series/${id}`, updates);
@@ -1847,7 +1848,7 @@ export const cmsService = {
       console.warn('[cmsService] API update failed:', err);
     }
 
-    return items[idx];
+    return idx !== -1 ? items[idx] : ({ id, ...updates } as TestSeriesItem);
   },
 
   async deleteTestSeries(id: string): Promise<void> {

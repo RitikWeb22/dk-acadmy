@@ -507,6 +507,8 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
         subject: q.subject || 'Mathematics',
         chapter: q.chapter || q.topicTag || 'General',
         statement: q.statement || q.questionText || '',
+        statementBlocks: q.statementBlocks,
+        explanationBlocks: q.explanationBlocks,
         imageUrl: q.imageUrl,
         options: Array.isArray(q.options)
           ? q.options.map((opt: any, optIdx: number) => ({
@@ -518,8 +520,8 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
         correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
         marks: q.marks || 4,
         negativeMarks: q.negativeMarks ?? 1,
-        formulaKey: q.formulaKey,
-        explanation: q.explanation || q.stepSolution || '',
+        formulaKey: q.formulaKey || q.topicTag,
+        explanation: q.explanation || q.stepSolution || q.solutionDerivation || '',
         shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
         videoSolutionUrl: q.videoSolutionUrl
       }));
@@ -594,6 +596,8 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
         subject: q.subject || 'Mathematics',
         chapter: q.chapter || q.topicTag || 'General',
         statement: q.statement || q.questionText || '',
+        statementBlocks: q.statementBlocks,
+        explanationBlocks: q.explanationBlocks,
         imageUrl: q.imageUrl,
         options: Array.isArray(q.options)
           ? q.options.map((opt: any, optIdx: number) => ({
@@ -605,8 +609,8 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
         correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
         marks: q.marks || 4,
         negativeMarks: q.negativeMarks ?? 1,
-        formulaKey: q.formulaKey,
-        explanation: q.explanation || q.stepSolution || '',
+        formulaKey: q.formulaKey || q.topicTag,
+        explanation: q.explanation || q.stepSolution || q.solutionDerivation || '',
         shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
         videoSolutionUrl: q.videoSolutionUrl
       }));
