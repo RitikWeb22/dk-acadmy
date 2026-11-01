@@ -95,20 +95,31 @@ export function convertAllFractions(input: string): string {
 
         let rightEnd = -1;
         if (str[rightStart] === '(' || str[rightStart] === '{') {
-          const openChar = str[rightStart];
-          const closeChar = openChar === '(' ? ')' : '}';
-          let depth = 0;
           let p = rightStart;
-          while (p < str.length) {
-            if (str[p] === openChar) depth++;
-            else if (str[p] === closeChar) {
-              depth--;
-              if (depth === 0) {
-                rightEnd = p;
-                break;
+          while (p < str.length && (str[p] === '(' || str[p] === '{')) {
+            const openChar = str[p];
+            const closeChar = openChar === '(' ? ')' : '}';
+            let depth = 0;
+            while (p < str.length) {
+              if (str[p] === openChar) depth++;
+              else if (str[p] === closeChar) {
+                depth--;
+                if (depth === 0) {
+                  rightEnd = p;
+                  p++;
+                  break;
+                }
               }
+              p++;
             }
-            p++;
+            // Skip spaces
+            while (p < str.length && /\s/.test(str[p])) p++;
+            // If the next character is '(' and followed by factors, continue consuming adjacent factors in denominator
+            if (p < str.length && (str[p] === '(' || str[p] === '{')) {
+              continue;
+            } else {
+              break;
+            }
           }
         } else {
           let p = rightStart;
@@ -325,8 +336,12 @@ export function normalizeMathText(raw: string): string {
              .replace(/(?<!\\)log_e\s*/g, '\\log_e ')
              .replace(/loge\b/g, '\\log_e ');
 
-    // 14. Dynamic parens for functions enclosing fractions: \log_e( \frac... ) -> \log_e\left( \frac... \right)
-    res = res.replace(/(\\[a-zA-Z_]+)\s*\(([^()]*\\frac[^()]*)\)/g, '$1\\left($2\\right)');
+    // Clean any duplicated \left\left( or \right\right)
+    res = res.replace(/\\left\s*\\left\s*\(/g, '\\left(')
+             .replace(/\\right\s*\\right\s*\)/g, '\\right)');
+
+    // 14. Dynamic parens for functions enclosing fractions (ensure not already preceded by \left)
+    res = res.replace(/(?<!\\left)\s*(\\(?:log_e|ln|cot|tan|sin|cos|sec|csc))\s*\(([^()]*\\frac[^()]*)\)/g, '$1\\left($2\\right)');
 
     // 15. Words inside formulas: where -> \text{ ... }
     res = res.replace(/(?<=[,\$])\s*(where)\s+/gi, ' \\text{$1} ');
