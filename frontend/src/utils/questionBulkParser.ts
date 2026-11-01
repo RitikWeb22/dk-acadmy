@@ -1,75 +1,228 @@
 import type { ProblemQuestionItem } from '../components/admin/DppPyq/DppPyqManagementWorkspace';
 
 /**
- * Normalizes math and LaTeX typography in copied/pasted text:
- * - Converts \(...\) to $...$ and \[...\] to $$...$$
- * - Normalizes smart quotes and unicode minus
- * - Normalizes double backslashes
- * - Preserves fractions, exponents, Greek symbols, and matrices
+ * Strips outer enclosing parentheses only when they truly wrap the entire string.
+ * Uses a depth counter to prevent breaking adjacent parenthesized factors like (A)(B) into A)(B.
+ */
+export function stripOuterParens(str: string): string {
+  let s = str.trim();
+  while (s.startsWith('(') && s.endsWith(')')) {
+    let depth = 0;
+    let isEnclosing = true;
+    for (let i = 0; i < s.length - 1; i++) {
+      if (s[i] === '(') depth++;
+      else if (s[i] === ')') depth--;
+      if (depth === 0) {
+        isEnclosing = false;
+        break;
+      }
+    }
+    if (isEnclosing) {
+      s = s.slice(1, -1).trim();
+    } else {
+      break;
+    }
+  }
+  return s;
+}
+
+/**
+ * Checks whether a text string contains un-delimited LaTeX expressions
+ * and wraps them in $...$ or $$...$$ for KaTeX typesetting.
+ */
+export function autoWrapMathDelimiters(text: string): string {
+  if (!text) return '';
+  if (text.includes('$')) return text;
+
+  const trimmed = text.trim();
+  const hasLaTeX = /\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left|right|begin|matrix)\b/.test(trimmed);
+
+  if (!hasLaTeX) return text;
+
+  // If the whole text is predominantly a math formula without plain words
+  if (/^\\(frac|dfrac|int|iint|iiint|oint|sum|prod|lim|sqrt|begin\{|left\(|matrix)/.test(trimmed)) {
+    return `$$${trimmed}$$`;
+  }
+
+  // Enclose LaTeX formulas found in prose
+  return text.replace(
+    /(\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left)[\s\S]*?)(?=(?:\s+(?:is|are|was|were|then|where|find|if|when|such|that)\b|[.,;?!]\s+[A-Z]|$))/gi,
+    (match) => `$${match.trim()}$`
+  );
+}
+
+/**
+ * Normalizes math and LaTeX typography in copied/pasted text line-by-line:
+ * - Preserves all line breaks (\n) and user spacing
+ * - Cleans invisible MS Word / PDF formatting characters (Hair Space \u200A, Zero-Width Space, Function Application)
+ * - Strips MS Word equation argument brackets 〖 and 〗 and placeholders ▒
+ * - Normalizes Word math (∫_0^1, 0π4, log_e, lim_(n→∞), fractions, powers, multi-digit exponents)
+ * - Automatically wraps formulas in $...$ per line while keeping labels like "(S1): " outside
  */
 export function normalizeMathText(raw: string): string {
   if (!raw) return '';
-  return raw
-    // Normalize curly quotes & apostrophes
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/[\u2018\u2019]/g, "'")
-    // Normalize unicode minus, en-dash, em-dash
-    .replace(/[\u2212\u2013\u2014]/g, '-')
-    // Normalize double backslashes (e.g. \\frac -> \frac)
-    .replace(/\\\\([a-zA-Z]+)/g, '\\$1')
+
+  const lines = raw.split(/\r?\n/);
+  const processedLines = lines.map((line) => {
+    let res = line;
+
+    // 1. Clean Word brackets and placeholders
+    res = res.replace(/[〖〗]/g, '');
+    res = res.replace(/[\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
+             .replace(/[□┤├│▒]/g, '')
+             .replace(/[\u201C\u201D]/g, '"')
+             .replace(/[\u2018\u2019]/g, "'")
+             .replace(/[\u2212\u2013\u2014]/g, '-');
+
+    // 2. Clean leading punctuation artifact like ".Let" -> "Let"
+    res = res.replace(/^\s*\.\s*(?=[A-Za-z])/g, '');
+
+    // 3. Word Linear Math / UnicodeMath piecewise cases & arrays: {■( ... @ ... )┤ or {■( ... )
+    res = res.replace(/(?:([a-zA-Z0-9_()]+\s*=\s*))?\{?\s*■\s*\(([\s\S]*?)\)\s*(?:┤|\}|(?=\n|[a-zA-Z]|$))/g, (_, lhs, content) => {
+      const rows = content.split('@').map((r: string) => {
+        let row = r.trim();
+        row = row.replace(/∈/g, ' \\in ')
+                 .replace(/∉/g, ' \\notin ')
+                 .replace(/→/g, ' \\to ')
+                 .replace(/e\^min\{([^}]+)\}/g, 'e^{\\min\\{$1\\}}')
+                 .replace(/e\^max\{([^}]+)\}/g, 'e^{\\max\\{$1\\}}')
+                 .replace(/\bmin\{/g, '\\min\\{')
+                 .replace(/\bmax\{/g, '\\max\\{')
+                 .replace(/e\^\[([^\]]+)\]/g, 'e^{[$1]}')
+                 .replace(/(?<!\\)log_e\s*([0-9a-zA-Z]+)/g, '\\log_e $1')
+                 .replace(/(?<!\\)log_e/g, '\\log_e ');
+        return row;
+      });
+      const prefix = lhs ? lhs.trim() + ' ' : '';
+      return `$$${prefix}\\begin{cases} ${rows.join(' \\\\ ')} \\end{cases}$$`;
+    });
+
     // Normalize alternate LaTeX delimiters safely with callbacks
-    .replace(/\\\[([\s\S]*?)\\\]/g, (_, p1) => `$$${p1}$$`)
-    .replace(/\\\(([\s\S]*?)\\\)/g, (_, p1) => `$${p1}$`)
-    // Integral with limits: ∫_0^2 -> \int_{0}^{2}
-    .replace(/∫_\{?([0-9a-zA-Z]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\int_{$1}^{$2} ')
-    .replace(/∫/g, '\\int ')
-    // Summation / Product: ∑_0^n -> \sum_{0}^{n}
-    .replace(/∑_\{?([0-9a-zA-Z=]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\sum_{$1}^{$2} ')
-    .replace(/∑/g, '\\sum ')
-    .replace(/∏/g, '\\prod ')
-    // Inverse trig functions: cot^-1, tan^-1, sin^-1, cos^-1, sec^-1, csc^-1
-    .replace(/\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`)
-    .replace(/\b(cot|tan|sin|cos|sec|csc)⁻¹/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`)
-    // Square roots: √( ... ) with balanced parens to \sqrt{ ... }
-    .replace(/√\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (_, g1) => `\\sqrt{${g1.trim()}}`)
-    .replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}')
-    .replace(/√/g, '\\sqrt')
-    // Clean superfluous parens around \sqrt in products: (\sqrt{A})(\sqrt{B})
-    .replace(/\(\\sqrt\{([^{}]+)\}\)/g, '\\sqrt{$1}')
-    // Fractions: A / ( B )
-    .replace(/((?:\\sqrt\{[^{}]*\}|\([a-zA-Z0-9_\^+\-*/ ]+\)|[a-zA-Z0-9_\^]+))\s*\/\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (_, num, den) => {
-      let cleanDen = den.trim();
-      while (cleanDen.startsWith('(') && cleanDen.endsWith(')')) {
-        cleanDen = cleanDen.slice(1, -1).trim();
+    res = res.replace(/\\\[([\s\S]*?)\\\]/g, (_, p1) => `$$${p1}$$`)
+             .replace(/\\\(([\s\S]*?)\\\)/g, (_, p1) => `$${p1}$`);
+
+    // 4. Repeated ellipses: ⋯… or …⋯ or ⋯ or … -> \dots
+    res = res.replace(/[⋯…]+/g, ' \\dots ');
+
+    // 5. Integral limits: ∫_0^1▒ or ∫_0^(π/4)▒ or ∫_0^(\pi/4)▒
+    res = res.replace(/∫_([0-9a-zA-Z]+|\{[^}]+\})\s*\^\s*(\([^)]+\)|[0-9a-zA-Z]+|\{[^}]+\})\s*▒?\s*/g, (_, low, high) => {
+      const cleanLow = stripOuterParens(low).replace(/[{}]/g, '');
+      let cleanHigh = stripOuterParens(high).replace(/[{}]/g, '');
+      cleanHigh = cleanHigh.replace(/π\/4|\\pi\/4/, '\\pi/4');
+      return `\\int_{${cleanLow}}^{${cleanHigh}} `;
+    });
+    res = res.replace(/∫01\b/g, '\\int_0^1 ')
+             .replace(/∫0π2\b/g, '\\int_0^{\\pi/2} ')
+             .replace(/(?:∫|(?<=\s|^))0π4\b/g, '\\int_0^{\\pi/4} ')
+             .replace(/(?:∫|(?<=\s|^))0∞\b/g, '\\int_0^\\infty ')
+             .replace(/∫-loge\s*2loge\s*2\b/g, '\\int_{-\\ln 2}^{\\ln 2} ')
+             .replace(/(?:∫|(?<=\s|^))-π4π4\b/g, '\\int_{-\\pi/4}^{\\pi/4} ')
+             .replace(/∫_\{?([0-9a-zA-Z]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\int_{$1}^{$2} ')
+             .replace(/∫/g, '\\int ');
+
+    // 6. Exponential powers: e^(-π/4) -> e^{-\pi/4}, e^(2-4x) -> e^{2-4x}, e^(-x) -> e^{-x}
+    res = res.replace(/e\^\(([^()]+)\)/g, (_, p) => {
+      const cleanP = p.replace(/π\/4|\\pi\/4/, '\\pi/4');
+      return `e^{${cleanP}}`;
+    });
+    res = res.replace(/e\^([0-9a-zA-Z]+)/g, 'e^{$1}');
+
+    // 7. Limits: lim_(n→∞) or lim_(x→0)
+    res = res.replace(/lim_?\s*\(([^)]+)\)\s*/g, (_, inner) => {
+      const clean = inner.replace(/→/, '\\to ').replace(/∞/, '\\infty');
+      return `\\lim_{${clean.trim()}} `;
+    });
+    res = res.replace(/lim\s*([a-zA-Z]+)\s*→\s*∞/g, '\\lim_{$1 \\to \\infty} ');
+    res = res.replace(/lim\s*([a-zA-Z]+)\s*→\s*([0-9a-zA-Z]+)/g, '\\lim_{$1 \\to $2} ');
+
+    // 8. Trig functions: tan^50 x -> \tan^{50} x
+    res = res.replace(/tan\^([0-9]+)\s*x/g, '\\tan^{$1} x');
+    res = res.replace(/(?<!\\)tan\b/g, '\\tan ');
+    res = res.replace(/\\?\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
+    res = res.replace(/\\?\b(cot|tan|sin|cos|sec|csc)⁻¹/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
+
+    // 9. Square roots: √( ... ) with balanced parens to \sqrt{ ... }
+    res = res.replace(/√\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (_, g1) => `\\sqrt{${g1.trim()}}`);
+    res = res.replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}');
+    res = res.replace(/√/g, '\\sqrt');
+
+    // 10. Fractions with balanced parens using stripOuterParens
+    const balanced = '((?:[^()]|\\((?:[^()]|\\((?:[^()]|\\([^()]*\\))*\\))*\\))*)';
+    const fracParensRegex = new RegExp(`\\(${balanced}\\)\\s*\\/\\s*\\(${balanced}\\)`, 'g');
+    res = res.replace(fracParensRegex, (_, n, d) => `\\frac{${stripOuterParens(n)}}{${stripOuterParens(d)}}`);
+
+    const fracNumRegex = new RegExp(`([0-9a-zA-Z\\\\_\\^]+)\\s*\\/\\s*\\(${balanced}\\)`, 'g');
+    res = res.replace(fracNumRegex, (_, n, d) => `\\frac{${n.trim()}}{${stripOuterParens(d)}}`);
+
+    res = res.replace(/\(([^()]+)\)\s*\/\s*([0-9a-zA-Z\\]+)/g, (_, n, d) => `\\frac{${stripOuterParens(n)}}{${d.trim()}}`);
+
+    res = res.replace(/\(([0-9a-zA-Zα-ωΑ-Ω\s\+\-]+)\)\s*\/\s*([0-9a-zA-Zα-ωΑ-Ω\\\^_]+)/g, (_, n, d) => `\\frac{${n.trim()}}{${d.trim()}}`);
+    res = res.replace(/([0-9a-zA-Zα-ωΑ-Ω\\]+)\s*\/\s*([0-9a-zA-Zα-ωΑ-Ω\\\\_\\^]+)/g, (_, n, d) => `\\frac{${n.trim()}}{${d.trim()}}`);
+
+    // 11. Multi-digit exponents without braces: 1^15 -> 1^{15}, n^16 -> n^{16} (run after fractions!)
+    res = res.replace(/([a-zA-Z0-9_\)\]\}])\^([0-9]{2,})\b/g, '$1^{$2}');
+
+    // 12. Greek letters (run after fractions so \frac doesn't get corrupted)
+    res = res.replace(/α/g, '\\alpha ')
+             .replace(/β/g, '\\beta ')
+             .replace(/γ/g, '\\gamma ')
+             .replace(/θ/g, '\\theta ')
+             .replace(/λ/g, '\\lambda ')
+             .replace(/π/g, '\\pi ')
+             .replace(/μ/g, '\\mu ')
+             .replace(/σ/g, '\\sigma ')
+             .replace(/ω/g, '\\omega ')
+             .replace(/ϕ/g, '\\phi ')
+             .replace(/∅/g, '\\phi ')
+             .replace(/Δ/g, '\\Delta ');
+
+    // 13. Arrows, dots, and symbols
+    res = res.replace(/→/g, ' \\to ')
+             .replace(/←/g, ' \\leftarrow ')
+             .replace(/∈/g, ' \\in ')
+             .replace(/∉/g, ' \\notin ')
+             .replace(/⊂/g, ' \\subset ')
+             .replace(/⊆/g, ' \\subseteq ')
+             .replace(/∪/g, ' \\cup ')
+             .replace(/∩/g, ' \\cap ')
+             .replace(/⋅/g, ' \\cdot ')
+             .replace(/±/g, '\\pm ')
+             .replace(/≠/g, '\\neq ')
+             .replace(/≤/g, '\\le ')
+             .replace(/≥/g, '\\ge ')
+             .replace(/×/g, '\\times ')
+             .replace(/÷/g, '\\div ')
+             .replace(/∞/g, '\\infty ')
+             .replace(/°/g, '^\\circ ')
+             .replace(/(?<!\\)log_e\s*/g, '\\log_e ')
+             .replace(/loge\b/g, '\\log_e ');
+
+    // 14. Dynamic parens for functions enclosing fractions: \log_e( \frac... ) -> \log_e\left( \frac... \right)
+    res = res.replace(/(\\[a-zA-Z_]+)\s*\(([^()]*\\frac[^()]*)\)/g, '$1\\left($2\\right)');
+
+    // 15. Vectors in 3D: i+2j+k -> \hat{i} + 2\hat{j} + \hat{k}
+    res = res.replace(/\b([0-9]*)\s*i\s*([+-])\s*([0-9]*)\s*j\s*([+-])\s*([0-9]*)\s*k\b/g, (_, c1, s1, c2, s2, c3) => {
+      return `${c1 || ''}\\hat{i} ${s1} ${c2 || ''}\\hat{j} ${s2} ${c3 || ''}\\hat{k}`;
+    });
+
+    // 16. Normalize double backslashes
+    res = res.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+
+    // 17. Auto-wrap math on each line if LaTeX commands are present and not already delimited
+    const trimmed = res.trim();
+    if (!res.includes('$') && /\\(?:frac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log|dots|to|infty)\b/.test(res)) {
+      const labelMatch = res.match(/^(\s*(?:\([a-zA-Z0-9]+\)|[a-zA-Z0-9]+[.:])\s*[:=\-]?\s*)([\s\S]+)$/);
+      if (labelMatch) {
+        res = `${labelMatch[1]}$${labelMatch[2].trim()}$`;
+      } else {
+        res = `$${trimmed}$`;
       }
-      cleanDen = cleanDen.replace(/\(\\sqrt\{([^{}]+)\}\)/g, '\\sqrt{$1}');
-      return `\\frac{${num.trim()}}{${cleanDen}}`;
-    })
-    // Common unicode superscripts to standard exponents
-    .replace(/²/g, '^2')
-    .replace(/³/g, '^3')
-    .replace(/⁴/g, '^4')
-    .replace(/⁻¹/g, '^{-1}')
-    // Common math symbols to LaTeX
-    .replace(/√/g, '\\sqrt')
-    .replace(/±/g, '\\pm')
-    .replace(/≠/g, '\\neq')
-    .replace(/≤/g, '\\le')
-    .replace(/≥/g, '\\ge')
-    .replace(/×/g, '\\times')
-    .replace(/÷/g, '\\div')
-    .replace(/∞/g, '\\infty')
-    // Greek letters in text
-    .replace(/α/g, '\\alpha')
-    .replace(/β/g, '\\beta')
-    .replace(/γ/g, '\\gamma')
-    .replace(/θ/g, '\\theta')
-    .replace(/λ/g, '\\lambda')
-    .replace(/π/g, '\\pi')
-    .replace(/μ/g, '\\mu')
-    .replace(/σ/g, '\\sigma')
-    .replace(/ω/g, '\\omega')
-    .trim();
+    }
+
+    return res;
+  });
+
+  return processedLines.join('\n');
 }
 
 /**
@@ -373,11 +526,17 @@ function parseStructuredText(
 
 /**
  * Robustly separates Question Statement and 4 MCQ Options.
- * Protects math equations with letters A, B, C, D from being treated as options.
+ * Supports:
+ * 1. Bare horizontal Word options: A -21.  B 21.  C 19.  D 0
+ * 2. 2-column Word table options: A ... C ... \n B ... D ...
+ * 3. Standard lines: (A) ... (B) ... (C) ... (D) ... or A) ... B) ... or A. ... B. ...
+ * 4. NTA numbers: (1) ... (2) ... (3) ... (4) ... or 1. ... 2. ...
+ * Cleans leading question numbers (1,If ... -> If ...) and trailing dots on numeric options (-21. -> -21).
  */
 export function extractStatementAndOptions(text: string): {
   statement: string;
   options: { key: 'A' | 'B' | 'C' | 'D'; text: string }[];
+  correctKey?: 'A' | 'B' | 'C' | 'D';
 } {
   const defaultOptions: { key: 'A' | 'B' | 'C' | 'D'; text: string }[] = [
     { key: 'A', text: 'Option A' },
@@ -390,14 +549,25 @@ export function extractStatementAndOptions(text: string): {
     return { statement: '', options: defaultOptions };
   }
 
-  // Strategy A: Options on separate lines (standard format)
-  // Look for lines beginning with (A), (B), (C), (D) or A), B), C), D) or A., B., C., D.
-  // Or (1), (2), (3), (4) or 1), 2), 3), 4) or 1., 2., 3., 4.
-  const linePattern = /(?:^|\n)\s*(?:\(([A-Da-d1-4])\)|\[([A-Da-d1-4])\]|([A-Da-d1-4])[).:\-])\s+/g;
+  // Look for answer key if present in text
+  const ansMatch = text.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Option))?|Option)\s*[:=\-]\s*[(]?([A-Da-d1-4])[)]?/i);
+  let detectedCorrectKey: ('A' | 'B' | 'C' | 'D') | undefined;
+  if (ansMatch) {
+    let raw = ansMatch[1].toUpperCase();
+    if (raw === '1') raw = 'A';
+    else if (raw === '2') raw = 'B';
+    else if (raw === '3') raw = 'C';
+    else if (raw === '4') raw = 'D';
+    if (['A', 'B', 'C', 'D'].includes(raw)) detectedCorrectKey = raw as any;
+  }
+
+  // Strategy 1: Match bare horizontal options from MS Word or standard options
+  // e.g. "A -21. B 21. C 19. D 0" or "(A) ... (B) ..." or "A. ... B. ..."
+  const optRegex = /(?:^|[\s\n])(?:\(([A-Da-d])\)|\[([A-Da-d])\]|\b([A-Da-d])\b[.:\s\-)])\s*/g;
   const matches: { index: number; key: string; length: number }[] = [];
   let m: RegExpExecArray | null;
 
-  while ((m = linePattern.exec(text)) !== null) {
+  while ((m = optRegex.exec(text)) !== null) {
     const rawKey = (m[1] || m[2] || m[3]).toUpperCase();
     matches.push({
       index: m.index,
@@ -406,79 +576,119 @@ export function extractStatementAndOptions(text: string): {
     });
   }
 
-  // Check if we found sequentially distinct options (either A,B,C,D or 1,2,3,4)
   const letters = ['A', 'B', 'C', 'D'];
-  const numbers = ['1', '2', '3', '4'];
+  const validMatches = matches.filter((item) => letters.includes(item.key));
+  const foundKeys = new Set(validMatches.map((item) => item.key));
 
-  const letterMatches = matches.filter((item) => letters.includes(item.key));
-  const numberMatches = matches.filter((item) => numbers.includes(item.key));
-
-  let activeMatches = letterMatches.length >= 2 ? letterMatches : numberMatches.length >= 2 ? numberMatches : [];
-
-  // Strategy B: If not found on line starts, try inline pattern with strict sequence (A)... (B)... (C)... (D)...
-  if (activeMatches.length < 2) {
-    const inlinePattern = /(?:\s+|^)(?:\(([A-Da-d1-4])\)|\[([A-Da-d1-4])\]|([A-Da-d1-4])\))\s+/g;
-    const inlineMatches: { index: number; key: string; length: number }[] = [];
-    let im: RegExpExecArray | null;
-    while ((im = inlinePattern.exec(text)) !== null) {
-      inlineMatches.push({
-        index: im.index,
-        key: (im[1] || im[2] || im[3]).toUpperCase(),
-        length: im[0].length
-      });
-    }
-
-    const inlineLetters = inlineMatches.filter((item) => letters.includes(item.key));
-    const inlineNumbers = inlineMatches.filter((item) => numbers.includes(item.key));
-    if (inlineLetters.length >= 2) activeMatches = inlineLetters;
-    else if (inlineNumbers.length >= 2) activeMatches = inlineNumbers;
-  }
-
-  // If options were detected, slice statement and each option cleanly
-  if (activeMatches.length >= 2) {
-    const firstOptIndex = activeMatches[0].index;
-    const statement = text.substring(0, firstOptIndex).trim();
+  if (foundKeys.has('A') && foundKeys.has('B') && (foundKeys.has('C') || foundKeys.has('D'))) {
+    const firstA = validMatches.find((item) => item.key === 'A')!;
+    const rawStatement = text.substring(0, firstA.index).trim();
+    // Clean leading question index e.g. "1,If" -> "If", "2.The" -> "The", "Q1." -> ""
+    const cleanStatement = rawStatement
+      .replace(/^\s*(?:Q(?:uestion)?\s*#?\s*\d+[\.\:\,\)]|\bProblem\s*\d+[\.\:\,\)]|\bQ\d+[\.\:\,\)]|\d{1,3}[\.\,\)]\s*)\s*/i, '')
+      .trim();
 
     const optionsMap: Record<'A' | 'B' | 'C' | 'D', string> = {
-      A: 'Option A',
-      B: 'Option B',
-      C: 'Option C',
-      D: 'Option D'
+      A: '',
+      B: '',
+      C: '',
+      D: ''
     };
 
-    activeMatches.forEach((curr, i) => {
-      const next = activeMatches[i + 1];
+    const sorted = validMatches.filter((item) => item.index >= firstA.index);
+    for (let i = 0; i < sorted.length; i++) {
+      const curr = sorted[i];
+      const next = sorted[i + 1];
       const start = curr.index + curr.length;
       const end = next ? next.index : text.length;
-      const optBody = text.substring(start, end).trim();
+      let optText = text.substring(start, end).trim();
 
-      // Normalize key (1->A, 2->B, etc.)
-      let optKey: 'A' | 'B' | 'C' | 'D' = 'A';
-      if (curr.key === 'A' || curr.key === '1') optKey = 'A';
-      else if (curr.key === 'B' || curr.key === '2') optKey = 'B';
-      else if (curr.key === 'C' || curr.key === '3') optKey = 'C';
-      else if (curr.key === 'D' || curr.key === '4') optKey = 'D';
-
-      if (optBody) {
-        optionsMap[optKey] = optBody;
-      }
-    });
+      // Remove trailing period from numbers like "-21." -> "-21"
+      optText = optText.replace(/([0-9]+)\.\s*$/, '$1').trim();
+      optionsMap[curr.key as 'A' | 'B' | 'C' | 'D'] = optText;
+    }
 
     return {
-      statement: statement || 'Question',
+      statement: cleanStatement || 'Question',
       options: [
-        { key: 'A', text: optionsMap.A },
-        { key: 'B', text: optionsMap.B },
-        { key: 'C', text: optionsMap.C },
-        { key: 'D', text: optionsMap.D }
-      ]
+        { key: 'A', text: optionsMap.A || 'Option A' },
+        { key: 'B', text: optionsMap.B || 'Option B' },
+        { key: 'C', text: optionsMap.C || 'Option C' },
+        { key: 'D', text: optionsMap.D || 'Option D' }
+      ],
+      ...(detectedCorrectKey ? { correctKey: detectedCorrectKey } : {})
     };
   }
 
-  // Fallback: No options detected, entire text is statement
+  // Strategy 2: NTA style (1), (2), (3), (4) or 1., 2., 3., 4.
+  const numRegex = /(?:^|[\s\n])(?:\(([1-4])\)|\[([1-4])\]|\b([1-4])\b[.:\s\-)])\s*/g;
+  const numMatches: { index: number; key: string; length: number }[] = [];
+  let nm: RegExpExecArray | null;
+
+  while ((nm = numRegex.exec(text)) !== null) {
+    const rawNum = (nm[1] || nm[2] || nm[3]);
+    numMatches.push({
+      index: nm.index,
+      key: rawNum,
+      length: nm[0].length
+    });
+  }
+
+  const numFoundKeys = new Set(numMatches.map((item) => item.key));
+  if (numFoundKeys.has('1') && numFoundKeys.has('2') && (numFoundKeys.has('3') || numFoundKeys.has('4'))) {
+    const first1 = numMatches.find((item) => item.key === '1')!;
+    const rawStatement = text.substring(0, first1.index).trim();
+    const cleanStatement = rawStatement
+      .replace(/^\s*(?:Q(?:uestion)?\s*#?\s*\d+[\.\:\,\)]|\bProblem\s*\d+[\.\:\,\)]|\bQ\d+[\.\:\,\)]|\d{1,3}[\.\,\)]\s*)\s*/i, '')
+      .trim();
+
+    const optionsMap: Record<'A' | 'B' | 'C' | 'D', string> = {
+      A: '',
+      B: '',
+      C: '',
+      D: ''
+    };
+
+    const keyMap: Record<string, 'A' | 'B' | 'C' | 'D'> = {
+      '1': 'A',
+      '2': 'B',
+      '3': 'C',
+      '4': 'D'
+    };
+
+    const sorted = numMatches.filter((item) => item.index >= first1.index);
+    for (let i = 0; i < sorted.length; i++) {
+      const curr = sorted[i];
+      const next = sorted[i + 1];
+      const start = curr.index + curr.length;
+      const end = next ? next.index : text.length;
+      let optText = text.substring(start, end).trim();
+      optText = optText.replace(/([0-9]+)\.\s*$/, '$1').trim();
+      const targetLetter = keyMap[curr.key] || 'A';
+      optionsMap[targetLetter] = optText;
+    }
+
+    return {
+      statement: cleanStatement || 'Question',
+      options: [
+        { key: 'A', text: optionsMap.A || 'Option A' },
+        { key: 'B', text: optionsMap.B || 'Option B' },
+        { key: 'C', text: optionsMap.C || 'Option C' },
+        { key: 'D', text: optionsMap.D || 'Option D' }
+      ],
+      ...(detectedCorrectKey ? { correctKey: detectedCorrectKey } : {})
+    };
+  }
+
+  // Fallback: No options detected, clean leading question number if present
+  const cleanStatement = text
+    .replace(/^\s*(?:Q(?:uestion)?\s*#?\s*\d+[\.\:\,\)]|\bProblem\s*\d+[\.\:\,\)]|\bQ\d+[\.\:\,\)]|\d{1,3}[\.\,\)]\s*)\s*/i, '')
+    .trim();
+
   return {
-    statement: text.trim(),
-    options: defaultOptions
+    statement: cleanStatement || text.trim(),
+    options: defaultOptions,
+    ...(detectedCorrectKey ? { correctKey: detectedCorrectKey } : {})
   };
 }
 

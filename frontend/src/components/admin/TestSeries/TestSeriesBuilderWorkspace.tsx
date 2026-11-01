@@ -65,6 +65,7 @@ import { notificationService } from '../../../services/notificationService';
 
 import { PART_TESTS_DATA } from '../../../data/partTestsData';
 import { MathText } from '../../ui/MathText/MathText';
+import { MathInput, parseContentToBlocks } from '../../ui/MathEngine';
 import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
 
 // ─────────────────────────────────────────────────────────────
@@ -95,6 +96,7 @@ export interface QuestionItem {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   topicTag: string;
   questionText: string;
+  statementBlocks?: any[];
   imageUrl?: string;
   options: {
     key: 'A' | 'B' | 'C' | 'D';
@@ -1585,10 +1587,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     const solMatch = smartPasteText.match(/(?:^|\n)\s*(?:Sol(?:ution)?|Expl(?:anation)?)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Shortcut|Trick|DK\s*Sir|Video|PDF|Topic)|$))/i);
     const trickMatch = smartPasteText.match(/(?:^|\n)\s*(?:Shortcut|Trick|DK\s*Sir)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Video|PDF|Topic)|$))/i);
 
+    const cleanStmt = normalizeMathText(extracted.statement);
     updateCurrentQuestion({
-      questionText: normalizeMathText(extracted.statement),
+      questionText: cleanStmt,
+      statementBlocks: parseContentToBlocks(cleanStmt),
       options: extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) })),
-      correctKey: correctKey as any,
+      correctKey: (extracted.correctKey || correctKey) as any,
       solutionDerivation: solMatch ? normalizeMathText(solMatch[1]) : currentEditingQuestion?.solutionDerivation,
       shortcutTrick: trickMatch ? normalizeMathText(trickMatch[1]) : currentEditingQuestion?.shortcutTrick
     });
@@ -1718,6 +1722,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         subject: q.subject,
         chapter: q.topicTag || 'General',
         statement: q.questionText,
+        statementBlocks: q.statementBlocks,
         imageUrl: q.imageUrl,
         options: q.options.map((opt) => ({
           id: opt.key,
@@ -3325,30 +3330,55 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       </div>
 
                       <div className={styles.qBodySection}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <label className={styles.sectionLabel}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <label className={styles.sectionLabel} style={{ marginBottom: 0 }}>
                             Question Statement (LaTeX / KaTeX Syntax Supported)
                           </label>
-                          <span className={styles.cbtMarksPill}>
-                            +{positiveMarks} / -{negativeMarks} Marks
-                          </span>
-                        </div>
-                        <textarea
-                          rows={3}
-                          value={currentEditingQuestion.questionText}
-                          onChange={(e) => updateCurrentQuestion({ questionText: e.target.value })}
-                          onPaste={handleStatementPaste}
-                          placeholder="Paste or type question statement. Supports LaTeX ($x^2$, \frac{1}{2}, \sqrt{x}, \int) or paste full question with options..."
-                          className={styles.questionTextarea}
-                        />
-
-                        {/* Live Math Preview */}
-                        <div className={styles.liveMathPreview}>
-                          <span className={styles.previewLabel}>LIVE CBT CANDIDATE PREVIEW:</span>
-                          <div className={styles.mathRenderedBox}>
-                            <MathText text={currentEditingQuestion.questionText} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setIsSmartPasteModalOpen(true)}
+                              className={styles.smartPasteActionBtn}
+                              title="Paste full question with options from Word or PDF"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                background: '#EFF6FF',
+                                color: '#1D4ED8',
+                                border: '1px solid #BFDBFE',
+                                borderRadius: '6px',
+                                padding: '4px 9px',
+                                fontSize: '11.5px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Sparkles size={13} color="#2563EB" />
+                              <span>Paste Word Question</span>
+                            </button>
+                            <span className={styles.cbtMarksPill}>
+                              +{positiveMarks} / -{negativeMarks} Marks
+                            </span>
                           </div>
                         </div>
+                        <MathInput
+                          value={currentEditingQuestion.questionText}
+                          onChange={(val, blocks) => updateCurrentQuestion({ questionText: val, statementBlocks: blocks })}
+                          onExtractOptions={(statement, options, correctKey) => {
+                            updateCurrentQuestion({
+                              questionText: statement,
+                              statementBlocks: parseContentToBlocks(statement),
+                              options,
+                              ...(correctKey ? { correctKey } : {})
+                            });
+                            showToast('✨ Auto-detected Question Statement & Options A, B, C, D from Word!');
+                          }}
+                          placeholder="Type normal text or equations ($x^2$, \frac{a}{b}, \int, \begin{cases}, \begin{bmatrix})... Or paste directly from Word!"
+                          rows={4}
+                          defaultViewMode="split"
+                          showToolbar={true}
+                        />
                       </div>
 
                       {/* Options Grid */}

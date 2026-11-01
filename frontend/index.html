@@ -18,6 +18,25 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Razorpay Checkout SDK for Instant Payment Gateway -->
     <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+    <!-- MathJax 3 Configuration for Advanced Mathematical Typesetting -->
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']],
+          processEscapes: true,
+          processEnvironments: true,
+          packages: {'[+]': ['ams', 'newcommand', 'configmacros']}
+        },
+        options: {
+          skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        },
+        startup: {
+          typeset: false
+        }
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
   </head>
   <body>
     <div id="root"></div>
