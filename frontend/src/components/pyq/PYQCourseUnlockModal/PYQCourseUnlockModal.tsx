@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Lock, CheckCircle2, Sparkles, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
 import { YoutubeIcon } from '../../ui/YoutubeIcon/YoutubeIcon';
 import styles from './PYQCourseUnlockModal.module.scss';
@@ -16,9 +17,9 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
   onEnroll,
   questionNumber
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
       className={styles.backdrop}
       onClick={onClose}
@@ -124,6 +125,7 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
