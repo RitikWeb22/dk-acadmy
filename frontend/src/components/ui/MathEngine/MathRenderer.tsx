@@ -3,6 +3,7 @@ import katex from 'katex';
 import styles from './MathEngine.module.scss';
 import { parseContentToBlocks } from './mathParser';
 import type { MathContentBlock } from './mathParser';
+import { normalizeMathText } from '../../../utils/questionBulkParser';
 
 export interface MathRendererProps {
   content?: string;
@@ -46,10 +47,11 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // If raw content string is provided, split by lines to preserve user newlines and spacing strictly
+  // If raw content string is provided, normalize entire content first (to collapse multi-line formulas like \log_e\left(\n27\n64\n\right)), then split by lines
   const lines = useMemo(() => {
     if (!content) return [];
-    return content.split(/\r?\n/).map((line, idx) => ({
+    const normalized = normalizeMathText(content);
+    return normalized.split(/\r?\n/).map((line, idx) => ({
       id: `line-${idx}`,
       raw: line,
       blocks: parseContentToBlocks(line)

@@ -159,12 +159,15 @@ export function autoWrapMathDelimiters(text: string): string {
   if (text.includes('$')) return text;
 
   const trimmed = text.trim();
-  const hasLaTeX = /\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left|right|begin|matrix)\b/.test(trimmed);
+  const hasLaTeX = /\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left|right|begin|matrix)\b|\^\{|\^[0-9a-zA-Z]/.test(trimmed);
 
   if (!hasLaTeX) return text;
 
-  // If the whole text is predominantly a math formula without plain words
-  if (/^\\(frac|dfrac|int|iint|iiint|oint|sum|prod|lim|sqrt|begin\{|left\(|matrix)/.test(trimmed)) {
+  const englishWords = trimmed.match(/\b(?:which|statement|following|correct|incorrect|true|false|both|neither|only|where|then|when|let|given|value|find|such|that)\b/gi);
+  const isProse = englishWords && englishWords.length >= 2;
+
+  // If the whole text is predominantly a math formula without prose words
+  if (!isProse) {
     return `$$${trimmed}$$`;
   }
 
@@ -201,7 +204,23 @@ export function autoWrapMathDelimiters(text: string): string {
 export function normalizeMathText(raw: string): string {
   if (!raw) return '';
 
-  const lines = raw.split(/\r?\n/);
+  let text = raw;
+
+  // 0. Pre-pass for multi-line Word stacked fractions: e.g. \log_e\left(\n27\n64\n\right) or \left(\n32\n27\n\right)
+  text = text.replace(/(\\log_e|\\ln)?\s*(\\left)?\s*\(\s*([0-9a-zA-Z\+\-\^\\\{\}]+)\s*\r?\n+\s*([0-9a-zA-Z\+\-\^\\\{\}]+)\s*(\\right)?\s*\)/g,
+    (_, logCmd, leftBracket, num, den) => {
+      const logPrefix = logCmd ? `${logCmd} ` : '';
+      return `${logPrefix}\\left(\\frac{${num.trim()}}{${den.trim()}}\\right)`;
+    }
+  );
+
+  // Collapse newlines inside any \left( ... \right)
+  text = text.replace(/\\left\s*([(\[{])\s*([\s\S]*?)\s*\\right\s*([)\]}])/g, (_, openB, inner, closeB) => {
+    const singleLine = inner.replace(/\r?\n+/g, ' ').trim();
+    return `\\left${openB}${singleLine}\\right${closeB}`;
+  });
+
+  const lines = text.split(/\r?\n/);
   const processedLines = lines.map((line) => {
     let res = line;
 
@@ -244,6 +263,17 @@ export function normalizeMathText(raw: string): string {
     // 4. Repeated ellipses: ⋯… or …⋯ or ⋯ or … -> \dots
     res = res.replace(/[⋯…]+/g, ' \\dots ');
 
+    // 4b. Unicode superscripts: e² -> e^{2}, x³ -> x^{3}, n¹⁵ -> n^{15}
+    res = res.replace(/([a-zA-Z0-9_\)\]\}])([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻ⁿˣʸ]+)/g, (_, base, supers) => {
+      const supMap: Record<string, string> = {
+        '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+        '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+        '⁺': '+', '⁻': '-', 'ⁿ': 'n', 'ˣ': 'x', 'ʸ': 'y'
+      };
+      const cleanExp = supers.split('').map((c: string) => supMap[c] || c).join('');
+      return `${base}^{${cleanExp}}`;
+    });
+
     // 5. Integral limits: ∫_0^1▒ or ∫_0^(π/4)▒ or \int_0^(\pi/4) or ∫_0^1
     res = res.replace(/(?:∫|\\int)_([0-9a-zA-Z]+|\{[^}]+\}|\([^)]+\))\s*\^\s*(\([^)]+\)|\{[^}]+\}|[0-9a-zA-Z]+?)(?:▒|\s*(?=[0-9a-zA-Z\/\(\\])|$)\s*/g, (_, low, high) => {
       const cleanLow = stripOuterParens(low).replace(/[{}]/g, '').trim();
@@ -272,6 +302,8 @@ export function normalizeMathText(raw: string): string {
       return `e^{${cleanP.trim()}}`;
     });
     res = res.replace(/e\^([0-9a-zA-Z]+)/g, 'e^{$1}');
+    // Also any base^digit without braces: x^2 -> x^{2}, a^2 -> a^{2}
+    res = res.replace(/([a-zA-Z0-9_\)\]\}])\^([0-9a-zA-Z])(?![0-9a-zA-Z\{])/g, '$1^{$2}');
 
     // 7. Limits: lim_(n→∞) or lim_(x→0)
     res = res.replace(/lim_?\s*\(([^)]+)\)\s*/g, (_, inner) => {
@@ -342,6 +374,8 @@ export function normalizeMathText(raw: string): string {
 
     // 14. Dynamic parens for functions enclosing fractions (ensure not already preceded by \left)
     res = res.replace(/(?<!\\left)\s*(\\(?:log_e|ln|cot|tan|sin|cos|sec|csc))\s*\(([^()]*\\frac[^()]*)\)/g, '$1\\left($2\\right)');
+    // 14b. Scale parentheses enclosing fractions to dynamic tall brackets \left( ... \right)
+    res = res.replace(/(?<!\\left)\s*\(([^\(\)]*\\frac[^\(\)]*)\)/g, ' \\left($1\\right)');
 
     // 15. Words inside formulas: where -> \text{ ... }
     res = res.replace(/(?<=[,\$])\s*(where)\s+/gi, ' \\text{$1} ');
@@ -356,34 +390,25 @@ export function normalizeMathText(raw: string): string {
 
     // 18. Smart Delimiters: NEVER wrap pure prose lines in math!
     if (!res.includes('$') && !res.startsWith('\\begin{')) {
-      const hasMathCmd = /\\(?:frac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log|dots|to|infty)\b/.test(res);
-      if (hasMathCmd) {
-        // Strip question prefix like "(S1): " or "1. " or "2. "
-        let prefix = '';
-        let body = res;
-        const prefixMatch = res.match(/^(\s*(?:\([a-zA-Z0-9]+\)|[0-9]+[.,])\s*[:=\-]?\s*)([\s\S]+)$/);
-        if (prefixMatch) {
-          prefix = prefixMatch[1];
-          body = prefixMatch[2];
-        }
+      let prefix = '';
+      let body = res;
+      // Match question and option prefixes: e.g. "(S1): ", "1. ", "A. ", "B) ", "C ", "(D) ", "D "
+      const prefixMatch = res.match(/^(\s*(?:\([a-zA-Z0-9]+\)|[0-9]+[.,]|[A-D][.,\)]|\([A-D]\)|[A-D]\s+)\s*[:=\-]?\s*)([\s\S]+)$/);
+      if (prefixMatch) {
+        prefix = prefixMatch[1];
+        body = prefixMatch[2];
+      }
 
-        // Case A: (S1): \lim... or \int... or \frac...
-        if (body.startsWith('\\lim') || body.startsWith('\\int') || body.startsWith('\\frac')) {
-          const tailMatch = body.match(/^([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
-          if (tailMatch && tailMatch[2] && tailMatch[2].trim().length > 0) {
-            res = `${prefix}$$ ${tailMatch[1].trim()} $$${tailMatch[2]}`;
-          } else {
-            res = `${prefix}$$ ${body.trim()} $$`;
-          }
-        }
+      const hasMathSyntax = /\\(?:frac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log_e|log|ln|dots|to|infty|left|right)\b|\^\{|\^[0-9a-zA-Z]|\\[\(\)]/.test(body);
+
+      const englishProseWords = body.match(/\b(?:which|statement|following|correct|incorrect|true|false|both|neither|only|where|then|when|let|given|value|find|such|that|because|since|if)\b/gi);
+      const isProse = englishProseWords && englishProseWords.length >= 2;
+
+      if (hasMathSyntax && !isProse) {
         // Case B: "The value of [formula] is"
-        else if (/^(?:The value of|Evaluate|Find)\s+/i.test(body)) {
-          const valMatch = body.match(/^((?:The value of|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
-          if (valMatch) {
-            res = `${prefix}${valMatch[1]}$$ ${valMatch[2].trim()} $$${valMatch[3]}`;
-          } else {
-            res = `${prefix}${body}`;
-          }
+        const valMatch = body.match(/^((?:The value of|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+        if (valMatch) {
+          res = `${prefix}${valMatch[1]}$$ ${valMatch[2].trim()} $$${valMatch[3]}`;
         }
         // Case C: "If [formula] then [formula] is equal to." or "If [formula], then [formula] is equal to."
         else if (/^If\s+/i.test(body)) {
@@ -391,13 +416,17 @@ export function normalizeMathText(raw: string): string {
           if (ifMatch) {
             res = `${prefix}${ifMatch[1]}$$ ${ifMatch[2].trim()} $$${ifMatch[3]}$$ ${ifMatch[4].trim()} $$${ifMatch[5]}`;
           } else {
-            res = `${prefix}${body}`;
+            res = `${prefix}$$ ${body.trim()} $$`;
           }
         }
-        // Case D: Sentence containing an integral or limit or function mapping
+        // Case D: Pure math equation / expression (like (e-1)(e^2 + \frac{1}{2}) or \log_e\left(\frac{32}{27}\right))
         else {
-          res = res.replace(/(\\int(?:_\{[^}]+\}\^\{[^}]+\}|_[0-9a-zA-Z]+\^[0-9a-zA-Z]+)?[\s\S]*?\\,dx)/g, '$$ $1 $$');
-          res = res.replace(/([a-zA-Z]\s*:\s*\[[^\]]+\]\s*\\to\s*[A-Za-z\\]+)/g, '$$$1$$');
+          const tailMatch = body.match(/^([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+          if (tailMatch && tailMatch[2] && tailMatch[2].trim().length > 0 && !tailMatch[1].includes('=')) {
+            res = `${prefix}$$ ${tailMatch[1].trim()} $$${tailMatch[2]}`;
+          } else {
+            res = `${prefix}$$ ${body.trim()} $$`;
+          }
         }
       } else {
         // If it's a standalone fraction like "\frac{1}{16}" without surrounding text, wrap in display math
