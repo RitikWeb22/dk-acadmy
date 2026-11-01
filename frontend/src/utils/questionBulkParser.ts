@@ -27,6 +27,119 @@ export function stripOuterParens(str: string): string {
 }
 
 /**
+ * Universal Fraction Converter:
+ * Robustly converts any mathematical quotient A/B into \frac{A}{B}
+ * using balanced bracket scanning backwards and forwards.
+ * Handles:
+ * - Nested parentheses ((A)(B))/(C)
+ * - \sqrt{...}/(...)
+ * - 1/((...))
+ * - 1/n^2, 1/n^16, 1/16, \sqrt{3}/2
+ * - (\alpha+1)/\beta, 1/\alpha
+ */
+export function convertAllFractions(input: string): string {
+  let str = input;
+  let changed = true;
+  let iterations = 0;
+
+  while (changed && iterations < 20) {
+    changed = false;
+    iterations++;
+
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === '/' && (i === 0 || str[i - 1] !== '\\')) {
+        // Look for numerator boundary to the left of '/'
+        let leftEnd = i - 1;
+        while (leftEnd >= 0 && /\s/.test(str[leftEnd])) leftEnd--;
+        if (leftEnd < 0) continue;
+
+        let leftStart = -1;
+        if (str[leftEnd] === ')' || str[leftEnd] === '}') {
+          const closeChar = str[leftEnd];
+          const openChar = closeChar === ')' ? '(' : '{';
+          let depth = 0;
+          let p = leftEnd;
+          while (p >= 0) {
+            if (str[p] === closeChar) depth++;
+            else if (str[p] === openChar) {
+              depth--;
+              if (depth === 0) {
+                leftStart = p;
+                let cmdCheck = p - 1;
+                while (cmdCheck >= 0 && /[a-zA-Z\\]/.test(str[cmdCheck])) {
+                  if (str[cmdCheck] === '\\') {
+                    leftStart = cmdCheck;
+                    break;
+                  }
+                  cmdCheck--;
+                }
+                break;
+              }
+            }
+            p--;
+          }
+        } else {
+          let p = leftEnd;
+          while (p >= 0 && /[a-zA-Z0-9_\^\\\{\}α-ωΑ-Ω]/.test(str[p])) {
+            p--;
+          }
+          leftStart = p + 1;
+        }
+
+        if (leftStart < 0 || leftStart > leftEnd) continue;
+
+        // Look for denominator boundary to the right of '/'
+        let rightStart = i + 1;
+        while (rightStart < str.length && /\s/.test(str[rightStart])) rightStart++;
+        if (rightStart >= str.length) continue;
+
+        let rightEnd = -1;
+        if (str[rightStart] === '(' || str[rightStart] === '{') {
+          const openChar = str[rightStart];
+          const closeChar = openChar === '(' ? ')' : '}';
+          let depth = 0;
+          let p = rightStart;
+          while (p < str.length) {
+            if (str[p] === openChar) depth++;
+            else if (str[p] === closeChar) {
+              depth--;
+              if (depth === 0) {
+                rightEnd = p;
+                break;
+              }
+            }
+            p++;
+          }
+        } else {
+          let p = rightStart;
+          while (p < str.length && /[a-zA-Z0-9_\^\\\{\}α-ωΑ-Ω]/.test(str[p])) {
+            p++;
+          }
+          rightEnd = p - 1;
+        }
+
+        if (rightEnd < rightStart) continue;
+
+        const num = str.substring(leftStart, leftEnd + 1).trim();
+        const den = str.substring(rightStart, rightEnd + 1).trim();
+
+        if (!num || !den) continue;
+
+        const cleanNum = stripOuterParens(num);
+        const cleanDen = stripOuterParens(den);
+
+        const frac = `\\frac{${cleanNum}}{${cleanDen}}`;
+        str = str.substring(0, leftStart) + frac + str.substring(rightEnd + 1);
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  return str;
+}
+
+/**
  * Checks whether a text string contains un-delimited LaTeX expressions
  * and wraps them in $...$ or $$...$$ for KaTeX typesetting.
  */
@@ -81,10 +194,10 @@ export function normalizeMathText(raw: string): string {
   const processedLines = lines.map((line) => {
     let res = line;
 
-    // 1. Clean Word brackets and placeholders
+    // 1. Clean Word brackets and placeholders (preserve ▒ temporarily for integral step)
     res = res.replace(/[〖〗]/g, '');
     res = res.replace(/[\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
-             .replace(/[□┤├│▒]/g, '')
+             .replace(/[□┤├│]/g, '')
              .replace(/[\u201C\u201D]/g, '"')
              .replace(/[\u2018\u2019]/g, "'")
              .replace(/[\u2212\u2013\u2014]/g, '-');
@@ -120,15 +233,16 @@ export function normalizeMathText(raw: string): string {
     // 4. Repeated ellipses: ⋯… or …⋯ or ⋯ or … -> \dots
     res = res.replace(/[⋯…]+/g, ' \\dots ');
 
-    // 5. Integral limits: ∫_0^1▒ or ∫_0^(π/4)▒ or ∫_0^(\pi/4)▒
-    res = res.replace(/∫_([0-9a-zA-Z]+|\{[^}]+\})\s*\^\s*(\([^)]+\)|[0-9a-zA-Z]+|\{[^}]+\})\s*▒?\s*/g, (_, low, high) => {
-      const cleanLow = stripOuterParens(low).replace(/[{}]/g, '');
-      let cleanHigh = stripOuterParens(high).replace(/[{}]/g, '');
+    // 5. Integral limits: ∫_0^1▒ or ∫_0^(π/4)▒ or ∫_0^(\pi/4)▒ or ∫_0^1
+    res = res.replace(/∫_([0-9a-zA-Z]+|\{[^}]+\}|\([^)]+\))\s*\^\s*(\([^)]+\)|\{[^}]+\}|[0-9a-zA-Z]+?)(?:▒|\s*(?=[0-9a-zA-Z\/\(\\])|$)\s*/g, (_, low, high) => {
+      const cleanLow = stripOuterParens(low).replace(/[{}]/g, '').trim();
+      let cleanHigh = stripOuterParens(high).replace(/[{}]/g, '').trim();
       cleanHigh = cleanHigh.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
                            .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
                            .replace(/π/, '\\pi');
       return `\\int_{${cleanLow}}^{${cleanHigh}} `;
     });
+    res = res.replace(/▒/g, ' ');
     res = res.replace(/∫01\b/g, '\\int_0^1 ')
              .replace(/∫02\b/g, '\\int_0^2 ')
              .replace(/∫0π2\b/g, '\\int_0^{\\pi/2} ')
@@ -170,18 +284,8 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}');
     res = res.replace(/√/g, '\\sqrt');
 
-    // 10. Fractions with balanced parens using stripOuterParens
-    const balanced = '((?:[^()]|\\((?:[^()]|\\((?:[^()]|\\([^()]*\\))*\\))*\\))*)';
-    const fracParensRegex = new RegExp(`\\(${balanced}\\)\\s*\\/\\s*\\(${balanced}\\)`, 'g');
-    res = res.replace(fracParensRegex, (_, n, d) => `\\frac{${stripOuterParens(n)}}{${stripOuterParens(d)}}`);
-
-    const fracNumRegex = new RegExp(`([0-9a-zA-Z\\\\_\\^]+)\\s*\\/\\s*\\(${balanced}\\)`, 'g');
-    res = res.replace(fracNumRegex, (_, n, d) => `\\frac{${n.trim()}}{${stripOuterParens(d)}}`);
-
-    res = res.replace(/\(([^()]+)\)\s*\/\s*([0-9a-zA-Z\\]+)/g, (_, n, d) => `\\frac{${stripOuterParens(n)}}{${d.trim()}}`);
-
-    res = res.replace(/\(([0-9a-zA-Zα-ωΑ-Ω\s\+\-]+)\)\s*\/\s*([0-9a-zA-Zα-ωΑ-Ω\\\^_]+)/g, (_, n, d) => `\\frac{${n.trim()}}{${d.trim()}}`);
-    res = res.replace(/([0-9a-zA-Zα-ωΑ-Ω\\]+)\s*\/\s*([0-9a-zA-Zα-ωΑ-Ω\\\\_\\^]+)/g, (_, n, d) => `\\frac{${n.trim()}}{${d.trim()}}`);
+    // 10. Universal Fractions: converts all quotients A/B into \frac{A}{B}
+    res = convertAllFractions(res);
 
     // 11. Multi-digit exponents without braces: 1^15 -> 1^{15}, n^16 -> n^{16} (run after fractions!)
     res = res.replace(/([a-zA-Z0-9_\)\]\}])\^([0-9]{2,})\b/g, '$1^{$2}');
@@ -224,8 +328,8 @@ export function normalizeMathText(raw: string): string {
     // 14. Dynamic parens for functions enclosing fractions: \log_e( \frac... ) -> \log_e\left( \frac... \right)
     res = res.replace(/(\\[a-zA-Z_]+)\s*\(([^()]*\\frac[^()]*)\)/g, '$1\\left($2\\right)');
 
-    // 15. Words inside formulas: then, where -> \text{ ... }
-    res = res.replace(/(?<=[,\$])\s*(then|where)\s+/gi, ' \\text{$1} ');
+    // 15. Words inside formulas: where -> \text{ ... }
+    res = res.replace(/(?<=[,\$])\s*(where)\s+/gi, ' \\text{$1} ');
 
     // 16. Vectors in 3D: i+2j+k -> \hat{i} + 2\hat{j} + \hat{k}
     res = res.replace(/\b([0-9]*)\s*i\s*([+-])\s*([0-9]*)\s*j\s*([+-])\s*([0-9]*)\s*k\b/g, (_, c1, s1, c2, s2, c3) => {
@@ -235,7 +339,7 @@ export function normalizeMathText(raw: string): string {
     // 17. Normalize double backslashes
     res = res.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
-    // 17. Smart Delimiters: NEVER wrap pure prose lines in math!
+    // 18. Smart Delimiters: NEVER wrap pure prose lines in math!
     if (!res.includes('$') && !res.startsWith('\\begin{')) {
       const hasMathCmd = /\\(?:frac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log|dots|to|infty)\b/.test(res);
       if (hasMathCmd) {
@@ -266,9 +370,9 @@ export function normalizeMathText(raw: string): string {
             res = `${prefix}${body}`;
           }
         }
-        // Case C: "If [formula] then [formula] is equal to."
+        // Case C: "If [formula] then [formula] is equal to." or "If [formula], then [formula] is equal to."
         else if (/^If\s+/i.test(body)) {
-          const ifMatch = body.match(/^(If\s+)([\s\S]+?)(\s+then\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+          const ifMatch = body.match(/^(If\s+)([\s\S]+?)(,\s*(?:\\text\{then\}|then)\s+|\s+then\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
           if (ifMatch) {
             res = `${prefix}${ifMatch[1]}$$ ${ifMatch[2].trim()} $$${ifMatch[3]}$$ ${ifMatch[4].trim()} $$${ifMatch[5]}`;
           } else {
