@@ -85,6 +85,35 @@ export const PYQPage: React.FC = () => {
     if (urlExam === 'JEE Main') return 'JEE Main';
     return 'All';
   });
+  const [selectedYear, setSelectedYear] = useState<'All' | number>('All');
+
+  // Dynamic PYQ Years list synced with Admin
+  const [adminYears, setAdminYears] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('dk_admin_pyq_years');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [2026, 2025, 2024, 2023, 2022, 2021, 2020];
+  });
+  const [isAddingYear, setIsAddingYear] = useState<boolean>(false);
+  const [customYearInput, setCustomYearInput] = useState<string>('');
+
+  const handleAddYear = (yearNum: number) => {
+    if (!yearNum || yearNum < 1990 || yearNum > 2050) return;
+    if (!adminYears.includes(yearNum)) {
+      const updated = [...adminYears, yearNum].sort((a, b) => b - a);
+      setAdminYears(updated);
+      localStorage.setItem('dk_admin_pyq_years', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('dk_pyq_years_updated', { detail: { years: updated } }));
+      showToast(`✓ Year ${yearNum} added to PYQ Archive!`);
+    }
+    setSelectedYear(yearNum);
+    setIsAddingYear(false);
+    setCustomYearInput('');
+  };
 
   // Practice session state for questions inside an opened set
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
@@ -154,13 +183,39 @@ export const PYQPage: React.FC = () => {
     window.addEventListener('dk_dpp_pyq_created', handleSync);
     window.addEventListener('dk_dpp_pyq_updated', handleSync);
 
+    const handleYearsUpdate = (e: any) => {
+      if (e?.detail?.years && Array.isArray(e.detail.years) && isMounted) {
+        setAdminYears(e.detail.years);
+      }
+    };
+    window.addEventListener('dk_pyq_years_updated', handleYearsUpdate);
+
     return () => {
       isMounted = false;
       window.removeEventListener(CMS_EVENT_KEY, handleSync);
       window.removeEventListener('dk_dpp_pyq_created', handleSync);
       window.removeEventListener('dk_dpp_pyq_updated', handleSync);
+      window.removeEventListener('dk_pyq_years_updated', handleYearsUpdate);
     };
   }, []);
+
+  // Compute all available archive years from admin + database sets + questions
+  const availableYears = useMemo(() => {
+    const years = new Set<number>(adminYears);
+    pyqSets.forEach((set) => {
+      if (set.examTarget) {
+        const matches = set.examTarget.match(/\b(19\d\d|20\d\d)\b/g);
+        if (matches) matches.forEach((m) => years.add(Number(m)));
+      }
+      if (Array.isArray(set.questions)) {
+        set.questions.forEach((q: any) => {
+          const y = Number(q.year) || (q.examYear ? parseInt(String(q.examYear).replace(/\D/g, ''), 10) : 0);
+          if (y > 1990 && y < 2050) years.add(y);
+        });
+      }
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [adminYears, pyqSets]);
 
   // Sync selectedSetId with URL
   useEffect(() => {
@@ -234,7 +289,7 @@ export const PYQPage: React.FC = () => {
           formulaKey: q.dkSirShortcut || 'DK Sir 20s Inspection Shortcut Rule',
           explanation: q.stepSolution || q.explanation || 'Detailed step-by-step solution.',
           isFree: activeSet.isFree !== false ? true : (q.isFree === true || idx === 0),
-          youtubeUrl: q.videoUrl || activeSet.videoUrl || activeSet.videoWalkthroughUrl || '',
+          youtubeUrl: q.videoUrl || q.youtubeUrl || activeSet.videoUrl || activeSet.videoWalkthroughUrl || '',
           videoUrl: q.videoUrl || activeSet.videoUrl || '',
           pdfUrl: q.pdfUrl || activeSet.pdfUrl || '/assets/downloads/st line-2.pdf',
           courseId: activeSet.id || activeSet._id || 'jee-pyq-archive-mastery',
@@ -290,6 +345,21 @@ export const PYQPage: React.FC = () => {
           return false;
         }
       }
+      if (selectedYear !== 'All') {
+        const yrStr = String(selectedYear);
+        const matchesTarget = String(set.examTarget || '').includes(yrStr);
+        const matchesTitle = String(set.title || '').includes(yrStr);
+        const matchesQuestions =
+          Array.isArray(set.questions) &&
+          set.questions.some(
+            (q: any) =>
+              String(q.year || '').includes(yrStr) ||
+              String(q.examYear || '').includes(yrStr)
+          );
+        if (!matchesTarget && !matchesTitle && !matchesQuestions) {
+          return false;
+        }
+      }
       if (searchQuery.trim().length > 0) {
         const q = searchQuery.toLowerCase().trim();
         const matchesTitle = (set.title || '').toLowerCase().includes(q);
@@ -300,7 +370,7 @@ export const PYQPage: React.FC = () => {
       }
       return true;
     });
-  }, [pyqSets, selectedSubject, selectedExam, searchQuery]);
+  }, [pyqSets, selectedSubject, selectedExam, selectedYear, searchQuery]);
 
   // User response handlers inside active set
   const handleSelectOption = (questionId: string, optionId: string) => {
@@ -497,6 +567,7 @@ export const PYQPage: React.FC = () => {
             <div className={styles.catalogSection}>
               {/* Filter & Search Bar */}
               <div className={styles.catalogFilterBar}>
+                {/* Search Box */}
                 <div className={styles.catalogSearchBox}>
                   <Search size={18} className={styles.searchIcon} />
                   <input
@@ -506,21 +577,175 @@ export const PYQPage: React.FC = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94a3b8',
+                        cursor: 'pointer',
+                        fontWeight: 700
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
 
-                <div className={styles.catalogSubjectPills}>
-                  {(['All', 'Mathematics', 'Physics', 'Chemistry'] as const).map((sub) => (
-                    <button
-                      key={sub}
-                      type="button"
-                      className={`${styles.subjectFilterPill} ${
-                        selectedSubject === sub ? styles.subjectFilterPillActive : ''
-                      }`}
-                      onClick={() => setSelectedSubject(sub)}
-                    >
-                      {sub}
-                    </button>
-                  ))}
+                <div className={styles.filterRowsStack}>
+                  {/* Row 1: Exam Target */}
+                  <div className={styles.filterRow}>
+                    <span className={styles.filterRowLabel}>Exam Target:</span>
+                    <div className={styles.filterPillsGroup}>
+                      {(['All', 'JEE Main', 'JEE Advanced'] as const).map((exam) => (
+                        <button
+                          key={exam}
+                          type="button"
+                          className={`${styles.subjectFilterPill} ${
+                            selectedExam === exam ? styles.subjectFilterPillActive : ''
+                          }`}
+                          onClick={() => setSelectedExam(exam)}
+                        >
+                          {exam === 'All' ? 'All Exams' : exam}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Row 2: Subject */}
+                  <div className={styles.filterRow}>
+                    <span className={styles.filterRowLabel}>Subject:</span>
+                    <div className={styles.filterPillsGroup}>
+                      {(['All', 'Mathematics', 'Physics', 'Chemistry'] as const).map((sub) => (
+                        <button
+                          key={sub}
+                          type="button"
+                          className={`${styles.subjectFilterPill} ${
+                            selectedSubject === sub ? styles.subjectFilterPillActive : ''
+                          }`}
+                          onClick={() => setSelectedSubject(sub)}
+                        >
+                          {sub === 'All' ? 'All Subjects' : sub}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Row 3: Target Year */}
+                  <div className={styles.filterRow}>
+                    <span className={styles.filterRowLabel}>Exam Year:</span>
+                    <div className={styles.filterPillsGroup}>
+                      <button
+                        type="button"
+                        className={`${styles.subjectFilterPill} ${
+                          selectedYear === 'All' ? styles.subjectFilterPillActive : ''
+                        }`}
+                        onClick={() => setSelectedYear('All')}
+                      >
+                        All Years
+                      </button>
+                      {availableYears.map((yr) => (
+                        <button
+                          key={yr}
+                          type="button"
+                          className={`${styles.subjectFilterPill} ${
+                            selectedYear === yr ? styles.subjectFilterPillActive : ''
+                          }`}
+                          onClick={() => setSelectedYear(yr)}
+                        >
+                          {yr}
+                        </button>
+                      ))}
+
+                      {/* Add Year Inline Option */}
+                      {isAddingYear ? (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <input
+                            type="number"
+                            autoFocus
+                            placeholder="Year (e.g. 2019)"
+                            value={customYearInput}
+                            onChange={(e) => setCustomYearInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const y = Number(customYearInput);
+                                if (y) handleAddYear(y);
+                              } else if (e.key === 'Escape') {
+                                setIsAddingYear(false);
+                              }
+                            }}
+                            style={{
+                              width: '100px',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              border: '1.5px solid #2563eb',
+                              fontSize: '12px',
+                              outline: 'none'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const y = Number(customYearInput);
+                              if (y) handleAddYear(y);
+                            }}
+                            style={{
+                              background: '#2563eb',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '5px 10px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingYear(false)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#64748b',
+                              fontSize: '11px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingYear(true)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: '#f8fafc',
+                            color: '#2563eb',
+                            border: '1px dashed #93c5fd',
+                            borderRadius: '9999px',
+                            padding: '6px 12px',
+                            fontSize: '0.8125rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span>+ Add Custom Year</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

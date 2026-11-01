@@ -38,7 +38,8 @@ import {
   Loader2,
   Layers,
   Activity,
-  Play
+  Play,
+  Video
 } from 'lucide-react';
 import styles from './DppPyqManagementWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
@@ -59,6 +60,8 @@ export interface ProblemQuestionItem {
   difficulty: 'Easy' | 'Moderate' | 'Challenging';
   examYear?: string;
   isFree?: boolean;
+  videoUrl?: string;
+  pdfUrl?: string;
 }
 
 export interface DppPyqItem {
@@ -530,6 +533,8 @@ export const DppPyqManagementWorkspace: React.FC = () => {
   const [newStatus, setNewStatus] = useState<ProblemStatus>('Published');
   const [newIsFree, setNewIsFree] = useState<boolean>(true);
   const [newPrice, setNewPrice] = useState<number>(0);
+  const [newVideoUrl, setNewVideoUrl] = useState<string>('');
+  const [newPdfUrl, setNewPdfUrl] = useState<string>('');
 
   // Student mode interactive preview state
   const [previewCurrentQIndex, setPreviewCurrentQIndex] = useState<number>(0);
@@ -867,6 +872,9 @@ export const DppPyqManagementWorkspace: React.FC = () => {
       examTarget: newExamTarget,
       isFree: newIsFree,
       price: newIsFree ? 0 : Number(newPrice) || 0,
+      videoUrl: newVideoUrl.trim(),
+      videoWalkthroughUrl: newVideoUrl.trim(),
+      pdfUrl: newPdfUrl.trim(),
       badgeCode,
       categoryLabel,
       questionsCount: Number(newQuestionsCount) || 5,
@@ -1402,6 +1410,127 @@ export const DppPyqManagementWorkspace: React.FC = () => {
         </div>
       </div>
 
+      {/* ─── 4B. ARCHIVE YEARS MANAGEMENT STRIP ─── */}
+      <div style={{
+        background: '#ffffff',
+        border: '1.5px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '12px 18px',
+        marginBottom: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span>📅 PYQ Archive Years ({adminPyqYears.length}):</span>
+          </span>
+          {adminPyqYears.map((yr) => (
+            <span
+              key={yr}
+              style={{
+                fontSize: '11.5px',
+                fontWeight: 700,
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                border: '1px solid #bfdbfe',
+                padding: '3px 9px',
+                borderRadius: '6px'
+              }}
+            >
+              {yr}
+            </span>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isCreatingYear ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="number"
+                autoFocus
+                placeholder="Year (e.g. 2019, 2018)"
+                value={newYearInput}
+                onChange={(e) => setNewYearInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const y = Number(newYearInput);
+                    if (y) handleCreateYear(y);
+                  } else if (e.key === 'Escape') {
+                    setIsCreatingYear(false);
+                  }
+                }}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  border: '1.5px solid #2563eb',
+                  fontSize: '12px',
+                  width: '140px',
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const y = Number(newYearInput);
+                  if (y) handleCreateYear(y);
+                }}
+                style={{
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '5px 12px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Save Year
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCreatingYear(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748b',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                ✕ Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsCreatingYear(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                background: '#eff6ff',
+                color: '#2563eb',
+                border: '1px solid #bfdbfe',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              <Plus size={14} />
+              <span>+ Add / Create Archive Year</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ─── 5. MAIN DATA TABLE ─── */}
       <div className={styles.tableCardContainer}>
         <div className={styles.tableResponsive}>
@@ -1796,6 +1925,127 @@ export const DppPyqManagementWorkspace: React.FC = () => {
               <ChevronRight size={16} />
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* ─── 4B. ARCHIVE YEARS MANAGEMENT STRIP ─── */}
+      <div style={{
+        background: '#ffffff',
+        border: '1.5px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '12px 18px',
+        marginBottom: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span>📅 PYQ Archive Years ({adminPyqYears.length}):</span>
+          </span>
+          {adminPyqYears.map((yr) => (
+            <span
+              key={yr}
+              style={{
+                fontSize: '11.5px',
+                fontWeight: 700,
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                border: '1px solid #bfdbfe',
+                padding: '3px 9px',
+                borderRadius: '6px'
+              }}
+            >
+              {yr}
+            </span>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isCreatingYear ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="number"
+                autoFocus
+                placeholder="Year (e.g. 2019, 2018)"
+                value={newYearInput}
+                onChange={(e) => setNewYearInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const y = Number(newYearInput);
+                    if (y) handleCreateYear(y);
+                  } else if (e.key === 'Escape') {
+                    setIsCreatingYear(false);
+                  }
+                }}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  border: '1.5px solid #2563eb',
+                  fontSize: '12px',
+                  width: '140px',
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const y = Number(newYearInput);
+                  if (y) handleCreateYear(y);
+                }}
+                style={{
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '5px 12px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Save Year
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCreatingYear(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748b',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                ✕ Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsCreatingYear(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                background: '#eff6ff',
+                color: '#2563eb',
+                border: '1px solid #bfdbfe',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              <Plus size={14} />
+              <span>+ Add / Create Archive Year</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -2279,6 +2529,44 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                     <span style={{ fontSize: '12px', color: '#64748b' }}>Aspirants pay this amount to unlock full solutions.</span>
                   </div>
                 )}
+              </div>
+
+              {/* Step 6: Video Walkthrough & Solution PDF */}
+              <div className={styles.formSectionBox}>
+                <div className={styles.fieldSectionHeading}>
+                  <span>6. Video Walkthrough &amp; Solution PDF *</span>
+                  <span className={styles.requiredIndicator}>Optional Attachments</span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginTop: '10px' }}>
+                  <div className={styles.fieldItem}>
+                    <label className={styles.fieldLabel} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Video size={14} style={{ color: '#ef4444' }} />
+                      <span>YouTube Solution Video URL:</span>
+                    </label>
+                    <input
+                      type="url"
+                      className={styles.fieldInputEnhanced}
+                      placeholder="e.g. https://www.youtube.com/watch?v=... or /videos/lec1.mp4"
+                      value={newVideoUrl}
+                      onChange={(e) => setNewVideoUrl(e.target.value)}
+                    />
+                  </div>
+
+                  <div className={styles.fieldItem}>
+                    <label className={styles.fieldLabel} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <FileText size={14} style={{ color: '#10b981' }} />
+                      <span>Downloadable Solution PDF URL:</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={styles.fieldInputEnhanced}
+                      placeholder="e.g. /assets/downloads/straight-lines.pdf or https://..."
+                      value={newPdfUrl}
+                      onChange={(e) => setNewPdfUrl(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Live Card Preview Box */}
@@ -2881,6 +3169,78 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                     onChange={(e) => handleUpdateActiveQuestion({ stepSolution: e.target.value })}
                     placeholder="Provide detailed algebraic steps, integral limits, or physics force equations..."
                   />
+                </div>
+
+                {/* Question-Level YouTube Solution URL & Solution PDF URL */}
+                <div style={{ marginTop: '14px', padding: '14px', background: '#f8fafc', borderRadius: '10px', border: '1.5px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                    <Sparkles size={16} style={{ color: '#2563eb' }} />
+                    <strong style={{ fontSize: '13px', color: '#1e293b' }}>
+                      Question Video Solution &amp; PDF Solutions:
+                    </strong>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                        <Video size={13} style={{ color: '#ef4444' }} />
+                        <span>YouTube / Video Solution URL:</span>
+                      </label>
+                      <input
+                        type="url"
+                        className={styles.fieldInputSmall}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                        placeholder="https://www.youtube.com/watch?v=... or /videos/q1.mp4"
+                        value={editingItem.questions[editingQuestionIdx].videoUrl || ''}
+                        onChange={(e) => handleUpdateActiveQuestion({ videoUrl: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                        <FileText size={13} style={{ color: '#10b981' }} />
+                        <span>Downloadable Solution PDF URL:</span>
+                      </label>
+                      <input
+                        type="text"
+                        className={styles.fieldInputSmall}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                        placeholder="/assets/downloads/solution-q1.pdf or https://..."
+                        value={editingItem.questions[editingQuestionIdx].pdfUrl || ''}
+                        onChange={(e) => handleUpdateActiveQuestion({ pdfUrl: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Also Set-level video and pdf links */}
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px', display: 'block' }}>
+                        Overall Paper Walkthrough Video:
+                      </label>
+                      <input
+                        type="url"
+                        className={styles.fieldInputSmall}
+                        style={{ width: '100%', boxSizing: 'border-box', fontSize: '11.5px' }}
+                        placeholder="Full Paper Video: https://www.youtube.com/..."
+                        value={editingItem.videoUrl || ''}
+                        onChange={(e) => setEditingItem({ ...editingItem, videoUrl: e.target.value, videoWalkthroughUrl: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px', display: 'block' }}>
+                        Overall Paper Solution PDF:
+                      </label>
+                      <input
+                        type="text"
+                        className={styles.fieldInputSmall}
+                        style={{ width: '100%', boxSizing: 'border-box', fontSize: '11.5px' }}
+                        placeholder="Full Paper PDF: /assets/downloads/..."
+                        value={editingItem.pdfUrl || ''}
+                        onChange={(e) => setEditingItem({ ...editingItem, pdfUrl: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
