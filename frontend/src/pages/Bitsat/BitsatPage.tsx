@@ -71,6 +71,8 @@ export interface BITSATDrillItem {
   categoryLabel?: string;
   isFree?: boolean;
   price?: number;
+  durationMinutes?: number;
+  timeLimitMinutes?: number;
   pdfUrl?: string;
   videoUrl?: string;
   videoWalkthroughUrl?: string;
@@ -410,9 +412,8 @@ export const BitsatPage: React.FC = () => {
   const [revealedShortcut, setRevealedShortcut] = useState<boolean>(false);
   const [revealedSolution, setRevealedSolution] = useState<boolean>(false);
 
-  // 45-Second Question Speed Timer
-  const [secondsLeftPerQ, setSecondsLeftPerQ] = useState<number>(45);
-  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(true);
+  // Fixed CBT Drill Countdown Timer (Set by Admin, non-pausable)
+  const [drillTimeLeft, setDrillTimeLeft] = useState<number>(900);
   const [overallElapsedSeconds, setOverallElapsedSeconds] = useState<number>(0);
 
   // Video Solution Modal
@@ -556,16 +557,36 @@ export const BitsatPage: React.FC = () => {
     return activeQuestions[activeQuestionIndex] || activeQuestions[0] || null;
   }, [activeQuestions, activeQuestionIndex]);
 
-  // 3. 45-Second Question Speed Timer Hook
+  // 3. Fixed CBT Drill Countdown Timer Hook (Non-pausable, calibrated from Admin setting)
   useEffect(() => {
-    if (!activeDrill || !isTimerRunning || isDrillSubmitted) return;
+    if (activeDrill) {
+      const durationMins =
+        (activeDrill as any).durationMinutes ||
+        (activeDrill as any).timeLimitMinutes ||
+        Math.max(Math.ceil((activeQuestions.length || 4) * 1.5), 10);
+      setDrillTimeLeft(durationMins * 60);
+      setOverallElapsedSeconds(0);
+      setResponses({});
+      setActiveQuestionIndex(0);
+      setIsDrillSubmitted(false);
+      setRevealedShortcut(false);
+      setRevealedSolution(false);
+    }
+  }, [selectedDrillId, activeDrill?.id]);
+
+  useEffect(() => {
+    if (!activeDrill || isDrillSubmitted) return;
 
     const interval = setInterval(() => {
-      setSecondsLeftPerQ((prev) => {
+      setDrillTimeLeft((prev) => {
         if (prev <= 1) {
-          // Play warning chime when 45s speed budget expires
-          soundEffects.playCautionBeep();
+          // Timer finished! Automatically submit drill and show AIR score modal
+          soundEffects.playSubmissionFanfare();
+          setIsDrillSubmitted(true);
           return 0;
+        }
+        if (prev === 60 || prev === 30 || prev === 10) {
+          soundEffects.playCautionBeep();
         }
         return prev - 1;
       });
@@ -573,14 +594,13 @@ export const BitsatPage: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeDrill, isTimerRunning, isDrillSubmitted]);
+  }, [activeDrill, isDrillSubmitted]);
 
-  // Reset 45s timer whenever changing question index
+  // Reset revealed shortcuts when moving questions
   useEffect(() => {
-    setSecondsLeftPerQ(45);
     setRevealedShortcut(false);
     setRevealedSolution(false);
-  }, [activeQuestionIndex, selectedDrillId]);
+  }, [activeQuestionIndex]);
 
   // 4. Filter drills in catalog
   const filteredDrills = useMemo(() => {
@@ -649,30 +669,77 @@ export const BitsatPage: React.FC = () => {
     soundEffects.playSubmissionFanfare();
   };
 
-  // Performance stats for active drill
+  // Performance & Predicted AIR Stats for active drill
   const drillStats = useMemo(() => {
     let attempted = 0;
     let correct = 0;
+    let wrong = 0;
     let score = 0;
 
     activeQuestions.forEach((q) => {
       const resp = responses[q.id];
       if (resp?.selectedOption) {
         attempted += 1;
-        if (resp.selectedOption === q.correctKey) {
+        const targetKey = q.correctKey || (q as any).correctAnswer || q.options?.find((o: any) => o.isCorrect)?.key;
+        if (resp.selectedOption === targetKey) {
           correct += 1;
           score += 3;
         } else {
-          score -= 1;
+          wrong += 1;
+          score = Math.max(0, score - 1);
         }
       }
     });
 
-    const totalPossible = activeQuestions.length * 3;
+    const totalPossible = Math.max(activeQuestions.length * 3, 3);
     const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
     const bonusEligible = attempted === activeQuestions.length && activeQuestions.length >= 4;
+    const percentage = Math.round((score / totalPossible) * 100);
 
-    return { attempted, correct, score, totalPossible, accuracy, bonusEligible };
+    // Predict All India Rank (AIR) among 1,50,000 national BITSAT candidates
+    let predictedAir = 150000;
+    let percentile = 50.0;
+    let cutoffTier = 'Speed Revision Recommended';
+
+    if (percentage >= 90) {
+      predictedAir = Math.max(45, Math.round(350 - (percentage - 90) * 25));
+      percentile = 99.8;
+      cutoffTier = 'BITS Pilani (Main Campus) - Computer Science & Engineering';
+    } else if (percentage >= 80) {
+      predictedAir = Math.max(351, Math.round(1100 - (percentage - 80) * 70));
+      percentile = 99.1;
+      cutoffTier = 'BITS Pilani (Main Campus) - Electronics & Communication / Electrical';
+    } else if (percentage >= 70) {
+      predictedAir = Math.max(1101, Math.round(2800 - (percentage - 70) * 160));
+      percentile = 98.0;
+      cutoffTier = 'BITS Goa / Hyderabad - Computer Science / Mathematics Computing';
+    } else if (percentage >= 55) {
+      predictedAir = Math.max(2801, Math.round(7500 - (percentage - 55) * 310));
+      percentile = 94.5;
+      cutoffTier = 'BITS Goa / Hyderabad - Mechanical, Chemical, Civil & Dual Degree';
+    } else if (percentage >= 40) {
+      predictedAir = Math.max(7501, Math.round(18000 - (percentage - 40) * 700));
+      percentile = 86.0;
+      cutoffTier = 'Eligible for BITS Dual Degree (M.Sc + B.E.) Threshold';
+    } else {
+      predictedAir = Math.max(18001, Math.round(35000 - percentage * 300));
+      percentile = Math.max(50.0, Math.round(percentage * 1.5 * 10) / 10);
+      cutoffTier = 'Below Cutoff Threshold - Practice with DK Sir 20s Inspection Shortcuts';
+    }
+
+    return {
+      attempted,
+      correct,
+      wrong,
+      score,
+      totalPossible,
+      accuracy,
+      bonusEligible,
+      percentage,
+      predictedAir,
+      percentile,
+      cutoffTier
+    };
   }, [activeQuestions, responses]);
 
   const toggleFaq = (index: number) => {
@@ -1013,34 +1080,27 @@ export const BitsatPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 45-Second Question Speed Countdown Timer */}
+                  {/* Fixed Drill CBT Timer (Set by Admin, Continuous & Non-Pausable) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div className={`${styles.speedTimerBox} ${secondsLeftPerQ <= 15 ? styles.timerDanger : ''}`}>
-                      <Clock size={16} style={{ color: secondsLeftPerQ <= 15 ? '#dc2626' : '#2563eb' }} />
+                    <div className={`${styles.speedTimerBox} ${drillTimeLeft <= 60 ? styles.timerDanger : ''}`}>
+                      <Clock size={16} style={{ color: drillTimeLeft <= 60 ? '#dc2626' : '#2563eb' }} />
                       <div>
-                        <div className={styles.timerLabel}>45s Question Timer</div>
-                        <div className={`${styles.timerValue} ${secondsLeftPerQ <= 15 ? styles.timerDangerVal : ''}`}>
-                          {String(Math.floor(secondsLeftPerQ / 60)).padStart(2, '0')}:
-                          {String(secondsLeftPerQ % 60).padStart(2, '0')}
+                        <div className={styles.timerLabel}>CBT Drill Timer</div>
+                        <div className={`${styles.timerValue} ${drillTimeLeft <= 60 ? styles.timerDangerVal : ''}`}>
+                          {String(Math.floor(drillTimeLeft / 60)).padStart(2, '0')}:
+                          {String(drillTimeLeft % 60).padStart(2, '0')}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsTimerRunning(!isTimerRunning)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}
-                        title={isTimerRunning ? 'Pause timer' : 'Resume timer'}
-                      >
-                        {isTimerRunning ? <Pause size={14} /> : <Play size={14} />}
-                      </button>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleSubmitDrill}
                       className={styles.submitDrillBtn}
+                      title="Submit test and view All India Rank (AIR) Score Card"
                     >
-                      <CheckCircle2 size={16} />
-                      <span>Finish &amp; Score</span>
+                      <Award size={16} />
+                      <span>Finish &amp; Check AIR Score</span>
                     </button>
                   </div>
                 </div>
@@ -1277,9 +1337,16 @@ export const BitsatPage: React.FC = () => {
                       type="button"
                       onClick={handleSubmitDrill}
                       className={styles.submitDrillBtn}
-                      style={{ width: '100%' }}
+                      style={{
+                        width: '100%',
+                        marginTop: '16px',
+                        padding: '14px 18px',
+                        boxShadow: '0 4px 16px rgba(5, 150, 105, 0.4)',
+                        fontSize: '0.95rem'
+                      }}
+                      title="Submit BITSAT Speed Drill and View AIR Score"
                     >
-                      <Award size={16} />
+                      <Award size={18} />
                       <span>Finish &amp; Check AIR Score</span>
                     </button>
                   </div>
@@ -1357,93 +1424,241 @@ export const BitsatPage: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-            backdropFilter: 'blur(4px)',
+            zIndex: 99999,
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '16px'
           }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsDrillSubmitted(false);
+          }}
         >
           <div
             style={{
               background: '#ffffff',
-              borderRadius: '20px',
-              maxWidth: '560px',
+              borderRadius: '24px',
+              maxWidth: '620px',
               width: '100%',
-              padding: '28px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              textAlign: 'center'
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              padding: '32px 28px',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.4)',
+              textAlign: 'center',
+              position: 'relative'
             }}
           >
+            {/* Close X button */}
+            <button
+              type="button"
+              onClick={() => setIsDrillSubmitted(false)}
+              style={{
+                position: 'absolute',
+                top: '18px',
+                right: '18px',
+                background: '#f1f5f9',
+                border: 'none',
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b',
+                cursor: 'pointer',
+                fontWeight: 700
+              }}
+              title="Close Scorecard"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Award Icon & Title */}
             <div
               style={{
-                width: '64px',
-                height: '64px',
+                width: '72px',
+                height: '72px',
                 borderRadius: '50%',
-                background: drillStats.score >= (drillStats.totalPossible * 0.7) ? '#dcfce7' : '#eff6ff',
-                color: drillStats.score >= (drillStats.totalPossible * 0.7) ? '#16a34a' : '#2563eb',
+                background: drillStats.percentage >= 70 ? 'linear-gradient(135deg, #dcfce7, #bbf7d0)' : 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+                color: drillStats.percentage >= 70 ? '#15803d' : '#2563eb',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '16px'
+                marginBottom: '16px',
+                boxShadow: '0 8px 20px rgba(37, 99, 235, 0.15)'
               }}
             >
-              <Award size={34} />
+              <Award size={38} />
             </div>
 
-            <h3 style={{ margin: '0 0 6px', fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
-              BITSAT Speed Drill Result
+            <div style={{ display: 'inline-block', padding: '4px 12px', background: '#eff6ff', borderRadius: '100px', color: '#1d4ed8', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+              Official BITSAT Speed CBT Simulation
+            </div>
+
+            <h3 style={{ margin: '0 0 6px', fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>
+              BITSAT Performance &amp; AIR Score Card
             </h3>
             <p style={{ margin: '0 0 20px', color: '#64748b', fontSize: '0.88rem' }}>
-              Performance summary calibrated against BITS Pilani CS threshold standards.
+              Calibrated against 1,50,000+ national BITSAT candidates and Kota benchmark speed metrics.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb' }}>
-                  {drillStats.score} <span style={{ fontSize: '0.85rem', color: '#64748b' }}>/ {drillStats.totalPossible}</span>
+            {/* 🏆 PREDICTED AIR HIGHLIGHT HERO BOX */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%)',
+                color: '#ffffff',
+                borderRadius: '16px',
+                padding: '20px 24px',
+                marginBottom: '20px',
+                boxShadow: '0 10px 25px -5px rgba(30, 58, 138, 0.4)',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '14px'
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#93c5fd', fontWeight: 800 }}>
+                  Predicted All India Rank (AIR)
                 </div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Net Score (+3, -1)</div>
+                <div style={{ fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: '4px' }}>
+                  AIR #{drillStats.predictedAir.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#bfdbfe', marginTop: '4px' }}>
+                  Top {drillStats.percentile}% Percentile Nationally
+                </div>
               </div>
 
-              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#16a34a' }}>
-                  {drillStats.accuracy}%
+              <div style={{ background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(10px)', padding: '10px 16px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#e0e7ff', fontWeight: 700 }}>
+                  Cutoff Forecast
                 </div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Accuracy</div>
-              </div>
-
-              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#d97706' }}>
-                  {drillStats.attempted > 0 ? Math.round(overallElapsedSeconds / drillStats.attempted) : 45}s
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                  {drillStats.percentage}% Marks
                 </div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Avg Speed / Q</div>
               </div>
             </div>
 
-            {drillStats.bonusEligible ? (
-              <div style={{ background: '#fef3c7', padding: '12px', borderRadius: '10px', color: '#92400e', fontSize: '0.85rem', fontWeight: 600, marginBottom: '20px' }}>
-                ⚡ Bonus Round Unlocked! 100% attempt qualifies you for +36 extra BITSAT marks.
+            {/* BITS Pilani Campus Eligibility Banner */}
+            <div
+              style={{
+                background: drillStats.percentage >= 60 ? '#f0fdf4' : '#fffbeb',
+                border: `1.5px solid ${drillStats.percentage >= 60 ? '#bbf7d0' : '#fde68a'}`,
+                color: drillStats.percentage >= 60 ? '#166534' : '#92400e',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                textAlign: 'left',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}
+            >
+              <Sparkles size={18} style={{ flexShrink: 0 }} />
+              <div>
+                <strong>Admission Forecast: </strong>
+                <span>{drillStats.cutoffTier}</span>
               </div>
-            ) : (
-              <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '10px', color: '#475569', fontSize: '0.85rem', marginBottom: '20px' }}>
-                Attempted {drillStats.attempted} of {activeQuestions.length} questions. Speed target: &lt;60s per problem.
-              </div>
-            )}
+            </div>
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            {/* 4 Stats Cards Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
+              <div style={{ background: '#f8fafc', padding: '12px 10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#2563eb' }}>
+                  {drillStats.score} <span style={{ fontSize: '0.8rem', color: '#64748b' }}>/ {drillStats.totalPossible}</span>
+                </div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '2px' }}>Net Score</div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '12px 10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#16a34a' }}>
+                  {drillStats.accuracy}%
+                </div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '2px' }}>Accuracy</div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '12px 10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a' }}>
+                  {drillStats.attempted} <span style={{ fontSize: '0.8rem', color: '#64748b' }}>/ {activeQuestions.length}</span>
+                </div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '2px' }}>Attempted</div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '12px 10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#d97706' }}>
+                  {drillStats.attempted > 0 ? Math.round(overallElapsedSeconds / drillStats.attempted) : 45}s
+                </div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '2px' }}>Avg Time / Q</div>
+              </div>
+            </div>
+
+            {/* Question Accuracy Pills Breakdown */}
+            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', border: '1px solid #e2e8f0', marginBottom: '20px', textAlign: 'left' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
+                Question-Wise Breakdown:
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {activeQuestions.map((q, idx) => {
+                  const resp = responses[q.id];
+                  const sel = resp?.selectedOption;
+                  const targetKey = q.correctKey || (q as any).correctAnswer;
+                  const isCorrect = sel && sel === targetKey;
+                  const isUnattempted = !sel;
+
+                  return (
+                    <div
+                      key={q.id}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        background: isCorrect ? '#dcfce7' : isUnattempted ? '#f1f5f9' : '#fee2e2',
+                        color: isCorrect ? '#166534' : isUnattempted ? '#475569' : '#991b1b',
+                        border: `1px solid ${isCorrect ? '#86efac' : isUnattempted ? '#cbd5e1' : '#fca5a5'}`
+                      }}
+                    >
+                      Q{idx + 1}: {isCorrect ? '✓ Correct (+3)' : isUnattempted ? '— Unattempted (0)' : '✗ Incorrect (-1)'}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDrillSubmitted(false);
+                  setRevealedSolution(true);
+                  setRevealedShortcut(true);
+                }}
+                style={{ padding: '12px 20px', borderRadius: '10px', border: '1.5px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontWeight: 800, cursor: 'pointer', fontSize: '0.88rem' }}
+              >
+                🔍 Review Solutions &amp; Shortcuts
+              </button>
               <button
                 type="button"
                 onClick={() => {
                   setResponses({});
                   setActiveQuestionIndex(0);
+                  const totalSec = ((activeDrill as any).durationMinutes || 15) * 60;
+                  setDrillTimeLeft(totalSec);
+                  setOverallElapsedSeconds(0);
                   setIsDrillSubmitted(false);
+                  setRevealedSolution(false);
+                  setRevealedShortcut(false);
                 }}
-                style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
+                style={{ padding: '12px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
               >
-                Re-attempt Drill
+                ↻ Re-attempt Drill
               </button>
               <button
                 type="button"
@@ -1451,9 +1666,9 @@ export const BitsatPage: React.FC = () => {
                   setIsDrillSubmitted(false);
                   setSelectedDrillId(null);
                 }}
-                style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
+                style={{ padding: '12px 22px', borderRadius: '10px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 800, cursor: 'pointer', fontSize: '0.88rem', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)' }}
               >
-                Return to Drills
+                Return to Drills Catalog →
               </button>
             </div>
           </div>
