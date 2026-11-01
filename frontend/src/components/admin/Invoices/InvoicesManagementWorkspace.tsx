@@ -141,7 +141,21 @@ export const InvoicesManagementWorkspace: React.FC = () => {
       try {
         const res = await apiClient.get('/payment/orders?limit=100');
         if (res.success && Array.isArray(res.data)) {
-          const mapped = res.data.map((o: any, idx: number) => mapOrderToInvoice(o, idx));
+          let deletedIds: string[] = [];
+          try {
+            deletedIds = JSON.parse(localStorage.getItem('dk_deleted_invoice_ids') || '[]');
+          } catch {}
+
+          const activeOrders = res.data.filter((o: any) => {
+            const oid = String(o._id || o.orderId || '');
+            return (
+              !deletedIds.includes(oid) &&
+              !deletedIds.includes(String(o.orderId)) &&
+              !deletedIds.includes(String(o._id))
+            );
+          });
+
+          const mapped = activeOrders.map((o: any, idx: number) => mapOrderToInvoice(o, idx));
           if (isMounted) {
             setInvoices(mapped);
           }
@@ -386,19 +400,43 @@ export const InvoicesManagementWorkspace: React.FC = () => {
       const id = confirmDeleteState.id;
       try {
         await apiClient.delete(`/payment/orders/${id}`);
-      } catch {}
+      } catch (err: any) {
+        console.warn('Backend delete note:', err);
+      }
       setInvoices((prev) => prev.filter((i) => i.id !== id));
       setSelectedIds((prev) => prev.filter((item) => item !== id));
+
+      try {
+        const deletedRaw = localStorage.getItem('dk_deleted_invoice_ids') || '[]';
+        const deletedList = JSON.parse(deletedRaw);
+        if (!deletedList.includes(id)) {
+          deletedList.push(id);
+          localStorage.setItem('dk_deleted_invoice_ids', JSON.stringify(deletedList));
+        }
+      } catch {}
+
       triggerToast('Invoice deleted successfully');
     } else if (confirmDeleteState.type === 'bulk') {
       const idsToDelete = [...selectedIds];
       for (const id of idsToDelete) {
         try {
           await apiClient.delete(`/payment/orders/${id}`);
-        } catch {}
+        } catch (err: any) {
+          console.warn('Bulk delete backend note:', err);
+        }
       }
       setInvoices((prev) => prev.filter((i) => !idsToDelete.includes(i.id)));
       setSelectedIds([]);
+
+      try {
+        const deletedRaw = localStorage.getItem('dk_deleted_invoice_ids') || '[]';
+        const deletedList = JSON.parse(deletedRaw);
+        idsToDelete.forEach((id) => {
+          if (!deletedList.includes(id)) deletedList.push(id);
+        });
+        localStorage.setItem('dk_deleted_invoice_ids', JSON.stringify(deletedList));
+      } catch {}
+
       triggerToast(`✓ Deleted ${idsToDelete.length} invoice(s) successfully`);
     }
     setConfirmDeleteState({ isOpen: false, type: 'single' });

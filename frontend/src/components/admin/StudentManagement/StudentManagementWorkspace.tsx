@@ -59,7 +59,17 @@ const INITIAL_ASPIRANTS: AspirantItem[] = [
 ];
 
 export const StudentManagementWorkspace: React.FC = () => {
-  const [aspirants, setAspirants] = useState<AspirantItem[]>(INITIAL_ASPIRANTS);
+  const [aspirants, setAspirants] = useState<AspirantItem[]>(() => {
+    try {
+      const deletedRaw = localStorage.getItem('dk_academy_deleted_student_ids') || '[]';
+      const deletedList = JSON.parse(deletedRaw);
+      return INITIAL_ASPIRANTS.filter(
+        (a) => !deletedList.includes(a.id) && !deletedList.includes(a.email.toLowerCase())
+      );
+    } catch {
+      return INITIAL_ASPIRANTS;
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -120,9 +130,18 @@ export const StudentManagementWorkspace: React.FC = () => {
             joinedAt: 'Recent'
           }));
 
-          if (mapped.length > 0) {
-            setAspirants(mapped);
-          }
+          let deletedList: string[] = [];
+          try {
+            deletedList = JSON.parse(localStorage.getItem('dk_academy_deleted_student_ids') || '[]');
+          } catch {}
+
+          const activeMapped = mapped.filter(
+            (s: any) =>
+              !deletedList.includes(s.id) &&
+              !deletedList.includes(s.email?.toLowerCase())
+          );
+
+          setAspirants(activeMapped);
         }
       } catch {
         // Fallback to initial seed
@@ -255,17 +274,32 @@ export const StudentManagementWorkspace: React.FC = () => {
   const confirmDeleteStudent = async () => {
     if (!deleteCandidate) return;
     const toDeleteId = deleteCandidate.id;
-    setAspirants((prev) => prev.filter((a) => a.id !== toDeleteId));
+    const toDeleteEmail = deleteCandidate.email;
+
+    setAspirants((prev) => prev.filter((a) => a.id !== toDeleteId && a.email !== toDeleteEmail));
     setSelectedIds((prev) => prev.filter((id) => id !== toDeleteId));
+
+    try {
+      const deletedRaw = localStorage.getItem('dk_academy_deleted_student_ids') || '[]';
+      const deletedList = JSON.parse(deletedRaw);
+      if (!deletedList.includes(toDeleteId)) deletedList.push(toDeleteId);
+      if (toDeleteEmail && !deletedList.includes(toDeleteEmail.toLowerCase())) {
+        deletedList.push(toDeleteEmail.toLowerCase());
+      }
+      localStorage.setItem('dk_academy_deleted_student_ids', JSON.stringify(deletedList));
+    } catch {}
+
     showToast(`Removed "${deleteCandidate.name}" from aspirant directory.`);
     setDeleteCandidate(null);
 
     try {
-      if (toDeleteId.length > 15) {
-        await apiClient.delete(`/auth/users/${toDeleteId}`);
+      await apiClient.delete(`/auth/users/${toDeleteId}`);
+    } catch {
+      try {
+        await apiClient.delete(`/auth/staff/${toDeleteId}`);
+      } catch (err) {
+        console.warn('Backend student delete note:', err);
       }
-    } catch (err) {
-      console.warn('Backend student delete note:', err);
     }
   };
 
@@ -284,10 +318,30 @@ export const StudentManagementWorkspace: React.FC = () => {
     showToast(`Reactivated ${selectedIds.length} selected aspirants.`);
   };
 
-  const handleBulkDelete = () => {
-    setAspirants((prev) => prev.filter((a) => !selectedIds.includes(a.id)));
-    showToast(`Deleted ${selectedIds.length} selected aspirants.`);
+  const handleBulkDelete = async () => {
+    const idsToDelete = [...selectedIds];
+    setAspirants((prev) => prev.filter((a) => !idsToDelete.includes(a.id)));
     setSelectedIds([]);
+
+    try {
+      const deletedRaw = localStorage.getItem('dk_academy_deleted_student_ids') || '[]';
+      const deletedList = JSON.parse(deletedRaw);
+      idsToDelete.forEach((id) => {
+        if (!deletedList.includes(id)) deletedList.push(id);
+      });
+      localStorage.setItem('dk_academy_deleted_student_ids', JSON.stringify(deletedList));
+    } catch {}
+
+    for (const id of idsToDelete) {
+      try {
+        await apiClient.delete(`/auth/users/${id}`);
+      } catch {
+        try {
+          await apiClient.delete(`/auth/staff/${id}`);
+        } catch {}
+      }
+    }
+    showToast(`Deleted ${idsToDelete.length} selected aspirants.`);
   };
 
   // Direct Message handler

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { submitLead, getAllLeads, getLeadById, updateLead, deleteLead } from '../controllers/leadController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
-import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
+import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
@@ -45,8 +45,8 @@ router.post('/', leadSubmissionLimiter, validate({ body: submitLeadSchema }), su
 
 // Admin & Counselor Lead Desk (Protected)
 router.get('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR', 'LEAD_MANAGER'), getAllLeads);
-router.get('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR', 'LEAD_MANAGER'), validate({ params: idParamSchema }), getLeadById);
-router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR', 'LEAD_MANAGER'), validate({ params: idParamSchema }), updateLead);
-router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idParamSchema }), deleteLead);
+router.get('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR', 'LEAD_MANAGER'), validate({ params: idOrSlugParamSchema }), getLeadById);
+router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR', 'LEAD_MANAGER'), validate({ params: idOrSlugParamSchema }), updateLead);
+router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), deleteLead);
 
 export default router;

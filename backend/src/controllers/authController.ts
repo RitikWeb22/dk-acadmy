@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../config/env.js';
@@ -655,8 +656,14 @@ export const updateStaffByAdmin = async (req: Request, res: Response): Promise<v
 export const deleteUserByAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    await User.findByIdAndDelete(id);
-    res.status(200).json({ success: true, message: 'User deleted successfully' });
+    const idStr = String(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+    const deleted = await User.findOneAndDelete(
+      isObjectId
+        ? { $or: [{ _id: idStr }, { teacherId: idStr }, { email: idStr.toLowerCase() }] }
+        : { $or: [{ teacherId: idStr }, { email: idStr.toLowerCase() }] }
+    );
+    res.status(200).json({ success: true, message: 'User deleted successfully', deleted });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

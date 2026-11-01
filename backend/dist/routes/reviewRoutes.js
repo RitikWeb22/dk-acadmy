@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { getAllReviews, createReview, updateReviewStatus, replyToReview, deleteReview } from '../controllers/reviewController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
-import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
+import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 const router = Router();
 const createReviewSchema = z
     .object({
@@ -30,7 +30,7 @@ const replyToReviewSchema = z
 router.get('/', getAllReviews);
 router.post('/', validate({ body: createReviewSchema }), createReview);
 // Review moderation & reply (Admin & Faculty Protected)
-router.put('/:id/status', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idParamSchema, body: updateReviewStatusSchema }), updateReviewStatus);
-router.post('/:id/reply', protect, authorize('SUPER_ADMIN', 'ADMIN', 'TEACHER'), validate({ params: idParamSchema, body: replyToReviewSchema }), replyToReview);
-router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idParamSchema }), deleteReview);
+router.put('/:id/status', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema, body: updateReviewStatusSchema }), updateReviewStatus);
+router.post('/:id/reply', protect, authorize('SUPER_ADMIN', 'ADMIN', 'TEACHER'), validate({ params: idOrSlugParamSchema, body: replyToReviewSchema }), replyToReview);
+router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), deleteReview);
 export default router;

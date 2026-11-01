@@ -17,7 +17,7 @@ import {
   deleteUserByAdmin
 } from '../controllers/authController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
-import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
+import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
@@ -121,28 +121,28 @@ router.put(
   '/staff/:id',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN'),
-  validate({ params: idParamSchema }),
+  validate({ params: idOrSlugParamSchema }),
   updateStaffByAdmin
 );
 router.put(
   '/staff/:id/password',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN'),
-  validate({ params: idParamSchema, body: updatePasswordSchema }),
+  validate({ params: idOrSlugParamSchema, body: updatePasswordSchema }),
   updateStaffPasswordByAdmin
 );
 router.delete(
   '/staff/:id',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN'),
-  validate({ params: idParamSchema }),
+  validate({ params: idOrSlugParamSchema }),
   deleteUserByAdmin
 );
 router.delete(
   '/users/:id',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN'),
-  validate({ params: idParamSchema }),
+  validate({ params: idOrSlugParamSchema }),
   deleteUserByAdmin
 );
 

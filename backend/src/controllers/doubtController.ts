@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { Doubt } from '../models/Doubt.js';
 import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import { broadcastDoubtAnswered, broadcastNewDoubt } from '../sockets/socket.js';
@@ -183,7 +184,11 @@ export const updateDoubtStatus = async (req: Request, res: Response): Promise<vo
 export const deleteDoubt = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const doubt = await Doubt.findByIdAndDelete(id);
+    const idStr = String(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+    const doubt = await Doubt.findOneAndDelete(
+      isObjectId ? { $or: [{ _id: idStr }, { id: idStr }] } : { id: idStr }
+    );
     if (!doubt) {
       res.status(404).json({ success: false, message: 'Doubt not found' });
       return;

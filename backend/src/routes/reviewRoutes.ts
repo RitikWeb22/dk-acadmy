@@ -8,7 +8,7 @@ import {
   deleteReview
 } from '../controllers/reviewController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
-import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
+import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
 
@@ -46,21 +46,21 @@ router.put(
   '/:id/status',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN'),
-  validate({ params: idParamSchema, body: updateReviewStatusSchema }),
+  validate({ params: idOrSlugParamSchema, body: updateReviewStatusSchema }),
   updateReviewStatus
 );
 router.post(
   '/:id/reply',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN', 'TEACHER'),
-  validate({ params: idParamSchema, body: replyToReviewSchema }),
+  validate({ params: idOrSlugParamSchema, body: replyToReviewSchema }),
   replyToReview
 );
 router.delete(
   '/:id',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN'),
-  validate({ params: idParamSchema }),
+  validate({ params: idOrSlugParamSchema }),
   deleteReview
 );
 

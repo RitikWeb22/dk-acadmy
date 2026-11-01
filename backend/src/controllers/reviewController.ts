@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { Review } from '../models/Review.js';
 import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import {
@@ -169,7 +170,11 @@ export const replyToReview = async (req: AuthRequest, res: Response): Promise<vo
 export const deleteReview = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const review = await Review.findByIdAndDelete(id);
+    const idStr = String(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+    const review = await Review.findOneAndDelete(
+      isObjectId ? { $or: [{ _id: idStr }, { id: idStr }] } : { id: idStr }
+    );
     if (!review) {
       res.status(404).json({ success: false, message: 'Review not found' });
       return;
@@ -178,7 +183,6 @@ export const deleteReview = async (req: Request, res: Response): Promise<void> =
     broadcastReviewDeleted(String(id));
 
     res.status(200).json({ success: true, message: 'Review deleted successfully' });
-
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -80,7 +80,17 @@ const INITIAL_FACULTY: FacultyItem[] = [
 ];
 
 export const FacultyManagementWorkspace: React.FC = () => {
-  const [facultyList, setFacultyList] = useState<FacultyItem[]>(INITIAL_FACULTY);
+  const [facultyList, setFacultyList] = useState<FacultyItem[]>(() => {
+    try {
+      const deletedRaw = localStorage.getItem('dk_academy_deleted_faculty_ids') || '[]';
+      const deletedList = JSON.parse(deletedRaw);
+      return INITIAL_FACULTY.filter(
+        (f) => !deletedList.includes(f.id) && !deletedList.includes(f.email.toLowerCase())
+      );
+    } catch {
+      return INITIAL_FACULTY;
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -147,9 +157,20 @@ export const FacultyManagementWorkspace: React.FC = () => {
             joinedAt: 'Recent'
           }));
 
+          let deletedList: string[] = [];
+          try {
+            deletedList = JSON.parse(localStorage.getItem('dk_academy_deleted_faculty_ids') || '[]');
+          } catch {}
+
+          const filteredMapped = mapped.filter(
+            (f) =>
+              !deletedList.includes(f.id) &&
+              !deletedList.includes(f.email.toLowerCase())
+          );
+
           setFacultyList((prev) => {
             const existingEmails = new Set(prev.map((f) => f.email.toLowerCase()));
-            const newOnes = mapped.filter((f) => !existingEmails.has(f.email.toLowerCase()));
+            const newOnes = filteredMapped.filter((f) => !existingEmails.has(f.email.toLowerCase()));
             return [...newOnes, ...prev];
           });
         }
@@ -280,17 +301,32 @@ export const FacultyManagementWorkspace: React.FC = () => {
   const confirmDeleteFaculty = async () => {
     if (!deleteCandidate) return;
     const toDeleteId = deleteCandidate.id;
-    setFacultyList((prev) => prev.filter((f) => f.id !== toDeleteId));
+    const toDeleteEmail = deleteCandidate.email;
+
+    setFacultyList((prev) => prev.filter((f) => f.id !== toDeleteId && f.email !== toDeleteEmail));
     setSelectedIds((prev) => prev.filter((id) => id !== toDeleteId));
+
+    try {
+      const deletedRaw = localStorage.getItem('dk_academy_deleted_faculty_ids') || '[]';
+      const deletedList = JSON.parse(deletedRaw);
+      if (!deletedList.includes(toDeleteId)) deletedList.push(toDeleteId);
+      if (toDeleteEmail && !deletedList.includes(toDeleteEmail.toLowerCase())) {
+        deletedList.push(toDeleteEmail.toLowerCase());
+      }
+      localStorage.setItem('dk_academy_deleted_faculty_ids', JSON.stringify(deletedList));
+    } catch {}
+
     showToast(`Removed "${deleteCandidate.name}" from faculty directory.`);
     setDeleteCandidate(null);
 
     try {
-      if (toDeleteId.length > 15) {
+      await apiClient.delete(`/auth/staff/${toDeleteId}`);
+    } catch {
+      try {
         await apiClient.delete(`/auth/users/${toDeleteId}`);
+      } catch (err) {
+        console.warn('Backend delete note:', err);
       }
-    } catch (err) {
-      console.warn('Backend delete note:', err);
     }
   };
 
@@ -309,10 +345,30 @@ export const FacultyManagementWorkspace: React.FC = () => {
     showToast(`Reactivated ${selectedIds.length} selected staff members.`);
   };
 
-  const handleBulkDelete = () => {
-    setFacultyList((prev) => prev.filter((f) => !selectedIds.includes(f.id)));
-    showToast(`Deleted ${selectedIds.length} selected staff members.`);
+  const handleBulkDelete = async () => {
+    const idsToDelete = [...selectedIds];
+    setFacultyList((prev) => prev.filter((f) => !idsToDelete.includes(f.id)));
     setSelectedIds([]);
+
+    try {
+      const deletedRaw = localStorage.getItem('dk_academy_deleted_faculty_ids') || '[]';
+      const deletedList = JSON.parse(deletedRaw);
+      idsToDelete.forEach((id) => {
+        if (!deletedList.includes(id)) deletedList.push(id);
+      });
+      localStorage.setItem('dk_academy_deleted_faculty_ids', JSON.stringify(deletedList));
+    } catch {}
+
+    for (const id of idsToDelete) {
+      try {
+        await apiClient.delete(`/auth/staff/${id}`);
+      } catch {
+        try {
+          await apiClient.delete(`/auth/users/${id}`);
+        } catch {}
+      }
+    }
+    showToast(`Deleted ${idsToDelete.length} selected staff members.`);
   };
 
   // Direct Message handler
