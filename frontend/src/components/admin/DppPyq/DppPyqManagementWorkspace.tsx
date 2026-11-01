@@ -39,10 +39,13 @@ import {
   Layers,
   Activity,
   Play,
-  Video
+  Video,
+  Upload,
+  FileUp
 } from 'lucide-react';
 import styles from './DppPyqManagementWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
+import { downloadQuestionsTemplateCsv, parseBulkQuestions } from '../../../utils/questionBulkParser';
 
 export type ProblemModuleType = 'DPP' | 'PYQ' | 'BITSAT';
 export type ProblemSubject = 'Mathematics' | 'Physics' | 'Chemistry' | 'Mixed';
@@ -582,6 +585,136 @@ export const DppPyqManagementWorkspace: React.FC = () => {
     setNewYearInput('');
   };
 
+  // Dynamic High-Yield Chapters (Admin customizable)
+  const [highYieldChapters, setHighYieldChapters] = useState<Record<ProblemSubject, string[]>>(() => {
+    try {
+      const stored = localStorage.getItem('dk_academy_custom_high_yield_chapters');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          Mathematics: Array.from(new Set([...(HIGH_YIELD_CHAPTERS.Mathematics || []), ...(parsed.Mathematics || [])])),
+          Physics: Array.from(new Set([...(HIGH_YIELD_CHAPTERS.Physics || []), ...(parsed.Physics || [])])),
+          Chemistry: Array.from(new Set([...(HIGH_YIELD_CHAPTERS.Chemistry || []), ...(parsed.Chemistry || [])])),
+          Mixed: Array.from(new Set([...(HIGH_YIELD_CHAPTERS.Mixed || []), ...(parsed.Mixed || [])]))
+        };
+      }
+    } catch {}
+    return HIGH_YIELD_CHAPTERS;
+  });
+  const [isAddingChapter, setIsAddingChapter] = useState<boolean>(false);
+  const [customChapterName, setCustomChapterName] = useState<string>('');
+
+  const handleAddNewHighYieldChapter = () => {
+    const trimmed = customChapterName.trim();
+    if (!trimmed) return;
+    const currentList = highYieldChapters[newSubject] || [];
+    if (currentList.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      showToast(`Chapter "${trimmed}" already in ${newSubject}!`);
+      setNewChapter(trimmed);
+      setIsAddingChapter(false);
+      setCustomChapterName('');
+      return;
+    }
+    const updatedList = [...currentList, trimmed];
+    const updatedMap = {
+      ...highYieldChapters,
+      [newSubject]: updatedList
+    };
+    setHighYieldChapters(updatedMap);
+    try {
+      localStorage.setItem('dk_academy_custom_high_yield_chapters', JSON.stringify(updatedMap));
+    } catch {}
+
+    setNewChapter(trimmed);
+    if (newModuleType === 'DPP') {
+      setNewTitle(`DPP: ${trimmed} (Speed Inspection & Concepts)`);
+      setNewSlug(`/dpp-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+    } else if (newModuleType === 'PYQ') {
+      setNewTitle(`PYQ Archive: ${trimmed} (${newExamTarget})`);
+      setNewSlug(`/pyq-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+    } else {
+      setNewTitle(`BITSAT Speed Drill: ${trimmed}`);
+      setNewSlug(`/bitsat-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
+    }
+    setIsAddingChapter(false);
+    setCustomChapterName('');
+    showToast(`✓ Added "${trimmed}" to ${newSubject} High-Yield Chapters!`);
+  };
+
+  // Bulk Questions Upload State
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState<boolean>(false);
+  const [bulkInputMode, setBulkInputMode] = useState<'csv' | 'paste'>('csv');
+  const [bulkPastedText, setBulkPastedText] = useState<string>('');
+  const [bulkParsedQuestions, setBulkParsedQuestions] = useState<ProblemQuestionItem[]>([]);
+  const [bulkParseErrors, setBulkParseErrors] = useState<string[]>([]);
+  const [isBulkForCreateModal, setIsBulkForCreateModal] = useState<boolean>(false);
+  const [createdCustomQuestions, setCreatedCustomQuestions] = useState<ProblemQuestionItem[] | null>(null);
+
+  const handleOpenBulkModal = (forCreate: boolean = false) => {
+    setIsBulkForCreateModal(forCreate);
+    setBulkParsedQuestions([]);
+    setBulkParseErrors([]);
+    setBulkPastedText('');
+    setIsBulkModalOpen(true);
+  };
+
+  const handleParseText = (textToParse: string) => {
+    const activeSub = isBulkForCreateModal ? newSubject : (editingItem?.subject || 'Mathematics');
+    const activeYr = isBulkForCreateModal ? newExamTarget : (editingItem?.questions[0]?.examYear || 'JEE Main 2025');
+    const res = parseBulkQuestions(textToParse, activeSub, activeYr);
+    setBulkParsedQuestions(res.questions);
+    setBulkParseErrors(res.errors);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = String(event.target?.result || '');
+      setBulkPastedText(content);
+      handleParseText(content);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleApplyBulkQuestions = (mode: 'replace' | 'append') => {
+    if (bulkParsedQuestions.length === 0) {
+      showToast('No valid questions parsed to import.');
+      return;
+    }
+
+    if (isBulkForCreateModal) {
+      setCreatedCustomQuestions(bulkParsedQuestions);
+      setNewQuestionsCount(bulkParsedQuestions.length);
+      setNewSolutionNote(`${bulkParsedQuestions.length} with detailed step & video solutions`);
+      showToast(`✓ Imported ${bulkParsedQuestions.length} questions into new problem set!`);
+      setIsBulkModalOpen(false);
+      return;
+    }
+
+    if (!editingItem) return;
+
+    let finalQuestions: ProblemQuestionItem[] = [];
+    if (mode === 'replace') {
+      finalQuestions = bulkParsedQuestions.map((q, idx) => ({ ...q, qNum: idx + 1 }));
+    } else {
+      const existing = editingItem.questions || [];
+      const startNum = existing.length;
+      const appended = bulkParsedQuestions.map((q, idx) => ({ ...q, qNum: startNum + idx + 1 }));
+      finalQuestions = [...existing, ...appended];
+    }
+
+    setEditingItem({
+      ...editingItem,
+      questions: finalQuestions,
+      questionsCount: finalQuestions.length
+    });
+    setEditingQuestionIdx(0);
+    showToast(`✓ Successfully imported ${bulkParsedQuestions.length} questions! Total: ${finalQuestions.length}`);
+    setIsBulkModalOpen(false);
+  };
+
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -879,12 +1012,14 @@ export const DppPyqManagementWorkspace: React.FC = () => {
       pdfUrl: newPdfUrl.trim(),
       badgeCode,
       categoryLabel,
-      questionsCount: Number(newQuestionsCount) || 5,
+      questionsCount: createdCustomQuestions ? createdCustomQuestions.length : (Number(newQuestionsCount) || 5),
       durationMinutes: Number(newDurationMinutes) || 15,
-      solutionNote: newSolutionNote.trim() || `${newQuestionsCount} questions with step solutions`,
+      solutionNote: newSolutionNote.trim() || `${createdCustomQuestions ? createdCustomQuestions.length : newQuestionsCount} questions with step solutions`,
       status: newStatus,
       attemptsCount: 0,
-      questions: getSampleQuestionsForSubject(newSubject, newChapter).slice(0, Number(newQuestionsCount) || 4)
+      questions: createdCustomQuestions && createdCustomQuestions.length > 0
+        ? createdCustomQuestions
+        : getSampleQuestionsForSubject(newSubject, newChapter).slice(0, Number(newQuestionsCount) || 4)
     };
 
     try {
@@ -910,6 +1045,7 @@ export const DppPyqManagementWorkspace: React.FC = () => {
       setProblemSets((prev) => [formattedForAuthoring, ...prev.filter((p) => p.id !== formattedForAuthoring.id)]);
       setNewTitle('');
       setNewSlug('');
+      setCreatedCustomQuestions(null);
       window.dispatchEvent(new CustomEvent('dk_dpp_pyq_created', { detail: createdDoc }));
       handleOpenEditModal(formattedForAuthoring);
       await fetchLiveDppPyq();
@@ -2329,9 +2465,92 @@ export const DppPyqManagementWorkspace: React.FC = () => {
 
                 {/* High-yield Chapter Quick Pick Pills */}
                 <div className={styles.chapterQuickPickRow}>
-                  <span className={styles.quickPickPrompt}>High-Yield Chapters:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
+                    <span className={styles.quickPickPrompt}>High-Yield Chapters:</span>
+                    {!isAddingChapter ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingChapter(true)}
+                        style={{
+                          background: '#eff6ff',
+                          border: '1px dashed #3b82f6',
+                          borderRadius: '6px',
+                          color: '#2563eb',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          padding: '3px 8px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Plus size={12} /> Add Chapter
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="text"
+                          value={customChapterName}
+                          onChange={(e) => setCustomChapterName(e.target.value)}
+                          placeholder="Chapter name..."
+                          style={{
+                            padding: '3px 8px',
+                            fontSize: '12px',
+                            border: '1px solid #2563eb',
+                            borderRadius: '4px',
+                            outline: 'none',
+                            width: '160px'
+                          }}
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddNewHighYieldChapter();
+                            } else if (e.key === 'Escape') {
+                              setIsAddingChapter(false);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddNewHighYieldChapter}
+                          style={{
+                            background: '#2563eb',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '4px 8px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingChapter(false);
+                            setCustomChapterName('');
+                          }}
+                          style={{
+                            background: '#e2e8f0',
+                            color: '#64748b',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            padding: '4px 8px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <div className={styles.chapterPillsStrip}>
-                    {(HIGH_YIELD_CHAPTERS[newSubject] || []).map((ch) => (
+                    {(highYieldChapters[newSubject] || []).map((ch) => (
                       <button
                         key={ch}
                         type="button"
@@ -2408,11 +2627,11 @@ export const DppPyqManagementWorkspace: React.FC = () => {
 
                 <div className={styles.formThreeColGrid}>
                   <div className={styles.fieldItem}>
-                    <label className={styles.fieldLabel}>Questions Count</label>
+                    <label className={styles.fieldLabel}>Questions Count (Target)</label>
                     <input
                       type="number"
                       min={1}
-                      max={50}
+                      max={500}
                       className={styles.fieldInputEnhanced}
                       value={newQuestionsCount}
                       onChange={(e) => {
@@ -2421,6 +2640,32 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                         setNewSolutionNote(`${count} with step solutions`);
                       }}
                     />
+                    <div style={{ marginTop: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenBulkModal(true)}
+                        style={{
+                          background: createdCustomQuestions ? '#f0fdf4' : '#eff6ff',
+                          border: createdCustomQuestions ? '1px solid #86efac' : '1px solid #bfdbfe',
+                          color: createdCustomQuestions ? '#15803d' : '#1d4ed8',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Upload size={13} />
+                        <span>
+                          {createdCustomQuestions
+                            ? `✓ ${createdCustomQuestions.length} Questions Bulk Imported (Click to change)`
+                            : '📥 Bulk Upload 200+ Questions (CSV / Paste)'}
+                        </span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className={styles.fieldItem}>
@@ -2819,14 +3064,40 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                   type="button"
                   className={styles.addQTabBtn}
                   onClick={handleAddQuestionToEditingItem}
-                  title="Add new question"
+                  title="Add new single question"
                 >
                   <Plus size={14} />
                   <span>Add Q</span>
                 </button>
+
+                <button
+                  type="button"
+                  className={styles.addQTabBtn}
+                  onClick={() => handleOpenBulkModal(false)}
+                  style={{
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    borderColor: '#1d4ed8',
+                    fontWeight: 700,
+                    padding: '6px 12px'
+                  }}
+                  title="Bulk Upload 200+ Questions via CSV, Excel, or Text Paste"
+                >
+                  <Upload size={14} />
+                  <span>📥 Bulk Upload (200+ Qs)</span>
+                </button>
               </div>
 
               <div className={styles.qActionButtonsBar}>
+                <button
+                  type="button"
+                  className={styles.smallActionBtn}
+                  onClick={downloadQuestionsTemplateCsv}
+                  title="Download standard CSV template to open and fill in Excel"
+                >
+                  <Download size={13} />
+                  <span>CSV Template</span>
+                </button>
                 <button
                   type="button"
                   className={styles.smallActionBtn}
@@ -3526,6 +3797,447 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                 onClick={handleDeleteConfirmed}
               >
                 Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          BULK QUESTIONS UPLOADER MODAL (CSV, EXCEL, JSON, OR TEXT PASTE)
+          ══════════════════════════════════════════════════════════════════ */}
+      {isBulkModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsBulkModalOpen(false);
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '840px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative'
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '20px 24px',
+                borderBottom: '1.5px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)'
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: '#2563eb',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Upload size={18} />
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+                    Bulk Upload Questions (200+ Questions)
+                  </h3>
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                  Easily import 10, 50, or 200+ questions in seconds using CSV template or copy-pasting from Word/Notepad.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsBulkModalOpen(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#64748b',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Tab Selector & Template Download */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setBulkInputMode('csv')}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: bulkInputMode === 'csv' ? '#ffffff' : 'transparent',
+                      color: bulkInputMode === 'csv' ? '#2563eb' : '#64748b',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      boxShadow: bulkInputMode === 'csv' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <FileUp size={15} /> Upload CSV File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBulkInputMode('paste')}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: bulkInputMode === 'paste' ? '#ffffff' : 'transparent',
+                      color: bulkInputMode === 'paste' ? '#2563eb' : '#64748b',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      boxShadow: bulkInputMode === 'paste' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <FileText size={15} /> Paste Text / JSON / CSV
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={downloadQuestionsTemplateCsv}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    background: '#f0fdf4',
+                    border: '1.5px solid #86efac',
+                    borderRadius: '8px',
+                    color: '#166534',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Download standard Excel/CSV template"
+                >
+                  <Download size={14} /> Download Sample CSV Template
+                </button>
+              </div>
+
+              {/* Mode 1: File Upload */}
+              {bulkInputMode === 'csv' && (
+                <div
+                  style={{
+                    border: '2px dashed #93c5fd',
+                    background: '#f8fafc',
+                    borderRadius: '14px',
+                    padding: '36px 20px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'border-color 0.2s'
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept=".csv,.txt,.json,.tsv"
+                    onChange={handleFileUpload}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      opacity: 0,
+                      cursor: 'pointer',
+                      width: '100%',
+                      height: '100%'
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      background: '#eff6ff',
+                      color: '#2563eb',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: '10px'
+                    }}
+                  >
+                    <FileUp size={24} />
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
+                    Click to select CSV / Excel file or drag &amp; drop here
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
+                    Supports <code>.csv</code>, <code>.tsv</code>, <code>.json</code> or text file exported from Excel or Google Sheets.
+                  </div>
+                </div>
+              )}
+
+              {/* Mode 2: Paste Text Area */}
+              {bulkInputMode === 'paste' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                      Paste Questions Data (CSV, JSON Array, or Numbered Format):
+                    </label>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Formats supported: CSV text, JSON, or standard "Q1. ... A) ... B) ... Ans: B"
+                    </span>
+                  </div>
+                  <textarea
+                    rows={8}
+                    value={bulkPastedText}
+                    onChange={(e) => {
+                      setBulkPastedText(e.target.value);
+                      handleParseText(e.target.value);
+                    }}
+                    placeholder={`Paste CSV content or standard question block:
+Statement,Option A,Option B,Option C,Option D,Correct Key,Solution,DK Sir Shortcut,Video URL,PDF URL
+"Solve the limit as x->0 of (sin x)/x","0","1","-1","undefined","B","Standard limit theorem","Inspect standard trigonometric expansion","https://youtu.be/sample1",""
+
+OR paste numbered questions:
+Q1. What is the derivative of sin(x)?
+A) cos(x)
+B) -cos(x)
+C) tan(x)
+D) sec(x)
+Ans: A
+Sol: Standard derivative theorem.`}
+                    style={{
+                      width: '100%',
+                      fontFamily: 'monospace',
+                      fontSize: '0.8rem',
+                      lineHeight: '1.4',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      background: '#f8fafc',
+                      color: '#0f172a',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Parsing Feedback & Validation Banner */}
+              {bulkParsedQuestions.length > 0 && (
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    border: '1.5px solid #86efac',
+                    borderRadius: '12px',
+                    padding: '14px 18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <CheckCircle2 size={22} style={{ color: '#16a34a', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#166534' }}>
+                        ✓ Successfully Detected {bulkParsedQuestions.length} Questions Ready to Import!
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#15803d', marginTop: '2px' }}>
+                        Each question will be indexed and populated with 4 options, answer keys, solutions &amp; video links.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {isBulkForCreateModal ? (
+                      <button
+                        type="button"
+                        onClick={() => handleApplyBulkQuestions('replace')}
+                        style={{
+                          background: '#16a34a',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '10px 18px',
+                          borderRadius: '8px',
+                          fontWeight: 800,
+                          fontSize: '0.88rem',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 12px rgba(22, 163, 74, 0.3)'
+                        }}
+                      >
+                        ✓ Import {bulkParsedQuestions.length} Questions into New Set
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyBulkQuestions('append')}
+                          style={{
+                            background: '#2563eb',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '10px 16px',
+                            borderRadius: '8px',
+                            fontWeight: 800,
+                            fontSize: '0.85rem',
+                            cursor: 'pointer'
+                          }}
+                          title="Keep existing questions and append these new ones at the end"
+                        >
+                          + Append to Existing ({editingItem?.questions.length || 0})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyBulkQuestions('replace')}
+                          style={{
+                            background: '#dc2626',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '10px 16px',
+                            borderRadius: '8px',
+                            fontWeight: 800,
+                            fontSize: '0.85rem',
+                            cursor: 'pointer'
+                          }}
+                          title="Replace existing questions with these newly parsed questions"
+                        >
+                          Replace All ({bulkParsedQuestions.length} Qs)
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Parsing Errors Banner */}
+              {bulkParseErrors.length > 0 && (
+                <div
+                  style={{
+                    background: '#fef2f2',
+                    border: '1.5px solid #fca5a5',
+                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    color: '#991b1b',
+                    fontSize: '0.82rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, marginBottom: '6px' }}>
+                    <AlertTriangle size={16} /> Syntax or Parser Warnings:
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                    {bulkParseErrors.slice(0, 5).map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                    {bulkParseErrors.length > 5 && (
+                      <li>...and {bulkParseErrors.length - 5} more warnings.</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {/* Preview Cards of First 3 Parsed Questions */}
+              {bulkParsedQuestions.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>
+                    Live Preview (First {Math.min(3, bulkParsedQuestions.length)} of {bulkParsedQuestions.length} Questions):
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+                    {bulkParsedQuestions.slice(0, 3).map((q, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '10px',
+                          padding: '12px',
+                          fontSize: '0.82rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span style={{ fontWeight: 800, color: '#2563eb' }}>Q{idx + 1}</span>
+                          <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>
+                            Ans: {q.correctKey}
+                          </span>
+                        </div>
+                        <div style={{ color: '#0f172a', fontWeight: 600, maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {q.statement}
+                        </div>
+                        <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#64748b' }}>
+                          {q.options?.length || 0} Options • {q.stepSolution ? '✓ Sol' : 'No sol'} • {q.videoUrl ? '✓ Video' : 'No video'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: '14px 24px',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '10px',
+                background: '#f8fafc'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsBulkModalOpen(false)}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#475569',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
               </button>
             </div>
           </div>
