@@ -472,7 +472,13 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
 export const deleteOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const order = await Order.findByIdAndDelete(id);
+    const idStr = String(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+    const order = await Order.findOneAndDelete(
+      isObjectId
+        ? { $or: [{ _id: idStr }, { orderId: idStr }, { paymentId: idStr }] }
+        : { $or: [{ orderId: idStr }, { paymentId: idStr }] }
+    );
     if (!order) {
       res.status(404).json({ success: false, message: 'Order not found' });
       return;

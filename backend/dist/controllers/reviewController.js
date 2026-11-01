@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Review } from '../models/Review.js';
 import { broadcastReviewCreated, broadcastReviewUpdated, broadcastReviewDeleted } from '../sockets/socket.js';
 import { escapeRegex, getPagination } from '../utils/sanitize.js';
@@ -144,7 +145,9 @@ export const replyToReview = async (req, res) => {
 export const deleteReview = async (req, res) => {
     try {
         const { id } = req.params;
-        const review = await Review.findByIdAndDelete(id);
+        const idStr = String(id);
+        const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+        const review = await Review.findOneAndDelete(isObjectId ? { $or: [{ _id: idStr }, { id: idStr }] } : { id: idStr });
         if (!review) {
             res.status(404).json({ success: false, message: 'Review not found' });
             return;

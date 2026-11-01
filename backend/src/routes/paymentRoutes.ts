@@ -10,7 +10,7 @@ import {
   deleteOrder
 } from '../controllers/paymentController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
-import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
+import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
 
@@ -78,14 +78,14 @@ router.patch(
   '/orders/:id/status',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN'),
-  validate({ params: idParamSchema, body: updateOrderStatusSchema }),
+  validate({ params: idOrSlugParamSchema, body: updateOrderStatusSchema }),
   updateOrderStatus
 );
 router.delete(
   '/orders/:id',
   protect,
   authorize('SUPER_ADMIN', 'ADMIN'),
-  validate({ params: idParamSchema }),
+  validate({ params: idOrSlugParamSchema }),
   deleteOrder
 );
 

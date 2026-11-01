@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { register, login, googleAuth, adminLogin, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, deleteUserByAdmin } from '../controllers/authController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
-import { validate, idParamSchema } from '../middlewares/validateMiddleware.js';
+import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
 const router = Router();
 // Rate limiter for authentication endpoints (prevent brute-force attacks)
@@ -91,8 +91,8 @@ router.get('/students', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'
 router.post('/students', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStudentByAdmin);
 router.get('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), getStaffList);
 router.post('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStaffByAdmin);
-router.put('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idParamSchema }), updateStaffByAdmin);
-router.put('/staff/:id/password', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idParamSchema, body: updatePasswordSchema }), updateStaffPasswordByAdmin);
-router.delete('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idParamSchema }), deleteUserByAdmin);
-router.delete('/users/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idParamSchema }), deleteUserByAdmin);
+router.put('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), updateStaffByAdmin);
+router.put('/staff/:id/password', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema, body: updatePasswordSchema }), updateStaffPasswordByAdmin);
+router.delete('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), deleteUserByAdmin);
+router.delete('/users/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), deleteUserByAdmin);
 export default router;
