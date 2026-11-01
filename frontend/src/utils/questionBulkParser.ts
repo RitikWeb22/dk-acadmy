@@ -235,26 +235,56 @@ export function normalizeMathText(raw: string): string {
     // 17. Normalize double backslashes
     res = res.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
-    // 18. Auto-wrap math on each line if LaTeX commands are present and not already delimited
-    if (!res.includes('$') && /\\(?:frac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log|dots|to|infty)\b/.test(res)) {
-      // Check for leading label like "(S1): " or "1. " or "2. "
-      const labelMatch = res.match(/^(\s*(?:\([a-zA-Z0-9]+\)|[0-9]+[.,])\s*[:=\-]?\s*)([\s\S]+)$/);
-      let prefix = '';
-      let remaining = res;
-      if (labelMatch) {
-        prefix = labelMatch[1];
-        remaining = labelMatch[2];
-      }
+    // 17. Smart Delimiters: NEVER wrap pure prose lines in math!
+    if (!res.includes('$') && !res.startsWith('\\begin{')) {
+      const hasMathCmd = /\\(?:frac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log|dots|to|infty)\b/.test(res);
+      if (hasMathCmd) {
+        // Strip question prefix like "(S1): " or "1. " or "2. "
+        let prefix = '';
+        let body = res;
+        const prefixMatch = res.match(/^(\s*(?:\([a-zA-Z0-9]+\)|[0-9]+[.,])\s*[:=\-]?\s*)([\s\S]+)$/);
+        if (prefixMatch) {
+          prefix = prefixMatch[1];
+          body = prefixMatch[2];
+        }
 
-      // Check if remaining has leading prose: "The value of ", "If ", "Evaluate "
-      const proseMatch = remaining.match(/^((?:The value of|If|Evaluate|Find|Let the function|Let|Consider|Where)\s+)?([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|then|\.|$))?$/i);
-      if (proseMatch && (proseMatch[1] || (proseMatch[3] && proseMatch[3].trim().length > 0))) {
-        const lead = proseMatch[1] || '';
-        const mathPart = proseMatch[2] || '';
-        const tail = proseMatch[3] || '';
-        res = `${prefix}${lead}$$ ${mathPart.trim()} $$${tail}`;
+        // Case A: (S1): \lim... or \int... or \frac...
+        if (body.startsWith('\\lim') || body.startsWith('\\int') || body.startsWith('\\frac')) {
+          const tailMatch = body.match(/^([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+          if (tailMatch && tailMatch[2] && tailMatch[2].trim().length > 0) {
+            res = `${prefix}$$ ${tailMatch[1].trim()} $$${tailMatch[2]}`;
+          } else {
+            res = `${prefix}$$ ${body.trim()} $$`;
+          }
+        }
+        // Case B: "The value of [formula] is"
+        else if (/^(?:The value of|Evaluate|Find)\s+/i.test(body)) {
+          const valMatch = body.match(/^((?:The value of|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+          if (valMatch) {
+            res = `${prefix}${valMatch[1]}$$ ${valMatch[2].trim()} $$${valMatch[3]}`;
+          } else {
+            res = `${prefix}${body}`;
+          }
+        }
+        // Case C: "If [formula] then [formula] is equal to."
+        else if (/^If\s+/i.test(body)) {
+          const ifMatch = body.match(/^(If\s+)([\s\S]+?)(\s+then\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+          if (ifMatch) {
+            res = `${prefix}${ifMatch[1]}$$ ${ifMatch[2].trim()} $$${ifMatch[3]}$$ ${ifMatch[4].trim()} $$${ifMatch[5]}`;
+          } else {
+            res = `${prefix}${body}`;
+          }
+        }
+        // Case D: Sentence containing an integral or limit or function mapping
+        else {
+          res = res.replace(/(\\int(?:_\{[^}]+\}\^\{[^}]+\}|_[0-9a-zA-Z]+\^[0-9a-zA-Z]+)?[\s\S]*?\\,dx)/g, '$$ $1 $$');
+          res = res.replace(/([a-zA-Z]\s*:\s*\[[^\]]+\]\s*\\to\s*[A-Za-z\\]+)/g, '$$$1$$');
+        }
       } else {
-        res = `${prefix}$$ ${remaining.trim()} $$`;
+        // If it's a standalone fraction like "\frac{1}{16}" without surrounding text, wrap in display math
+        if (/^\s*\\frac\{[^{}]+\}\{[^{}]+\}\s*$/.test(res)) {
+          res = `$$ ${res.trim()} $$`;
+        }
       }
     }
 
