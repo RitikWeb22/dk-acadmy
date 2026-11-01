@@ -147,15 +147,13 @@ export const Topbar: React.FC<TopbarProps> = ({
           <Menu size={18} />
         </button>
 
-        {activeMenu === 'dashboard' && (
-          <nav className={styles.breadcrumbs} aria-label="Breadcrumbs">
-            <span className={styles.crumbParent}>Admin Console</span>
-            <ChevronRight size={13} className={styles.crumbSeparator} />
-            <h1 className={styles.crumbCurrent} aria-current="page">
-              Overview Dashboard
-            </h1>
-          </nav>
-        )}
+        <nav className={styles.breadcrumbs} aria-label="Breadcrumbs">
+          <span className={styles.crumbParent}>Admin Console</span>
+          <ChevronRight size={13} className={styles.crumbSeparator} />
+          <h1 className={styles.crumbCurrent} aria-current="page">
+            {getBreadcrumbLabel(activeMenu)}
+          </h1>
+        </nav>
       </div>
 
       {/* Right: Quick Search Input, System Status Chip, Notification Bell, User Profile */}

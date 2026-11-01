@@ -510,7 +510,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
   const [editingSeriesTitle, setEditingSeriesTitle] = useState('JEE Advanced Specialist: Coordinate Geometry & Vectors');
   const [editingSeriesSubtitle, setEditingSeriesSubtitle] = useState('Focused practice on conic sections, straight lines, circles, planes, and 3D geometry.');
-  const [wizardExamPattern, setWizardExamPattern] = useState('JEE Advanced Pattern');
+  const [wizardExamPattern, setWizardExamPattern] = useState('JEE Part Test (100 Marks • 25 Qs)');
   const [wizardTargetExam, setWizardTargetExam] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'PartTest' | 'MathSpeed'>('JEE Advanced');
   const [wizardFormat, setWizardFormat] = useState<'Full Mock' | 'Part Test' | 'Chapter Test'>('Full Mock');
   const [wizardDifficulty, setWizardDifficulty] = useState<'Moderate' | 'Challenging' | 'Advanced'>('Advanced');
@@ -2845,7 +2845,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             setWizardTotalMarks(180);
                             setPositiveMarks(4);
                             setNegativeMarks(2);
-                          } else if (val.includes('Math Speed')) {
+                          } else if (val.includes('Math Speed') || val.includes('Chapter-wise')) {
                             setWizardFormat('Chapter Test');
                             setWizardTargetExam('MathSpeed');
                             setWizardDuration(45);
@@ -2915,7 +2915,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           </button>
                         ))}
                       </div>
-                      <small style={{ fontSize: '11px', color: '#64748B', display: 'block', marginTop: '4px' }}>
+                      <small style={{ fontSize: '12px', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px', marginBottom: '2px', fontWeight: 500 }}>
+                        <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
                         Questions loaded: {questions.length} problems • Raw marks: {questions.length * positiveMarks} (+{positiveMarks}/-{negativeMarks})
                       </small>
                     </div>

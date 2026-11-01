@@ -101,6 +101,28 @@ function isStandaloneMathFormula(str: string): boolean {
 }
 
 /**
+ * Automatically wraps un-delimited LaTeX equations in $...$ or $$...$$
+ */
+function autoWrapMathDelimiters(text: string): string {
+  if (!text || text.includes('$')) return text;
+
+  const trimmed = text.trim();
+  const hasLaTeX = /\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left|right|begin|matrix)\b/.test(trimmed);
+
+  if (!hasLaTeX) return text;
+
+  if (isStandaloneMathFormula(trimmed)) {
+    return `$$${trimmed}$$`;
+  }
+
+  // Enclose LaTeX formulas found in prose
+  return text.replace(
+    /(\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left)[\s\S]*?)(?=(?:\s+(?:is|are|was|were|then|where|find|if|when|such|that)\b|[.,;?!]\s+[A-Z]|$))/gi,
+    (match) => `$${match.trim()}$`
+  );
+}
+
+/**
  * Main parser that parses text containing mixed math ($...$, $$...$$, \(...\), \[...\], raw LaTeX)
  * and returns safe HTML with KaTeX rendered nodes.
  */
@@ -113,9 +135,12 @@ function renderMathString(rawText: string, forceDisplay: boolean = false): strin
     // Convert \(...\) to $...$
     .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
 
+  // Auto-wrap unescaped LaTeX expressions into $...$ or $$...$$
+  normalized = autoWrapMathDelimiters(normalized);
+
   // If the entire string is a standalone formula without delimiters, render it directly
   if (!normalized.includes('$') && isStandaloneMathFormula(normalized)) {
-    return renderKaTeX(normalized, forceDisplay);
+    return `<div class="${styles.displayMathWrapper}">${renderKaTeX(normalized, true)}</div>`;
   }
 
   // Tokenize by math delimiters ($$...$$ and $...$)
