@@ -1711,9 +1711,19 @@ export const cmsService = {
       const stored = localStorage.getItem(TEST_SERIES_STORAGE_KEY);
       if (stored) {
         const parsed: TestSeriesItem[] = JSON.parse(stored);
-        const specialist = TEST_SERIES_DATA.find((t) => t.id === 'test-ja-coord-geom-01');
-        if (specialist && !parsed.some((p) => p.id === 'test-ja-coord-geom-01')) {
-          parsed.unshift(specialist);
+        let hasNew = false;
+        for (const test of TEST_SERIES_DATA) {
+          if (!parsed.some((p) => p.id === test.id)) {
+            parsed.push(test);
+            hasNew = true;
+          }
+        }
+        if (hasNew) {
+          try {
+            localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(parsed));
+          } catch {
+            // ignore quota errors
+          }
         }
         return parsed;
       }

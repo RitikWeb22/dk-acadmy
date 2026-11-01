@@ -1,6 +1,7 @@
 import type { TestSeriesItem } from '../types';
+import { PART_TESTS_DATA } from './partTestsData';
 
-export const TEST_SERIES_DATA: TestSeriesItem[] = [
+const BASE_TEST_SERIES_DATA: TestSeriesItem[] = [
   {
     id: 'test-ja-coord-geom-01',
     title: 'JEE Advanced Specialist: Coordinate Geometry & Vectors',
@@ -1147,4 +1148,9 @@ export const TEST_SERIES_DATA: TestSeriesItem[] = [
       },
     ],
   },
+];
+
+export const TEST_SERIES_DATA: TestSeriesItem[] = [
+  ...BASE_TEST_SERIES_DATA,
+  ...PART_TESTS_DATA
 ];

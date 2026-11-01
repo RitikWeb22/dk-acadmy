@@ -231,7 +231,7 @@ export interface DPPAttempt {
 
 export type TestExamType = 'JEE Main' | 'JEE Advanced' | 'BITSAT';
 export type TestFormat = 'Full Mock' | 'Part Test' | 'Chapter Test';
-export type TestDifficulty = 'Moderate' | 'Challenging' | 'Advanced' | 'Hard' | 'Easy';
+export type TestDifficulty = 'Moderate' | 'Challenging' | 'Advanced' | 'Hard' | 'Easy' | 'Medium';
 
 export interface TestOption {
   id: string; // 'A' | 'B' | 'C' | 'D'
@@ -250,6 +250,7 @@ export interface TestQuestion {
   negativeMarks: number;
   explanation: string;
   formulaKey?: string;
+  shortcutTrick?: string;
 }
 
 export interface TestMarkingScheme {
@@ -258,10 +259,19 @@ export interface TestMarkingScheme {
   unattempted: number;
 }
 
+export interface TestScheduleConfig {
+  startWindow?: string;
+  endWindow?: string;
+  autoSubmit?: boolean;
+  computeRank?: boolean;
+}
+
 export interface TestSeriesItem {
   id: string;
   title: string;
   subtitle: string;
+  slug?: string;
+  badgeCode?: string;
   examType: TestExamType;
   format: TestFormat;
   difficulty: TestDifficulty;
@@ -272,6 +282,10 @@ export interface TestSeriesItem {
   markingScheme: TestMarkingScheme;
   instructions: string[];
   questions: TestQuestion[];
+  status?: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
+  schedule?: TestScheduleConfig;
+  attemptsCount?: number;
+  createdAt?: string;
 }
 
 export interface TestQuestionResponse {

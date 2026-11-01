@@ -39,11 +39,12 @@ export const TestSeriesPage: React.FC = () => {
   // Derive initial or URL-synced exam filter
   const selectedExam: ExamFilterValue = useMemo(() => {
     if (urlSubject?.toLowerCase() === 'mathematics' || urlFilter === 'math-speed') return 'MathSpeed';
+    if (urlFormat === 'Part Test' || urlExam === 'PartTest') return 'PartTest';
     if (urlExam === 'JEE Main') return 'JEE Main';
     if (urlExam === 'JEE Advanced') return 'JEE Advanced';
     if (urlExam === 'BITSAT') return 'BITSAT';
     return 'All';
-  }, [urlExam, urlSubject, urlFilter]);
+  }, [urlExam, urlFormat, urlSubject, urlFilter]);
 
   // Derive initial or URL-synced format filter
   const selectedFormat: FormatFilterValue = useMemo(() => {
@@ -138,6 +139,7 @@ export const TestSeriesPage: React.FC = () => {
       'JEE Main': 0,
       'JEE Advanced': 0,
       'BITSAT': 0,
+      PartTest: 0,
       MathSpeed: 0,
     };
 
@@ -145,6 +147,7 @@ export const TestSeriesPage: React.FC = () => {
       if (test.examType === 'JEE Main') counts['JEE Main'] += 1;
       if (test.examType === 'JEE Advanced') counts['JEE Advanced'] += 1;
       if (test.examType === 'BITSAT') counts['BITSAT'] += 1;
+      if (test.format === 'Part Test') counts['PartTest'] += 1;
       if (test.subjects.includes('Mathematics') && test.subjects.length === 1) counts['MathSpeed'] += 1;
     });
 
@@ -166,9 +169,11 @@ export const TestSeriesPage: React.FC = () => {
   // Filtered test catalog
   const filteredTests = useMemo(() => {
     return testSeriesList.filter((test) => {
-      // 1. Exam or MathSpeed filter
+      // 1. Exam or MathSpeed or PartTest filter
       if (selectedExam === 'MathSpeed') {
         if (!test.subjects.includes('Mathematics') || test.subjects.length !== 1) return false;
+      } else if (selectedExam === 'PartTest') {
+        if (test.format !== 'Part Test') return false;
       } else if (selectedExam !== 'All' && test.examType !== selectedExam) {
         return false;
       }
@@ -234,18 +239,27 @@ export const TestSeriesPage: React.FC = () => {
     const nextParams = new URLSearchParams(searchParams);
     if (exam === 'MathSpeed') {
       nextParams.delete('exam');
+      nextParams.delete('format');
       nextParams.set('subject', 'Mathematics');
+    } else if (exam === 'PartTest') {
+      nextParams.delete('exam');
+      nextParams.delete('subject');
+      nextParams.set('format', 'Part Test');
     } else if (exam === 'JEE Main') {
       nextParams.delete('subject');
+      nextParams.delete('format');
       nextParams.set('exam', 'JEE Main');
     } else if (exam === 'JEE Advanced') {
       nextParams.delete('subject');
+      nextParams.delete('format');
       nextParams.set('exam', 'JEE Advanced');
     } else if (exam === 'BITSAT') {
       nextParams.delete('subject');
+      nextParams.delete('format');
       nextParams.set('exam', 'BITSAT');
     } else {
       nextParams.delete('exam');
+      nextParams.delete('format');
       nextParams.delete('subject');
       nextParams.delete('filter');
     }

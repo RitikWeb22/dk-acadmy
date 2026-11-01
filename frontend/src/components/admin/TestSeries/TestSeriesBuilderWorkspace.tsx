@@ -56,6 +56,8 @@ import {
 import styles from './TestSeriesBuilderWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
 
+import { PART_TESTS_DATA } from '../../../data/partTestsData';
+
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -100,15 +102,23 @@ export interface QuestionItem {
 export interface TestSeriesTableItem {
   id: string;
   indexNo: number;
-  badgeCode: 'JEE MAIN' | 'JEE ADVANCED' | 'BITSAT' | 'MATH SPEED' | string;
+  badgeCode: 'JEE MAIN' | 'JEE ADVANCED' | 'BITSAT' | 'MATH SPEED' | 'PART TEST' | string;
   title: string;
+  subtitle?: string;
   slug: string;
   examType: 'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'MathSpeed';
   format?: 'Full Mock' | 'Part Test' | 'Chapter Test';
   difficulty?: 'Moderate' | 'Challenging' | 'Advanced';
+  subjects?: string[];
   totalTests: number;
   testsBreakdown: string;
   status: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
+  schedule?: {
+    startWindow?: string;
+    endWindow?: string;
+    autoSubmit?: boolean;
+    computeRank?: boolean;
+  };
   createdAtFormatted: string;
   attemptsCount: number;
   durationMinutes: number;
@@ -118,7 +128,7 @@ export interface TestSeriesTableItem {
 // ─────────────────────────────────────────────────────────────
 // Reference Dataset matching image_2586bb.jpg & Prompt
 // ─────────────────────────────────────────────────────────────
-const INITIAL_TABLE_ITEMS: TestSeriesTableItem[] = [
+const BASE_INITIAL_TABLE_ITEMS: TestSeriesTableItem[] = [
   {
     id: 'ts-ja-spec-01',
     indexNo: 1,
@@ -254,6 +264,32 @@ const INITIAL_TABLE_ITEMS: TestSeriesTableItem[] = [
     durationMinutes: 180,
     totalMarks: 180
   }
+];
+
+const PART_TEST_TABLE_ITEMS: TestSeriesTableItem[] = PART_TESTS_DATA.map((pt, idx) => ({
+  id: pt.id,
+  indexNo: idx + 10,
+  badgeCode: 'PART TEST',
+  title: pt.title,
+  subtitle: pt.subtitle,
+  slug: `/${pt.slug || pt.id}`,
+  examType: (pt.examType as any) || 'JEE Main',
+  format: 'Part Test',
+  difficulty: (pt.difficulty as any) || 'Moderate',
+  subjects: pt.subjects,
+  totalTests: pt.totalQuestions || pt.questions.length,
+  testsBreakdown: `${pt.totalQuestions || pt.questions.length} problems • ${pt.totalMarks} marks`,
+  status: pt.status || 'Published',
+  schedule: pt.schedule,
+  createdAtFormatted: 'Recent',
+  attemptsCount: pt.attemptsCount || 0,
+  durationMinutes: pt.durationMinutes,
+  totalMarks: pt.totalMarks
+}));
+
+const INITIAL_TABLE_ITEMS: TestSeriesTableItem[] = [
+  ...BASE_INITIAL_TABLE_ITEMS,
+  ...PART_TEST_TABLE_ITEMS
 ];
 
 const INITIAL_SUBJECT_RULES: Record<'Physics' | 'Chemistry' | 'Mathematics', SubjectRuleDef> = {
@@ -395,6 +431,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [examTypeFilter, setExamTypeFilter] = useState('ALL');
+  const [formatFilter, setFormatFilter] = useState<'ALL' | 'Full Mock' | 'Part Test' | 'Chapter Test'>('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateRangeFilter, setDateRangeFilter] = useState('');
   const [isLoadingList, setIsLoadingList] = useState<boolean>(false);
@@ -439,6 +476,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [drawerDuration, setDrawerDuration] = useState(180);
   const [drawerTotalMarks, setDrawerTotalMarks] = useState(300);
   const [drawerStatus, setDrawerStatus] = useState<'Published' | 'Draft' | 'Scheduled' | 'Archived'>('Published');
+  const [drawerStartWindow, setDrawerStartWindow] = useState('');
+  const [drawerEndWindow, setDrawerEndWindow] = useState('');
   const [drawerBatches, setDrawerBatches] = useState<string[]>([]);
   const [isSavingDrawer, setIsSavingDrawer] = useState(false);
 
@@ -498,10 +537,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         const formatted: TestSeriesTableItem[] = items.map((item: any, idx: number) => ({
           id: item.id || `ts-${idx}`,
           indexNo: idx + 1,
-          badgeCode: (item.badgeCode || (item.examType === 'JEE Advanced' ? 'JEE ADVANCED' : item.examType === 'BITSAT' ? 'BITSAT' : 'JEE MAIN')) as any,
+          badgeCode: (item.badgeCode || (item.format === 'Part Test' ? 'PART TEST' : item.examType === 'JEE Advanced' ? 'JEE ADVANCED' : item.examType === 'BITSAT' ? 'BITSAT' : 'JEE MAIN')) as any,
           title: item.title,
+          subtitle: item.subtitle,
           slug: item.slug || `/${item.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
           examType: (item.examType || 'JEE Main') as any,
+          format: item.format || 'Full Mock',
+          difficulty: item.difficulty || 'Moderate',
+          subjects: item.subjects || ['Physics', 'Chemistry', 'Mathematics'],
+          schedule: item.schedule,
           totalTests: item.totalQuestions || item.questions?.length || 1,
           testsBreakdown: `${item.totalQuestions || item.questions?.length || 1} problems • ${item.totalMarks || 300} marks`,
           status: (item.status || 'Published') as any,
@@ -672,10 +716,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       const matchesExam =
         examTypeFilter === 'ALL' || item.examType === examTypeFilter;
 
+      const matchesFormat =
+        formatFilter === 'ALL' || item.format === formatFilter;
+
       const matchesStatus =
         statusFilter === 'ALL' || item.status === statusFilter;
 
-      return matchesSearch && matchesExam && matchesStatus;
+      return matchesSearch && matchesExam && matchesFormat && matchesStatus;
     });
 
     return [...list].sort((a, b) => {
@@ -700,7 +747,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   // Reset to page 1 on filter/search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, examTypeFilter, statusFilter, pageSize]);
+  }, [debouncedSearch, examTypeFilter, formatFilter, statusFilter, pageSize]);
 
   const totalPages = Math.ceil(filteredItems.length / pageSize) || 1;
   const paginatedItems = useMemo(() => {
@@ -713,6 +760,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setSearchQuery('');
     setDebouncedSearch('');
     setExamTypeFilter('ALL');
+    setFormatFilter('ALL');
     setStatusFilter('ALL');
   };
 
@@ -823,6 +871,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setDrawerDuration(item.durationMinutes);
     setDrawerTotalMarks(item.totalMarks);
     setDrawerStatus(item.status);
+    setDrawerStartWindow(item.schedule?.startWindow ? new Date(item.schedule.startWindow).toISOString().slice(0, 16) : '');
+    setDrawerEndWindow(item.schedule?.endWindow ? new Date(item.schedule.endWindow).toISOString().slice(0, 16) : '');
     setDrawerBatches([ACTIVE_ACADEMY_BATCHES[0]]);
     setIsDrawerOpen(true);
   };
@@ -837,9 +887,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       drawerDifficulty !== (drawerItem.difficulty || 'Moderate') ||
       drawerDuration !== drawerItem.durationMinutes ||
       drawerTotalMarks !== drawerItem.totalMarks ||
-      drawerStatus !== drawerItem.status
+      drawerStatus !== drawerItem.status ||
+      (drawerStatus === 'Scheduled' && (drawerStartWindow !== (drawerItem.schedule?.startWindow ? new Date(drawerItem.schedule.startWindow).toISOString().slice(0, 16) : '')))
     );
-  }, [drawerItem, drawerTitle, drawerSlug, drawerExamType, drawerFormat, drawerDifficulty, drawerDuration, drawerTotalMarks, drawerStatus]);
+  }, [drawerItem, drawerTitle, drawerSlug, drawerExamType, drawerFormat, drawerDifficulty, drawerDuration, drawerTotalMarks, drawerStatus, drawerStartWindow]);
 
   const handleSaveDrawerChanges = async () => {
     if (!drawerItem) return;
@@ -861,6 +912,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       durationMinutes: Number(drawerDuration),
       totalMarks: Number(drawerTotalMarks),
       status: drawerStatus,
+      schedule: drawerStatus === 'Scheduled' ? {
+        startWindow: drawerStartWindow ? new Date(drawerStartWindow).toISOString() : new Date().toISOString(),
+        endWindow: drawerEndWindow ? new Date(drawerEndWindow).toISOString() : new Date(Date.now() + 7 * 86400000).toISOString(),
+        autoSubmit: true,
+        computeRank: true
+      } : undefined,
       targetBatches: drawerBatches
     };
 
@@ -877,7 +934,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               difficulty: drawerDifficulty,
               durationMinutes: Number(drawerDuration),
               totalMarks: Number(drawerTotalMarks),
-              status: drawerStatus
+              status: drawerStatus,
+              schedule: updates.schedule
             }
           : t
       )
@@ -1491,6 +1549,38 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
             </button>
             <button
               type="button"
+              className={`${styles.filterQuickChip} ${formatFilter === 'Part Test' ? styles.filterQuickChipActive : ''}`}
+              onClick={() => {
+                setFormatFilter(formatFilter === 'Part Test' ? 'ALL' : 'Part Test');
+                if (formatFilter !== 'Part Test') {
+                  setExamTypeFilter('ALL');
+                  setStatusFilter('ALL');
+                }
+              }}
+            >
+              <span>Part Tests ({testSeriesList.filter((t) => t.format === 'Part Test').length})</span>
+              <span className={styles.chipCountBadge}>
+                {testSeriesList.filter((t) => t.format === 'Part Test').length}
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.filterQuickChip} ${statusFilter === 'Scheduled' ? styles.filterQuickChipActive : ''}`}
+              onClick={() => {
+                setStatusFilter(statusFilter === 'Scheduled' ? 'ALL' : 'Scheduled');
+                if (statusFilter !== 'Scheduled') {
+                  setExamTypeFilter('ALL');
+                  setFormatFilter('ALL');
+                }
+              }}
+            >
+              <span>Scheduled CBT</span>
+              <span className={styles.chipCountBadge}>
+                {testSeriesList.filter((t) => t.status === 'Scheduled').length}
+              </span>
+            </button>
+            <button
+              type="button"
               className={`${styles.filterQuickChip} ${statusFilter === 'Published' ? styles.filterQuickChipActive : ''}`}
               onClick={() => setStatusFilter(statusFilter === 'Published' ? 'ALL' : 'Published')}
             >
@@ -1622,15 +1712,30 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           {/* 1. Index # */}
                           <td className={styles.indexCell}>{item.indexNo}</td>
 
-                          {/* 2. Title with Clean Link & Slug */}
+                          {/* 2. Title with Clean Link, Format & Chapter Coverage */}
                           <td>
                             <div className={styles.titleMetaStack}>
                               <div className={styles.titleRowFlex}>
+                                {item.format === 'Part Test' ? (
+                                  <span className={styles.partTestPill}>Part Test</span>
+                                ) : (
+                                  <span className={styles.fullMockPill}>{item.format || 'Full Mock'}</span>
+                                )}
                                 <span className={styles.boldSeriesTitle}>
                                   {item.title}
                                 </span>
                               </div>
-                              <span className={styles.slugUrlText}>{item.slug}</span>
+                              {item.subtitle && (
+                                <span className={styles.subtitleCoverageText}>{item.subtitle}</span>
+                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+                                <span className={styles.slugUrlText}>{item.slug}</span>
+                                {item.subjects && item.subjects.length > 0 && (
+                                  <span className={styles.subjectsInlineBadge}>
+                                    {item.subjects.join(' • ')}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
 
@@ -1676,10 +1781,17 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                 <span>Draft</span>
                               </span>
                             ) : item.status === 'Scheduled' ? (
-                              <span className={`${styles.statusDotPill} ${styles.statusScheduled}`}>
-                                <span className={styles.dotIndigo} />
-                                <span>Scheduled</span>
-                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                <span className={`${styles.statusDotPill} ${styles.statusScheduled}`}>
+                                  <span className={styles.dotIndigo} />
+                                  <span>Scheduled CBT</span>
+                                </span>
+                                {item.schedule?.startWindow && (
+                                  <span className={styles.scheduleWindowDateText}>
+                                    Opens {new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(item.schedule.startWindow))}
+                                  </span>
+                                )}
+                              </div>
                             ) : (
                               <span className={`${styles.statusDotPill} ${styles.statusArchived}`}>
                                 <span className={styles.dotSlate} />
@@ -3313,6 +3425,29 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   <option value="Archived">Archived</option>
                 </select>
               </div>
+
+              {drawerStatus === 'Scheduled' && (
+                <div className={styles.twoColumnGrid} style={{ marginTop: '10px' }}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.fieldLabel}>Start Window (Open Time) *</label>
+                    <input
+                      type="datetime-local"
+                      value={drawerStartWindow}
+                      onChange={(e) => setDrawerStartWindow(e.target.value)}
+                      className={styles.primaryTextInput}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.fieldLabel}>End Window (Close Time) *</label>
+                    <input
+                      type="datetime-local"
+                      value={drawerEndWindow}
+                      onChange={(e) => setDrawerEndWindow(e.target.value)}
+                      className={styles.primaryTextInput}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Question Count Stats */}
               <div className={styles.drawerStatsBox}>

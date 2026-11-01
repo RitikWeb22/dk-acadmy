@@ -155,6 +155,9 @@ export const TestPerformance: React.FC<TestPerformanceProps> = ({ attempts, allT
             CBT Mock Test Performance
           </h2>
           <span className={styles.evalCountBadge}>{completedCount} Evaluated</span>
+          <Link to="/test-series?format=Part+Test" className={styles.partTestBadge}>
+            20 Part Tests Ready
+          </Link>
         </div>
 
         <Link to="/test-series" className={styles.viewAllLink}>
