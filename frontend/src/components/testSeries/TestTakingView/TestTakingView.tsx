@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -602,7 +603,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
       />
 
       {/* Exit Test Warning Modal */}
-      {isExitWarningOpen && (
+      {isExitWarningOpen && typeof document !== 'undefined' && createPortal(
         <div
           className={styles.exitModalOverlay}
           role="dialog"
@@ -640,11 +641,12 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Proctoring Warning Modal: Fullscreen Exited */}
-      {isFullscreenWarningOpen && !isDisqualified && (
+      {isFullscreenWarningOpen && !isDisqualified && typeof document !== 'undefined' && createPortal(
         <div className={styles.proctorModalOverlay} role="alertdialog" aria-modal="true">
           <div className={styles.proctorModalCard}>
             <div className={styles.proctorModalIconWarning}>⚠️</div>
@@ -668,11 +670,12 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               Re-Enter Fullscreen &amp; Continue Test
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Proctoring Warning Modal: Tab Switch Detected */}
-      {isTabWarningOpen && !isDisqualified && (
+      {isTabWarningOpen && !isDisqualified && typeof document !== 'undefined' && createPortal(
         <div className={styles.proctorModalOverlay} role="alertdialog" aria-modal="true">
           <div className={styles.proctorModalCard}>
             <div className={styles.proctorModalIconWarning}>⚠️</div>
@@ -693,11 +696,12 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               I Understand &amp; Return to Exam
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Proctoring Disqualification Modal */}
-      {isDisqualified && (
+      {isDisqualified && typeof document !== 'undefined' && createPortal(
         <div className={styles.proctorModalOverlay} role="alertdialog" aria-modal="true">
           <div className={`${styles.proctorModalCard} ${styles.proctorModalCardDanger}`}>
             <div className={styles.proctorModalIconDanger}>❌</div>
@@ -717,7 +721,8 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               View Examination Scorecard
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

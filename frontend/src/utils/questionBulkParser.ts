@@ -44,11 +44,26 @@ export function autoWrapMathDelimiters(text: string): string {
     return `$$${trimmed}$$`;
   }
 
-  // Enclose LaTeX formulas found in prose
-  return text.replace(
-    /(\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left)[\s\S]*?)(?=(?:\s+(?:is|are|was|were|then|where|find|if|when|such|that)\b|[.,;?!]\s+[A-Z]|$))/gi,
-    (match) => `$${match.trim()}$`
-  );
+  // Smart wrap math formulas within prose
+  let res = text;
+  // 1. Integrals: \int_{...}^{...} ... \,dx
+  res = res.replace(/(\\int(?:_\{[^}]+\}\^\{[^}]+\}|_[0-9a-zA-Z]+\^[0-9a-zA-Z]+)?[\s\S]*?\\,dx)/g, '$$ $1 $$');
+  // 2. Limits: \lim_{...} ...
+  res = res.replace(/(\\lim_\{[^}]+\}\s*[^,;.\n]+)/g, '$$ $1 $$');
+  // 3. Fractions: \frac{...}{...}
+  res = res.replace(/(?<!\$)(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?!\$)/g, '$$ $1 $$');
+  // 4. Function mappings: f:[0,2] \to R
+  res = res.replace(/([a-zA-Z]\s*:\s*\[[^\]]+\]\s*\\to\s*[A-Z])/g, '$$$1$$');
+
+  // Fallback if not wrapped yet
+  if (!res.includes('$')) {
+    return text.replace(
+      /(\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left)[\s\S]*?)(?=(?:\s+(?:is|are|was|were|then|where|find|if|when|such|that)\b|[.,;?!]\s+[A-Z]|$))/gi,
+      (match) => `$${match.trim()}$`
+    );
+  }
+
+  return res;
 }
 
 /**
@@ -74,8 +89,9 @@ export function normalizeMathText(raw: string): string {
              .replace(/[\u2018\u2019]/g, "'")
              .replace(/[\u2212\u2013\u2014]/g, '-');
 
-    // 2. Clean leading punctuation artifact like ".Let" -> "Let"
+    // 2. Clean leading punctuation artifact like ".Let" -> "Let" or "1,If" -> "1. If"
     res = res.replace(/^\s*\.\s*(?=[A-Za-z])/g, '');
+    res = res.replace(/^(\d+)[,]\s*(?=[A-Za-z])/g, '$1. ');
 
     // 3. Word Linear Math / UnicodeMath piecewise cases & arrays: {■( ... @ ... )┤ or {■( ... )
     res = res.replace(/(?:([a-zA-Z0-9_()]+\s*=\s*))?\{?\s*■\s*\(([\s\S]*?)\)\s*(?:┤|\}|(?=\n|[a-zA-Z]|$))/g, (_, lhs, content) => {
@@ -108,22 +124,27 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/∫_([0-9a-zA-Z]+|\{[^}]+\})\s*\^\s*(\([^)]+\)|[0-9a-zA-Z]+|\{[^}]+\})\s*▒?\s*/g, (_, low, high) => {
       const cleanLow = stripOuterParens(low).replace(/[{}]/g, '');
       let cleanHigh = stripOuterParens(high).replace(/[{}]/g, '');
-      cleanHigh = cleanHigh.replace(/π\/4|\\pi\/4/, '\\pi/4');
+      cleanHigh = cleanHigh.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
+                           .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
+                           .replace(/π/, '\\pi');
       return `\\int_{${cleanLow}}^{${cleanHigh}} `;
     });
     res = res.replace(/∫01\b/g, '\\int_0^1 ')
+             .replace(/∫02\b/g, '\\int_0^2 ')
              .replace(/∫0π2\b/g, '\\int_0^{\\pi/2} ')
-             .replace(/(?:∫|(?<=\s|^))0π4\b/g, '\\int_0^{\\pi/4} ')
+             .replace(/(?:∫|(?<=\s|^))0π4\b/g, '\\int_0^{\\frac{\\pi}{4}} ')
              .replace(/(?:∫|(?<=\s|^))0∞\b/g, '\\int_0^\\infty ')
              .replace(/∫-loge\s*2loge\s*2\b/g, '\\int_{-\\ln 2}^{\\ln 2} ')
-             .replace(/(?:∫|(?<=\s|^))-π4π4\b/g, '\\int_{-\\pi/4}^{\\pi/4} ')
+             .replace(/(?:∫|(?<=\s|^))-π4π4\b/g, '\\int_{-\\frac{\\pi}{4}}^{\\frac{\\pi}{4}} ')
              .replace(/∫_\{?([0-9a-zA-Z]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\int_{$1}^{$2} ')
              .replace(/∫/g, '\\int ');
 
-    // 6. Exponential powers: e^(-π/4) -> e^{-\pi/4}, e^(2-4x) -> e^{2-4x}, e^(-x) -> e^{-x}
+    // 6. Exponential powers: e^(-π/4) -> e^{-\frac{\pi}{4}}, e^(2-4x) -> e^{2-4x}, e^(-x) -> e^{-x}
     res = res.replace(/e\^\(([^()]+)\)/g, (_, p) => {
-      const cleanP = p.replace(/π\/4|\\pi\/4/, '\\pi/4');
-      return `e^{${cleanP}}`;
+      let cleanP = p.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
+                    .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
+                    .replace(/π/, '\\pi');
+      return `e^{${cleanP.trim()}}`;
     });
     res = res.replace(/e\^([0-9a-zA-Z]+)/g, 'e^{$1}');
 
@@ -136,10 +157,13 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/lim\s*([a-zA-Z]+)\s*→\s*([0-9a-zA-Z]+)/g, '\\lim_{$1 \\to $2} ');
 
     // 8. Trig functions: tan^50 x -> \tan^{50} x
-    res = res.replace(/tan\^([0-9]+)\s*x/g, '\\tan^{$1} x');
-    res = res.replace(/(?<!\\)tan\b/g, '\\tan ');
+    res = res.replace(/(cot|tan|sin|cos|sec|csc)\^([0-9]+)\s*x/gi, (_, fn, p) => `\\${fn.toLowerCase()}^{${p}} x`);
+    res = res.replace(/(?<!\\)(cot|tan|sin|cos|sec|csc)\b/gi, (match) => `\\${match.toLowerCase()} `);
     res = res.replace(/\\?\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
     res = res.replace(/\\?\b(cot|tan|sin|cos|sec|csc)⁻¹/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
+
+    // Differentials: xdx -> x\,dx, )dx -> )\,dx
+    res = res.replace(/([0-9a-zA-Z\)\]\}])\s*dx\b/g, '$1\\,dx');
 
     // 9. Square roots: √( ... ) with balanced parens to \sqrt{ ... }
     res = res.replace(/√\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (_, g1) => `\\sqrt{${g1.trim()}}`);
@@ -200,22 +224,37 @@ export function normalizeMathText(raw: string): string {
     // 14. Dynamic parens for functions enclosing fractions: \log_e( \frac... ) -> \log_e\left( \frac... \right)
     res = res.replace(/(\\[a-zA-Z_]+)\s*\(([^()]*\\frac[^()]*)\)/g, '$1\\left($2\\right)');
 
-    // 15. Vectors in 3D: i+2j+k -> \hat{i} + 2\hat{j} + \hat{k}
+    // 15. Words inside formulas: then, where -> \text{ ... }
+    res = res.replace(/(?<=[,\$])\s*(then|where)\s+/gi, ' \\text{$1} ');
+
+    // 16. Vectors in 3D: i+2j+k -> \hat{i} + 2\hat{j} + \hat{k}
     res = res.replace(/\b([0-9]*)\s*i\s*([+-])\s*([0-9]*)\s*j\s*([+-])\s*([0-9]*)\s*k\b/g, (_, c1, s1, c2, s2, c3) => {
       return `${c1 || ''}\\hat{i} ${s1} ${c2 || ''}\\hat{j} ${s2} ${c3 || ''}\\hat{k}`;
     });
 
-    // 16. Normalize double backslashes
+    // 17. Normalize double backslashes
     res = res.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
-    // 17. Auto-wrap math on each line if LaTeX commands are present and not already delimited
-    const trimmed = res.trim();
+    // 18. Auto-wrap math on each line if LaTeX commands are present and not already delimited
     if (!res.includes('$') && /\\(?:frac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log|dots|to|infty)\b/.test(res)) {
-      const labelMatch = res.match(/^(\s*(?:\([a-zA-Z0-9]+\)|[a-zA-Z0-9]+[.:])\s*[:=\-]?\s*)([\s\S]+)$/);
+      // Check for leading label like "(S1): " or "1. " or "2. "
+      const labelMatch = res.match(/^(\s*(?:\([a-zA-Z0-9]+\)|[0-9]+[.,])\s*[:=\-]?\s*)([\s\S]+)$/);
+      let prefix = '';
+      let remaining = res;
       if (labelMatch) {
-        res = `${labelMatch[1]}$${labelMatch[2].trim()}$`;
+        prefix = labelMatch[1];
+        remaining = labelMatch[2];
+      }
+
+      // Check if remaining has leading prose: "The value of ", "If ", "Evaluate "
+      const proseMatch = remaining.match(/^((?:The value of|If|Evaluate|Find|Let the function|Let|Consider|Where)\s+)?([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|then|\.|$))?$/i);
+      if (proseMatch && (proseMatch[1] || (proseMatch[3] && proseMatch[3].trim().length > 0))) {
+        const lead = proseMatch[1] || '';
+        const mathPart = proseMatch[2] || '';
+        const tail = proseMatch[3] || '';
+        res = `${prefix}${lead}$$ ${mathPart.trim()} $$${tail}`;
       } else {
-        res = `$${trimmed}$`;
+        res = `${prefix}$$ ${remaining.trim()} $$`;
       }
     }
 

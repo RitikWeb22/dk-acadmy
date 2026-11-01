@@ -270,3 +270,29 @@ small {
     scroll-behavior: auto !important;
   }
 }
+
+// CBT Examination Fullscreen Isolation Mode
+// When a student is actively taking a test, hide the public website navbar, footer, and lead popups
+body.cbt-exam-active {
+  overflow: hidden !important;
+  height: 100vh !important;
+
+  .app-layout > nav,
+  .app-layout > header,
+  .app-layout > footer,
+  nav,
+  header,
+  footer,
+  [class*="Navbar"],
+  [class*="Footer"],
+  [class*="FloatingLeadWidget"],
+  [class*="floatingLeadWidget"],
+  [class*="floatingLead"],
+  [class*="TopLoadingBar"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
