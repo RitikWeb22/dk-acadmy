@@ -16,6 +16,10 @@ export interface IProblemQuestion {
   stepSolution: string;
   difficulty: 'Easy' | 'Moderate' | 'Challenging';
   examYear?: string;
+  year?: number | string;
+  isFree?: boolean;
+  videoUrl?: string;
+  pdfUrl?: string;
 }
 
 export interface IDppPyq extends Document {
@@ -26,6 +30,12 @@ export interface IDppPyq extends Document {
   moduleType: 'DPP' | 'PYQ' | 'BITSAT';
   subject: 'Mathematics' | 'Physics' | 'Chemistry' | 'Mixed';
   categoryLabel: string;
+  chapter?: string;
+  examTarget?: string;
+  isFree?: boolean;
+  pdfUrl?: string;
+  videoUrl?: string;
+  videoWalkthroughUrl?: string;
   questionsCount: number;
   solutionNote: string;
   status: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
@@ -55,9 +65,13 @@ const questionSchema = new Schema<IProblemQuestion>(
     dkSirShortcut: { type: String, default: '' },
     stepSolution: { type: String, default: '' },
     difficulty: { type: String, enum: ['Easy', 'Moderate', 'Challenging'], default: 'Moderate' },
-    examYear: { type: String }
+    examYear: { type: String, default: '' },
+    year: { type: Schema.Types.Mixed },
+    isFree: { type: Boolean, default: true },
+    videoUrl: { type: String, default: '' },
+    pdfUrl: { type: String, default: '' }
   },
-  { _id: false }
+  { _id: false, strict: false }
 );
 
 const dppPyqSchema = new Schema<IDppPyq>(
@@ -74,6 +88,12 @@ const dppPyqSchema = new Schema<IDppPyq>(
       default: 'Mathematics'
     },
     categoryLabel: { type: String, required: true, default: 'Practice Drill' },
+    chapter: { type: String, default: '' },
+    examTarget: { type: String, default: '' },
+    isFree: { type: Boolean, default: true },
+    pdfUrl: { type: String, default: '' },
+    videoUrl: { type: String, default: '' },
+    videoWalkthroughUrl: { type: String, default: '' },
     questionsCount: { type: Number, default: 0 },
     solutionNote: { type: String, default: 'Detailed Step Solutions Available' },
     status: {
@@ -88,6 +108,7 @@ const dppPyqSchema = new Schema<IDppPyq>(
   },
   {
     timestamps: true,
+    strict: false,
     toJSON: {
       virtuals: true,
       transform: (_doc, ret: any) => {

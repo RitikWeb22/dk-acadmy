@@ -64,7 +64,7 @@ export const DPPPage: React.FC = () => {
       try {
         const [cmsItems, dppPyqRes] = await Promise.all([
           cmsService.fetchDPPSetsFromAPI().catch(() => []),
-          apiClient.get<any>('/dpp-pyq?moduleType=DPP').catch(() => [])
+          apiClient.get<any>('/dpp-pyq').catch(() => [])
         ]);
 
         if (!isMounted) return;
@@ -73,16 +73,17 @@ export const DPPPage: React.FC = () => {
         const liveMapped: DPPSet[] = [];
         if (Array.isArray(liveList)) {
           liveList.forEach((set: any) => {
-            if (set.moduleType === 'DPP' || !set.moduleType) {
+            const modType = String(set.moduleType || set.type || 'DPP').toUpperCase();
+            if (modType === 'DPP') {
               liveMapped.push(mapDppPyqToDPPSet(set));
             }
           });
         }
 
-        const combinedMap = new Map<string, DPPSet>();
-        (cmsItems || []).forEach((set) => combinedMap.set(set.id, set));
-        liveMapped.forEach((set) => combinedMap.set(set.id, set));
-        const combined = Array.from(combinedMap.values());
+        const combined = [
+          ...liveMapped,
+          ...(cmsItems || []).filter((c) => !liveMapped.some((l) => l.id === c.id))
+        ];
         if (combined.length > 0 && isMounted) {
           setDppList(combined);
         }

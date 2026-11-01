@@ -12,18 +12,39 @@ window.addEventListener('vite:preloadError', (event) => {
   window.location.reload();
 });
 
-window.addEventListener('error', (event) => {
-  const msg = event?.message || '';
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event?.reason;
+  const msg = typeof reason === 'string' ? reason : reason?.message || '';
   if (
     msg.includes('Failed to fetch dynamically imported module') ||
     msg.includes('error loading dynamically imported module') ||
-    msg.includes('Expected a JavaScript-or-Wasm module script')
+    msg.includes('Expected a JavaScript-or-Wasm module script') ||
+    msg.includes('MIME type of')
   ) {
     event.preventDefault();
     const reloadKey = 'dk_chunk_reload_' + window.location.pathname;
     const lastReload = sessionStorage.getItem(reloadKey);
     const now = Date.now();
-    if (!lastReload || now - Number(lastReload) > 10000) {
+    if (!lastReload || now - Number(lastReload) > 8000) {
+      sessionStorage.setItem(reloadKey, String(now));
+      window.location.reload();
+    }
+  }
+});
+
+window.addEventListener('error', (event) => {
+  const msg = event?.message || '';
+  if (
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('error loading dynamically imported module') ||
+    msg.includes('Expected a JavaScript-or-Wasm module script') ||
+    msg.includes('MIME type of')
+  ) {
+    event.preventDefault();
+    const reloadKey = 'dk_chunk_reload_' + window.location.pathname;
+    const lastReload = sessionStorage.getItem(reloadKey);
+    const now = Date.now();
+    if (!lastReload || now - Number(lastReload) > 8000) {
       sessionStorage.setItem(reloadKey, String(now));
       window.location.reload();
     }

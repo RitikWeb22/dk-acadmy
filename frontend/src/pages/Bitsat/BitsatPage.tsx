@@ -78,10 +78,19 @@ export const BitsatPage: React.FC = () => {
     let isMounted = true;
     const fetchBitsat = async () => {
       try {
-        const res = await apiClient.get<any>('/dpp-pyq?moduleType=BITSAT');
-        const items = Array.isArray(res) ? res : res?.data || [];
-        if (isMounted && Array.isArray(items) && items.length > 0) {
-          setBitsatDrills(items);
+        const res = await apiClient.get<any>('/dpp-pyq');
+        const allItems = Array.isArray(res) ? res : res?.data || [];
+        if (isMounted && Array.isArray(allItems)) {
+          const bitsatItems = allItems.filter((item: any) => {
+            const mod = String(item.moduleType || item.type || '').toUpperCase();
+            const badge = String(item.badgeCode || '').toUpperCase();
+            const exam = String(item.examTarget || '').toUpperCase();
+            const cat = String(item.categoryLabel || '').toUpperCase();
+            return mod === 'BITSAT' || badge.includes('BITSAT') || exam.includes('BITSAT') || cat.includes('BITSAT');
+          });
+          if (bitsatItems.length > 0) {
+            setBitsatDrills(bitsatItems);
+          }
         }
       } catch (e) {
         console.warn('Failed to fetch BITSAT drills:', e);

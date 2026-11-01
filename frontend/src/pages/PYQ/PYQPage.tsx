@@ -59,22 +59,33 @@ export const PYQPage: React.FC = () => {
         const liveQuestions: PYQQuestion[] = [];
         if (Array.isArray(dppPyqList)) {
           dppPyqList.forEach((set: any) => {
-            if (set.moduleType === 'PYQ' && Array.isArray(set.questions)) {
+            const modType = String(set.moduleType || set.type || '').toUpperCase();
+            if (modType === 'PYQ' && Array.isArray(set.questions)) {
               set.questions.forEach((q: any, idx: number) => {
-                const yearNum = Number(q.year) || (q.examYear ? parseInt(String(q.examYear).replace(/\D/g, ''), 10) : 2024);
+                const yearNum =
+                  Number(q.year) ||
+                  (q.examYear ? parseInt(String(q.examYear).replace(/\D/g, ''), 10) : 0) ||
+                  (set.examTarget ? parseInt(String(set.examTarget).replace(/\D/g, ''), 10) : 0) ||
+                  2026;
+
+                const qUniqueId = `${set.id || set._id || 'pyq'}_q_${q.id || idx + 1}`;
+                const targetExam = String(set.examTarget || '').toLowerCase().includes('advanced')
+                  ? 'JEE Advanced'
+                  : 'JEE Main';
+
                 liveQuestions.push({
-                  id: q.id || `pyq-${set.id}-${idx + 1}`,
-                  exam: (set.examTarget?.includes('Advanced') ? 'JEE Advanced' : 'JEE Main') as any,
+                  id: qUniqueId,
+                  exam: targetExam as any,
                   year: yearNum,
                   subject: (set.subject === 'Physics' || set.subject === 'Chemistry' ? set.subject : 'Mathematics') as any,
-                  chapter: set.chapter || 'Coordinate Geometry',
+                  chapter: set.chapter || q.topic || 'Coordinate Geometry',
                   topic: q.topic || set.title || 'JEE Practice',
                   type: 'Single Choice MCQ',
                   marks: '+4 / -1',
                   statement: q.statement || 'Question statement',
-                  options: Array.isArray(q.options)
-                    ? q.options.map((opt: any) => ({
-                        id: opt.key || opt.id || 'A',
+                  options: Array.isArray(q.options) && q.options.length > 0
+                    ? q.options.map((opt: any, optIdx: number) => ({
+                        id: opt.key || opt.id || ['A', 'B', 'C', 'D'][optIdx] || 'A',
                         text: opt.text || ''
                       }))
                     : [
@@ -99,10 +110,10 @@ export const PYQPage: React.FC = () => {
           });
         }
 
-        const combinedMap = new Map<string, PYQQuestion>();
-        (cmsItems || []).forEach((q) => combinedMap.set(q.id, q));
-        liveQuestions.forEach((q) => combinedMap.set(q.id, q));
-        const combined = Array.from(combinedMap.values());
+        const combined = [
+          ...liveQuestions,
+          ...(cmsItems || []).filter((cq) => !liveQuestions.some((lq) => lq.id === cq.id))
+        ];
         if (combined.length > 0 && isMounted) {
           setPyqList(combined);
         }
