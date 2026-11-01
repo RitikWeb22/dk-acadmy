@@ -18,7 +18,8 @@ import {
   Search,
   BookOpen,
   Filter,
-  AlertCircle
+  AlertCircle,
+  RotateCcw
 } from 'lucide-react';
 import type { PYQExam, Subject, PYQUserResponse, PYQQuestion } from '../../types';
 import { Container } from '../../components/ui/Container/Container';
@@ -86,6 +87,7 @@ export const PYQPage: React.FC = () => {
     return 'All';
   });
   const [selectedYear, setSelectedYear] = useState<'All' | number>('All');
+  const [selectedAccess, setSelectedAccess] = useState<'All' | 'Free' | 'Pro'>('All');
 
   // Dynamic PYQ Years list synced with Admin
   const [adminYears, setAdminYears] = useState<number[]>(() => {
@@ -98,22 +100,6 @@ export const PYQPage: React.FC = () => {
     } catch {}
     return [2026, 2025, 2024, 2023, 2022, 2021, 2020];
   });
-  const [isAddingYear, setIsAddingYear] = useState<boolean>(false);
-  const [customYearInput, setCustomYearInput] = useState<string>('');
-
-  const handleAddYear = (yearNum: number) => {
-    if (!yearNum || yearNum < 1990 || yearNum > 2050) return;
-    if (!adminYears.includes(yearNum)) {
-      const updated = [...adminYears, yearNum].sort((a, b) => b - a);
-      setAdminYears(updated);
-      localStorage.setItem('dk_admin_pyq_years', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('dk_pyq_years_updated', { detail: { years: updated } }));
-      showToast(`✓ Year ${yearNum} added to PYQ Archive!`);
-    }
-    setSelectedYear(yearNum);
-    setIsAddingYear(false);
-    setCustomYearInput('');
-  };
 
   // Practice session state for questions inside an opened set
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
@@ -360,6 +346,12 @@ export const PYQPage: React.FC = () => {
           return false;
         }
       }
+      if (selectedAccess === 'Free' && set.isFree === false && (set.price || 0) > 0) {
+        return false;
+      }
+      if (selectedAccess === 'Pro' && (set.isFree !== false || (set.price || 0) === 0)) {
+        return false;
+      }
       if (searchQuery.trim().length > 0) {
         const q = searchQuery.toLowerCase().trim();
         const matchesTitle = (set.title || '').toLowerCase().includes(q);
@@ -370,7 +362,7 @@ export const PYQPage: React.FC = () => {
       }
       return true;
     });
-  }, [pyqSets, selectedSubject, selectedExam, selectedYear, searchQuery]);
+  }, [pyqSets, selectedSubject, selectedExam, selectedYear, selectedAccess, searchQuery]);
 
   // User response handlers inside active set
   const handleSelectOption = (questionId: string, optionId: string) => {
@@ -598,154 +590,96 @@ export const PYQPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className={styles.filterRowsStack}>
-                  {/* Row 1: Exam Target */}
-                  <div className={styles.filterRow}>
-                    <span className={styles.filterRowLabel}>Exam Target:</span>
-                    <div className={styles.filterPillsGroup}>
-                      {(['All', 'JEE Main', 'JEE Advanced'] as const).map((exam) => (
-                        <button
-                          key={exam}
-                          type="button"
-                          className={`${styles.subjectFilterPill} ${
-                            selectedExam === exam ? styles.subjectFilterPillActive : ''
-                          }`}
-                          onClick={() => setSelectedExam(exam)}
-                        >
-                          {exam === 'All' ? 'All Exams' : exam}
-                        </button>
-                      ))}
-                    </div>
+                <div className={styles.dropdownsToolbarRow}>
+                  {/* Dropdown 1: Target Exam */}
+                  <div className={styles.dropdownField}>
+                    <label htmlFor="pyq-exam-select">Exam Target</label>
+                    <select
+                      id="pyq-exam-select"
+                      className={styles.dropdownSelect}
+                      value={selectedExam}
+                      onChange={(e) => setSelectedExam(e.target.value as any)}
+                    >
+                      <option value="All">All Exams (Main &amp; Adv)</option>
+                      <option value="JEE Main">JEE Main</option>
+                      <option value="JEE Advanced">JEE Advanced</option>
+                    </select>
                   </div>
 
-                  {/* Row 2: Subject */}
-                  <div className={styles.filterRow}>
-                    <span className={styles.filterRowLabel}>Subject:</span>
-                    <div className={styles.filterPillsGroup}>
-                      {(['All', 'Mathematics', 'Physics', 'Chemistry'] as const).map((sub) => (
-                        <button
-                          key={sub}
-                          type="button"
-                          className={`${styles.subjectFilterPill} ${
-                            selectedSubject === sub ? styles.subjectFilterPillActive : ''
-                          }`}
-                          onClick={() => setSelectedSubject(sub)}
-                        >
-                          {sub === 'All' ? 'All Subjects' : sub}
-                        </button>
-                      ))}
-                    </div>
+                  {/* Dropdown 2: Subject */}
+                  <div className={styles.dropdownField}>
+                    <label htmlFor="pyq-subject-select">Subject</label>
+                    <select
+                      id="pyq-subject-select"
+                      className={styles.dropdownSelect}
+                      value={selectedSubject}
+                      onChange={(e) => setSelectedSubject(e.target.value as any)}
+                    >
+                      <option value="All">All Subjects</option>
+                      <option value="Mathematics">Mathematics</option>
+                      <option value="Physics">Physics</option>
+                      <option value="Chemistry">Chemistry</option>
+                    </select>
                   </div>
 
-                  {/* Row 3: Target Year */}
-                  <div className={styles.filterRow}>
-                    <span className={styles.filterRowLabel}>Exam Year:</span>
-                    <div className={styles.filterPillsGroup}>
+                  {/* Dropdown 3: Exam Year */}
+                  <div className={styles.dropdownField}>
+                    <label htmlFor="pyq-year-select">Exam Year</label>
+                    <select
+                      id="pyq-year-select"
+                      className={styles.dropdownSelect}
+                      value={selectedYear}
+                      onChange={(e) =>
+                        setSelectedYear(e.target.value === 'All' ? 'All' : Number(e.target.value))
+                      }
+                    >
+                      <option value="All">All Archive Years</option>
+                      {availableYears.map((yr) => (
+                        <option key={yr} value={yr}>
+                          {yr}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Dropdown 4: Access Type */}
+                  <div className={styles.dropdownField}>
+                    <label htmlFor="pyq-access-select">Access</label>
+                    <select
+                      id="pyq-access-select"
+                      className={styles.dropdownSelect}
+                      value={selectedAccess}
+                      onChange={(e) => setSelectedAccess(e.target.value as any)}
+                    >
+                      <option value="All">All Papers</option>
+                      <option value="Free">Free Access Only</option>
+                      <option value="Pro">Pro / Premium Papers</option>
+                    </select>
+                  </div>
+
+                  {/* Clear / Reset Filters */}
+                  {(selectedExam !== 'All' ||
+                    selectedSubject !== 'All' ||
+                    selectedYear !== 'All' ||
+                    selectedAccess !== 'All' ||
+                    searchQuery.trim().length > 0) && (
+                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                       <button
                         type="button"
-                        className={`${styles.subjectFilterPill} ${
-                          selectedYear === 'All' ? styles.subjectFilterPillActive : ''
-                        }`}
-                        onClick={() => setSelectedYear('All')}
+                        className={styles.resetBtn}
+                        onClick={() => {
+                          setSelectedExam('All');
+                          setSelectedSubject('All');
+                          setSelectedYear('All');
+                          setSelectedAccess('All');
+                          setSearchQuery('');
+                        }}
                       >
-                        All Years
+                        <RotateCcw size={13} />
+                        <span>Reset Filters</span>
                       </button>
-                      {availableYears.map((yr) => (
-                        <button
-                          key={yr}
-                          type="button"
-                          className={`${styles.subjectFilterPill} ${
-                            selectedYear === yr ? styles.subjectFilterPillActive : ''
-                          }`}
-                          onClick={() => setSelectedYear(yr)}
-                        >
-                          {yr}
-                        </button>
-                      ))}
-
-                      {/* Add Year Inline Option */}
-                      {isAddingYear ? (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <input
-                            type="number"
-                            autoFocus
-                            placeholder="Year (e.g. 2019)"
-                            value={customYearInput}
-                            onChange={(e) => setCustomYearInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                const y = Number(customYearInput);
-                                if (y) handleAddYear(y);
-                              } else if (e.key === 'Escape') {
-                                setIsAddingYear(false);
-                              }
-                            }}
-                            style={{
-                              width: '100px',
-                              padding: '5px 8px',
-                              borderRadius: '6px',
-                              border: '1.5px solid #2563eb',
-                              fontSize: '12px',
-                              outline: 'none'
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const y = Number(customYearInput);
-                              if (y) handleAddYear(y);
-                            }}
-                            style={{
-                              background: '#2563eb',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '5px 10px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Add
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddingYear(false)}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#64748b',
-                              fontSize: '11px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setIsAddingYear(true)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            background: '#f8fafc',
-                            color: '#2563eb',
-                            border: '1px dashed #93c5fd',
-                            borderRadius: '9999px',
-                            padding: '6px 12px',
-                            fontSize: '0.8125rem',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <span>+ Add Custom Year</span>
-                        </button>
-                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 

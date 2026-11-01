@@ -19,6 +19,7 @@ const PRIMARY_EXAM_TABS: PrimaryTabItem[] = [
   { value: 'All', label: 'All India CBT Mock', icon: Layers },
   { value: 'JEE Main', label: 'JEE Main Filter', icon: GraduationCap },
   { value: 'JEE Advanced', label: 'JEE Advanced Engine', icon: Flame },
+  { value: 'BITSAT', label: 'BITSAT Speed CBT', icon: Zap },
   { value: 'MathSpeed', label: 'DK Sir Math Speed', icon: Zap, badge: 'HOT' },
 ];
 

@@ -100,10 +100,12 @@ export interface QuestionItem {
 export interface TestSeriesTableItem {
   id: string;
   indexNo: number;
-  badgeCode: 'JEE MAIN' | 'JEE ADVANCED' | 'BITSAT';
+  badgeCode: 'JEE MAIN' | 'JEE ADVANCED' | 'BITSAT' | 'MATH SPEED' | string;
   title: string;
   slug: string;
-  examType: 'JEE Main' | 'JEE Advanced' | 'BITSAT';
+  examType: 'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'MathSpeed';
+  format?: 'Full Mock' | 'Part Test' | 'Chapter Test';
+  difficulty?: 'Moderate' | 'Challenging' | 'Advanced';
   totalTests: number;
   testsBreakdown: string;
   status: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
@@ -417,7 +419,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newSlug, setNewSlug] = useState('');
-  const [newExamType, setNewExamType] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT'>('JEE Main');
+  const [newExamType, setNewExamType] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'MathSpeed'>('JEE Main');
+  const [newFormat, setNewFormat] = useState<'Full Mock' | 'Part Test' | 'Chapter Test'>('Full Mock');
+  const [newDifficulty, setNewDifficulty] = useState<'Moderate' | 'Challenging' | 'Advanced'>('Moderate');
   const [newDuration, setNewDuration] = useState(180);
   const [newTotalMarks, setNewTotalMarks] = useState(300);
   const [newTargetBatches, setNewTargetBatches] = useState<string[]>([ACTIVE_ACADEMY_BATCHES[0]]);
@@ -429,7 +433,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [drawerItem, setDrawerItem] = useState<TestSeriesTableItem | null>(null);
   const [drawerTitle, setDrawerTitle] = useState('');
   const [drawerSlug, setDrawerSlug] = useState('');
-  const [drawerExamType, setDrawerExamType] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT'>('JEE Main');
+  const [drawerExamType, setDrawerExamType] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'MathSpeed'>('JEE Main');
+  const [drawerFormat, setDrawerFormat] = useState<'Full Mock' | 'Part Test' | 'Chapter Test'>('Full Mock');
+  const [drawerDifficulty, setDrawerDifficulty] = useState<'Moderate' | 'Challenging' | 'Advanced'>('Moderate');
   const [drawerDuration, setDrawerDuration] = useState(180);
   const [drawerTotalMarks, setDrawerTotalMarks] = useState(300);
   const [drawerStatus, setDrawerStatus] = useState<'Published' | 'Draft' | 'Scheduled' | 'Archived'>('Published');
@@ -448,6 +454,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [editingSeriesTitle, setEditingSeriesTitle] = useState('JEE Advanced Specialist: Coordinate Geometry & Vectors');
   const [editingSeriesSubtitle, setEditingSeriesSubtitle] = useState('Focused practice on conic sections, straight lines, circles, planes, and 3D geometry.');
   const [wizardExamPattern, setWizardExamPattern] = useState('JEE Advanced Pattern');
+  const [wizardTargetExam, setWizardTargetExam] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'MathSpeed'>('JEE Advanced');
+  const [wizardFormat, setWizardFormat] = useState<'Full Mock' | 'Part Test' | 'Chapter Test'>('Full Mock');
+  const [wizardDifficulty, setWizardDifficulty] = useState<'Moderate' | 'Challenging' | 'Advanced'>('Advanced');
   const [wizardBatch, setWizardBatch] = useState('Ultimate 2-Year Live Classroom (2028)');
   const [wizardDuration, setWizardDuration] = useState(90);
   const [positiveMarks, setPositiveMarks] = useState(4);
@@ -734,14 +743,21 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       title: newTitle.trim(),
       subtitle: `Comprehensive practice module for ${newExamType}`,
       slug: newSlug || newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
-      badgeCode: newExamType === 'JEE Advanced' ? 'JEE ADVANCED' : newExamType === 'BITSAT' ? 'BITSAT' : 'JEE MAIN',
-      examType: newExamType,
-      format: 'Full Mock',
-      difficulty: 'Hard',
+      badgeCode:
+        newExamType === 'JEE Advanced'
+          ? 'JEE ADVANCED'
+          : newExamType === 'BITSAT'
+          ? 'BITSAT'
+          : newExamType === 'MathSpeed'
+          ? 'MATH SPEED'
+          : 'JEE MAIN',
+      examType: newExamType === 'MathSpeed' ? 'JEE Main' : newExamType,
+      format: newFormat,
+      difficulty: newDifficulty,
       durationMinutes: Number(newDuration),
       totalQuestions: 4,
       totalMarks: Number(newTotalMarks),
-      subjects: ['Mathematics'],
+      subjects: newExamType === 'MathSpeed' ? ['Mathematics'] : ['Physics', 'Chemistry', 'Mathematics'],
       targetBatches: newTargetBatches,
       batch: newTargetBatches[0] || 'Ultimate 2-Year Live Classroom (2028)',
       status: newInitialStatus,
@@ -756,7 +772,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       badgeCode: payload.badgeCode,
       title: payload.title,
       slug: `/${payload.slug}`,
-      examType: payload.examType,
+      examType: newExamType,
+      format: newFormat,
+      difficulty: newDifficulty,
       totalTests: 4,
       testsBreakdown: `4 problems • ${payload.totalMarks} marks`,
       status: payload.status,
@@ -799,7 +817,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setDrawerItem(item);
     setDrawerTitle(item.title);
     setDrawerSlug(item.slug.replace(/^\//, ''));
-    setDrawerExamType(item.examType);
+    setDrawerExamType((item.examType as any) || 'JEE Main');
+    setDrawerFormat((item.format as any) || 'Full Mock');
+    setDrawerDifficulty((item.difficulty as any) || 'Moderate');
     setDrawerDuration(item.durationMinutes);
     setDrawerTotalMarks(item.totalMarks);
     setDrawerStatus(item.status);
@@ -813,11 +833,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       drawerTitle !== drawerItem.title ||
       drawerSlug !== drawerItem.slug.replace(/^\//, '') ||
       drawerExamType !== drawerItem.examType ||
+      drawerFormat !== (drawerItem.format || 'Full Mock') ||
+      drawerDifficulty !== (drawerItem.difficulty || 'Moderate') ||
       drawerDuration !== drawerItem.durationMinutes ||
       drawerTotalMarks !== drawerItem.totalMarks ||
       drawerStatus !== drawerItem.status
     );
-  }, [drawerItem, drawerTitle, drawerSlug, drawerExamType, drawerDuration, drawerTotalMarks, drawerStatus]);
+  }, [drawerItem, drawerTitle, drawerSlug, drawerExamType, drawerFormat, drawerDifficulty, drawerDuration, drawerTotalMarks, drawerStatus]);
 
   const handleSaveDrawerChanges = async () => {
     if (!drawerItem) return;
@@ -825,7 +847,17 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     const updates = {
       title: drawerTitle,
       slug: drawerSlug,
-      examType: drawerExamType,
+      examType: drawerExamType === 'MathSpeed' ? 'JEE Main' : drawerExamType,
+      format: drawerFormat,
+      difficulty: drawerDifficulty,
+      badgeCode:
+        drawerExamType === 'JEE Advanced'
+          ? 'JEE ADVANCED'
+          : drawerExamType === 'BITSAT'
+          ? 'BITSAT'
+          : drawerExamType === 'MathSpeed'
+          ? 'MATH SPEED'
+          : 'JEE MAIN',
       durationMinutes: Number(drawerDuration),
       totalMarks: Number(drawerTotalMarks),
       status: drawerStatus,
@@ -841,6 +873,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               title: drawerTitle,
               slug: `/${drawerSlug}`,
               examType: drawerExamType,
+              format: drawerFormat,
+              difficulty: drawerDifficulty,
               durationMinutes: Number(drawerDuration),
               totalMarks: Number(drawerTotalMarks),
               status: drawerStatus
@@ -1092,14 +1126,21 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     setIsPublishing(true);
     const calculatedMarks = questions.length * positiveMarks;
-    const examTypeVal: 'JEE Main' | 'JEE Advanced' | 'BITSAT' = wizardExamPattern.includes('Advanced')
-      ? 'JEE Advanced'
-      : wizardExamPattern.includes('BITSAT')
-      ? 'BITSAT'
-      : 'JEE Main';
+    const examTypeVal: 'JEE Main' | 'JEE Advanced' | 'BITSAT' =
+      wizardTargetExam === 'MathSpeed'
+        ? 'JEE Main'
+        : (wizardTargetExam as any);
 
-    const formatVal: 'Full Mock' | 'Part Test' | 'Chapter Test' =
-      questions.length <= 15 ? 'Part Test' : 'Full Mock';
+    const badgeCodeVal =
+      wizardTargetExam === 'JEE Advanced'
+        ? 'JEE ADVANCED'
+        : wizardTargetExam === 'BITSAT'
+        ? 'BITSAT'
+        : wizardTargetExam === 'MathSpeed'
+        ? 'MATH SPEED'
+        : 'JEE MAIN';
+
+    const formatVal: 'Full Mock' | 'Part Test' | 'Chapter Test' = wizardFormat;
 
     const payload: any = {
       title: editingSeriesTitle.trim(),
@@ -1108,19 +1149,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)+/g, ''),
-      badgeCode:
-        examTypeVal === 'JEE Advanced'
-          ? 'JEE ADVANCED'
-          : examTypeVal === 'BITSAT'
-          ? 'BITSAT'
-          : 'JEE MAIN',
+      badgeCode: badgeCodeVal,
       examType: examTypeVal,
       format: formatVal,
-      difficulty: 'Hard',
+      difficulty: wizardDifficulty,
       durationMinutes: wizardDuration,
       totalQuestions: questions.length,
       totalMarks: calculatedMarks,
-      subjects: Array.from(new Set(questions.map((q) => q.subject))),
+      subjects: wizardTargetExam === 'MathSpeed' ? ['Mathematics'] : Array.from(new Set(questions.map((q) => q.subject))),
       markingScheme: {
         correct: positiveMarks,
         incorrect: zeroPenaltyNumerical ? 0 : negativeMarks,
@@ -1911,6 +1947,56 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         placeholder="e.g., JEE Main 2026 Full Syllabus Series"
                         className={styles.primaryInput}
                       />
+                    </div>
+
+                    <div className={styles.formField}>
+                      <label>Target Exam Category (Student Primary Filter) *</label>
+                      <select
+                        value={wizardTargetExam}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setWizardTargetExam(val);
+                          setWizardExamPattern(
+                            val === 'JEE Advanced'
+                              ? 'JEE Advanced Paper 1'
+                              : val === 'BITSAT'
+                              ? 'BITSAT Speed Drill'
+                              : 'NTA JEE Main Pattern'
+                          );
+                        }}
+                        className={styles.primarySelect}
+                      >
+                        <option value="JEE Main">JEE Main Filter</option>
+                        <option value="JEE Advanced">JEE Advanced Engine</option>
+                        <option value="BITSAT">BITSAT Speed CBT</option>
+                        <option value="MathSpeed">DK Sir Math Speed</option>
+                      </select>
+                    </div>
+
+                    <div className={styles.formField}>
+                      <label>Test Series Format (Student Format Dropdown) *</label>
+                      <select
+                        value={wizardFormat}
+                        onChange={(e) => setWizardFormat(e.target.value as any)}
+                        className={styles.primarySelect}
+                      >
+                        <option value="Full Mock">Full Mock (Full-Length Mocks)</option>
+                        <option value="Part Test">Part Test (Part Tests)</option>
+                        <option value="Chapter Test">Chapter Test (Chapter Tests)</option>
+                      </select>
+                    </div>
+
+                    <div className={styles.formField}>
+                      <label>Difficulty Level (Student Diff Dropdown) *</label>
+                      <select
+                        value={wizardDifficulty}
+                        onChange={(e) => setWizardDifficulty(e.target.value as any)}
+                        className={styles.primarySelect}
+                      >
+                        <option value="Moderate">Moderate (Main Level)</option>
+                        <option value="Challenging">Challenging</option>
+                        <option value="Advanced">Advanced (IIT Ranker)</option>
+                      </select>
                     </div>
 
                     <div className={styles.formField}>
@@ -2950,21 +3036,48 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              {/* Field 2: Target Exam Type (Segmented Toggle Buttons) */}
-              <div className={styles.formGroup}>
-                <label className={styles.fieldLabel}>Target Exam Type *</label>
-                <div className={styles.segmentedButtonGroup}>
-                  {(['JEE Main', 'JEE Advanced', 'BITSAT'] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      className={`${styles.segmentedBtn} ${newExamType === type ? styles.activeSegment : ''}`}
-                      onClick={() => setNewExamType(type)}
-                    >
-                      {type}
-                    </button>
-                  ))}
+              {/* Field 2: Target Exam Category & Test Format (Student 2 Dropdowns) */}
+              <div className={styles.twoColumnGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.fieldLabel}>Target Exam Category (Filter 1) *</label>
+                  <select
+                    value={newExamType}
+                    onChange={(e) => setNewExamType(e.target.value as any)}
+                    className={styles.primaryTextInput}
+                  >
+                    <option value="JEE Main">JEE Main Filter</option>
+                    <option value="JEE Advanced">JEE Advanced Engine</option>
+                    <option value="BITSAT">BITSAT Speed CBT</option>
+                    <option value="MathSpeed">DK Sir Math Speed</option>
+                  </select>
                 </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.fieldLabel}>Test Series Format (Filter 2) *</label>
+                  <select
+                    value={newFormat}
+                    onChange={(e) => setNewFormat(e.target.value as any)}
+                    className={styles.primaryTextInput}
+                  >
+                    <option value="Full Mock">Full Mock (Full-Length Mocks)</option>
+                    <option value="Part Test">Part Test (Part Tests)</option>
+                    <option value="Chapter Test">Chapter Test (Chapter Tests)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Difficulty Level */}
+              <div className={styles.formGroup}>
+                <label className={styles.fieldLabel}>Difficulty Level *</label>
+                <select
+                  value={newDifficulty}
+                  onChange={(e) => setNewDifficulty(e.target.value as any)}
+                  className={styles.primaryTextInput}
+                >
+                  <option value="Moderate">Moderate (Main Level)</option>
+                  <option value="Challenging">Challenging</option>
+                  <option value="Advanced">Advanced (IIT Ranker)</option>
+                </select>
               </div>
 
               {/* Field 3: Duration & Marks Side-by-Side */}
@@ -3120,21 +3233,48 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 />
               </div>
 
-              {/* Exam Type Segmented */}
-              <div className={styles.formGroup}>
-                <label className={styles.fieldLabel}>Exam Pattern</label>
-                <div className={styles.segmentedButtonGroup}>
-                  {(['JEE Main', 'JEE Advanced', 'BITSAT'] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      className={`${styles.segmentedBtn} ${drawerExamType === type ? styles.activeSegment : ''}`}
-                      onClick={() => setDrawerExamType(type)}
-                    >
-                      {type}
-                    </button>
-                  ))}
+              {/* Exam Category & Test Format (Student 2 Dropdowns) */}
+              <div className={styles.twoColumnGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.fieldLabel}>Target Category (Filter 1)</label>
+                  <select
+                    value={drawerExamType}
+                    onChange={(e) => setDrawerExamType(e.target.value as any)}
+                    className={styles.primaryTextInput}
+                  >
+                    <option value="JEE Main">JEE Main Filter</option>
+                    <option value="JEE Advanced">JEE Advanced Engine</option>
+                    <option value="BITSAT">BITSAT Speed CBT</option>
+                    <option value="MathSpeed">DK Sir Math Speed</option>
+                  </select>
                 </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.fieldLabel}>Test Format (Filter 2)</label>
+                  <select
+                    value={drawerFormat}
+                    onChange={(e) => setDrawerFormat(e.target.value as any)}
+                    className={styles.primaryTextInput}
+                  >
+                    <option value="Full Mock">Full Mock (Full-Length Mocks)</option>
+                    <option value="Part Test">Part Test (Part Tests)</option>
+                    <option value="Chapter Test">Chapter Test (Chapter Tests)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Difficulty Level */}
+              <div className={styles.formGroup}>
+                <label className={styles.fieldLabel}>Difficulty Level</label>
+                <select
+                  value={drawerDifficulty}
+                  onChange={(e) => setDrawerDifficulty(e.target.value as any)}
+                  className={styles.primaryTextInput}
+                >
+                  <option value="Moderate">Moderate (Main Level)</option>
+                  <option value="Challenging">Challenging</option>
+                  <option value="Advanced">Advanced (IIT Ranker)</option>
+                </select>
               </div>
 
               {/* Duration & Marks */}

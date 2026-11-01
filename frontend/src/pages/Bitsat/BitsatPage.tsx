@@ -844,40 +844,56 @@ export const BitsatPage: React.FC = () => {
                     )}
                   </div>
 
-                  <div className={styles.filterRowsStack}>
-                    {/* Subject Filter */}
-                    <div className={styles.filterRow}>
-                      <span className={styles.filterRowLabel}>Subject:</span>
-                      <div className={styles.filterPillsGroup}>
-                        {['All', 'Mathematics', 'Physics', 'Chemistry', 'Logical Reasoning & English'].map((sub) => (
-                          <button
-                            key={sub}
-                            type="button"
-                            className={`${styles.filterPill} ${selectedSubject === sub ? styles.filterPillActive : ''}`}
-                            onClick={() => setSelectedSubject(sub)}
-                          >
-                            {sub === 'All' ? 'All Subjects' : sub}
-                          </button>
-                        ))}
-                      </div>
+                  <div className={styles.dropdownsToolbarRow}>
+                    {/* Dropdown 1: Subject */}
+                    <div className={styles.dropdownField}>
+                      <label htmlFor="bitsat-subject-select">Subject Filter</label>
+                      <select
+                        id="bitsat-subject-select"
+                        className={styles.dropdownSelect}
+                        value={selectedSubject}
+                        onChange={(e) => setSelectedSubject(e.target.value)}
+                      >
+                        <option value="All">All Subjects (Math, Phy, Chem, LR)</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Physics">Physics</option>
+                        <option value="Chemistry">Chemistry</option>
+                        <option value="Logical Reasoning & English">Part III: LR &amp; English</option>
+                      </select>
                     </div>
 
-                    {/* Access Filter */}
-                    <div className={styles.filterRow}>
-                      <span className={styles.filterRowLabel}>Access:</span>
-                      <div className={styles.filterPillsGroup}>
-                        {(['All', 'Free', 'Pro'] as const).map((acc) => (
-                          <button
-                            key={acc}
-                            type="button"
-                            className={`${styles.filterPill} ${selectedAccess === acc ? styles.filterPillActive : ''}`}
-                            onClick={() => setSelectedAccess(acc)}
-                          >
-                            {acc === 'All' ? 'All Drills' : acc === 'Free' ? 'Free Speed Drills' : 'Pro Drills'}
-                          </button>
-                        ))}
-                      </div>
+                    {/* Dropdown 2: Access */}
+                    <div className={styles.dropdownField}>
+                      <label htmlFor="bitsat-access-select">Access Level</label>
+                      <select
+                        id="bitsat-access-select"
+                        className={styles.dropdownSelect}
+                        value={selectedAccess}
+                        onChange={(e) => setSelectedAccess(e.target.value as any)}
+                      >
+                        <option value="All">All Speed Drills</option>
+                        <option value="Free">Free Speed Drills</option>
+                        <option value="Pro">Pro / Premium Drills</option>
+                      </select>
                     </div>
+
+                    {/* Reset Filters */}
+                    {(selectedSubject !== 'All' || selectedAccess !== 'All' || searchQuery.trim().length > 0) && (
+                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        <button
+                          type="button"
+                          className={styles.resetBtn}
+                          onClick={() => {
+                            setSelectedSubject('All');
+                            setSelectedAccess('All');
+                            setSearchQuery('');
+                          }}
+                        >
+                          <RotateCcw size={13} />
+                          <span>Reset Filters</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
