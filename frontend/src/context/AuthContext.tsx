@@ -288,19 +288,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return next;
       });
 
-      if (!isAdminPath) {
-        soundEffects.playNotificationChime();
-        window.dispatchEvent(
-          new CustomEvent('dk_live_toast', {
-            detail: {
-              title: notif.title,
-              message: notif.message,
-              type: 'info',
-              route: notif.linkUrl
-            }
-          })
-        );
-      }
+      soundEffects.playNotificationChime();
+      window.dispatchEvent(
+        new CustomEvent('dk_live_toast', {
+          detail: {
+            title: notif.title,
+            message: notif.message,
+            type: 'info',
+            route: notif.linkUrl
+          }
+        })
+      );
     };
 
     // 1. Doubt Answered Notification
@@ -357,6 +355,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         category: 'practice_test',
         read: false,
         linkText: 'Attempt Mock Test',
+        linkUrl: '/test-series'
+      });
+    };
+
+    // 3b. Test Series Deleted Notification
+    const handleTestSeriesDeleted = (e: any) => {
+      const data = e.detail;
+      if (!data) return;
+      pushStudentNotification({
+        id: `notif_test_del_${data.id || Date.now()}`,
+        title: `🗑️ Test Series Deleted: ${data.title || 'CBT Mock'}`,
+        message: `"${data.title || 'CBT Mock'}" has been permanently removed by Academic Administration.`,
+        timestamp: Date.now(),
+        category: 'practice_test',
+        read: false,
+        linkText: 'Check Test Series',
         linkUrl: '/test-series'
       });
     };
@@ -453,6 +467,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('dk_doubt_answered', handleDoubtAnswered);
     window.addEventListener('dk_course_created', handleCourseCreated);
     window.addEventListener('dk_test_series_created', handleTestSeriesCreated);
+    window.addEventListener('dk_test_series_deleted', handleTestSeriesDeleted);
     window.addEventListener('dk_dpp_pyq_created', handleDppPyqCreated);
     window.addEventListener('dk_free_lecture_created', handleFreeLectureCreated);
     window.addEventListener('dk_announcement_broadcast', handleAnnouncement);
@@ -461,6 +476,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('dk_doubt_answered', handleDoubtAnswered);
       window.removeEventListener('dk_course_created', handleCourseCreated);
       window.removeEventListener('dk_test_series_created', handleTestSeriesCreated);
+      window.removeEventListener('dk_test_series_deleted', handleTestSeriesDeleted);
       window.removeEventListener('dk_dpp_pyq_created', handleDppPyqCreated);
       window.removeEventListener('dk_free_lecture_created', handleFreeLectureCreated);
       window.removeEventListener('dk_announcement_broadcast', handleAnnouncement);

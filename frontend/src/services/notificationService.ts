@@ -79,6 +79,24 @@ export const notificationService = {
 
     const updated = [newItem, ...list.filter((n) => n.id !== newItem.id)].slice(0, 50);
     this.saveNotifications(updated);
+
+    try {
+      soundEffects.playNotificationChime();
+    } catch {}
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('dk_live_toast', {
+          detail: {
+            title: newItem.title,
+            message: newItem.description || newItem.title,
+            type: newItem.type === 'system' || newItem.type === 'test_series' ? 'info' : 'success',
+            route: newItem.meta?.route || '/admin/test-series'
+          }
+        })
+      );
+    }
+
     return newItem;
   },
 
