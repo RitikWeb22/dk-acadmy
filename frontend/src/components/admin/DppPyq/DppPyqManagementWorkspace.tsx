@@ -58,6 +58,7 @@ export interface ProblemQuestionItem {
   stepSolution: string;
   difficulty: 'Easy' | 'Moderate' | 'Challenging';
   examYear?: string;
+  isFree?: boolean;
 }
 
 export interface DppPyqItem {
@@ -70,6 +71,13 @@ export interface DppPyqItem {
   moduleType: ProblemModuleType;
   subject: ProblemSubject;
   categoryLabel: string;
+  chapter?: string;
+  examTarget?: string;
+  isFree?: boolean;
+  price?: number;
+  pdfUrl?: string;
+  videoUrl?: string;
+  videoWalkthroughUrl?: string;
   questionsCount: number;
   solutionNote: string;
   status: ProblemStatus;
@@ -520,6 +528,8 @@ export const DppPyqManagementWorkspace: React.FC = () => {
   const [newQuestionsCount, setNewQuestionsCount] = useState<number>(5);
   const [newSolutionNote, setNewSolutionNote] = useState<string>('5 with step solutions');
   const [newStatus, setNewStatus] = useState<ProblemStatus>('Published');
+  const [newIsFree, setNewIsFree] = useState<boolean>(true);
+  const [newPrice, setNewPrice] = useState<number>(0);
 
   // Student mode interactive preview state
   const [previewCurrentQIndex, setPreviewCurrentQIndex] = useState<number>(0);
@@ -816,12 +826,13 @@ export const DppPyqManagementWorkspace: React.FC = () => {
   const handleDeleteConfirmed = async () => {
     if (!deleteConfirmItem) return;
     try {
-      await apiClient.delete(`/dpp-pyq/${deleteConfirmItem.id}`);
+      const targetId = deleteConfirmItem._id || deleteConfirmItem.id;
+      await apiClient.delete(`/dpp-pyq/${targetId}`);
       showToast(`✓ Deleted "${deleteConfirmItem.title}"`);
       setDeleteConfirmItem(null);
       await fetchLiveDppPyq();
     } catch (err: any) {
-      setProblemSets((prev) => prev.filter((p) => p.id !== deleteConfirmItem.id));
+      setProblemSets((prev) => prev.filter((p) => p.id !== deleteConfirmItem.id && (!deleteConfirmItem._id || p._id !== deleteConfirmItem._id)));
       showToast(`Deleted from table.`);
       setDeleteConfirmItem(null);
     }
@@ -854,6 +865,8 @@ export const DppPyqManagementWorkspace: React.FC = () => {
       subject: newSubject,
       chapter: newChapter,
       examTarget: newExamTarget,
+      isFree: newIsFree,
+      price: newIsFree ? 0 : Number(newPrice) || 0,
       badgeCode,
       categoryLabel,
       questionsCount: Number(newQuestionsCount) || 5,
@@ -1530,7 +1543,18 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                           </span>
                           <div className={styles.titleTexts}>
                             <span className={styles.primaryTitle}>{item.title}</span>
-                            <span className={styles.slugUrl}>{item.slug}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+                              <span className={styles.slugUrl}>{item.slug}</span>
+                              {item.isFree === false ? (
+                                <span style={{ color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, fontSize: '10.5px' }}>
+                                  🔒 Locked (₹{item.price || 499})
+                                </span>
+                              ) : (
+                                <span style={{ color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, fontSize: '10.5px' }}>
+                                  ✓ Free Access
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -2170,6 +2194,93 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                 </div>
               </div>
 
+              {/* Step 5: Access & Monetization Control */}
+              <div className={styles.formSectionBox}>
+                <div className={styles.fieldSectionHeading}>
+                  <span>5. Access &amp; Monetization Control *</span>
+                  <span className={styles.requiredIndicator}>Student Access Mode</span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginTop: '10px' }}>
+                  <div
+                    onClick={() => {
+                      setNewIsFree(true);
+                      setNewPrice(0);
+                    }}
+                    style={{
+                      border: newIsFree ? '2px solid #16a34a' : '1.5px solid #e2e8f0',
+                      background: newIsFree ? '#f0fdf4' : '#ffffff',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 700, fontSize: '13.5px', color: newIsFree ? '#15803d' : '#334155' }}>
+                        ✓ 100% Free Practice
+                      </span>
+                      {newIsFree && <span style={{ fontSize: '11px', background: '#16a34a', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ACTIVE</span>}
+                    </div>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                      Visible to all students directly. Zero payment required.
+                    </span>
+                  </div>
+
+                  <div
+                    onClick={() => {
+                      setNewIsFree(false);
+                      if (!newPrice) setNewPrice(499);
+                    }}
+                    style={{
+                      border: !newIsFree ? '2px solid #7c3aed' : '1.5px solid #e2e8f0',
+                      background: !newIsFree ? '#faf5ff' : '#ffffff',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 700, fontSize: '13.5px', color: !newIsFree ? '#6d28d9' : '#334155' }}>
+                        🔒 Paid / Locked (Monetized)
+                      </span>
+                      {!newIsFree && <span style={{ fontSize: '11px', background: '#7c3aed', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>LOCKED</span>}
+                    </div>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                      Requires student course enrollment or payment to unlock full questions.
+                    </span>
+                  </div>
+                </div>
+
+                {!newIsFree && (
+                  <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>Unlock Fee (₹):</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={10}
+                      value={newPrice}
+                      onChange={(e) => setNewPrice(Number(e.target.value))}
+                      style={{
+                        width: '120px',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: '1.5px solid #7c3aed',
+                        fontWeight: 700,
+                        fontSize: '14px',
+                        outline: 'none'
+                      }}
+                    />
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>Aspirants pay this amount to unlock full solutions.</span>
+                  </div>
+                )}
+              </div>
+
               {/* Live Card Preview Box */}
               <div className={styles.livePreviewCardBox}>
                 <div className={styles.previewBoxHeader}>
@@ -2587,6 +2698,97 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                         onChange={(e) => handleUpdateActiveQuestion({ examYear: e.target.value })}
                         style={{ width: '100%', fontSize: '12px' }}
                       />
+                    </div>
+
+                    {/* Paper & Question Monetization Controls */}
+                    <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>
+                          Question Access:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateActiveQuestion({ isFree: true })}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: editingItem.questions[editingQuestionIdx].isFree !== false ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                            background: editingItem.questions[editingQuestionIdx].isFree !== false ? '#dcfce7' : '#ffffff',
+                            color: editingItem.questions[editingQuestionIdx].isFree !== false ? '#15803d' : '#64748b'
+                          }}
+                        >
+                          ✓ Free Preview
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateActiveQuestion({ isFree: false })}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: editingItem.questions[editingQuestionIdx].isFree === false ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
+                            background: editingItem.questions[editingQuestionIdx].isFree === false ? '#ede9fe' : '#ffffff',
+                            color: editingItem.questions[editingQuestionIdx].isFree === false ? '#6d28d9' : '#64748b'
+                          }}
+                        >
+                          🔒 Locked (Paid)
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>
+                          Entire Paper:
+                        </span>
+                        <select
+                          value={editingItem.isFree === false ? 'PAID' : 'FREE'}
+                          onChange={(e) => {
+                            const isPaid = e.target.value === 'PAID';
+                            setEditingItem({
+                              ...editingItem,
+                              isFree: !isPaid,
+                              price: isPaid ? (editingItem.price || 499) : 0
+                            });
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            border: '1px solid #cbd5e1'
+                          }}
+                        >
+                          <option value="FREE">✓ Free Set (₹0)</option>
+                          <option value="PAID">🔒 Paid / Locked Set</option>
+                        </select>
+                        {editingItem.isFree === false && (
+                          <input
+                            type="number"
+                            min={0}
+                            step={10}
+                            value={editingItem.price ?? 499}
+                            onChange={(e) =>
+                              setEditingItem({
+                                ...editingItem,
+                                price: Number(e.target.value)
+                              })
+                            }
+                            placeholder="Price ₹"
+                            style={{
+                              width: '75px',
+                              padding: '3px 6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              borderRadius: '4px',
+                              border: '1.5px solid #7c3aed'
+                            }}
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
