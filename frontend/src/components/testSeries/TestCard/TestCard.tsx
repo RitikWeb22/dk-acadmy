@@ -42,16 +42,19 @@ export const TestCard: React.FC<TestCardProps> = ({
       }).format(new Date(startTime))
     : '';
 
+  const markingCorrect = test.markingScheme?.correct ?? 4;
+  const markingIncorrect = test.markingScheme?.incorrect ?? 1;
+
   // Calculate score if completed
   let totalScore = 0;
   if (attempt && attempt.isSubmitted) {
-    test.questions.forEach((q) => {
+    (test.questions || []).forEach((q) => {
       const resp = attempt.responses[q.id];
       if (resp?.selectedOption) {
         if (resp.selectedOption === q.correctAnswer) {
-          totalScore += test.markingScheme.correct;
+          totalScore += markingCorrect;
         } else {
-          totalScore -= test.markingScheme.incorrect;
+          totalScore -= markingIncorrect;
         }
       }
     });
@@ -186,7 +189,7 @@ export const TestCard: React.FC<TestCardProps> = ({
           </div>
           <div className={styles.microTextWrap}>
             <span className={styles.microVal}>{test.totalMarks} Marks</span>
-            <span className={styles.microLabel}>+{test.markingScheme.correct}/-{test.markingScheme.incorrect}</span>
+            <span className={styles.microLabel}>+{markingCorrect}/-{markingIncorrect}</span>
           </div>
         </div>
       </div>

@@ -242,7 +242,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               </div>
 
               <div className={styles.marksBadge}>
-                +{test.markingScheme.correct} / -{test.markingScheme.incorrect} Marks
+                +{test.markingScheme?.correct ?? 4} / -{test.markingScheme?.incorrect ?? 1} Marks
               </div>
             </div>
 

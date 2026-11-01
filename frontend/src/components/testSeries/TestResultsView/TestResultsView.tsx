@@ -37,7 +37,9 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
   onRetryTest,
   onBackToCatalog,
 }) => {
-  const totalQuestions = test.questions.length;
+  const markingCorrect = test.markingScheme?.correct ?? 4;
+  const markingIncorrect = test.markingScheme?.incorrect ?? 1;
+  const totalQuestions = (test.questions || []).length;
   let correctCount = 0;
   let incorrectCount = 0;
   let unattemptedCount = 0;
@@ -58,7 +60,7 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
     >
   > = {};
 
-  test.questions.forEach((q) => {
+  (test.questions || []).forEach((q) => {
     if (!subjectStats[q.subject]) {
       subjectStats[q.subject] = {
         total: 0,
@@ -72,7 +74,7 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
 
     const sStat = subjectStats[q.subject]!;
     sStat.total += 1;
-    sStat.maxScore += test.markingScheme.correct;
+    sStat.maxScore += markingCorrect;
 
     const resp = attempt.responses[q.id];
     if (!resp || !resp.selectedOption) {
@@ -81,13 +83,13 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
     } else if (resp.selectedOption === q.correctAnswer) {
       correctCount += 1;
       sStat.correct += 1;
-      totalScore += test.markingScheme.correct;
-      sStat.score += test.markingScheme.correct;
+      totalScore += markingCorrect;
+      sStat.score += markingCorrect;
     } else {
       incorrectCount += 1;
       sStat.incorrect += 1;
-      totalScore -= test.markingScheme.incorrect;
-      sStat.score -= test.markingScheme.incorrect;
+      totalScore -= markingIncorrect;
+      sStat.score -= markingIncorrect;
     }
   });
 
@@ -289,25 +291,25 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
         {/* Tile 2: Correct (+4) */}
         <div className={`${styles.bentoTile} ${styles.tileEmerald}`}>
           <div className={styles.tileHeader}>
-            <span className={styles.tileLabel}>Correct (+{test.markingScheme.correct})</span>
+            <span className={styles.tileLabel}>Correct (+{markingCorrect})</span>
             <div className={`${styles.iconWrap} ${styles.iconEmerald}`}>
               <CheckCircle2 size={15} aria-hidden="true" />
             </div>
           </div>
           <div className={styles.tileValue}>{correctCount}</div>
-          <div className={styles.tileSub}>+{correctCount * test.markingScheme.correct} Marks Added</div>
+          <div className={styles.tileSub}>+{correctCount * markingCorrect} Marks Added</div>
         </div>
 
         {/* Tile 3: Incorrect (-1) */}
         <div className={`${styles.bentoTile} ${styles.tileRose}`}>
           <div className={styles.tileHeader}>
-            <span className={styles.tileLabel}>Incorrect (-{test.markingScheme.incorrect})</span>
+            <span className={styles.tileLabel}>Incorrect (-{markingIncorrect})</span>
             <div className={`${styles.iconWrap} ${styles.iconRose}`}>
               <XCircle size={15} aria-hidden="true" />
             </div>
           </div>
           <div className={styles.tileValue}>{incorrectCount}</div>
-          <div className={styles.tileSub}>-{incorrectCount * test.markingScheme.incorrect} Negative Penalty</div>
+          <div className={styles.tileSub}>-{incorrectCount * markingIncorrect} Negative Penalty</div>
         </div>
 
         {/* Tile 4: Unattempted */}
