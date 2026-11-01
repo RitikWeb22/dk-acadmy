@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { TestSeriesItem, TestAttempt } from '../../../types';
 import styles from './AnswerReviewView.module.scss';
+import { MathText } from '../../ui/MathText/MathText';
 
 type ReviewFilterType = 'All' | 'Incorrect' | 'Unattempted' | 'Marked';
 
@@ -148,7 +149,9 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
 
               {/* Statement */}
               <div className={styles.statementArea}>
-                <p className={styles.statementText}>{activeQuestion.statement}</p>
+                <div className={styles.statementText}>
+                  <MathText text={activeQuestion.statement} />
+                </div>
               </div>
 
               {/* Options with Answer Highlight */}
@@ -167,7 +170,9 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
                   return (
                     <div key={opt.id} className={`${styles.optionItem} ${optClass}`}>
                       <div className={styles.radioLetter}>{opt.id}</div>
-                      <div className={styles.optionText}>{opt.text}</div>
+                      <div className={styles.optionText}>
+                        <MathText text={opt.text} />
+                      </div>
                       {isCorrectAnswer && (
                         <div className={styles.correctIndicator}>
                           <Check size={16} />
@@ -195,12 +200,14 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
                 {activeQuestion.formulaKey && (
                   <div className={styles.formulaRow}>
                     <span className={styles.formulaLabel}>Core Concept & Formula:</span>
-                    <code className={styles.formulaCode}>{activeQuestion.formulaKey}</code>
+                    <div className={styles.formulaCode}>
+                      <MathText text={activeQuestion.formulaKey} />
+                    </div>
                   </div>
                 )}
 
                 <div className={styles.explanationText}>
-                  {activeQuestion.explanation}
+                  <MathText text={activeQuestion.explanation} />
                 </div>
               </div>
 

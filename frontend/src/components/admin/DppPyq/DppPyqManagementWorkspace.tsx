@@ -46,6 +46,7 @@ import {
 import styles from './DppPyqManagementWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
 import { downloadQuestionsTemplateCsv, parseBulkQuestions } from '../../../utils/questionBulkParser';
+import { MathText } from '../../ui/MathText/MathText';
 
 export type ProblemModuleType = 'DPP' | 'PYQ' | 'BITSAT';
 export type ProblemSubject = 'Mathematics' | 'Physics' | 'Chemistry' | 'Mixed';
@@ -4200,7 +4201,7 @@ Sol: Standard derivative theorem.`}
                           </span>
                         </div>
                         <div style={{ color: '#0f172a', fontWeight: 600, maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                          {q.statement}
+                          <MathText text={q.statement} />
                         </div>
                         <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#64748b' }}>
                           {q.options?.length || 0} Options • {q.stepSolution ? '✓ Sol' : 'No sol'} • {q.videoUrl ? '✓ Video' : 'No video'}

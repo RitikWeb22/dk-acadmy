@@ -10,14 +10,13 @@
 .inlineMath {
   display: inline-block;
   font-family: 'STIX Two Math', 'KaTeX_Math', 'Cambria Math', 'Latin Modern Math', 'Times New Roman', serif;
-  font-style: italic;
   letter-spacing: 0.02em;
-  padding: 0 3px;
-  background-color: #f8fafc;
+  padding: 0.05em 0.25em;
+  background-color: rgba(241, 245, 249, 0.7);
   border-radius: 4px;
   border: 1px solid #e2e8f0;
   color: #0f172a;
-  line-height: 1.4;
+  line-height: 1.45;
   vertical-align: baseline;
 }
 
@@ -51,4 +50,114 @@
   vertical-align: sub;
   line-height: 0;
   font-family: inherit;
+}
+
+/* Beautiful Vertical Mathematical Fraction */
+.fraction {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: -0.55em;
+  padding: 0 0.15em;
+  font-size: 0.92em;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.numerator {
+  border-bottom: 1.3px solid currentColor;
+  padding: 0 0.25em 0.1em 0.25em;
+  display: block;
+  text-align: center;
+  font-size: 0.95em;
+}
+
+.denominator {
+  padding: 0.1em 0.25em 0 0.25em;
+  display: block;
+  text-align: center;
+  font-size: 0.95em;
+}
+
+/* Square Root with Radical Symbol & Overline Bar */
+.sqrt {
+  display: inline-flex;
+  align-items: baseline;
+  vertical-align: baseline;
+  padding: 0 0.1em;
+}
+
+.sqrtIndex {
+  font-size: 0.65em;
+  vertical-align: super;
+  margin-right: -0.15em;
+}
+
+.sqrtSymbol {
+  font-size: 1.15em;
+  line-height: 1;
+  font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif;
+}
+
+.sqrtContent {
+  border-top: 1.3px solid currentColor;
+  padding: 0 0.2em;
+  margin-left: 1px;
+  display: inline-block;
+  line-height: 1.25;
+}
+
+/* Large Operators with Limits (Integrals, Summations, Limits) */
+.bigOpWrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: -0.45em;
+  margin: 0 0.25em;
+  line-height: 1;
+}
+
+.bigOpUpper {
+  font-size: 0.68em;
+  line-height: 1;
+  padding-bottom: 2px;
+}
+
+.bigOpSymbol {
+  font-size: 1.25em;
+  line-height: 1;
+  font-family: 'Cambria Math', 'STIX Two Math', serif;
+}
+
+.bigOpLower {
+  font-size: 0.68em;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+/* Vector Arrow Over Variable */
+.vectorWrap {
+  display: inline-block;
+  position: relative;
+  padding-top: 0.18em;
+}
+
+.vectorArrow {
+  position: absolute;
+  top: -0.42em;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0.8);
+  font-size: 0.75em;
+  line-height: 1;
+}
+
+.mathSymbol {
+  font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif;
+  font-style: normal;
+  padding: 0 0.08em;
+}
+
+.mathVariable {
+  font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif;
+  font-style: italic;
+  padding: 0 0.04em;
 }

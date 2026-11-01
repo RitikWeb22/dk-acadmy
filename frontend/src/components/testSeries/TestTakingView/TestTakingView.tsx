@@ -13,6 +13,7 @@ import { CountdownTimer } from '../CountdownTimer/CountdownTimer';
 import { QuestionPalette } from '../QuestionPalette/QuestionPalette';
 import { SubmitConfirmationModal } from '../SubmitConfirmationModal/SubmitConfirmationModal';
 import styles from './TestTakingView.module.scss';
+import { MathText } from '../../ui/MathText/MathText';
 
 interface TestTakingViewProps {
   test: TestSeriesItem;
@@ -248,7 +249,9 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
             {/* Question Statement */}
             <div className={styles.statementArea}>
-              <p className={styles.statementText}>{currentQuestion.statement}</p>
+              <div className={styles.statementText}>
+                <MathText text={currentQuestion.statement} />
+              </div>
             </div>
 
             {/* MCQ Options List */}
@@ -270,7 +273,9 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
                     onClick={() => handleSelectOption(opt.id)}
                   >
                     <div className={styles.radioLetter}>{opt.id}</div>
-                    <div className={styles.optionText}>{opt.text}</div>
+                    <div className={styles.optionText}>
+                      <MathText text={opt.text} />
+                    </div>
                     {isSelected && (
                       <div className={styles.selectedCheckWrap}>
                         <Check size={18} />
