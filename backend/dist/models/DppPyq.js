@@ -13,8 +13,12 @@ const questionSchema = new Schema({
     dkSirShortcut: { type: String, default: '' },
     stepSolution: { type: String, default: '' },
     difficulty: { type: String, enum: ['Easy', 'Moderate', 'Challenging'], default: 'Moderate' },
-    examYear: { type: String }
-}, { _id: false });
+    examYear: { type: String, default: '' },
+    year: { type: Schema.Types.Mixed },
+    isFree: { type: Boolean, default: true },
+    videoUrl: { type: String, default: '' },
+    pdfUrl: { type: String, default: '' }
+}, { _id: false, strict: false });
 const dppPyqSchema = new Schema({
     id: { type: String, required: true, unique: true, index: true },
     badgeCode: { type: String, required: true, default: 'DPP' },
@@ -28,6 +32,12 @@ const dppPyqSchema = new Schema({
         default: 'Mathematics'
     },
     categoryLabel: { type: String, required: true, default: 'Practice Drill' },
+    chapter: { type: String, default: '' },
+    examTarget: { type: String, default: '' },
+    isFree: { type: Boolean, default: true },
+    pdfUrl: { type: String, default: '' },
+    videoUrl: { type: String, default: '' },
+    videoWalkthroughUrl: { type: String, default: '' },
     questionsCount: { type: Number, default: 0 },
     solutionNote: { type: String, default: 'Detailed Step Solutions Available' },
     status: {
@@ -41,6 +51,7 @@ const dppPyqSchema = new Schema({
     questions: { type: [questionSchema], default: [] }
 }, {
     timestamps: true,
+    strict: false,
     toJSON: {
         virtuals: true,
         transform: (_doc, ret) => {

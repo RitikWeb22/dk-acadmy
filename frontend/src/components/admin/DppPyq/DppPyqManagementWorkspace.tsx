@@ -791,10 +791,18 @@ export const DppPyqManagementWorkspace: React.FC = () => {
       const formattedForAuthoring: DppPyqItem = {
         ...payload,
         id: createdDoc.id || createdDoc._id || `dpp-pyq-${Date.now()}`,
+        _id: createdDoc._id,
         indexNo: 1,
         createdAtFormatted: 'Just now',
         questions: createdDoc.questions || payload.questions
       };
+
+      // Automatically align filter tabs so the newly created item is immediately visible
+      setModuleFilter(newModuleType);
+      setActivePreset(newModuleType as any);
+      setStatusFilter('ALL');
+      setSubjectFilter('ALL');
+
       setProblemSets((prev) => [formattedForAuthoring, ...prev.filter((p) => p.id !== formattedForAuthoring.id)]);
       setNewTitle('');
       setNewSlug('');
@@ -831,14 +839,25 @@ export const DppPyqManagementWorkspace: React.FC = () => {
     if (!editingItem) return;
     setIsSaving(true);
     try {
-      await apiClient.put(`/dpp-pyq/${editingItem.id}`, editingItem);
-      window.dispatchEvent(new CustomEvent('dk_dpp_pyq_updated', { detail: editingItem }));
+      const targetId = editingItem.id || editingItem._id;
+      const res = await apiClient.put<any>(`/dpp-pyq/${targetId}`, editingItem);
+      const savedDoc = res?.data || res || editingItem;
+      setProblemSets((prev) =>
+        prev.map((p) =>
+          p.id === editingItem.id || (editingItem._id && p._id === editingItem._id)
+            ? { ...p, ...savedDoc, questions: savedDoc.questions || editingItem.questions }
+            : p
+        )
+      );
+      window.dispatchEvent(new CustomEvent('dk_dpp_pyq_updated', { detail: savedDoc }));
       showToast(`✓ Saved question bank changes for "${editingItem.title}"!`);
       setEditingItem(null);
       await fetchLiveDppPyq();
     } catch (err: any) {
+      console.error('Failed to update questions:', err);
+      const errMsg = err?.response?.data?.error || err?.message || 'Sync issue';
       setProblemSets((prev) => prev.map((p) => (p.id === editingItem.id ? editingItem : p)));
-      showToast(`Saved question changes locally.`);
+      showToast(`Saved question changes locally: ${errMsg}`);
       setEditingItem(null);
     } finally {
       setIsSaving(false);

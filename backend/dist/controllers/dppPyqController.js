@@ -251,10 +251,10 @@ export const getAllDppPyq = async (req, res) => {
         const { moduleType, subject, status, search } = req.query;
         const filter = {};
         if (moduleType && moduleType !== 'ALL') {
-            filter.moduleType = moduleType;
+            filter.moduleType = { $regex: new RegExp(`^${String(moduleType).trim()}$`, 'i') };
         }
         if (subject && subject !== 'ALL') {
-            filter.subject = subject;
+            filter.subject = { $regex: new RegExp(`^${String(subject).trim()}$`, 'i') };
         }
         if (status && status !== 'ALL') {
             filter.status = status;
@@ -264,7 +264,8 @@ export const getAllDppPyq = async (req, res) => {
                 { title: { $regex: search.trim(), $options: 'i' } },
                 { slug: { $regex: search.trim(), $options: 'i' } },
                 { categoryLabel: { $regex: search.trim(), $options: 'i' } },
-                { badgeCode: { $regex: search.trim(), $options: 'i' } }
+                { badgeCode: { $regex: search.trim(), $options: 'i' } },
+                { chapter: { $regex: search.trim(), $options: 'i' } }
             ];
         }
         const items = await DppPyq.find(filter).sort({ createdAt: -1 });
@@ -278,9 +279,12 @@ export const getAllDppPyq = async (req, res) => {
 export const getDppPyqByIdOrSlug = async (req, res) => {
     try {
         const { id } = req.params;
-        const item = await DppPyq.findOne({
-            $or: [{ id }, { slug: id }]
-        });
+        const idStr = String(id);
+        const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+        const filter = isObjectId
+            ? { $or: [{ _id: new mongoose.Types.ObjectId(idStr) }, { id: idStr }, { slug: idStr }] }
+            : { $or: [{ id: idStr }, { slug: idStr }] };
+        const item = await DppPyq.findOne(filter);
         if (!item) {
             res.status(404).json({ error: 'DPP/PYQ item not found' });
             return;
@@ -380,13 +384,20 @@ export const createDppPyq = async (req, res) => {
 export const updateDppPyq = async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const updates = { ...req.body };
+        // Strip immutable/reserved properties to prevent MongoServerError
+        delete updates._id;
+        delete updates.createdAt;
+        delete updates.updatedAt;
         if (updates.questions && Array.isArray(updates.questions)) {
             updates.questionsCount = updates.questions.length;
         }
         const idStr = String(id);
         const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
-        const updated = await DppPyq.findOneAndUpdate(isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr }, { $set: updates }, { new: true, runValidators: true });
+        const filter = isObjectId
+            ? { $or: [{ _id: new mongoose.Types.ObjectId(idStr) }, { id: idStr }, { slug: idStr }] }
+            : { $or: [{ id: idStr }, { slug: idStr }] };
+        const updated = await DppPyq.findOneAndUpdate(filter, { $set: updates }, { new: true, runValidators: false });
         if (!updated) {
             res.status(404).json({ error: 'DPP/PYQ item not found' });
             return;
@@ -404,7 +415,10 @@ export const deleteDppPyq = async (req, res) => {
         const { id } = req.params;
         const idStr = String(id);
         const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
-        const deleted = await DppPyq.findOneAndDelete(isObjectId ? { $or: [{ id: idStr }, { _id: idStr }] } : { id: idStr });
+        const filter = isObjectId
+            ? { $or: [{ _id: new mongoose.Types.ObjectId(idStr) }, { id: idStr }, { slug: idStr }] }
+            : { $or: [{ id: idStr }, { slug: idStr }] };
+        const deleted = await DppPyq.findOneAndDelete(filter);
         if (!deleted) {
             res.status(404).json({ error: 'DPP/PYQ item not found' });
             return;
