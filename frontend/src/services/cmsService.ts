@@ -1734,12 +1734,24 @@ export const cmsService = {
   // --------------------------------------------------
   // TEST SERIES & CBT QUIZZES CRUD (MONGODB + LOCAL CACHE + REAL-TIME)
   // --------------------------------------------------
+  getDeletedIds(): string[] {
+    try {
+      const stored = localStorage.getItem('dk_deleted_test_series_ids');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [];
+  },
+
   async fetchTestSeriesFromAPI(): Promise<TestSeriesItem[]> {
     try {
       const response = await apiClient.get<TestSeriesItem[]>('/test-series');
       const items = Array.isArray(response) ? response : (response as any)?.data || [];
-      if (Array.isArray(items) && items.length > 0) {
-        const sanitized = items.map((t: any) => ({
+      if (Array.isArray(items)) {
+        const deletedIds = this.getDeletedIds();
+        const activeItems = items.filter(
+          (t: any) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
+        );
+        const sanitized = activeItems.map((t: any) => ({
           ...t,
           markingScheme: t.markingScheme && typeof t.markingScheme.correct === 'number'
             ? t.markingScheme
@@ -1757,41 +1769,30 @@ export const cmsService = {
   },
 
   getTestSeries(): TestSeriesItem[] {
+    const deletedIds = this.getDeletedIds();
     try {
       const stored = localStorage.getItem(TEST_SERIES_STORAGE_KEY);
       if (stored) {
         const parsed: TestSeriesItem[] = JSON.parse(stored);
-        let hasNew = false;
-        for (const test of TEST_SERIES_DATA) {
-          const idx = parsed.findIndex((p) => p.id === test.id);
-          if (idx === -1) {
-            parsed.push(test);
-            hasNew = true;
-          } else if (parsed[idx].format !== test.format) {
-            parsed[idx].format = test.format;
-            hasNew = true;
-          }
+        if (Array.isArray(parsed)) {
+          const active = parsed.filter(
+            (t: any) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
+          );
+          return active.map((t: any) => ({
+            ...t,
+            markingScheme: t.markingScheme && typeof t.markingScheme.correct === 'number'
+              ? t.markingScheme
+              : { correct: 4, incorrect: 1, unattempted: 0 },
+            questions: Array.isArray(t.questions) ? t.questions : []
+          }));
         }
-        const sanitized = parsed.map((t: any) => ({
-          ...t,
-          markingScheme: t.markingScheme && typeof t.markingScheme.correct === 'number'
-            ? t.markingScheme
-            : { correct: 4, incorrect: 1, unattempted: 0 },
-          questions: Array.isArray(t.questions) ? t.questions : []
-        }));
-        if (hasNew) {
-          try {
-            localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(sanitized));
-          } catch {
-            // ignore quota errors
-          }
-        }
-        return sanitized;
       }
     } catch {
       // fallback
     }
-    return TEST_SERIES_DATA;
+    return TEST_SERIES_DATA.filter(
+      (t) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
+    );
   },
 
   getTestSeriesById(id: string): TestSeriesItem | undefined {
@@ -1799,8 +1800,12 @@ export const cmsService = {
   },
 
   saveTestSeries(items: TestSeriesItem[]): void {
-    localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(items));
-    apiClient.post('/cms/test_series', { data: items }).catch(() => {});
+    const deletedIds = this.getDeletedIds();
+    const active = items.filter(
+      (t) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
+    );
+    localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(active));
+    apiClient.post('/cms/test_series', { data: active }).catch(() => {});
     this.notifyUpdate('test_series');
   },
 
@@ -1846,8 +1851,17 @@ export const cmsService = {
   },
 
   async deleteTestSeries(id: string): Promise<void> {
-    const items = this.getTestSeries().filter((t) => t.id !== id);
-    this.saveTestSeries(items);
+    try {
+      const deletedIds = this.getDeletedIds();
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem('dk_deleted_test_series_ids', JSON.stringify(deletedIds));
+      }
+    } catch {}
+
+    const items = this.getTestSeries().filter((t) => t.id !== id && (t as any).slug !== id);
+    localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(items));
+    this.notifyUpdate('test_series');
 
     try {
       await apiClient.delete(`/test-series/${id}`);
@@ -1858,6 +1872,7 @@ export const cmsService = {
 
   resetTestSeries(): void {
     localStorage.removeItem(TEST_SERIES_STORAGE_KEY);
+    localStorage.removeItem('dk_deleted_test_series_ids');
     this.notifyUpdate('test_series');
   },
 

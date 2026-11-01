@@ -224,9 +224,19 @@ export const initSocketClient = (): Socket => {
   });
 
   socket.on('test_series:deleted', (data) => {
+    const deletedId = typeof data === 'string' ? data : data?.id;
+    if (deletedId) {
+      try {
+        const deletedIds: string[] = JSON.parse(localStorage.getItem('dk_deleted_test_series_ids') || '[]');
+        if (!deletedIds.includes(deletedId)) {
+          deletedIds.push(deletedId);
+          localStorage.setItem('dk_deleted_test_series_ids', JSON.stringify(deletedIds));
+        }
+      } catch {}
+    }
     cmsService.fetchTestSeriesFromAPI().catch(() => {});
     window.dispatchEvent(new CustomEvent('dk_test_series_deleted', { detail: data }));
-    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'test_series', action: 'delete', id: data?.id } }));
+    window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'test_series', action: 'delete', id: deletedId } }));
   });
 
   // 9. Real-time Student Academic Doubts Events

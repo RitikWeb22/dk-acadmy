@@ -434,7 +434,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   ];
 
   // Test series list state
-  const [testSeriesList, setTestSeriesList] = useState<TestSeriesTableItem[]>(INITIAL_TABLE_ITEMS);
+  const [testSeriesList, setTestSeriesList] = useState<TestSeriesTableItem[]>(() => {
+    let deletedIds: string[] = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem('dk_deleted_test_series_ids') || '[]');
+    } catch {}
+    return INITIAL_TABLE_ITEMS.filter((t) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug)));
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [examTypeFilter, setExamTypeFilter] = useState('ALL');
@@ -560,8 +566,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     try {
       const res = await apiClient.get<any>('/test-series');
       const items = Array.isArray(res) ? res : res?.data || [];
-      if (Array.isArray(items) && items.length > 0) {
-        const formatted: TestSeriesTableItem[] = items.map((item: any, idx: number) => ({
+      let deletedIds: string[] = [];
+      try {
+        deletedIds = JSON.parse(localStorage.getItem('dk_deleted_test_series_ids') || '[]');
+      } catch {}
+      const activeItems = (Array.isArray(items) ? items : []).filter(
+        (it: any) => !deletedIds.includes(it.id) && !deletedIds.includes(it.slug)
+      );
+
+      if (activeItems.length > 0 || (Array.isArray(items) && items.length > 0)) {
+        const formatted: TestSeriesTableItem[] = activeItems.map((item: any, idx: number) => ({
           id: item.id || `ts-${idx}`,
           indexNo: idx + 1,
           badgeCode: (item.badgeCode || (item.format === 'Part Test' ? 'PART TEST' : item.examType === 'JEE Advanced' ? 'JEE ADVANCED' : item.examType === 'BITSAT' ? 'BITSAT' : 'JEE MAIN')) as any,
@@ -1163,12 +1177,22 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     const target = deleteConfirmItem;
     setIsDeletingSingle(true);
 
+    // Record permanently in deleted IDs storage immediately
+    try {
+      const deletedIds: string[] = JSON.parse(localStorage.getItem('dk_deleted_test_series_ids') || '[]');
+      if (!deletedIds.includes(target.id)) deletedIds.push(target.id);
+      if (target.slug && !deletedIds.includes(target.slug)) deletedIds.push(target.slug);
+      localStorage.setItem('dk_deleted_test_series_ids', JSON.stringify(deletedIds));
+    } catch {}
+
+    // Immediately remove from UI state
+    setTestSeriesList((prev) => prev.filter((t) => t.id !== target.id && t.slug !== target.slug));
+    setSelectedTestIds((prev) => prev.filter((id) => id !== target.id));
+    setDeleteConfirmItem(null); // Close modal immediately
+
     try {
       await apiClient.delete(`/test-series/${target.id}`);
       cmsService.deleteTestSeries(target.id).catch(() => {});
-      
-      setTestSeriesList((prev) => prev.filter((t) => t.id !== target.id && t.slug !== target.slug));
-      setSelectedTestIds((prev) => prev.filter((id) => id !== target.id));
 
       // Real-time admin notification
       notificationService.addNotification({
@@ -1185,8 +1209,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     } catch (err) {
       console.error('[Delete Test Series Error]:', err);
       cmsService.deleteTestSeries(target.id).catch(() => {});
-      setTestSeriesList((prev) => prev.filter((t) => t.id !== target.id && t.slug !== target.slug));
-      setSelectedTestIds((prev) => prev.filter((id) => id !== target.id));
 
       notificationService.addNotification({
         title: 'Test Series Deleted',
@@ -1199,7 +1221,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       showToast(`Deleted test series "${target.title}"`);
     } finally {
       setIsDeletingSingle(false);
-      setDeleteConfirmItem(null); // CRUCIAL: ALWAYS close popup!
+      setDeleteConfirmItem(null); // CRUCIAL: ALWAYS ensure modal is closed
       fetchLiveTestSeries();
     }
   };
@@ -1226,6 +1248,20 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setIsBulkDeleting(true);
     const idsToDelete = [...selectedTestIds];
 
+    // Immediately record all selected IDs in deleted blacklist
+    try {
+      const deletedIds: string[] = JSON.parse(localStorage.getItem('dk_deleted_test_series_ids') || '[]');
+      idsToDelete.forEach((id) => {
+        if (!deletedIds.includes(id)) deletedIds.push(id);
+      });
+      localStorage.setItem('dk_deleted_test_series_ids', JSON.stringify(deletedIds));
+    } catch {}
+
+    // Immediately remove from active state and close modal
+    setTestSeriesList((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
+    setSelectedTestIds([]);
+    setIsBulkDeleteModalOpen(false);
+
     try {
       // Execute API deletions in parallel
       await Promise.allSettled(
@@ -1234,9 +1270,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       await Promise.allSettled(
         idsToDelete.map((id) => cmsService.deleteTestSeries(id))
       );
-
-      // Remove from active state
-      setTestSeriesList((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
 
       // Dispatch real-time admin notification
       notificationService.addNotification({
@@ -1255,7 +1288,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       showToast(`Successfully deleted ${idsToDelete.length} test series.`);
     } catch (err) {
       console.error('[Bulk Delete Error]:', err);
-      setTestSeriesList((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
       showToast(`Deleted ${idsToDelete.length} test series.`);
     } finally {
       setSelectedTestIds([]);
