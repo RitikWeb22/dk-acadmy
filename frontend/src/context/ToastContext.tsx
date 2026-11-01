@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import styles from './Toast.module.scss';
 
@@ -19,18 +19,55 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const recentToastsRef = useRef<Map<string, number>>(new Map());
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const showToast = useCallback((message: string, type: ToastType = 'success') => {
+    if (!message || typeof message !== 'string') return;
+    const trimmed = message.trim();
+    if (!trimmed) return;
+
+    // Suppress student broadcast notifications if currently viewing admin portal
+    const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+    if (isAdminPath && (
+      trimmed.includes('permanently removed by Academic Administration') ||
+      trimmed.includes('Academic Administration') ||
+      trimmed.includes('was removed from the system')
+    )) {
+      return;
+    }
+
+    // Deduplicate: ignore identical messages within 4 seconds
+    const normalizedKey = `${type}_${trimmed.toLowerCase().replace(/\s+/g, ' ').slice(0, 120)}`;
+    const now = Date.now();
+    const lastSeen = recentToastsRef.current.get(normalizedKey) || 0;
+    if (now - lastSeen < 4000) {
+      return;
+    }
+    recentToastsRef.current.set(normalizedKey, now);
+
+    // Housekeeping: clean up old timestamps
+    if (recentToastsRef.current.size > 50) {
+      for (const [k, v] of recentToastsRef.current.entries()) {
+        if (now - v > 15000) recentToastsRef.current.delete(k);
+      }
+    }
+
     const id = `toast_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    setToasts((prev) => [...prev, { id, message, type }]);
+
+    // Cap active toasts to at most 2 items to prevent screen flooding
+    setToasts((prev) => {
+      const filtered = prev.filter((t) => t.message.trim() !== trimmed);
+      const capped = filtered.slice(-1); // Keep at most 1 previous toast so total is <= 2
+      return [...capped, { id, message: trimmed, type }];
+    });
 
     setTimeout(() => {
       removeToast(id);
-    }, 4500);
+    }, 4000);
   }, [removeToast]);
 
   // Global listener for live real-time notifications

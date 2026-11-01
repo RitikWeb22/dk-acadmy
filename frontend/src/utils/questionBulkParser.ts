@@ -207,7 +207,7 @@ export function normalizeMathText(raw: string): string {
 
     // 1. Clean Word brackets and placeholders (preserve ▒ temporarily for integral step)
     res = res.replace(/[〖〗]/g, '');
-    res = res.replace(/[\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
+    res = res.replace(/[\uFFF9-\uFFFD\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
              .replace(/[□┤├│]/g, '')
              .replace(/[\u201C\u201D]/g, '"')
              .replace(/[\u2018\u2019]/g, "'")
@@ -244,8 +244,8 @@ export function normalizeMathText(raw: string): string {
     // 4. Repeated ellipses: ⋯… or …⋯ or ⋯ or … -> \dots
     res = res.replace(/[⋯…]+/g, ' \\dots ');
 
-    // 5. Integral limits: ∫_0^1▒ or ∫_0^(π/4)▒ or ∫_0^(\pi/4)▒ or ∫_0^1
-    res = res.replace(/∫_([0-9a-zA-Z]+|\{[^}]+\}|\([^)]+\))\s*\^\s*(\([^)]+\)|\{[^}]+\}|[0-9a-zA-Z]+?)(?:▒|\s*(?=[0-9a-zA-Z\/\(\\])|$)\s*/g, (_, low, high) => {
+    // 5. Integral limits: ∫_0^1▒ or ∫_0^(π/4)▒ or \int_0^(\pi/4) or ∫_0^1
+    res = res.replace(/(?:∫|\\int)_([0-9a-zA-Z]+|\{[^}]+\}|\([^)]+\))\s*\^\s*(\([^)]+\)|\{[^}]+\}|[0-9a-zA-Z]+?)(?:▒|\s*(?=[0-9a-zA-Z\/\(\\])|$)\s*/g, (_, low, high) => {
       const cleanLow = stripOuterParens(low).replace(/[{}]/g, '').trim();
       let cleanHigh = stripOuterParens(high).replace(/[{}]/g, '').trim();
       cleanHigh = cleanHigh.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
