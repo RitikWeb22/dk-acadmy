@@ -55,6 +55,8 @@ import {
 } from 'lucide-react';
 import styles from './TestSeriesBuilderWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
+import { cmsService } from '../../../services/cmsService';
+import { notificationService } from '../../../services/notificationService';
 
 import { PART_TESTS_DATA } from '../../../data/partTestsData';
 
@@ -456,13 +458,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newSlug, setNewSlug] = useState('');
-  const [newExamType, setNewExamType] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'MathSpeed'>('JEE Main');
+  const [newExamType, setNewExamType] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'PartTest' | 'MathSpeed'>('JEE Main');
   const [newFormat, setNewFormat] = useState<'Full Mock' | 'Part Test' | 'Chapter Test'>('Full Mock');
   const [newDifficulty, setNewDifficulty] = useState<'Moderate' | 'Challenging' | 'Advanced'>('Moderate');
   const [newDuration, setNewDuration] = useState(180);
   const [newTotalMarks, setNewTotalMarks] = useState(300);
   const [newTargetBatches, setNewTargetBatches] = useState<string[]>([ACTIVE_ACADEMY_BATCHES[0]]);
-  const [newInitialStatus, setNewInitialStatus] = useState<'Draft' | 'Published'>('Draft');
+  const [newInitialStatus, setNewInitialStatus] = useState<'Draft' | 'Published' | 'Scheduled'>('Draft');
+  const [newScheduledStartTime, setNewScheduledStartTime] = useState('2026-11-05T14:30');
+  const [newScheduledEndTime, setNewScheduledEndTime] = useState('2026-11-12T14:30');
   const [isCreating, setIsCreating] = useState(false);
 
   // SLIDE-OVER METADATA DRAWER STATE
@@ -770,10 +774,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setNewTitle(defaultTitle);
     setNewSlug(defaultTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
     setNewExamType('JEE Main');
+    setNewFormat('Full Mock');
+    setNewDifficulty('Moderate');
     setNewDuration(180);
     setNewTotalMarks(300);
     setNewTargetBatches([ACTIVE_ACADEMY_BATCHES[0]]);
-    setNewInitialStatus('Draft');
+    setNewInitialStatus('Published');
+    setNewScheduledStartTime('2026-11-05T14:30');
+    setNewScheduledEndTime('2026-11-12T14:30');
     setIsCreateModalOpen(true);
   };
 
@@ -786,29 +794,52 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     setIsCreating(true);
     const newId = `ts_jee_${Date.now()}`;
+    const isPartTest = newExamType === 'PartTest' || newFormat === 'Part Test';
+    const isMathSpeed = newExamType === 'MathSpeed';
+
+    const examTypeVal: 'JEE Main' | 'JEE Advanced' | 'BITSAT' =
+      newExamType === 'JEE Advanced'
+        ? 'JEE Advanced'
+        : newExamType === 'BITSAT'
+        ? 'BITSAT'
+        : 'JEE Main';
+
+    const badgeCodeVal = isPartTest
+      ? 'PART TEST'
+      : isMathSpeed
+      ? 'MATH SPEED'
+      : examTypeVal === 'JEE Advanced'
+      ? 'JEE ADVANCED'
+      : examTypeVal === 'BITSAT'
+      ? 'BITSAT'
+      : 'JEE MAIN';
+
     const payload: any = {
       id: newId,
       title: newTitle.trim(),
-      subtitle: `Comprehensive practice module for ${newExamType}`,
+      subtitle: isPartTest
+        ? `Syllabus Unit Part Test for ${examTypeVal}`
+        : isMathSpeed
+        ? 'DK Sir Proprietary 20-30s Math Speed CBT'
+        : `Comprehensive practice module for ${examTypeVal}`,
       slug: newSlug || newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
-      badgeCode:
-        newExamType === 'JEE Advanced'
-          ? 'JEE ADVANCED'
-          : newExamType === 'BITSAT'
-          ? 'BITSAT'
-          : newExamType === 'MathSpeed'
-          ? 'MATH SPEED'
-          : 'JEE MAIN',
-      examType: newExamType === 'MathSpeed' ? 'JEE Main' : newExamType,
-      format: newFormat,
+      badgeCode: badgeCodeVal,
+      examType: examTypeVal,
+      format: isPartTest ? 'Part Test' : newFormat,
       difficulty: newDifficulty,
       durationMinutes: Number(newDuration),
       totalQuestions: 4,
       totalMarks: Number(newTotalMarks),
-      subjects: newExamType === 'MathSpeed' ? ['Mathematics'] : ['Physics', 'Chemistry', 'Mathematics'],
+      subjects: isMathSpeed ? ['Mathematics'] : ['Physics', 'Chemistry', 'Mathematics'],
       targetBatches: newTargetBatches,
       batch: newTargetBatches[0] || 'Ultimate 2-Year Live Classroom (2028)',
       status: newInitialStatus,
+      schedule: newInitialStatus === 'Scheduled' ? {
+        startWindow: newScheduledStartTime ? new Date(newScheduledStartTime).toISOString() : new Date().toISOString(),
+        endWindow: newScheduledEndTime ? new Date(newScheduledEndTime).toISOString() : new Date(Date.now() + 7 * 86400000).toISOString(),
+        autoSubmit: true,
+        computeRank: true
+      } : undefined,
       attemptsCount: 0,
       questions: INITIAL_SAMPLE_QUESTIONS
     };
@@ -820,8 +851,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       badgeCode: payload.badgeCode,
       title: payload.title,
       slug: `/${payload.slug}`,
-      examType: newExamType,
-      format: newFormat,
+      examType: examTypeVal,
+      format: payload.format,
       difficulty: newDifficulty,
       totalTests: 4,
       testsBreakdown: `4 problems • ${payload.totalMarks} marks`,
@@ -829,14 +860,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       createdAtFormatted: 'Just now',
       attemptsCount: 0,
       durationMinutes: payload.durationMinutes,
-      totalMarks: payload.totalMarks
+      totalMarks: payload.totalMarks,
+      schedule: payload.schedule
     };
 
     setTestSeriesList([optimisticItem, ...testSeriesList]);
-    showToast('✓ Test Series Created! Opening Question Builder...');
+    showToast('✓ Test Series Created & Saved to Database! Opening Question Builder...');
     setIsCreateModalOpen(false);
 
-    // Immediately launch the 4-step builder so the admin can add tests & questions
+    // Immediately launch the 4-step builder so the admin can author tests & questions
     setEditingSeriesTitle(payload.title);
     setWizardExamPattern(
       payload.examType === 'JEE Advanced'
@@ -852,6 +884,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     try {
       await apiClient.post('/test-series', payload);
+      cmsService.createTestSeries(payload).catch(() => {});
+      notificationService.addNotification({
+        title: `📝 New Test Series Live: ${payload.title}`,
+        description: `${payload.format} • ${payload.totalMarks} Marks • ${payload.durationMinutes} mins`,
+        type: 'test_series',
+        timestamp: Date.now(),
+        unread: true
+      });
+      window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: payload }));
       await fetchLiveTestSeries();
     } catch (err: any) {
       console.error('Error persisting new test series:', err);
@@ -958,7 +999,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     );
     try {
       await apiClient.put(`/test-series/${item.id}`, { status: 'Archived' });
+      cmsService.updateTestSeries(item.id, { status: 'Archived' as any }).catch(() => {});
+      window.dispatchEvent(new CustomEvent('dk_test_series_updated', { detail: { id: item.id, status: 'Archived' } }));
       showToast(`Test Series "${item.title}" moved to archive`);
+      await fetchLiveTestSeries();
     } catch (err) {
       showToast(`Archived "${item.title}"`);
     }
@@ -1030,7 +1074,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     );
     try {
       await apiClient.put(`/test-series/${item.id}`, { status: 'Archived' });
+      cmsService.updateTestSeries(item.id, { status: 'Archived' as any }).catch(() => {});
+      window.dispatchEvent(new CustomEvent('dk_test_series_updated', { detail: { id: item.id, status: 'Archived' } }));
       showToast(`Test Series "${item.title}" moved to archive`);
+      await fetchLiveTestSeries();
     } catch (err) {
       showToast(`Test Series "${item.title}" moved to archive`);
     }
@@ -1040,9 +1087,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     if (!deleteConfirmItem) return;
     try {
       await apiClient.delete(`/test-series/${deleteConfirmItem.id}`);
+      cmsService.deleteTestSeries(deleteConfirmItem.id).catch(() => {});
+      window.dispatchEvent(new CustomEvent('dk_test_series_deleted', { detail: { id: deleteConfirmItem.id } }));
       setTestSeriesList((prev) => prev.filter((t) => t.id !== deleteConfirmItem.id));
       showToast(`Deleted test series "${deleteConfirmItem.title}"`);
+      await fetchLiveTestSeries();
     } catch (err) {
+      cmsService.deleteTestSeries(deleteConfirmItem.id).catch(() => {});
       setTestSeriesList((prev) => prev.filter((t) => t.id !== deleteConfirmItem.id));
       showToast(`Deleted test series "${deleteConfirmItem.title}"`);
     }
@@ -3148,32 +3199,52 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              {/* Field 2: Target Exam Category & Test Format (Student 2 Dropdowns) */}
+              {/* Field 2: Target Exam Category & Test Format */}
               <div className={styles.twoColumnGrid}>
                 <div className={styles.formGroup}>
-                  <label className={styles.fieldLabel}>Target Exam Category (Filter 1) *</label>
+                  <label className={styles.fieldLabel}>Target Exam Category (Filter Tab) *</label>
                   <select
                     value={newExamType}
-                    onChange={(e) => setNewExamType(e.target.value as any)}
+                    onChange={(e) => {
+                      const val = e.target.value as any;
+                      setNewExamType(val);
+                      if (val === 'PartTest') {
+                        setNewFormat('Part Test');
+                        setNewDuration(90);
+                        setNewTotalMarks(100);
+                      } else if (val === 'MathSpeed') {
+                        setNewFormat('Chapter Test');
+                        setNewDuration(45);
+                        setNewTotalMarks(60);
+                      } else if (val === 'BITSAT') {
+                        setNewDuration(180);
+                        setNewTotalMarks(390);
+                      } else {
+                        setNewFormat('Full Mock');
+                        setNewDuration(180);
+                        setNewTotalMarks(300);
+                      }
+                    }}
                     className={styles.primaryTextInput}
                   >
-                    <option value="JEE Main">JEE Main Filter</option>
-                    <option value="JEE Advanced">JEE Advanced Engine</option>
-                    <option value="BITSAT">BITSAT Speed CBT</option>
-                    <option value="MathSpeed">DK Sir Math Speed</option>
+                    <option value="JEE Main">JEE Main Filter (Full Mock)</option>
+                    <option value="JEE Advanced">JEE Advanced Engine (Full Mock)</option>
+                    <option value="BITSAT">BITSAT Speed CBT (130 Questions)</option>
+                    <option value="PartTest">Part Tests Engine (Structured PCM Part Tests)</option>
+                    <option value="MathSpeed">DK Sir Math Speed (45m Rapid Drill)</option>
                   </select>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label className={styles.fieldLabel}>Test Series Format (Filter 2) *</label>
+                  <label className={styles.fieldLabel}>Test Series Format *</label>
                   <select
                     value={newFormat}
                     onChange={(e) => setNewFormat(e.target.value as any)}
                     className={styles.primaryTextInput}
                   >
-                    <option value="Full Mock">Full Mock (Full-Length Mocks)</option>
-                    <option value="Part Test">Part Test (Part Tests)</option>
-                    <option value="Chapter Test">Chapter Test (Chapter Tests)</option>
+                    <option value="Full Mock">Full Mock (Full-Length CBT Mocks)</option>
+                    <option value="Part Test">Part Test (Syllabus Unit Part Tests)</option>
+                    <option value="Chapter Test">Chapter Test (Targeted Topic Drills)</option>
                   </select>
                 </div>
               </div>
@@ -3247,19 +3318,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              {/* Field 5: Initial Status Radio */}
+              {/* Field 5: Initial Status & Scheduling */}
               <div className={styles.formGroup}>
-                <label className={styles.fieldLabel}>Initial Publishing Status</label>
+                <label className={styles.fieldLabel}>Publishing Status &amp; Scheduling *</label>
                 <div className={styles.radioGroup}>
-                  <label className={styles.radioLabel}>
-                    <input
-                      type="radio"
-                      name="initialStatus"
-                      checked={newInitialStatus === 'Draft'}
-                      onChange={() => setNewInitialStatus('Draft')}
-                    />
-                    <span>Save as Draft (Private)</span>
-                  </label>
                   <label className={styles.radioLabel}>
                     <input
                       type="radio"
@@ -3269,8 +3331,65 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     />
                     <span>Publish Immediately (Live to Students)</span>
                   </label>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="initialStatus"
+                      checked={newInitialStatus === 'Scheduled'}
+                      onChange={() => setNewInitialStatus('Scheduled')}
+                    />
+                    <span>Schedule for Live Window (Exact Date &amp; Time)</span>
+                  </label>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="initialStatus"
+                      checked={newInitialStatus === 'Draft'}
+                      onChange={() => setNewInitialStatus('Draft')}
+                    />
+                    <span>Save as Draft (Private Admin Preview)</span>
+                  </label>
                 </div>
               </div>
+
+              {/* Conditional Scheduling Date & Time Picker */}
+              {newInitialStatus === 'Scheduled' && (
+                <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1e40af', fontWeight: 800, fontSize: '0.85rem', marginBottom: '10px' }}>
+                    <Calendar size={16} />
+                    <span>Live CBT Examination Window Schedule</span>
+                  </div>
+
+                  <div className={styles.twoColumnGrid}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.fieldLabel}>Live Opening Date &amp; Time *</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={newScheduledStartTime}
+                        onChange={(e) => setNewScheduledStartTime(e.target.value)}
+                        className={styles.primaryTextInput}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.fieldLabel}>Closing Date &amp; Time *</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={newScheduledEndTime}
+                        onChange={(e) => setNewScheduledEndTime(e.target.value)}
+                        className={styles.primaryTextInput}
+                      />
+                    </div>
+                  </div>
+
+                  {newScheduledStartTime && (
+                    <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#059669', fontWeight: 700 }}>
+                      ✓ Live test will unlock on: {new Date(newScheduledStartTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Modal Actions */}
               <div className={styles.createModalFooter}>
@@ -3534,7 +3653,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
               <button
                 type="button"
-                className={styles.archiveActionBtn}
+                className={styles.btnArchiveSafeAction}
                 onClick={() => handleArchiveInstead(deleteConfirmItem)}
               >
                 Archive Series Instead
@@ -3542,7 +3661,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
               <button
                 type="button"
-                className={styles.permanentlyDeleteBtn}
+                className={styles.btnPermanentlyDeleteActive}
                 disabled={(deleteConfirmItem.attemptsCount || 0) > 0}
                 onClick={handleDeleteConfirm}
                 title={(deleteConfirmItem.attemptsCount || 0) > 0 ? "Cannot delete series with active student submissions" : "Permanently delete"}

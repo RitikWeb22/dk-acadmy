@@ -66,6 +66,12 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
       courseData.price = Number(courseData.numericPrice);
     }
 
+    // Normalize originalPrice to number
+    if (typeof courseData.originalPrice === 'string') {
+      const parsed = parseInt(courseData.originalPrice.replace(/\D/g, ''), 10);
+      courseData.originalPrice = isNaN(parsed) ? undefined : parsed;
+    }
+
     // Provide sensible defaults for required schema fields
     if (!courseData.category) {
       courseData.category = 'JEE Main & Advanced';
@@ -132,12 +138,21 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
     const id = String(req.params.id);
     const updates = { ...req.body };
 
-    // Normalize price if passed as string
+    // 1. Normalize price if passed as string or numeric
     if (typeof updates.price === 'string') {
       const parsed = parseInt(updates.price.replace(/\D/g, ''), 10);
       updates.price = isNaN(parsed) ? 0 : parsed;
+    } else if (updates.numericPrice !== undefined) {
+      updates.price = Number(updates.numericPrice);
     }
 
+    // 2. Normalize originalPrice if passed as string (e.g. "₹45,000" -> 45000)
+    if (typeof updates.originalPrice === 'string') {
+      const parsed = parseInt(updates.originalPrice.replace(/\D/g, ''), 10);
+      updates.originalPrice = isNaN(parsed) ? undefined : parsed;
+    }
+
+    // 3. Normalize tags
     if (updates.tags) {
       if (!Array.isArray(updates.tags)) {
         updates.tags = typeof updates.tags === 'string'
@@ -146,21 +161,61 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
       }
     }
 
-    const updated = await Course.findOneAndUpdate(
-      { $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { slug: id }] },
+    // 4. Normalize features
+    if (updates.features && typeof updates.features === 'string') {
+      updates.features = [updates.features];
+    }
+
+    // Try finding by _id, slug, or title
+    const searchFilter: any = {
+      $or: [
+        { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null },
+        { slug: id }
+      ]
+    };
+    if (updates.title) {
+      searchFilter.$or.push({ title: updates.title });
+    }
+
+    let updated = await Course.findOneAndUpdate(
+      searchFilter,
       updates,
-      { new: true, runValidators: true }
+      { new: true, runValidators: false }
     );
 
+    // If not found in MongoDB (e.g. was a catalog course not yet saved to DB), UPSERT it!
     if (!updated) {
-      res.status(404).json({ success: false, message: 'Course not found' });
+      const courseSlug = updates.slug || (updates.title ? updates.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : `course-${Date.now()}`);
+      
+      const newCourseDoc = {
+        ...updates,
+        title: updates.title || 'Untitled Course',
+        slug: courseSlug,
+        category: updates.category || 'JEE Main & Advanced',
+        targetClass: updates.targetClass || 'Class 11th',
+        targetYear: updates.targetYear || 'Target JEE 2028',
+        price: typeof updates.price === 'number' ? updates.price : 0,
+        originalPrice: typeof updates.originalPrice === 'number' ? updates.originalPrice : undefined,
+        deliveryMode: updates.deliveryMode || updates.mode || 'Online Live',
+        mode: updates.mode || updates.deliveryMode || 'Online Live',
+        isPublished: updates.isPublished !== false,
+        status: updates.status || 'published'
+      };
+
+      updated = await Course.create(newCourseDoc);
+      broadcastCourseCreated(updated);
+      res.status(200).json({
+        success: true,
+        message: 'Course created and persisted to MongoDB successfully',
+        data: updated
+      });
       return;
     }
 
     broadcastCourseUpdated(updated);
     res.status(200).json({
       success: true,
-      message: 'Course updated successfully',
+      message: 'Course updated successfully in MongoDB',
       data: updated
     });
   } catch (error: any) {

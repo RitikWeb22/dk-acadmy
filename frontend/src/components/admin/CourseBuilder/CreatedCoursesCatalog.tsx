@@ -121,7 +121,7 @@ export const CreatedCoursesCatalog: React.FC<CreatedCoursesCatalogProps> = ({
         tier: (numPrice === 0 ? 'Free' : editForm.tier) as any,
         price: numPrice === 0 ? '₹0 Free' : `₹${numPrice.toLocaleString('en-IN')}`,
         numericPrice: numPrice,
-        originalPrice: numOrig > 0 ? `₹${numOrig.toLocaleString('en-IN')}` : undefined,
+        originalPrice: numOrig > 0 ? (numOrig as any) : undefined,
         instructor: editForm.instructor.trim(),
         status: editForm.status
       };

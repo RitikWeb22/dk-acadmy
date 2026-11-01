@@ -9,14 +9,15 @@
   bottom: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background-color: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: $space-4;
-  z-index: 999999;
+  z-index: 9999999;
+  overflow-y: auto;
   animation: fadeIn 0.18s ease-out;
 }
 

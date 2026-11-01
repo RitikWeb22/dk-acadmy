@@ -1494,25 +1494,68 @@ export const cmsService = {
   async updateCourse(id: string, updates: Partial<Course>): Promise<Course | null> {
     const courses = this.getCourses();
     const index = courses.findIndex((c) => c.id === id || (c as any)._id === id || (c as any).slug === id);
-    if (index === -1) return null;
 
-    const updatedCourse: Course = {
-      ...courses[index],
-      ...updates
+    const numPrice = typeof updates.price === 'number'
+      ? updates.price
+      : typeof updates.numericPrice === 'number'
+      ? updates.numericPrice
+      : typeof updates.price === 'string'
+      ? parseInt(updates.price.replace(/\D/g, '') || '0', 10)
+      : undefined;
+
+    const numOrig = typeof (updates as any).originalPrice === 'number'
+      ? (updates as any).originalPrice
+      : typeof (updates as any).originalPrice === 'string'
+      ? parseInt((updates as any).originalPrice.replace(/\D/g, '') || '0', 10)
+      : undefined;
+
+    const cleanPayload: any = {
+      ...updates,
+      ...(numPrice !== undefined ? { price: numPrice, numericPrice: numPrice } : {}),
+      ...(numOrig !== undefined ? { originalPrice: numOrig } : {})
     };
-    courses[index] = updatedCourse;
-    localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(courses));
-    this.notifyUpdate('courses');
 
-    // Sync update to MongoDB backend API
-    const targetKey = (courses[index] as any)._id || courses[index].slug || courses[index].id;
+    const targetKey = index !== -1 ? ((courses[index] as any)._id || courses[index].slug || courses[index].id) : id;
+
     try {
-      await apiClient.put(`/courses/${targetKey}`, updates);
+      const res = await apiClient.put<any>(`/courses/${targetKey}`, cleanPayload);
+      if (res && res.data) {
+        const mongoDoc = res.data;
+        const enriched: Course = {
+          ...(index !== -1 ? courses[index] : {}),
+          ...updates,
+          title: (updates.title || (index !== -1 ? courses[index].title : mongoDoc.title) || 'Untitled Course'),
+          _id: mongoDoc._id,
+          id: mongoDoc._id || id,
+          slug: mongoDoc.slug || (updates as any).slug || id,
+          numericPrice: numPrice ?? (courses[index]?.numericPrice || 0),
+          price: updates.price || (numPrice === 0 ? '₹0 Free' : numPrice ? `₹${numPrice.toLocaleString('en-IN')}` : courses[index]?.price || '₹0 Free')
+        } as Course;
+
+        const updatedCourses = index !== -1
+          ? courses.map((c, i) => (i === index ? enriched : c))
+          : [enriched, ...courses];
+
+        localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(updatedCourses));
+        this.notifyUpdate('courses');
+        return enriched;
+      }
     } catch (err) {
       console.warn('[cmsService] MongoDB update warning:', err);
     }
 
-    return updatedCourse;
+    if (index !== -1) {
+      const updatedCourse: Course = {
+        ...courses[index],
+        ...updates
+      };
+      courses[index] = updatedCourse;
+      localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(courses));
+      this.notifyUpdate('courses');
+      return updatedCourse;
+    }
+
+    return null;
   },
 
   async deleteCourse(id: string): Promise<boolean> {
