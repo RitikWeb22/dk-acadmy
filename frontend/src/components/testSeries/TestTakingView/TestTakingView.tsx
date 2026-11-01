@@ -35,9 +35,10 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, TestQuestionResponse>>(() => {
     const initial = { ...savedResponses };
-    // Mark first question as visited
-    if (test.questions.length > 0) {
-      const q1Id = test.questions[0].id;
+    // Mark first question as visited safely
+    if (test?.questions && test.questions.length > 0) {
+      const q1 = test.questions[0];
+      const q1Id = q1?.id || (q1 as any)?._id || 'q-0';
       if (!initial[q1Id]) {
         initial[q1Id] = { isMarkedForReview: false, isVisited: true };
       } else {
@@ -54,19 +55,44 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
 
+  // Safe empty questions fallback
+  if (!test?.questions || test.questions.length === 0) {
+    return (
+      <div className={styles.testContainer}>
+        <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '520px', margin: '40px auto', background: '#FFFFFF', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0F172A', marginBottom: '8px' }}>
+            No Questions Available
+          </h2>
+          <p style={{ fontSize: '14px', color: '#64748B', lineHeight: '1.6', marginBottom: '24px' }}>
+            Questions for <strong>"{test?.title || 'this mock exam'}"</strong> are currently being authored or synced by the faculty.
+          </p>
+          <button
+            type="button"
+            style={{ padding: '10px 24px', background: '#2563EB', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+            onClick={onExitTest}
+          >
+            ← Return to Test Series Catalog
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const totalQuestions = test.questions.length;
-  const currentQuestion = test.questions[currentIndex];
-  const currentResponse = responses[currentQuestion.id] || { isMarkedForReview: false, isVisited: true };
+  const currentQuestion = test.questions[currentIndex] || test.questions[0];
+  const currentQuestionId = currentQuestion?.id || (currentQuestion as any)?._id || `q-${currentIndex}`;
+  const currentResponse = (currentQuestionId && responses[currentQuestionId]) || { isMarkedForReview: false, isVisited: true };
 
   // Helper to change question index and mark target question as visited
   const navigateToQuestion = (targetIndex: number) => {
     setCurrentIndex(targetIndex);
     const targetQ = test.questions[targetIndex];
-    if (targetQ && !responses[targetQ.id]?.isVisited) {
+    const targetQId = targetQ?.id || (targetQ as any)?._id;
+    if (targetQId && !responses[targetQId]?.isVisited) {
       const updated = {
         ...responses,
-        [targetQ.id]: {
-          ...(responses[targetQ.id] || { isMarkedForReview: false }),
+        [targetQId]: {
+          ...(responses[targetQId] || { isMarkedForReview: false }),
           isVisited: true,
         },
       };
@@ -86,9 +112,10 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   // Handle option selection
   const handleSelectOption = (optionId: string) => {
+    if (!currentQuestionId) return;
     const updated = {
       ...responses,
-      [currentQuestion.id]: {
+      [currentQuestionId]: {
         ...currentResponse,
         selectedOption: optionId,
         isVisited: true,
@@ -100,12 +127,13 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   // Clear current response
   const handleClearResponse = () => {
+    if (!currentQuestionId) return;
     const nextResponse = { ...currentResponse };
     delete nextResponse.selectedOption;
 
     const updated = {
       ...responses,
-      [currentQuestion.id]: nextResponse,
+      [currentQuestionId]: nextResponse,
     };
     setResponses(updated);
     onSaveProgress(updated);
@@ -113,9 +141,10 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   // Toggle Mark for Review
   const handleToggleMark = () => {
+    if (!currentQuestionId) return;
     const updated = {
       ...responses,
-      [currentQuestion.id]: {
+      [currentQuestionId]: {
         ...currentResponse,
         isMarkedForReview: !currentResponse.isMarkedForReview,
         isVisited: true,
@@ -209,7 +238,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
           {test.subjects.map((sub) => {
             const isActive = sub === currentSubject;
             const subQuestions = test.questions.filter((q) => q.subject === sub);
-            const subAnswered = subQuestions.filter((q) => Boolean(responses[q.id]?.selectedOption)).length;
+            const subAnswered = subQuestions.filter((q) => Boolean(responses[q.id || (q as any)?._id]?.selectedOption)).length;
 
             return (
               <button
@@ -260,19 +289,20 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               role="radiogroup"
               aria-label={`Options for Question ${currentIndex + 1}`}
             >
-              {currentQuestion.options.map((opt) => {
-                const isSelected = currentResponse.selectedOption === opt.id;
+              {(currentQuestion.options || []).map((opt, oIdx) => {
+                const optId = opt.id || ['A', 'B', 'C', 'D'][oIdx] || 'A';
+                const isSelected = currentResponse.selectedOption === optId;
 
                 return (
                   <button
-                    key={opt.id}
+                    key={optId}
                     type="button"
                     role="radio"
                     aria-checked={isSelected}
                     className={`${styles.optionBtn} ${isSelected ? styles.selectedOption : ''}`}
-                    onClick={() => handleSelectOption(opt.id)}
+                    onClick={() => handleSelectOption(optId)}
                   >
-                    <div className={styles.radioLetter}>{opt.id}</div>
+                    <div className={styles.radioLetter}>{optId}</div>
                     <div className={styles.optionText}>
                       <MathText text={opt.text} />
                     </div>
