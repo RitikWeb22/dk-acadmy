@@ -22,6 +22,7 @@ import { TestResultsView } from '../../components/testSeries/TestResultsView/Tes
 import { AnswerReviewView } from '../../components/testSeries/AnswerReviewView/AnswerReviewView';
 import { TestEmptyState } from '../../components/testSeries/TestEmptyState/TestEmptyState';
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
+import { requestFullScreen, exitFullScreen } from '../../utils/fullscreen';
 import type { TestSeriesItem } from '../../types';
 import styles from './TestSeriesPage.module.scss';
 
@@ -314,13 +315,25 @@ export const TestSeriesPage: React.FC = () => {
 
   // Start test from instructions modal
   const handleStartTest = (testId: string) => {
+    requestFullScreen().catch(() => {});
     setInstructionsModalTestId(null);
     setActiveTestId(testId);
 
-    // Initialize attempt with timestamp if not existing
+    const now = Date.now();
+    const targetTest = testSeriesList.find((t) => t.id === testId);
+    const testDurationMinutes = Number(targetTest?.durationMinutes) > 0 ? Number(targetTest?.durationMinutes) : 180;
+
+    // Initialize attempt with timestamp if not existing or if stale/expired
     setAttempts((prev) => {
       const existing = prev[testId];
-      if (existing && existing.status === 'In Progress') {
+      const existingStart = existing?.startTime ?? 0;
+      const isExistingActive =
+        Boolean(existing) &&
+        existing?.status === 'In Progress' &&
+        existingStart > 0 &&
+        now - existingStart < testDurationMinutes * 60 * 1000;
+
+      if (isExistingActive) {
         return prev;
       }
 
@@ -329,7 +342,7 @@ export const TestSeriesPage: React.FC = () => {
         [testId]: {
           testId,
           status: 'In Progress',
-          startTime: Date.now(),
+          startTime: now,
           timeSpentSeconds: 0,
           responses: {},
           isSubmitted: false,
@@ -343,6 +356,7 @@ export const TestSeriesPage: React.FC = () => {
 
   // Resume an in-progress test
   const handleResumeTest = (testId: string) => {
+    requestFullScreen().catch(() => {});
     setActiveTestId(testId);
     setViewState('test');
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -373,6 +387,7 @@ export const TestSeriesPage: React.FC = () => {
 
   // Submit test
   const handleSubmitTest = (responses: Record<string, TestQuestionResponse>) => {
+    exitFullScreen().catch(() => {});
     if (!activeTestId) return;
 
     setAttempts((prev) => {
@@ -424,6 +439,7 @@ export const TestSeriesPage: React.FC = () => {
 
   // Return to catalog
   const handleBackToCatalog = () => {
+    exitFullScreen().catch(() => {});
     setActiveTestId(null);
     setViewState('catalog');
   };
@@ -511,7 +527,11 @@ export const TestSeriesPage: React.FC = () => {
         {viewState === 'test' && activeTest && (
           <TestTakingView
             test={activeTest}
-            startTime={attempts[activeTest.id]?.startTime ?? 0}
+            startTime={
+              (attempts[activeTest.id]?.startTime ?? 0) > 0
+                ? (attempts[activeTest.id]?.startTime as number)
+                : Date.now()
+            }
             savedResponses={attempts[activeTest.id]?.responses || {}}
             onSaveProgress={handleSaveProgress}
             onSubmitTest={handleSubmitTest}

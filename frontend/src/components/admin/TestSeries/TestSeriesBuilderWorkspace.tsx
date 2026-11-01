@@ -2632,9 +2632,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               <ChevronLeft size={16} />
               <span>← Back to Test Series Table</span>
             </button>
-            <div className={styles.wizardStatusTag}>
-              <Sparkles size={14} className={styles.sparkleIcon} />
-              <span>Editing: {editingSeriesTitle}</span>
+            <div className={styles.wizardTitleWrap}>
+              <h1 className={styles.wizardMainH1}>Test Series Builder &amp; Examination Engine</h1>
+              <span className={styles.wizardSubtitle}>Editing: {editingSeriesTitle}</span>
             </div>
           </div>
 
@@ -3201,8 +3201,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             currentEditingQuestion?.id === q.id ? styles.qTabPillActive : ''
                           }`}
                           onClick={() => setSelectedQuestionId(q.id)}
+                          title={`Question ${idx + 1}: ${q.topicTag || 'Problem'}`}
                         >
-                          <span>Q{idx + 1}: {q.topicTag || 'Problem'}</span>
+                          <span>Q{idx + 1}</span>
                         </button>
                       ))}
                     </div>
@@ -3221,7 +3222,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           color: '#2563eb',
                           background: '#eff6ff',
                           border: '1px solid #bfdbfe',
-                          borderRadius: '6px',
+                          borderRadius: '8px',
                           cursor: 'pointer'
                         }}
                         title="Smart paste full question from PDF/Word with automatic math format extraction"
@@ -3244,30 +3245,18 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   {/* Question Editor */}
                   {currentEditingQuestion && (
                     <div className={styles.questionEditorCard}>
+                      {/* 1. Header Toolbar (Actions & Identification) */}
                       <div className={styles.qEditorHeader}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                           <span className={styles.qIndexPill}>
-                            Q{currentEditingQuestion.index} • Sec A
+                            Q{currentEditingQuestion.index} • Section A
                           </span>
-                          <select
-                            value={currentEditingQuestion.subject}
-                            onChange={(e) => updateCurrentQuestion({ subject: e.target.value as any })}
-                            className={styles.primarySelect}
-                            style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
-                          >
-                            <option value="Mathematics">Mathematics</option>
-                            <option value="Physics">Physics</option>
-                            <option value="Chemistry">Chemistry</option>
-                          </select>
-                          <input
-                            type="text"
-                            value={currentEditingQuestion.topicTag}
-                            onChange={(e) => updateCurrentQuestion({ topicTag: e.target.value })}
-                            placeholder="Topic Tag (e.g. 3D Geometry)"
-                            className={styles.topicInput}
-                          />
+                          <span className={styles.topicBadgePill}>
+                            {currentEditingQuestion.topicTag || 'General Problem'}
+                          </span>
                         </div>
 
+                        {/* Question Actions Toolbar */}
                         <div className={styles.qEditorActionsRow}>
                           <button
                             type="button"
@@ -3289,6 +3278,49 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               <span>Delete</span>
                             </button>
                           )}
+                        </div>
+                      </div>
+
+                      {/* 2. Metadata Context Bar (Subject & Topic) */}
+                      <div className={styles.qMetadataRow}>
+                        <div className={styles.metaFieldItem}>
+                          <label className={styles.metaFieldLabel}>Subject:</label>
+                          <select
+                            value={currentEditingQuestion.subject}
+                            onChange={(e) => updateCurrentQuestion({ subject: e.target.value as any })}
+                            className={styles.primarySelect}
+                            style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
+                          >
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Physics">Physics</option>
+                            <option value="Chemistry">Chemistry</option>
+                          </select>
+                        </div>
+
+                        <div className={styles.metaFieldItem} style={{ flex: 1 }}>
+                          <label className={styles.metaFieldLabel}>Topic Tag:</label>
+                          <input
+                            type="text"
+                            value={currentEditingQuestion.topicTag}
+                            onChange={(e) => updateCurrentQuestion({ topicTag: e.target.value })}
+                            placeholder="Topic Tag (e.g. 3D Geometry, Vectors)"
+                            className={styles.topicInput}
+                            style={{ width: '100%', height: '32px' }}
+                          />
+                        </div>
+
+                        <div className={styles.metaFieldItem}>
+                          <label className={styles.metaFieldLabel}>Difficulty:</label>
+                          <select
+                            value={currentEditingQuestion.difficulty}
+                            onChange={(e) => updateCurrentQuestion({ difficulty: e.target.value as any })}
+                            className={styles.primarySelect}
+                            style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
+                          >
+                            <option value="EASY">Easy</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HARD">Hard</option>
+                          </select>
                         </div>
                       </div>
 
@@ -3321,80 +3353,90 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                       {/* Options Grid */}
                       <div className={styles.optionsList}>
-                        {currentEditingQuestion.options.map((opt) => (
-                          <div key={opt.key} className={styles.optionRowItem} style={{ alignItems: 'flex-start' }}>
-                            <label className={styles.radioKeyWrap} style={{ marginTop: '8px' }}>
-                              <input
-                                type="radio"
-                                name="correctKey"
-                                checked={currentEditingQuestion.correctKey === opt.key}
-                                onChange={() => updateCurrentQuestion({ correctKey: opt.key })}
-                              />
-                              <span className={styles.optionKeyCircle}>{opt.key}</span>
-                            </label>
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              <input
-                                type="text"
-                                value={opt.text}
-                                onChange={(e) => {
-                                  const newOpts = currentEditingQuestion.options.map((o) =>
-                                    o.key === opt.key ? { ...o, text: e.target.value } : o
-                                  );
-                                  updateCurrentQuestion({ options: newOpts });
-                                }}
-                                className={styles.optionTextInput}
-                                placeholder={`Option ${opt.key} text or formula (e.g. \\sqrt{3}/2, x^2 + 1)`}
-                              />
-                              {opt.text && (
-                                <div style={{ fontSize: '12px', color: '#475569', padding: '2px 8px', background: '#f8fafc', borderRadius: '4px', border: '1px dashed #cbd5e1' }}>
-                                  <span style={{ fontSize: '10px', color: '#94a3b8', marginRight: '6px', fontWeight: 700 }}>PREVIEW:</span>
-                                  <MathText text={opt.text} />
-                                </div>
+                        {currentEditingQuestion.options.map((opt) => {
+                          const hasFormula = Boolean(opt.text && (/[\$\\^_{}]/.test(opt.text) || /\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|frac|dfrac|sqrt|alpha|beta|gamma|pi)\b/i.test(opt.text)));
+                          return (
+                            <div key={opt.key} className={styles.optionRowItem} style={{ alignItems: 'flex-start' }}>
+                              <label className={styles.radioKeyWrap} style={{ marginTop: '8px' }}>
+                                <input
+                                  type="radio"
+                                  name="correctKey"
+                                  checked={currentEditingQuestion.correctKey === opt.key}
+                                  onChange={() => updateCurrentQuestion({ correctKey: opt.key })}
+                                />
+                                <span className={styles.optionKeyCircle}>{opt.key}</span>
+                              </label>
+                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <input
+                                  type="text"
+                                  value={opt.text}
+                                  onChange={(e) => {
+                                    const newOpts = currentEditingQuestion.options.map((o) =>
+                                      o.key === opt.key ? { ...o, text: e.target.value } : o
+                                    );
+                                    updateCurrentQuestion({ options: newOpts });
+                                  }}
+                                  className={styles.optionTextInput}
+                                  placeholder={`Option ${opt.key} text or formula (e.g. \\sqrt{3}/2, x^2 + 1)`}
+                                />
+                                {hasFormula && (
+                                  <div style={{ fontSize: '12px', color: '#334155', padding: '3px 8px', background: '#F8FAFC', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                                    <MathText text={opt.text} />
+                                  </div>
+                                )}
+                              </div>
+                              {currentEditingQuestion.correctKey === opt.key && (
+                                <span className={styles.correctKeyTag} style={{ marginTop: '8px' }}>✓ Answer Key</span>
                               )}
                             </div>
-                            {currentEditingQuestion.correctKey === opt.key && (
-                              <span className={styles.correctKeyTag} style={{ marginTop: '8px' }}>✓ Answer Key</span>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
-                      {/* Kota Shortcut Card */}
-                      <div className={styles.kotaTrickHighlightCard}>
-                        <div className={styles.trickHeader}>
-                          <Zap size={15} />
-                          <strong>DK Sir Kota 20-30s Inspection Trick:</strong>
+                      {/* Supplementary Solutions & Tricks Group */}
+                      <div className={styles.solutionsGroupingSection}>
+                        <div className={styles.solutionsGroupHeader}>
+                          <Sparkles size={15} color="#2563EB" />
+                          <span>Detailed Solutions &amp; Speed Shortcuts (Visible Post-Exam)</span>
                         </div>
-                        <textarea
-                          rows={2}
-                          value={currentEditingQuestion.shortcutTrick}
-                          onChange={(e) => updateCurrentQuestion({ shortcutTrick: e.target.value })}
-                          placeholder="Key speed formula, visual inspection rule, or option-elimination trick..."
-                        />
-                        {currentEditingQuestion.shortcutTrick && (
-                          <div style={{ marginTop: '6px', fontSize: '12px', color: '#1e3a8a', background: 'rgba(239, 246, 255, 0.6)', padding: '6px 10px', borderRadius: '6px' }}>
-                            <MathText text={currentEditingQuestion.shortcutTrick} />
-                          </div>
-                        )}
-                      </div>
 
-                      {/* Detailed Solution Derivation Card */}
-                      <div className={styles.solutionExplanationCard}>
-                        <div className={styles.solutionHeader}>
-                          <FileText size={15} />
-                          <strong>Detailed Step-by-Step Mathematical Solution Derivation:</strong>
-                        </div>
-                        <textarea
-                          rows={3}
-                          value={currentEditingQuestion.solutionDerivation || ''}
-                          onChange={(e) => updateCurrentQuestion({ solutionDerivation: e.target.value })}
-                          placeholder="Provide the comprehensive step-by-step derivation, formula steps, and reasoning..."
-                        />
-                        {currentEditingQuestion.solutionDerivation && (
-                          <div style={{ marginTop: '6px', fontSize: '12.5px', color: '#1e293b', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                            <MathText text={currentEditingQuestion.solutionDerivation} />
+                        {/* Kota Shortcut Card */}
+                        <div className={styles.kotaTrickHighlightCard}>
+                          <div className={styles.trickHeader}>
+                            <Zap size={15} color="#D97706" />
+                            <strong>DK Sir Kota 20-30s Inspection Trick:</strong>
                           </div>
-                        )}
+                          <textarea
+                            rows={2}
+                            value={currentEditingQuestion.shortcutTrick}
+                            onChange={(e) => updateCurrentQuestion({ shortcutTrick: e.target.value })}
+                            placeholder="Key speed formula, visual inspection rule, or option-elimination trick..."
+                          />
+                          {currentEditingQuestion.shortcutTrick && (
+                            <div style={{ marginTop: '6px', fontSize: '12px', color: '#92400E', background: 'rgba(254, 243, 199, 0.5)', padding: '6px 10px', borderRadius: '6px' }}>
+                              <MathText text={currentEditingQuestion.shortcutTrick} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Detailed Solution Derivation Card */}
+                        <div className={styles.solutionExplanationCard}>
+                          <div className={styles.solutionHeader}>
+                            <FileText size={15} color="#2563EB" />
+                            <strong>Detailed Step-by-Step Mathematical Solution Derivation:</strong>
+                          </div>
+                          <textarea
+                            rows={3}
+                            value={currentEditingQuestion.solutionDerivation || ''}
+                            onChange={(e) => updateCurrentQuestion({ solutionDerivation: e.target.value })}
+                            placeholder="Provide the comprehensive step-by-step derivation, formula steps, and reasoning..."
+                          />
+                          {currentEditingQuestion.solutionDerivation && (
+                            <div style={{ marginTop: '6px', fontSize: '12.5px', color: '#1e293b', background: '#FFFFFF', padding: '8px 12px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                              <MathText text={currentEditingQuestion.solutionDerivation} />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

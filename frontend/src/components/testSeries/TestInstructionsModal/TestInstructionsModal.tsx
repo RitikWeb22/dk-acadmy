@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Clock, HelpCircle, Award, AlertTriangle, CheckCircle, ShieldCheck } from 'lucide-react';
 import type { TestSeriesItem } from '../../../types';
+import { requestFullScreen } from '../../../utils/fullscreen';
 import styles from './TestInstructionsModal.module.scss';
 
 interface TestInstructionsModalProps {
@@ -128,7 +129,10 @@ export const TestInstructionsModal: React.FC<TestInstructionsModalProps> = ({
           <button
             type="button"
             className={styles.startBtn}
-            onClick={() => onStartTest(test.id)}
+            onClick={async () => {
+              await requestFullScreen();
+              onStartTest(test.id);
+            }}
           >
             Start Test Now
           </button>

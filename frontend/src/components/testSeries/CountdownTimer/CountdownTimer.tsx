@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock, AlertTriangle } from 'lucide-react';
 import styles from './CountdownTimer.module.scss';
 
@@ -13,21 +13,46 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
   durationMinutes,
   onTimeExpire,
 }) => {
-  const targetEndTime = startTime + durationMinutes * 60 * 1000;
+  // Ensure valid duration: fallback to 180 mins (standard JEE mock) if missing or non-positive
+  const safeDuration = Number(durationMinutes) > 0 ? Number(durationMinutes) : 180;
+
+  // Track valid startTime ref to prevent re-renders or premature resets
+  const safeStartTimeRef = useRef<number>(
+    Number(startTime) > 0 ? Number(startTime) : Date.now()
+  );
+
+  // If a valid positive startTime prop arrives or changes later from parent
+  useEffect(() => {
+    if (Number(startTime) > 0 && Math.abs(safeStartTimeRef.current - Number(startTime)) > 1000) {
+      safeStartTimeRef.current = Number(startTime);
+    }
+  }, [startTime]);
+
+  const targetEndTime = safeStartTimeRef.current + safeDuration * 60 * 1000;
 
   // Calculate remaining seconds directly from clock timestamps to prevent drift
   const calculateRemainingSeconds = useCallback(() => {
-    const diff = Math.floor((targetEndTime - Date.now()) / 1000);
+    const now = Date.now();
+    const diff = Math.floor((targetEndTime - now) / 1000);
     return Math.max(0, diff);
   }, [targetEndTime]);
 
   const [remainingSeconds, setRemainingSeconds] = useState<number>(calculateRemainingSeconds);
+  const expireTriggeredRef = useRef(false);
+
+  // Sync remaining seconds when targetEndTime updates
+  useEffect(() => {
+    setRemainingSeconds(calculateRemainingSeconds());
+  }, [calculateRemainingSeconds]);
 
   useEffect(() => {
-    // Initial check in case it's already expired
-    if (calculateRemainingSeconds() <= 0) {
-      onTimeExpire();
-      return;
+    // Initial check: if genuinely expired and not triggered yet
+    if (calculateRemainingSeconds() <= 0 && !expireTriggeredRef.current) {
+      expireTriggeredRef.current = true;
+      const t = setTimeout(() => {
+        onTimeExpire();
+      }, 500);
+      return () => clearTimeout(t);
     }
 
     const intervalId = window.setInterval(() => {
@@ -36,7 +61,10 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
 
       if (remaining <= 0) {
         window.clearInterval(intervalId);
-        onTimeExpire();
+        if (!expireTriggeredRef.current) {
+          expireTriggeredRef.current = true;
+          onTimeExpire();
+        }
       }
     }, 1000);
 
@@ -47,9 +75,10 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
 
   // Format time as HH:MM:SS or MM:SS
   const formatTime = (totalSecs: number) => {
-    const hours = Math.floor(totalSecs / 3600);
-    const minutes = Math.floor((totalSecs % 3600) / 60);
-    const seconds = totalSecs % 60;
+    const safeSecs = isNaN(totalSecs) || totalSecs < 0 ? 0 : totalSecs;
+    const hours = Math.floor(safeSecs / 3600);
+    const minutes = Math.floor((safeSecs % 3600) / 60);
+    const seconds = safeSecs % 60;
 
     const pad = (n: number) => String(n).padStart(2, '0');
 

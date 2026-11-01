@@ -1520,7 +1520,7 @@
 /* Step 3 Question Editor */
 .questionEditorCard {
   border: 1px solid #E2E8F0;
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -1537,22 +1537,63 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F1F5F9;
 }
 
 .qIndexPill {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1D4ED8;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  padding: 5px 12px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
+}
+
+.topicBadgePill {
   font-size: 12px;
-  font-weight: 700;
-  color: #0F172A;
+  font-weight: 600;
+  color: #475569;
   background: #F1F5F9;
+  border: 1px solid #E2E8F0;
   padding: 4px 10px;
   border-radius: 6px;
+}
+
+.qMetadataRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.metaFieldItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metaFieldLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
 }
 
 .topicInput {
   height: 32px;
   padding: 0 10px;
   border: 1px solid #CBD5E1;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 12px;
   min-width: 140px;
   max-width: 100%;
@@ -1608,10 +1649,33 @@
 }
 
 .previewLabel {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  color: #64748B;
+  color: #475569;
   letter-spacing: 0.5px;
+}
+
+.solutionsGroupingSection {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.solutionsGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.01em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #E2E8F0;
 }
 
 .mathRenderedBox {

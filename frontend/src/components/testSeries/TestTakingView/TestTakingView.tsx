@@ -14,6 +14,7 @@ import { QuestionPalette } from '../QuestionPalette/QuestionPalette';
 import { SubmitConfirmationModal } from '../SubmitConfirmationModal/SubmitConfirmationModal';
 import styles from './TestTakingView.module.scss';
 import { MathText } from '../../ui/MathText/MathText';
+import { requestFullScreen, exitFullScreen, isFullScreenActive } from '../../../utils/fullscreen';
 
 interface TestTakingViewProps {
   test: TestSeriesItem;
@@ -64,25 +65,37 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
   const [isFullscreenWarningOpen, setIsFullscreenWarningOpen] = useState(false);
   const [isDisqualified, setIsDisqualified] = useState(false);
   const [cloudSyncText, setCloudSyncText] = useState('☁️ Cloud Synced');
-  const [isFullscreenActive, setIsFullscreenActive] = useState<boolean>(() => Boolean(document.fullscreenElement));
+  const [isFullscreenActiveState, setIsFullscreenActiveState] = useState<boolean>(() => isFullScreenActive());
 
   const enterFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
-        setIsFullscreenActive(true);
-      }
-    } catch (err) {
-      console.warn('[Proctor] Fullscreen request:', err);
+    const success = await requestFullScreen();
+    if (success) {
+      setIsFullscreenActiveState(true);
     }
   };
 
-  // Fullscreen monitor
+  // Auto-enter fullscreen upon mount if not already in fullscreen
   useEffect(() => {
+    if (fullScreenLock && !isFullScreenActive()) {
+      requestFullScreen().then((success) => {
+        if (success) {
+          setIsFullscreenActiveState(true);
+        }
+      });
+    }
+  }, [fullScreenLock]);
+
+  // Fullscreen monitor with grace period
+  useEffect(() => {
+    let proctorArmed = false;
+    const graceTimer = setTimeout(() => {
+      proctorArmed = true;
+    }, 1500);
+
     const handleFullscreenChange = () => {
-      const isFs = Boolean(document.fullscreenElement);
-      setIsFullscreenActive(isFs);
-      if (fullScreenLock && !isFs && !isDisqualified) {
+      const isFs = isFullScreenActive();
+      setIsFullscreenActiveState(isFs);
+      if (proctorArmed && fullScreenLock && !isFs && !isDisqualified) {
         setIsFullscreenWarningOpen(true);
         setTabStrikes((prev) => {
           const next = prev + 1;
@@ -95,7 +108,12 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      clearTimeout(graceTimer);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
   }, [fullScreenLock, tabSwitchLimit, isDisqualified]);
 
   // Tab switch & focus loss monitor
@@ -304,12 +322,14 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   // Automatic submission when timer expires
   const handleTimerExpire = () => {
+    exitFullScreen().catch(() => {});
     setIsConfirmOpen(false);
     onSubmitTest(responses);
   };
 
   // Final submission confirmed by student
   const handleConfirmSubmit = () => {
+    exitFullScreen().catch(() => {});
     setIsConfirmOpen(false);
     onSubmitTest(responses);
   };
@@ -355,7 +375,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               Proctored {tabSwitchLimit < 999 && `(Strikes: ${tabStrikes}/${tabSwitchLimit})`}
             </span>
             <span className={styles.cloudSyncBadge}>{cloudSyncText}</span>
-            {fullScreenLock && !isFullscreenActive && (
+            {fullScreenLock && !isFullscreenActiveState && (
               <button
                 type="button"
                 className={styles.fullscreenBtn}
@@ -611,6 +631,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
                 type="button"
                 className={styles.leaveBtn}
                 onClick={() => {
+                  exitFullScreen().catch(() => {});
                   setIsExitWarningOpen(false);
                   onExitTest();
                 }}
@@ -688,6 +709,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               type="button"
               className={styles.proctorDisqualifiedBtn}
               onClick={() => {
+                exitFullScreen().catch(() => {});
                 setIsDisqualified(false);
                 onSubmitTest(responses);
               }}
