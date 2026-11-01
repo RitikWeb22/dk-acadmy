@@ -49,7 +49,7 @@ const INITIAL_FACULTY: FacultyItem[] = [
     name: 'Dharmendra Kumar (DK Sir)',
     department: 'Mathematics',
     specialization: 'Director & HOD Mathematics',
-    email: 'director@dkacademy.com',
+    email: 'dharmendra@dkacademy.com',
     mobile: '+91 93259 87875',
     role: 'Super Admin',
     status: 'ACTIVE',
@@ -80,17 +80,7 @@ const INITIAL_FACULTY: FacultyItem[] = [
 ];
 
 export const FacultyManagementWorkspace: React.FC = () => {
-  const [facultyList, setFacultyList] = useState<FacultyItem[]>(() => {
-    try {
-      const deletedRaw = localStorage.getItem('dk_academy_deleted_faculty_ids') || '[]';
-      const deletedList = JSON.parse(deletedRaw);
-      return INITIAL_FACULTY.filter(
-        (f) => !deletedList.includes(f.id) && !deletedList.includes(f.email.toLowerCase())
-      );
-    } catch {
-      return INITIAL_FACULTY;
-    }
-  });
+  const [facultyList, setFacultyList] = useState<FacultyItem[]>(() => INITIAL_FACULTY);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -146,33 +136,23 @@ export const FacultyManagementWorkspace: React.FC = () => {
           const mapped: FacultyItem[] = res.data.map((u: any) => ({
             id: u.teacherId || u._id || generateTeacherId(),
             name: u.name,
-            department: u.role === 'SUPER_ADMIN' ? 'Administration' : 'Faculty Department',
-            specialization: u.role === 'SUPER_ADMIN' ? 'Executive Director' : 'Academic Faculty',
+            department: u.department || (u.role === 'SUPER_ADMIN' ? 'Administration' : 'Faculty Department'),
+            specialization: u.designation || (u.role === 'SUPER_ADMIN' ? 'Executive Director' : 'Academic Faculty'),
             email: u.email,
             mobile: u.phone || '+91 98112 34567',
             role: (u.role === 'SUPER_ADMIN' ? 'Super Admin' : u.role === 'ADMIN' ? 'Admin' : 'Faculty') as any,
             status: 'ACTIVE',
             batchesCount: 2,
             batchesList: ['JEE Rankers Batch'],
-            joinedAt: 'Recent'
+            joinedAt: u.createdAt
+              ? new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+              : 'Recent'
           }));
 
-          let deletedList: string[] = [];
+          setFacultyList(mapped);
           try {
-            deletedList = JSON.parse(localStorage.getItem('dk_academy_deleted_faculty_ids') || '[]');
+            localStorage.setItem('dk_academy_admin_accounts_v1', JSON.stringify(mapped));
           } catch {}
-
-          const filteredMapped = mapped.filter(
-            (f) =>
-              !deletedList.includes(f.id) &&
-              !deletedList.includes(f.email.toLowerCase())
-          );
-
-          setFacultyList((prev) => {
-            const existingEmails = new Set(prev.map((f) => f.email.toLowerCase()));
-            const newOnes = filteredMapped.filter((f) => !existingEmails.has(f.email.toLowerCase()));
-            return [...newOnes, ...prev];
-          });
         }
       } catch (err) {
         console.warn('[FacultyManagement] Staff sync note:', err);

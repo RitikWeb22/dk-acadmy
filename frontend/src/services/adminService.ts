@@ -134,16 +134,31 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleDefinition> = {
   }
 };
 
-// Pre-seeded authorized staff accounts: Strictly ONLY Real Super Admin Ritik
+// Pre-seeded authorized staff accounts: Strictly genuine Super Admins
 const INITIAL_ADMIN_ACCOUNTS: (AdminUser & { passwordHash: string })[] = [
   {
     id: 'adm_super_01',
+    name: 'Dharmendra Kumar (DK Sir)',
+    email: 'dharmendra@dkacademy.com',
+    role: 'SUPER_ADMIN',
+    designation: 'Director & Academic Council Head',
+    department: 'Directorate & Academic Council',
+    phone: '+91 93259 87875',
+    avatarUrl: '/img/logo.jpeg',
+    isActive: true,
+    permissions: ROLE_DEFINITIONS.SUPER_ADMIN.defaultPermissions,
+    lastLoginTimestamp: Date.now() - 1000 * 60 * 30,
+    createdAt: Date.now() - 86400000 * 365 * 2,
+    passwordHash: 'admin123'
+  },
+  {
+    id: 'adm_super_02',
     name: 'Ritik (Super Admin)',
     email: 'ritikweb30@gmail.com',
     role: 'SUPER_ADMIN',
     designation: 'Super Administrator & Founder',
     department: 'Directorate & Academic Council',
-    phone: '+91 98765 43210',
+    phone: '+91 82873 84970',
     avatarUrl: '/img/logo.jpeg',
     isActive: true,
     permissions: ROLE_DEFINITIONS.SUPER_ADMIN.defaultPermissions,

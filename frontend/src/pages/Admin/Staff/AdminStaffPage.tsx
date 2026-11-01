@@ -11,6 +11,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { adminService, ROLE_DEFINITIONS } from '../../../services/adminService';
+import { apiClient } from '../../../services/apiClient';
 import { useAdminAuth } from '../../../context/AdminAuthContext';
 import type { AdminUser, AdminRole } from '../../../types/admin';
 import styles from './AdminStaffPage.module.scss';
@@ -33,7 +34,29 @@ export const AdminStaffPage: React.FC = () => {
     password: ''
   });
 
-  const refreshList = () => {
+  const refreshList = async () => {
+    try {
+      const res = await apiClient.get('/auth/staff');
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped: AdminUser[] = res.data.map((u: any) => ({
+          id: u._id || u.teacherId || `staff_${Date.now()}`,
+          name: u.name,
+          email: u.email,
+          role: u.role as AdminRole,
+          designation: u.designation || (u.role === 'SUPER_ADMIN' ? 'Executive Director' : 'Academic Faculty'),
+          department: u.department || 'Academic Department',
+          phone: u.phone,
+          avatarUrl: u.avatarUrl || '',
+          isActive: true,
+          permissions: ROLE_DEFINITIONS[u.role as AdminRole]?.defaultPermissions || [],
+          lastLoginTimestamp: Date.now(),
+          createdAt: u.createdAt ? new Date(u.createdAt).getTime() : Date.now()
+        }));
+        setStaff(mapped);
+        return;
+      }
+    } catch {}
+
     setStaff(adminService.getStaffAccounts());
   };
 

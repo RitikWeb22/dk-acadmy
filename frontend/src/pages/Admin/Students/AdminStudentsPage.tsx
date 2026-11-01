@@ -11,6 +11,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
+import { apiClient } from '../../../services/apiClient';
 import { useAdminAuth } from '../../../context/AdminAuthContext';
 import styles from './AdminStudentsPage.module.scss';
 
@@ -34,7 +35,29 @@ export const AdminStudentsPage: React.FC = () => {
   const [examFilter, setExamFilter] = useState('ALL');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const refreshList = () => {
+  const refreshList = async () => {
+    try {
+      const res = await apiClient.get('/auth/students');
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped: StudentAccount[] = res.data.map((u: any) => ({
+          id: u._id || u.studentId || `std_${Date.now()}`,
+          name: u.name,
+          email: u.email,
+          phone: u.phone,
+          targetExam: u.targetExam || 'JEE Main & Advanced',
+          targetClass: u.targetClass || 'Class 11',
+          targetYear: u.targetYear || '2026',
+          enrolledCourseIds: Array.isArray(u.enrolledCourses) ? u.enrolledCourses : [],
+          joinedDate: u.createdAt
+            ? new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+            : 'Recent',
+          isActive: true
+        }));
+        setStudents(mapped);
+        return;
+      }
+    } catch {}
+
     const raw = adminService.getStudentAccounts();
     // Normalize active state
     setStudents(
