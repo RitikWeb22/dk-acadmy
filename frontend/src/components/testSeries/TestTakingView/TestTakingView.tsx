@@ -330,11 +330,11 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
   };
 
   // Automatic submission when timer expires
-  const handleTimerExpire = () => {
+  const handleTimerExpire = React.useCallback(() => {
     exitFullScreen().catch(() => {});
     setIsConfirmOpen(false);
     onSubmitTest(responses);
-  };
+  }, [onSubmitTest, responses]);
 
   // Final submission confirmed by student
   const handleConfirmSubmit = () => {
