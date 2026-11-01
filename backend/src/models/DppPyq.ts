@@ -9,11 +9,13 @@ export interface IProblemQuestion {
   id: string;
   qNum: number;
   statement: string;
+  statementBlocks?: any[];
   topic: string;
   options: IProblemOption[];
   correctKey: 'A' | 'B' | 'C' | 'D';
   dkSirShortcut?: string;
   stepSolution: string;
+  stepSolutionBlocks?: any[];
   difficulty: 'Easy' | 'Moderate' | 'Challenging';
   examYear?: string;
   year?: number | string;

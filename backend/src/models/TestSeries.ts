@@ -12,6 +12,7 @@ export interface ITestQuestion {
   subject: string;
   chapter?: string;
   statement: string;
+  statementBlocks?: any[];
   imageUrl?: string;
   options: ITestOption[];
   correctAnswer: string;
@@ -19,6 +20,7 @@ export interface ITestQuestion {
   negativeMarks: number;
   formulaKey?: string;
   explanation?: string;
+  explanationBlocks?: any[];
   shortcutTrick?: string;
   videoSolutionUrl?: string;
 }
@@ -91,6 +93,7 @@ const questionSchema = new Schema<ITestQuestion>(
     subject: { type: String, default: 'General' },
     chapter: { type: String, default: 'General' },
     statement: { type: String, default: '' },
+    statementBlocks: { type: [Schema.Types.Mixed], default: undefined },
     imageUrl: { type: String },
     options: { type: [optionSchema], default: [] },
     correctAnswer: { type: String, default: 'A' },
@@ -98,6 +101,7 @@ const questionSchema = new Schema<ITestQuestion>(
     negativeMarks: { type: Number, default: 1 },
     formulaKey: { type: String },
     explanation: { type: String },
+    explanationBlocks: { type: [Schema.Types.Mixed], default: undefined },
     shortcutTrick: { type: String },
     videoSolutionUrl: { type: String }
   },

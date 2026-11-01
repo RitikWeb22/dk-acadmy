@@ -1,25 +1,15 @@
-import React, { useMemo } from 'react';
-import katex from 'katex';
-import styles from './MathText.module.scss';
+import React from 'react';
+import { MathRenderer } from '../MathEngine/MathRenderer';
 
-interface MathTextProps {
+export interface MathTextProps {
   text?: string;
   className?: string;
   displayMode?: boolean;
 }
 
 /**
- * High-Precision KaTeX Mathematical Typography Renderer
- * Powered by KaTeX (NTA JEE / IIT Advanced standard)
- * 
- * Supports:
- * - Block Display Math: $$ ... $$ and \[ ... \]
- * - Inline Math: $ ... $ and \( ... \)
- * - Unwrapped Raw LaTeX Formulas: e.g. \cot^{-1}\left(\beta + \frac{1+\beta^2}{\alpha-\beta}\right)
- * - Greek letters: \alpha, \beta, \gamma, \theta, \lambda, \mu, \pi, \sigma, \omega...
- * - Advanced calculus: \int_{a}^{b}, \sum_{i=1}^{n}, \lim_{x \to 0}, \vec{v}, \sqrt{...}
- * - Inverse trigonometric & hyperbolic: \cot^{-1}, \sin^{-1}, \tan^{-1}...
- * - Nested fractions with dynamic sizing brackets \left( ... \right)
+ * Universal MathText component (Backward-compatible adapter for MathRenderer)
+ * Powered by MathRenderer (MathJax + KaTeX hybrid engine)
  */
 export const MathText: React.FC<MathTextProps> = ({
   text,
@@ -28,252 +18,13 @@ export const MathText: React.FC<MathTextProps> = ({
 }) => {
   if (!text || typeof text !== 'string') return null;
 
-  const renderedContent = useMemo(() => {
-    return renderMathString(text, displayMode);
-  }, [text, displayMode]);
-
   return (
-    <span
-      className={`${styles.mathContainer} ${className}`}
-      dangerouslySetInnerHTML={{ __html: renderedContent }}
+    <MathRenderer
+      content={text}
+      displayMode={displayMode}
+      className={className}
     />
   );
 };
-
-/**
- * Escapes HTML characters in plain text to prevent XSS
- */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-/**
- * Safely renders a LaTeX formula into HTML using KaTeX
- */
-function renderKaTeX(formula: string, isDisplay: boolean): string {
-  const clean = formula
-    .trim()
-    .replace(/\\\\([a-zA-Z]+)/g, '\\$1'); // unescape duplicate backslashes e.g. \\frac -> \frac
-
-  try {
-    return katex.renderToString(clean, {
-      displayMode: isDisplay,
-      throwOnError: false,
-      output: 'htmlAndMathml',
-      strict: false,
-      trust: false
-    });
-  } catch (err: any) {
-    console.warn('[KaTeX Render Warning]:', err?.message || err);
-    return `<span class="katex-fallback" style="font-family: 'Cambria Math', serif; font-style: italic;">${escapeHtml(clean)}</span>`;
-  }
-}
-
-/**
- * Normalizes Unicode mathematical typography, symbols, roots, integrals, and fractions
- * into clean LaTeX KaTeX-compatible expressions.
- */
-function normalizeUnicodeMath(text: string): string {
-  if (!text) return '';
-
-  let res = text;
-
-  // 1. Integral with limits: ∫_0^2 or ∫_{0}^{2} -> \int_{0}^{2}
-  res = res.replace(/∫_\{?([0-9a-zA-Z]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\int_{$1}^{$2} ');
-  res = res.replace(/∫/g, '\\int ');
-
-  // 2. Summation / Product: ∑_0^n -> \sum_{0}^{n}
-  res = res.replace(/∑_\{?([0-9a-zA-Z=]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\sum_{$1}^{$2} ');
-  res = res.replace(/∑/g, '\\sum ');
-  res = res.replace(/∏/g, '\\prod ');
-
-  // 3. Square roots: √( ... ) with up to 2 levels of nested parentheses
-  res = res.replace(/√\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (m, g1) => `\\sqrt{${g1.trim()}}`);
-  res = res.replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}');
-  res = res.replace(/√/g, '\\sqrt');
-
-  // 4. Clean superfluous enclosing parens around \sqrt in products: e.g. (\sqrt{A})(\sqrt{B}) -> \sqrt{A}\sqrt{B}
-  res = res.replace(/\(\\sqrt\{([^{}]+)\}\)/g, '\\sqrt{$1}');
-
-  // 5. Fractions: A / ( B ) or A / B where numerator is \sqrt or parens
-  res = res.replace(/((?:\\sqrt\{[^{}]*\}|\([a-zA-Z0-9_\^+\-*/ ]+\)|[a-zA-Z0-9_\^]+))\s*\/\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (m, num, den) => {
-    let cleanDen = den.trim();
-    while (cleanDen.startsWith('(') && cleanDen.endsWith(')')) {
-      cleanDen = cleanDen.slice(1, -1).trim();
-    }
-    cleanDen = cleanDen.replace(/\(\\sqrt\{([^{}]+)\}\)/g, '\\sqrt{$1}');
-    return `\\frac{${num.trim()}}{${cleanDen}}`;
-  });
-
-  // 6. Common unicode superscripts to standard exponents
-  res = res.replace(/²/g, '^2');
-  res = res.replace(/³/g, '^3');
-  res = res.replace(/⁴/g, '^4');
-  res = res.replace(/⁻¹/g, '^{-1}');
-
-  // 7. Inverse trig
-  res = res.replace(/\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
-  res = res.replace(/\b(cot|tan|sin|cos|sec|csc)⁻¹/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
-
-  // 8. Common math symbols to LaTeX
-  res = res.replace(/±/g, '\\pm ');
-  res = res.replace(/≠/g, '\\neq ');
-  res = res.replace(/≤/g, '\\le ');
-  res = res.replace(/≥/g, '\\ge ');
-  res = res.replace(/×/g, '\\times ');
-  res = res.replace(/÷/g, '\\div ');
-  res = res.replace(/∞/g, '\\infty ');
-  res = res.replace(/°/g, '^\\circ ');
-
-  // 9. Greek letters
-  res = res.replace(/α/g, '\\alpha ');
-  res = res.replace(/β/g, '\\beta ');
-  res = res.replace(/γ/g, '\\gamma ');
-  res = res.replace(/θ/g, '\\theta ');
-  res = res.replace(/λ/g, '\\lambda ');
-  res = res.replace(/π/g, '\\pi ');
-  res = res.replace(/μ/g, '\\mu ');
-  res = res.replace(/σ/g, '\\sigma ');
-  res = res.replace(/ω/g, '\\omega ');
-  res = res.replace(/Δ/g, '\\Delta ');
-
-  return res;
-}
-
-/**
- * Determines whether a string is a standalone raw LaTeX formula (without dollar signs)
- */
-function isStandaloneMathFormula(str: string): boolean {
-  const trimmed = str.trim();
-  if (!trimmed) return false;
-
-  // Prominent LaTeX operators/commands at start
-  if (/^\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|theta|lambda|pi|sigma|omega|mathbf|mathrm|left|begin|matrix)\b/i.test(trimmed)) {
-    return true;
-  }
-
-  // Contains math-specific commands and lacks typical English sentence words
-  const hasMathCommands = /\\(?:frac|dfrac|sqrt|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega|cdot|times|div|pm|mp|le|ge|neq|approx|equiv|forall|exists|in|notin|subset|subseteq|cap|cup|int|sum|prod|lim|infty|partial|nabla|to|rightarrow|Rightarrow|Leftarrow|Leftrightarrow|left|right|cot|tan|sin|cos|sec|csc)\b/.test(trimmed);
-
-  if (hasMathCommands) {
-    // Check if it's primarily math or a prose sentence with math
-    const commonProseWords = trimmed.match(/\b(the|is|are|was|were|then|find|where|given|value|which|following|statement|correct|incorrect|true|false|between|above|below)\b/gi);
-    if (!commonProseWords || commonProseWords.length === 0) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Automatically wraps un-delimited LaTeX equations in $...$ or $$...$$
- */
-function autoWrapMathDelimiters(text: string): string {
-  if (!text || text.includes('$')) return text;
-
-  const trimmed = text.trim();
-  const hasLaTeX = /\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left|right|begin|matrix)\b/.test(trimmed);
-
-  if (!hasLaTeX) return text;
-
-  if (isStandaloneMathFormula(trimmed)) {
-    return `$$${trimmed}$$`;
-  }
-
-  // Enclose LaTeX formulas found in prose
-  return text.replace(
-    /(\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|prod|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|left)[\s\S]*?)(?=(?:\s+(?:is|are|was|were|then|where|find|if|when|such|that)\b|[.,;?!]\s+[A-Z]|$))/gi,
-    (match) => `$${match.trim()}$`
-  );
-}
-
-/**
- * Main parser that parses text containing mixed math ($...$, $$...$$, \(...\), \[...\], raw LaTeX)
- * and returns safe HTML with KaTeX rendered nodes.
- */
-function renderMathString(rawText: string, forceDisplay: boolean = false): string {
-  let normalized = rawText
-    // Unescape literal \n that might come from JSON or raw text
-    .replace(/\\r\\n/g, '\n')
-    // Convert \[...\] to $$...$$
-    .replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$')
-    // Convert \(...\) to $...$
-    .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
-
-  // Pre-normalize Unicode math symbols and plain-text math notation (e.g. ∫_0^2, √(x...) )
-  normalized = normalizeUnicodeMath(normalized);
-
-  // Auto-wrap unescaped LaTeX expressions into $...$ or $$...$$
-  normalized = autoWrapMathDelimiters(normalized);
-
-  // If the entire string is a standalone formula without delimiters, render it directly
-  if (!normalized.includes('$') && isStandaloneMathFormula(normalized)) {
-    return `<div class="${styles.displayMathWrapper}">${renderKaTeX(normalized, true)}</div>`;
-  }
-
-  // Tokenize by math delimiters ($$...$$ and $...$)
-  const tokenRegex = /(\$\$[\s\S]*?\$\$|\$[^\$]+?\$)/g;
-  const parts = normalized.split(tokenRegex);
-
-  let htmlResult = '';
-
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (!part) continue;
-
-    if (part.startsWith('$$') && part.endsWith('$$') && part.length >= 4) {
-      // Display Math
-      const formula = part.slice(2, -2);
-      htmlResult += `<div class="${styles.displayMathWrapper}">${renderKaTeX(formula, true)}</div>`;
-    } else if (part.startsWith('$') && part.endsWith('$') && part.length >= 2) {
-      // Inline Math
-      const formula = part.slice(1, -1);
-      htmlResult += `<span class="${styles.inlineMathWrapper}">${renderKaTeX(formula, false)}</span>`;
-    } else {
-      // Plain text or unescaped inline formulas within text
-      htmlResult += renderTextSegmentWithEmbeddedMath(part);
-    }
-  }
-
-  return htmlResult;
-}
-
-/**
- * Handles plain text segments that may have unwrapped math snippets (e.g. \frac{1}{2}, x^2, \alpha)
- */
-function renderTextSegmentWithEmbeddedMath(segment: string): string {
-  // Check if segment has any LaTeX commands or math symbols
-  const latexRegex = /(\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|frac|dfrac|sqrt|vec|alpha|beta|gamma|delta|theta|lambda|pi|sigma|omega|pm|times|div|le|ge|neq|approx|infty)\b(?:\{[^}]*\}|\[[^\]]*\]|\^[0-9a-zA-Z{}-]+|_[0-9a-zA-Z{}-]+|\([^)]*\)|[a-zA-Z0-9_\^\{\}\+\-\=\/\* ]*)*)/g;
-
-  if (!latexRegex.test(segment)) {
-    // Safe standard text with preserved newlines
-    return escapeHtml(segment).replace(/\n/g, '<br />');
-  }
-
-  // Reset regex index
-  latexRegex.lastIndex = 0;
-
-  const subParts = segment.split(latexRegex);
-  let out = '';
-
-  for (let j = 0; j < subParts.length; j++) {
-    const sub = subParts[j];
-    if (!sub) continue;
-
-    if (sub.startsWith('\\') && isStandaloneMathFormula(sub)) {
-      out += `<span class="${styles.inlineMathWrapper}">${renderKaTeX(sub, false)}</span>`;
-    } else {
-      out += escapeHtml(sub).replace(/\n/g, '<br />');
-    }
-  }
-
-  return out;
-}
 
 export default MathText;
