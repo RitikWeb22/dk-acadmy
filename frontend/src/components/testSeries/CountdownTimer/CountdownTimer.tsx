@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Clock, AlertTriangle } from 'lucide-react';
 import styles from './CountdownTimer.module.scss';
 
@@ -14,46 +14,50 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
   onTimeExpire,
 }) => {
   // Ensure valid duration: fallback to 180 mins (standard JEE mock) if missing or non-positive
-  const safeDuration = Number(durationMinutes) > 0 ? Number(durationMinutes) : 180;
+  const safeDuration = Number(durationMinutes) > 0 ? Math.floor(Number(durationMinutes)) : 180;
+  const totalDurationMs = safeDuration * 60 * 1000;
 
-  // Track valid startTime ref to prevent re-renders or premature resets
-  const safeStartTimeRef = useRef<number>(
-    Number(startTime) > 0 ? Number(startTime) : Date.now()
-  );
-
-  // If a valid positive startTime prop arrives or changes later from parent
+  // Keep latest onTimeExpire callback in a ref to avoid resetting timer interval on user answers
+  const onTimeExpireRef = useRef(onTimeExpire);
   useEffect(() => {
-    if (Number(startTime) > 0 && Math.abs(safeStartTimeRef.current - Number(startTime)) > 1000) {
-      safeStartTimeRef.current = Number(startTime);
+    onTimeExpireRef.current = onTimeExpire;
+  }, [onTimeExpire]);
+
+  // Determine a valid start timestamp:
+  // If startTime is a positive number and not in the past beyond total duration, use it.
+  // If it's expired or invalid (e.g. 0, negative, stale localStorage), treat current time as fresh start.
+  const getSafeStartTime = (inputTime: number): number => {
+    const now = Date.now();
+    const s = Number(inputTime);
+    if (s > 0 && (now - s) >= 0 && (now - s) < totalDurationMs) {
+      return s;
     }
-  }, [startTime]);
+    return now;
+  };
 
-  const targetEndTime = safeStartTimeRef.current + safeDuration * 60 * 1000;
+  const [activeStartTime, setActiveStartTime] = useState<number>(() => getSafeStartTime(startTime));
 
-  // Calculate remaining seconds directly from clock timestamps to prevent drift
-  const calculateRemainingSeconds = useCallback(() => {
+  // Sync activeStartTime if startTime prop updates from parent
+  useEffect(() => {
+    const valid = getSafeStartTime(startTime);
+    setActiveStartTime(valid);
+  }, [startTime, totalDurationMs]);
+
+  const targetEndTime = activeStartTime + totalDurationMs;
+
+  const calculateRemainingSeconds = (): number => {
     const now = Date.now();
     const diff = Math.floor((targetEndTime - now) / 1000);
     return Math.max(0, diff);
-  }, [targetEndTime]);
+  };
 
   const [remainingSeconds, setRemainingSeconds] = useState<number>(calculateRemainingSeconds);
   const expireTriggeredRef = useRef(false);
 
-  // Sync remaining seconds when targetEndTime updates
   useEffect(() => {
-    setRemainingSeconds(calculateRemainingSeconds());
-  }, [calculateRemainingSeconds]);
-
-  useEffect(() => {
-    // Initial check: if genuinely expired and not triggered yet
-    if (calculateRemainingSeconds() <= 0 && !expireTriggeredRef.current) {
-      expireTriggeredRef.current = true;
-      const t = setTimeout(() => {
-        onTimeExpire();
-      }, 500);
-      return () => clearTimeout(t);
-    }
+    expireTriggeredRef.current = false;
+    const initialRemaining = calculateRemainingSeconds();
+    setRemainingSeconds(initialRemaining);
 
     const intervalId = window.setInterval(() => {
       const remaining = calculateRemainingSeconds();
@@ -63,7 +67,7 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
         window.clearInterval(intervalId);
         if (!expireTriggeredRef.current) {
           expireTriggeredRef.current = true;
-          onTimeExpire();
+          onTimeExpireRef.current?.();
         }
       }
     }, 1000);
@@ -71,9 +75,9 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [calculateRemainingSeconds, onTimeExpire]);
+  }, [targetEndTime]);
 
-  // Format time as HH:MM:SS or MM:SS
+  // Format time as standard NTA CBT examination clock: HH:MM:SS
   const formatTime = (totalSecs: number) => {
     const safeSecs = isNaN(totalSecs) || totalSecs < 0 ? 0 : totalSecs;
     const hours = Math.floor(safeSecs / 3600);
@@ -81,11 +85,7 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
     const seconds = safeSecs % 60;
 
     const pad = (n: number) => String(n).padStart(2, '0');
-
-    if (hours > 0) {
-      return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-    }
-    return `${pad(minutes)}:${pad(seconds)}`;
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
   };
 
   const isLowTime = remainingSeconds <= 300 && remainingSeconds > 60; // < 5 mins

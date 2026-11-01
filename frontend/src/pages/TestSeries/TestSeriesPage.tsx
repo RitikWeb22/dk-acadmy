@@ -358,6 +358,32 @@ export const TestSeriesPage: React.FC = () => {
   const handleResumeTest = (testId: string) => {
     requestFullScreen().catch(() => {});
     setActiveTestId(testId);
+
+    const now = Date.now();
+    const targetTest = testSeriesList.find((t) => t.id === testId || (t as any)._id === testId);
+    const testDurationMinutes = Number(targetTest?.durationMinutes) > 0 ? Number(targetTest?.durationMinutes) : 180;
+
+    setAttempts((prev) => {
+      const existing = prev[testId];
+      const existingStart = existing?.startTime ?? 0;
+      const isExpired = !existingStart || now - existingStart >= testDurationMinutes * 60 * 1000;
+
+      if (isExpired) {
+        return {
+          ...prev,
+          [testId]: {
+            testId,
+            status: 'In Progress',
+            startTime: now,
+            timeSpentSeconds: 0,
+            responses: existing?.responses || {},
+            isSubmitted: false,
+          },
+        };
+      }
+      return prev;
+    });
+
     setViewState('test');
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
@@ -463,16 +489,26 @@ export const TestSeriesPage: React.FC = () => {
   // When active exam is taking place, render completely isolated fullscreen interface
   // (No public header, no website navbar, no footer, no padding)
   if (viewState === 'test' && activeTest) {
+    const activeKey = activeTest.id || (activeTest as any)._id || 'test';
+    const currentAttempt = attempts[activeKey] || attempts[activeTest.id];
+    const durationMins = Number(activeTest.durationMinutes) > 0 ? Number(activeTest.durationMinutes) : 180;
+    const durationMs = durationMins * 60 * 1000;
+    const now = Date.now();
+    const isAttemptValid =
+      Boolean(currentAttempt) &&
+      currentAttempt?.status === 'In Progress' &&
+      typeof currentAttempt?.startTime === 'number' &&
+      currentAttempt.startTime > 0 &&
+      now - currentAttempt.startTime < durationMs;
+
+    const effectiveStartTime = isAttemptValid && currentAttempt?.startTime ? currentAttempt.startTime : now;
+
     return (
       <div className={styles.fullscreenCbtWrapper}>
         <TestTakingView
           test={activeTest}
-          startTime={
-            (attempts[activeTest.id]?.startTime ?? 0) > 0
-              ? (attempts[activeTest.id]?.startTime as number)
-              : Date.now()
-          }
-          savedResponses={attempts[activeTest.id]?.responses || {}}
+          startTime={effectiveStartTime}
+          savedResponses={currentAttempt?.responses || {}}
           onSaveProgress={handleSaveProgress}
           onSubmitTest={handleSubmitTest}
           onExitTest={handleBackToCatalog}
