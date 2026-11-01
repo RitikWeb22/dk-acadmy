@@ -9,11 +9,50 @@ import { DPPEmptyState } from '../../components/dpp/DPPEmptyState/DPPEmptyState'
 import { DPPPracticeView } from '../../components/dpp/DPPPracticeView/DPPPracticeView';
 import { DPPResults } from '../../components/dpp/DPPResults/DPPResults';
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
+import { apiClient } from '../../services/apiClient';
 import type { DPPSet } from '../../types';
 import styles from './DPPPage.module.scss';
 
 // Local storage session key for DPP practice attempts
 const DPP_STORAGE_KEY = 'dk_academy_dpp_attempts_v1';
+
+const mapDppPyqToDPPSet = (item: any): DPPSet => {
+  const qs = Array.isArray(item.questions) ? item.questions : [];
+  return {
+    id: item.id || item._id,
+    title: item.title,
+    subject:
+      item.subject === 'Physics' || item.subject === 'Chemistry' || item.subject === 'Mathematics'
+        ? item.subject
+        : 'Mathematics',
+    chapter: item.chapter || item.categoryLabel || 'Comprehensive Practice',
+    topic: item.categoryLabel || item.title,
+    difficulty: (item.difficulty as any) || 'Moderate',
+    estimatedMinutes: Math.max(15, qs.length * 3),
+    pdfUrl: item.pdfUrl || '/assets/downloads/st line-2.pdf',
+    videoWalkthroughUrl: item.videoWalkthroughUrl || '',
+    questions: qs.map((q: any, idx: number) => ({
+      id: q.id || `q-${item.id}-${idx + 1}`,
+      questionNumber: q.qNum || idx + 1,
+      statement: q.statement || 'Question statement',
+      options:
+        Array.isArray(q.options) && q.options.length > 0
+          ? q.options.map((opt: any, optIdx: number) => ({
+              id: opt.key || opt.id || ['A', 'B', 'C', 'D'][optIdx] || 'A',
+              text: opt.text || ''
+            }))
+          : [
+              { id: 'A', text: 'Option A' },
+              { id: 'B', text: 'Option B' },
+              { id: 'C', text: 'Option C' },
+              { id: 'D', text: 'Option D' }
+            ],
+      correctAnswer: q.correctKey || q.correctAnswer || 'A',
+      explanation: q.stepSolution || q.explanation || 'Detailed step-by-step solution.',
+      formulaKey: q.dkSirShortcut || 'DK Sir 20s Inspection Rule'
+    }))
+  };
+};
 
 export const DPPPage: React.FC = () => {
   const [dppList, setDppList] = useState<DPPSet[]>(() => cmsService.getDPPSets());
@@ -21,21 +60,52 @@ export const DPPPage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    cmsService.fetchDPPSetsFromAPI().then((items) => {
-      if (isMounted && items && items.length > 0) {
-        setDppList(items);
+    const loadAllDPPs = async () => {
+      try {
+        const [cmsItems, dppPyqRes] = await Promise.all([
+          cmsService.fetchDPPSetsFromAPI().catch(() => []),
+          apiClient.get<any>('/dpp-pyq?moduleType=DPP').catch(() => [])
+        ]);
+
+        if (!isMounted) return;
+
+        const liveList = Array.isArray(dppPyqRes) ? dppPyqRes : dppPyqRes?.data || [];
+        const liveMapped: DPPSet[] = [];
+        if (Array.isArray(liveList)) {
+          liveList.forEach((set: any) => {
+            if (set.moduleType === 'DPP' || !set.moduleType) {
+              liveMapped.push(mapDppPyqToDPPSet(set));
+            }
+          });
+        }
+
+        const combinedMap = new Map<string, DPPSet>();
+        (cmsItems || []).forEach((set) => combinedMap.set(set.id, set));
+        liveMapped.forEach((set) => combinedMap.set(set.id, set));
+        const combined = Array.from(combinedMap.values());
+        if (combined.length > 0 && isMounted) {
+          setDppList(combined);
+        }
+      } catch (err) {
+        console.warn('Error syncing DPP sets:', err);
       }
-    }).catch(() => {});
+    };
+
+    loadAllDPPs();
 
     const handleUpdate = (e: any) => {
       if (e?.detail?.type === 'dpp' && isMounted) {
-        setDppList(cmsService.getDPPSets());
+        loadAllDPPs();
       }
     };
     window.addEventListener(CMS_EVENT_KEY, handleUpdate);
+    window.addEventListener('dk_dpp_pyq_created', loadAllDPPs);
+    window.addEventListener('dk_dpp_pyq_updated', loadAllDPPs);
     return () => {
       isMounted = false;
       window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
+      window.removeEventListener('dk_dpp_pyq_created', loadAllDPPs);
+      window.removeEventListener('dk_dpp_pyq_updated', loadAllDPPs);
     };
   }, []);
 

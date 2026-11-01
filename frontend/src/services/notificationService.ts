@@ -31,15 +31,20 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${diffDays}d ago`;
 };
 
+const isStudentOnlyNotification = (title: string): boolean => {
+  const t = title.toLowerCase();
+  return t.includes('doubt answered') || t.includes('doubt resolved') || t.includes('resolved:');
+};
+
 export const notificationService = {
   getNotifications(): AdminNotificationItem[] {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed: AdminNotificationItem[] = JSON.parse(raw);
-        // Exclude any misdirected 'Doubt Answered' from admin notifications
+        // Exclude any misdirected 'Doubt Answered' or 'Doubt Resolved' from admin notifications
         return parsed
-          .filter((n) => !n.title.toLowerCase().includes('doubt answered'))
+          .filter((n) => !isStudentOnlyNotification(n.title))
           .map((n) => ({
             ...n,
             time: formatTimeAgo(n.timestamp || Date.now())
@@ -52,7 +57,7 @@ export const notificationService = {
   },
 
   saveNotifications(items: AdminNotificationItem[]): void {
-    const cleaned = items.filter((n) => !n.title.toLowerCase().includes('doubt answered'));
+    const cleaned = items.filter((n) => !isStudentOnlyNotification(n.title));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned.slice(0, 50)));
     window.dispatchEvent(
       new CustomEvent(NOTIFICATIONS_EVENT_KEY, { detail: cleaned })
@@ -60,8 +65,8 @@ export const notificationService = {
   },
 
   addNotification(item: Omit<AdminNotificationItem, 'id' | 'time'>): AdminNotificationItem {
-    // If somehow a Doubt Answered notification reaches here, ignore it for Admin
-    if (item.title.toLowerCase().includes('doubt answered')) {
+    // If a student-only notification reaches here, ignore it for Admin
+    if (isStudentOnlyNotification(item.title)) {
       return { ...item, id: '', time: '' } as AdminNotificationItem;
     }
 

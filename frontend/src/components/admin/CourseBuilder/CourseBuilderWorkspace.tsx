@@ -2657,7 +2657,7 @@ export const CourseBuilderWorkspace: React.FC = () => {
                       <span className={styles.statusBoxHeading}>Ready for Public Catalog</span>
                     </div>
                     <p className={styles.statusBoxText}>
-                      Real-time live WebSocket broadcast will notify enrolled students across the platform upon publishing.
+                      Enrolled students will be notified instantly across the platform upon publishing.
                     </p>
                   </div>
                 </div>

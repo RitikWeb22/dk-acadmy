@@ -228,7 +228,6 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
         setDoubts((prev) =>
           prev.map((d) => (d._id === updatedDoubt.doubtId || d._id === updatedDoubt._id ? { ...d, ...updatedDoubt, status: 'ANSWERED' } : d))
         );
-        showToast(`⚡ Socket.IO Alert: Doubt answered by ${updatedDoubt.answeredBy || 'DK Sir'} & dispatched to ${updatedDoubt.studentEmail}!`);
       }
     };
 
@@ -423,7 +422,7 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
         soundEffects.playAdminAlertChime();
         setDoubts((prev) => [res.data, ...prev]);
         setIsNewDoubtModalOpen(false);
-        showToast(`❓ New student doubt raised! Socket.IO event doubt:new broadcasted.`);
+        showToast('❓ New student doubt submitted successfully!');
       }
     } catch (err: any) {
       showToast(err?.message || 'Failed to create student doubt');
@@ -635,7 +634,7 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
           <div>
             <h1 className={styles.pageTitle}>Course Reviews &amp; Academic Doubt Solver</h1>
             <p className={styles.pageSubtitle}>
-              Live student ratings, moderation controls, and real-time interactive Doubt Solver with direct Socket.IO student notifications.
+              Live student ratings, moderation controls, and real-time interactive Doubt Solver with direct student notifications.
             </p>
           </div>
         </div>
@@ -794,7 +793,7 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
         {/* Metric 5: Resolved Doubts */}
         <div className={styles.kpiCard}>
           <div className={styles.kpiHeader}>
-            <span className={styles.kpiLabel}>Resolved via Socket</span>
+            <span className={styles.kpiLabel}>Resolved Doubts</span>
             <div className={styles.kpiIconWrap} style={{ background: '#ECFDF5', color: '#059669' }}>
               <CheckCircle2 size={16} />
             </div>
@@ -802,7 +801,7 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
           <div className={styles.kpiValueRow}>
             <span className={styles.kpiValue}>{answeredDoubtsCount}</span>
           </div>
-          <span className={styles.kpiSubtext}>Direct student alerts dispatched</span>
+          <span className={styles.kpiSubtext}>Direct student alerts sent</span>
         </div>
       </div>
 
@@ -997,7 +996,7 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
                           </div>
                           <div className={styles.socketDeliveredBadge}>
                             <Radio size={13} />
-                            <span>Delivered to Student via Socket.IO ✓</span>
+                            <span>Delivered to Student ✓</span>
                           </div>
                         </div>
 
@@ -1260,7 +1259,7 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
               <div>
                 <h2 className={styles.modalHeaderTitle}>Faculty Doubt Solver</h2>
                 <p className={styles.modalHeaderSubtitle}>
-                  Submitting will broadcast over Socket.IO to notify the student in real-time.
+                  Submit your answer to notify the student in real-time.
                 </p>
               </div>
               <button type="button" className={styles.modalCloseBtn} onClick={handleCloseAnswerModal}>
@@ -1369,7 +1368,7 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
                 disabled={isSubmittingAnswer || !answerText.trim()}
               >
                 <Send size={15} />
-                <span>{isSubmittingAnswer ? 'Broadcasting...' : '⚡ Submit Answer & Notify Student'}</span>
+                <span>{isSubmittingAnswer ? 'Sending...' : '⚡ Submit Answer & Notify Student'}</span>
               </button>
             </div>
           </div>
@@ -1446,7 +1445,7 @@ export const CourseReviewManagementWorkspace: React.FC = () => {
               <div>
                 <h2 className={styles.modalHeaderTitle}>Simulate Student Asking a Doubt</h2>
                 <p className={styles.modalHeaderSubtitle}>
-                  Test real-time Socket.IO doubt dispatch and answering flow
+                  Simulate student question submission and answering flow
                 </p>
               </div>
               <button type="button" className={styles.modalCloseBtn} onClick={() => setIsNewDoubtModalOpen(false)}>
