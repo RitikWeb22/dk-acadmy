@@ -51,7 +51,12 @@ import {
   ShieldCheck,
   FileCheck,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Lock,
+  Maximize,
+  Shield,
+  Sliders,
+  Globe
 } from 'lucide-react';
 import styles from './TestSeriesBuilderWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
@@ -516,11 +521,21 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [questions, setQuestions] = useState<QuestionItem[]>(INITIAL_SAMPLE_QUESTIONS);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string>('ja-cg-q1');
   const [isEquationHelpOpen, setIsEquationHelpOpen] = useState(false);
-  const [startWindowDate, setStartWindowDate] = useState('2026-10-28T09:00');
-  const [endWindowDate, setEndWindowDate] = useState('2026-10-30T23:59');
+  const [startWindowDate, setStartWindowDate] = useState('2026-11-05T14:30');
+  const [endWindowDate, setEndWindowDate] = useState('2026-11-12T23:59');
   const [autoSubmitOnExpire, setAutoSubmitOnExpire] = useState(true);
-  const [scorecardRelease, setScorecardRelease] = useState<'INSTANT' | 'AFTER_WINDOW'>('INSTANT');
+  const [scorecardRelease, setScorecardRelease] = useState<'INSTANT' | 'AFTER_WINDOW' | 'MANUAL'>('INSTANT');
   const [computeNtaRank, setComputeNtaRank] = useState(true);
+  const [scheduleMode, setScheduleMode] = useState<'SCHEDULED_WINDOW' | 'OPEN_PRACTICE' | 'TIME_SLOTTED'>('SCHEDULED_WINDOW');
+  const [examSlot, setExamSlot] = useState<'MORNING' | 'EVENING' | 'FLEXIBLE'>('FLEXIBLE');
+  const [fullScreenLock, setFullScreenLock] = useState<boolean>(true);
+  const [tabSwitchLimit, setTabSwitchLimit] = useState<number>(3);
+  const [disableCopyPaste, setDisableCopyPaste] = useState<boolean>(true);
+  const [strictTimer, setStrictTimer] = useState<boolean>(true);
+  const [autoSaveInterval, setAutoSaveInterval] = useState<number>(10);
+  const [singleSessionGuard, setSingleSessionGuard] = useState<boolean>(true);
+  const [bufferEntryMinutes, setBufferEntryMinutes] = useState<number>(30);
+  const [cutoffTierPredictor, setCutoffTierPredictor] = useState<boolean>(true);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
   // CBT Live Simulator Interactive State (matches user screenshot)
@@ -1294,20 +1309,39 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       })),
       batch: wizardBatch,
       accessLevel: accessLevel,
-      status: 'Published',
+      status: scheduleMode === 'SCHEDULED_WINDOW' ? 'Scheduled' : 'Published',
       schedule: {
-        startWindow: startWindowDate ? new Date(startWindowDate) : new Date(),
-        endWindow: endWindowDate ? new Date(endWindowDate) : new Date(Date.now() + 7 * 86400000),
+        startWindow: scheduleMode === 'OPEN_PRACTICE' ? new Date() : (startWindowDate ? new Date(startWindowDate) : new Date()),
+        endWindow: scheduleMode === 'OPEN_PRACTICE' ? new Date(Date.now() + 365 * 86400000) : (endWindowDate ? new Date(endWindowDate) : new Date(Date.now() + 7 * 86400000)),
         autoSubmit: autoSubmitOnExpire,
-        computeRank: computeNtaRank
+        computeRank: computeNtaRank,
+        scheduleMode,
+        examSlot,
+        fullScreenLock,
+        tabSwitchLimit,
+        disableCopyPaste,
+        strictTimer,
+        autoSaveInterval,
+        singleSessionGuard,
+        scorecardRelease,
+        bufferEntryMinutes,
+        cutoffTierPredictor
       },
       attemptsCount: 0
     };
 
     try {
       await apiClient.post<any>('/test-series', payload);
+      cmsService.createTestSeries(payload).catch(() => {});
+      notificationService.addNotification({
+        title: `📝 New ${payload.format} Live: ${payload.title}`,
+        description: `${payload.examType} • ${payload.totalMarks} Marks • ${payload.durationMinutes} mins • Status: ${payload.status}`,
+        type: 'test_series',
+        timestamp: Date.now(),
+        unread: true
+      });
       window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: payload }));
-      showToast('✓ Test Series scheduled and published successfully!');
+      showToast('✓ CBT Examination scheduled, proctoring armed, and published!');
       setIsPublishModalOpen(true);
       await fetchLiveTestSeries();
     } catch (err: any) {
@@ -2589,69 +2623,251 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   <div className={styles.stepHeader}>
                     <div className={styles.stepNumberBadge}>04</div>
                     <div className={styles.stepHeaderInfo}>
-                      <h2 className={styles.stepTitle}>4. Live Exam Scheduling & Automated Proctoring Rules</h2>
+                      <h2 className={styles.stepTitle}>4. Live Exam Scheduling &amp; Automated Proctoring Rules</h2>
                       <p className={styles.stepSubtitle}>
-                        Configure examination windows, auto-submission timers, instant scorecards, and NTA All-India Rank normalization.
+                        Configure examination windows, shift slots, automated anti-cheating proctoring, server-synced non-pausable timers, and NTA percentile rank normalization.
                       </p>
                     </div>
                   </div>
 
-                  <div className={styles.scheduleCardsGrid}>
-                    <div className={styles.settingsCard}>
-                      <h3 className={styles.cardHeading}>Live Exam Window</h3>
-                      <div className={styles.formField}>
-                        <label>Start Window *</label>
-                        <input
-                          type="datetime-local"
-                          value={startWindowDate}
-                          onChange={(e) => setStartWindowDate(e.target.value)}
-                          className={styles.primaryInput}
-                        />
-                      </div>
-                      <div className={styles.formField}>
-                        <label>End Window *</label>
-                        <input
-                          type="datetime-local"
-                          value={endWindowDate}
-                          onChange={(e) => setEndWindowDate(e.target.value)}
-                          className={styles.primaryInput}
-                        />
-                      </div>
+                  {/* 1. Exam Delivery Mode Selector */}
+                  <div style={{ marginBottom: '18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Step 4.1 — Select Exam Delivery Mode
+                      </span>
+                      <span style={{ fontSize: '11.5px', color: '#64748B' }}>
+                        Current Mode: <strong>{scheduleMode === 'SCHEDULED_WINDOW' ? 'Strict Live Window' : scheduleMode === 'TIME_SLOTTED' ? 'NTA Shift Based' : '24x7 Open Practice'}</strong>
+                      </span>
                     </div>
 
-                    <div className={styles.settingsCard}>
-                      <h3 className={styles.cardHeading}>Proctoring & Scorecards</h3>
-                      <label className={styles.checkToggleLabel}>
-                        <input
-                          type="checkbox"
-                          checked={autoSubmitOnExpire}
-                          onChange={(e) => setAutoSubmitOnExpire(e.target.checked)}
-                        />
-                        <span>Auto-submit test immediately when 180 minutes expire</span>
-                      </label>
-                      <label className={styles.checkToggleLabel}>
-                        <input
-                          type="checkbox"
-                          checked={computeNtaRank}
-                          onChange={(e) => setComputeNtaRank(e.target.checked)}
-                        />
-                        <span>Compute NTA percentile & All-India Rank (AIR) across campuses</span>
-                      </label>
+                    <div className={styles.modeSelectGrid}>
+                      <div
+                        className={`${styles.modeOptionCard} ${scheduleMode === 'SCHEDULED_WINDOW' ? styles.modeOptionCardActive : ''}`}
+                        onClick={() => setScheduleMode('SCHEDULED_WINDOW')}
+                      >
+                        <div className={styles.modeCardHeader}>
+                          <span className={`${styles.modeBadgePill} ${styles.modeBadgeScheduled}`}>Live Scheduled</span>
+                          <Calendar size={16} color={scheduleMode === 'SCHEDULED_WINDOW' ? '#2563EB' : '#94A3B8'} />
+                        </div>
+                        <h4 className={styles.modeCardTitle}>Time-Bound Live Window</h4>
+                        <p className={styles.modeCardDesc}>
+                          Candidates can only attempt within a strictly bounded start and end datetime. Emulates national exam day pressure.
+                        </p>
+                      </div>
 
-                      <div className={styles.formField} style={{ marginTop: '4px' }}>
-                        <label>Scorecard & Detailed Solutions Release</label>
+                      <div
+                        className={`${styles.modeOptionCard} ${scheduleMode === 'OPEN_PRACTICE' ? styles.modeOptionCardActive : ''}`}
+                        onClick={() => setScheduleMode('OPEN_PRACTICE')}
+                      >
+                        <div className={styles.modeCardHeader}>
+                          <span className={`${styles.modeBadgePill} ${styles.modeBadgeOpen}`}>24x7 Self Paced</span>
+                          <Globe size={16} color={scheduleMode === 'OPEN_PRACTICE' ? '#16A34A' : '#94A3B8'} />
+                        </div>
+                        <h4 className={styles.modeCardTitle}>Open Practice CBT Mock</h4>
+                        <p className={styles.modeCardDesc}>
+                          Accessible 24x7 whenever candidate is ready. Starts on-demand with 180-minute countdown and instant evaluation.
+                        </p>
+                      </div>
+
+                      <div
+                        className={`${styles.modeOptionCard} ${scheduleMode === 'TIME_SLOTTED' ? styles.modeOptionCardActive : ''}`}
+                        onClick={() => setScheduleMode('TIME_SLOTTED')}
+                      >
+                        <div className={styles.modeCardHeader}>
+                          <span className={`${styles.modeBadgePill} ${styles.modeBadgeSlotted}`}>Shift Based</span>
+                          <Clock size={16} color={scheduleMode === 'TIME_SLOTTED' ? '#D97706' : '#94A3B8'} />
+                        </div>
+                        <h4 className={styles.modeCardTitle}>Slotted NTA Shifts</h4>
+                        <p className={styles.modeCardDesc}>
+                          Configured for NTA Shift 1 (09:00 AM - 12:00 PM) or Shift 2 (03:00 PM - 06:00 PM) with batch normalization.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Window Timings / Shift Settings Grid */}
+                  <div className={styles.scheduleCardsGrid}>
+                    <div className={styles.settingsCard}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <h3 className={styles.cardHeading} style={{ margin: 0 }}>
+                          <Calendar size={15} style={{ verticalAlign: 'middle', marginRight: '6px', color: '#2563EB' }} />
+                          {scheduleMode === 'SCHEDULED_WINDOW' ? 'Live Examination Window' : scheduleMode === 'TIME_SLOTTED' ? 'NTA Shift Slot & Timings' : 'Open Practice Settings'}
+                        </h3>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563EB', background: '#EFF6FF', padding: '3px 8px', borderRadius: '6px' }}>
+                          IST (GMT+5:30)
+                        </span>
+                      </div>
+
+                      {scheduleMode === 'SCHEDULED_WINDOW' && (
+                        <>
+                          <div className={styles.formField}>
+                            <label>Live Exam Opens (Start Window) *</label>
+                            <input
+                              type="datetime-local"
+                              value={startWindowDate}
+                              onChange={(e) => setStartWindowDate(e.target.value)}
+                              className={styles.primaryInput}
+                            />
+                          </div>
+
+                          <div className={styles.formField}>
+                            <label>Live Exam Closes (End Window) *</label>
+                            <input
+                              type="datetime-local"
+                              value={endWindowDate}
+                              onChange={(e) => setEndWindowDate(e.target.value)}
+                              className={styles.primaryInput}
+                            />
+                          </div>
+
+                          <div style={{ marginTop: '6px' }}>
+                            <label style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748B' }}>Quick Timing Presets:</label>
+                            <div className={styles.presetChipsRow}>
+                              <button
+                                type="button"
+                                className={styles.presetChip}
+                                onClick={() => {
+                                  const now = new Date();
+                                  setStartWindowDate(new Date(now.getTime() + 10 * 60000).toISOString().slice(0, 16));
+                                  setEndWindowDate(new Date(now.getTime() + 190 * 60000).toISOString().slice(0, 16));
+                                }}
+                              >
+                                Live in 10 Mins (+3 Hrs)
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.presetChip}
+                                onClick={() => {
+                                  const d = new Date();
+                                  d.setDate(d.getDate() + 1);
+                                  d.setHours(9, 0, 0, 0);
+                                  const dEnd = new Date(d);
+                                  dEnd.setHours(12, 0, 0, 0);
+                                  setStartWindowDate(d.toISOString().slice(0, 16));
+                                  setEndWindowDate(dEnd.toISOString().slice(0, 16));
+                                }}
+                              >
+                                Tomorrow 09:00 AM (Shift 1)
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.presetChip}
+                                onClick={() => {
+                                  const d = new Date();
+                                  d.setDate(d.getDate() + 1);
+                                  d.setHours(15, 0, 0, 0);
+                                  const dEnd = new Date(d);
+                                  dEnd.setHours(18, 0, 0, 0);
+                                  setStartWindowDate(d.toISOString().slice(0, 16));
+                                  setEndWindowDate(dEnd.toISOString().slice(0, 16));
+                                }}
+                              >
+                                Tomorrow 03:00 PM (Shift 2)
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.presetChip}
+                                onClick={() => {
+                                  const now = new Date();
+                                  const dEnd = new Date(now.getTime() + 7 * 86400000);
+                                  setStartWindowDate(now.toISOString().slice(0, 16));
+                                  setEndWindowDate(dEnd.toISOString().slice(0, 16));
+                                }}
+                              >
+                                7-Day Window
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className={styles.formField} style={{ marginTop: '12px' }}>
+                            <label>Late Candidate Entry Buffer</label>
+                            <select
+                              value={bufferEntryMinutes}
+                              onChange={(e) => setBufferEntryMinutes(Number(e.target.value))}
+                              className={styles.primarySelect}
+                            >
+                              <option value={15}>15 Minutes after Start (Strict NTA Gate Close)</option>
+                              <option value={30}>30 Minutes after Start (Standard Default)</option>
+                              <option value={45}>45 Minutes after Start (Lenient)</option>
+                              <option value={0}>Zero Buffer (Lock exam entry at exact start second)</option>
+                            </select>
+                          </div>
+                        </>
+                      )}
+
+                      {scheduleMode === 'TIME_SLOTTED' && (
+                        <>
+                          <div className={styles.formField}>
+                            <label>Designated Shift Slot *</label>
+                            <select
+                              value={examSlot}
+                              onChange={(e) => setExamSlot(e.target.value as any)}
+                              className={styles.primarySelect}
+                            >
+                              <option value="MORNING">Morning Shift 1: 09:00 AM – 12:00 PM IST</option>
+                              <option value="EVENING">Evening Shift 2: 03:00 PM – 06:00 PM IST</option>
+                              <option value="FLEXIBLE">Flexible Slot (Student chooses either Shift 1 or Shift 2)</option>
+                            </select>
+                          </div>
+
+                          <div className={styles.formField}>
+                            <label>Exam Date *</label>
+                            <input
+                              type="date"
+                              value={startWindowDate.slice(0, 10)}
+                              onChange={(e) => {
+                                const newDate = e.target.value;
+                                setStartWindowDate(`${newDate}T09:00`);
+                                setEndWindowDate(`${newDate}T18:00`);
+                              }}
+                              className={styles.primaryInput}
+                            />
+                          </div>
+
+                          <div style={{ padding: '12px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '8px', fontSize: '12px', color: '#92400E', lineHeight: '1.45', marginTop: '8px' }}>
+                            <strong>Official NTA Reporting Protocol:</strong> Gates close strictly 15 minutes before exam commencement. Candidate verification and biometric simulation will trigger during the pre-exam warmup lobby.
+                          </div>
+                        </>
+                      )}
+
+                      {scheduleMode === 'OPEN_PRACTICE' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: 700, fontSize: '13px' }}>
+                            <CheckCircle2 size={16} />
+                            Always-On 24x7 Self-Paced Practice
+                          </div>
+                          <p style={{ margin: 0, fontSize: '12px', color: '#15803D', lineHeight: '1.5' }}>
+                            This CBT mock will remain active indefinitely for registered aspirants. When a student clicks <em>"Start CBT Mock"</em>, their individual 180-minute countdown timer begins immediately with full proctoring safeguards.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Scorecard Release & Evaluation Settings */}
+                    <div className={styles.settingsCard}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <h3 className={styles.cardHeading} style={{ margin: 0 }}>
+                          <Award size={15} style={{ verticalAlign: 'middle', marginRight: '6px', color: '#2563EB' }} />
+                          Evaluation &amp; Scorecard Policies
+                        </h3>
+                      </div>
+
+                      <div className={styles.formField}>
+                        <label>Scorecard &amp; Detailed Solutions Release</label>
                         <select
                           value={scorecardRelease}
                           onChange={(e) => setScorecardRelease(e.target.value as any)}
                           className={styles.primarySelect}
                         >
-                          <option value="INSTANT">Instant Release upon Candidate Submission</option>
-                          <option value="AFTER_WINDOW">Release Solutions Only After Examination Window Closes</option>
+                          <option value="INSTANT">Instant Release — Full solutions immediately upon submission</option>
+                          <option value="AFTER_WINDOW">Release After Window Closes — Prevents answer leaks during live exam</option>
+                          <option value="MANUAL">Manual Admin Release — Retain until admin approves rankings</option>
                         </select>
                       </div>
 
-                      <div className={styles.formField} style={{ marginTop: '4px' }}>
-                        <label>Access Tier & Enrollment Permissions</label>
+                      <div className={styles.formField}>
+                        <label>Access Tier &amp; Enrollment Permissions</label>
                         <select
                           value={accessLevel}
                           onChange={(e) => setAccessLevel(e.target.value as any)}
@@ -2661,9 +2877,234 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           <option value="FREE_LEAD_MAGNET">Open All-India Open Mock (Public Lead Magnet)</option>
                         </select>
                       </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                        <label className={styles.checkToggleLabel}>
+                          <input
+                            type="checkbox"
+                            checked={autoSubmitOnExpire}
+                            onChange={(e) => setAutoSubmitOnExpire(e.target.checked)}
+                          />
+                          <span><strong>Auto-Submit upon Clock Expiry:</strong> Automatically locks and sends paper when candidate timer reaches 00:00:00</span>
+                        </label>
+
+                        <label className={styles.checkToggleLabel}>
+                          <input
+                            type="checkbox"
+                            checked={computeNtaRank}
+                            onChange={(e) => setComputeNtaRank(e.target.checked)}
+                          />
+                          <span><strong>NTA Percentile Normalization:</strong> Compute normalized All-India Rank (AIR) and marks distribution curve</span>
+                        </label>
+
+                        <label className={styles.checkToggleLabel}>
+                          <input
+                            type="checkbox"
+                            checked={cutoffTierPredictor}
+                            onChange={(e) => setCutoffTierPredictor(e.target.checked)}
+                          />
+                          <span><strong>IIT/NIT Cutoff Forecaster:</strong> Display estimated branch chances &amp; qualifying tier on student scorecard</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
 
+                  {/* 3. Automated Proctoring & Anti-Cheating Safeguards */}
+                  <div style={{ marginTop: '18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <ShieldAlert size={18} color="#2563EB" />
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Automated Proctoring &amp; Anti-Cheating Safeguards
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#16A34A', background: '#DCFCE7', padding: '3px 9px', borderRadius: '100px' }}>
+                        Shield Status: Armed
+                      </span>
+                    </div>
+
+                    <div className={styles.proctoringRulesList}>
+                      {/* Rule 1: Fullscreen Lock */}
+                      <div className={styles.proctorRuleItem}>
+                        <div className={styles.proctorRuleIconWrap}>
+                          <Maximize size={16} />
+                        </div>
+                        <div className={styles.proctorRuleText}>
+                          <span className={styles.proctorRuleTitle}>Strict Fullscreen Kiosk Mode</span>
+                          <span className={styles.proctorRuleDesc}>
+                            Locks browser into fullscreen upon exam start. Exiting fullscreen flashes high-priority warning dialog and logs strike.
+                          </span>
+                        </div>
+                        <div className={styles.proctorToggleWrap}>
+                          <input
+                            type="checkbox"
+                            id="rule-fullscreen"
+                            checked={fullScreenLock}
+                            onChange={(e) => setFullScreenLock(e.target.checked)}
+                            style={{ width: '18px', height: '18px', accentColor: '#2563EB', cursor: 'pointer' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Rule 2: Tab Switching Limit */}
+                      <div className={styles.proctorRuleItem}>
+                        <div className={styles.proctorRuleIconWrap} style={{ background: '#FEF2F2', color: '#DC2626' }}>
+                          <ShieldAlert size={16} />
+                        </div>
+                        <div className={styles.proctorRuleText}>
+                          <span className={styles.proctorRuleTitle}>Tab Switching &amp; Focus Loss Disqualification</span>
+                          <span className={styles.proctorRuleDesc}>
+                            Monitors page blur and tab switches. If candidate exceeds permitted infractions, exam automatically terminates.
+                          </span>
+                        </div>
+                        <div className={styles.proctorToggleWrap}>
+                          <select
+                            value={tabSwitchLimit}
+                            onChange={(e) => setTabSwitchLimit(Number(e.target.value))}
+                            className={styles.primarySelect}
+                            style={{ width: '130px', padding: '6px 10px', fontSize: '12px' }}
+                          >
+                            <option value={1}>1 Warning (Strict)</option>
+                            <option value={2}>2 Warnings</option>
+                            <option value={3}>3 Warnings (Std)</option>
+                            <option value={5}>5 Warnings</option>
+                            <option value={999}>Disabled</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Rule 3: Disable Copy-Paste & Right Click */}
+                      <div className={styles.proctorRuleItem}>
+                        <div className={styles.proctorRuleIconWrap}>
+                          <Lock size={16} />
+                        </div>
+                        <div className={styles.proctorRuleText}>
+                          <span className={styles.proctorRuleTitle}>Disable Clipboard, Copy-Paste &amp; DevTools Inspection</span>
+                          <span className={styles.proctorRuleDesc}>
+                            Disables right-click context menu, text selection, F12, Ctrl+Shift+I, and pasting to external AI solvers.
+                          </span>
+                        </div>
+                        <div className={styles.proctorToggleWrap}>
+                          <input
+                            type="checkbox"
+                            id="rule-copypaste"
+                            checked={disableCopyPaste}
+                            onChange={(e) => setDisableCopyPaste(e.target.checked)}
+                            style={{ width: '18px', height: '18px', accentColor: '#2563EB', cursor: 'pointer' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Rule 4: Non-Pausable Strict Server Timer */}
+                      <div className={styles.proctorRuleItem}>
+                        <div className={styles.proctorRuleIconWrap} style={{ background: '#FFFBEB', color: '#D97706' }}>
+                          <Clock size={16} />
+                        </div>
+                        <div className={styles.proctorRuleText}>
+                          <span className={styles.proctorRuleTitle}>Non-Pausable Centralized Server Timer</span>
+                          <span className={styles.proctorRuleDesc}>
+                            Prevents local device clock tampering. Reloading page or closing browser keeps timer running on server clock.
+                          </span>
+                        </div>
+                        <div className={styles.proctorToggleWrap}>
+                          <input
+                            type="checkbox"
+                            id="rule-timer"
+                            checked={strictTimer}
+                            onChange={(e) => setStrictTimer(e.target.checked)}
+                            style={{ width: '18px', height: '18px', accentColor: '#2563EB', cursor: 'pointer' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Rule 5: Continuous Cloud Auto-Save */}
+                      <div className={styles.proctorRuleItem}>
+                        <div className={styles.proctorRuleIconWrap}>
+                          <RefreshCw size={16} />
+                        </div>
+                        <div className={styles.proctorRuleText}>
+                          <span className={styles.proctorRuleTitle}>Cloud Response Auto-Save Interval</span>
+                          <span className={styles.proctorRuleDesc}>
+                            Automatically persists bubble markings and visited question statuses to MongoDB database to protect against crashes.
+                          </span>
+                        </div>
+                        <div className={styles.proctorToggleWrap}>
+                          <select
+                            value={autoSaveInterval}
+                            onChange={(e) => setAutoSaveInterval(Number(e.target.value))}
+                            className={styles.primarySelect}
+                            style={{ width: '130px', padding: '6px 10px', fontSize: '12px' }}
+                          >
+                            <option value={5}>Every 5 Secs</option>
+                            <option value={10}>Every 10 Secs</option>
+                            <option value={30}>Every 30 Secs</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Rule 6: Single Active Session Guard */}
+                      <div className={styles.proctorRuleItem}>
+                        <div className={styles.proctorRuleIconWrap} style={{ background: '#ECFDF5', color: '#059669' }}>
+                          <UserCheck size={16} />
+                        </div>
+                        <div className={styles.proctorRuleText}>
+                          <span className={styles.proctorRuleTitle}>Single Device Concurrency Guard</span>
+                          <span className={styles.proctorRuleDesc}>
+                            Blocks candidate from logging in on a second device or secondary browser window while an active test attempt is in progress.
+                          </span>
+                        </div>
+                        <div className={styles.proctorToggleWrap}>
+                          <input
+                            type="checkbox"
+                            id="rule-singlesession"
+                            checked={singleSessionGuard}
+                            onChange={(e) => setSingleSessionGuard(e.target.checked)}
+                            style={{ width: '18px', height: '18px', accentColor: '#2563EB', cursor: 'pointer' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Live Scheduling Summary Hero */}
+                  <div className={styles.liveSummaryHero}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94A3B8' }}>
+                        Ready for Deployment
+                      </span>
+                      <strong style={{ fontSize: '15px', color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+                        {editingSeriesTitle || 'JEE Main All-India CBT Mock Test'}
+                      </strong>
+                      <span style={{ fontSize: '12px', color: '#CBD5E1' }}>
+                        {scheduleMode === 'SCHEDULED_WINDOW'
+                          ? `Scheduled: ${new Date(startWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })} — ${new Date(endWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}`
+                          : scheduleMode === 'TIME_SLOTTED'
+                          ? `NTA Shift: ${examSlot} (${startWindowDate.slice(0, 10)})`
+                          : 'Available 24x7 Open Practice Mock'}
+                      </span>
+                    </div>
+
+                    <div className={styles.summaryBadgesRow}>
+                      <span className={styles.summaryPill}>
+                        <Clock size={12} />
+                        180 Mins
+                      </span>
+                      <span className={styles.summaryPill}>
+                        <Award size={12} />
+                        300 Marks
+                      </span>
+                      <span className={styles.summaryPill} style={{ background: 'rgba(34, 197, 94, 0.2)', borderColor: 'rgba(34, 197, 94, 0.4)', color: '#86EFAC' }}>
+                        <ShieldCheck size={12} />
+                        6 Proctor Shields
+                      </span>
+                      <span className={styles.summaryPill}>
+                        <FileCheck size={12} />
+                        {scorecardRelease === 'INSTANT' ? 'Instant Score' : 'Post-Window'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 5. Sticky Step Action Bar */}
                   <div className={styles.stepActionBarSticky}>
                     <button type="button" className={styles.prevStepBtn} onClick={handlePrevStep}>
                       <span>← Prev: Question Authoring</span>

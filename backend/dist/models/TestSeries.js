@@ -29,7 +29,18 @@ const scheduleSchema = new Schema({
     startWindow: { type: Date },
     endWindow: { type: Date },
     autoSubmit: { type: Boolean, default: true },
-    computeRank: { type: Boolean, default: true }
+    computeRank: { type: Boolean, default: true },
+    scheduleMode: { type: String, default: 'SCHEDULED_WINDOW' },
+    examSlot: { type: String, default: 'FLEXIBLE' },
+    fullScreenLock: { type: Boolean, default: true },
+    tabSwitchLimit: { type: Number, default: 3 },
+    disableCopyPaste: { type: Boolean, default: true },
+    strictTimer: { type: Boolean, default: true },
+    autoSaveInterval: { type: Number, default: 10 },
+    singleSessionGuard: { type: Boolean, default: true },
+    scorecardRelease: { type: String, default: 'INSTANT' },
+    bufferEntryMinutes: { type: Number, default: 30 },
+    cutoffTierPredictor: { type: Boolean, default: true }
 }, { _id: false });
 const testSeriesSchema = new Schema({
     id: { type: String, required: true, unique: true },
