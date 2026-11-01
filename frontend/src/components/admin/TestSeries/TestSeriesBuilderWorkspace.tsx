@@ -516,6 +516,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [wizardDifficulty, setWizardDifficulty] = useState<'Moderate' | 'Challenging' | 'Advanced'>('Advanced');
   const [wizardBatch, setWizardBatch] = useState('Ultimate 2-Year Live Classroom (2028)');
   const [wizardDuration, setWizardDuration] = useState(90);
+  const [wizardTotalMarks, setWizardTotalMarks] = useState<number>(100);
   const [positiveMarks, setPositiveMarks] = useState(4);
   const [negativeMarks, setNegativeMarks] = useState(1);
   const [selectedSubjects, setSelectedSubjects] = useState<('Physics' | 'Chemistry' | 'Mathematics')[]>(['Physics', 'Chemistry', 'Mathematics']);
@@ -916,14 +917,39 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setEditingSeriesId(payload.id);
     setEditingSeriesTitle(payload.title);
     setEditingSeriesSubtitle(payload.subtitle || '');
-    setWizardExamPattern(
-      payload.examType === 'JEE Advanced'
-        ? 'JEE Advanced Paper 1'
-        : payload.examType === 'BITSAT'
-        ? 'BITSAT Speed Drill'
-        : 'NTA JEE Main Pattern'
-    );
-    setWizardDuration(payload.durationMinutes);
+    if (payload.format === 'Part Test' || isPartTest) {
+      setWizardTargetExam('PartTest');
+      setWizardFormat('Part Test');
+      setWizardExamPattern('JEE Part Test (100 Marks • 25 Qs)');
+      setWizardTotalMarks(100);
+      setWizardDuration(payload.durationMinutes || 60);
+      setPositiveMarks(4);
+      setNegativeMarks(1);
+    } else if (payload.examType === 'JEE Advanced') {
+      setWizardTargetExam('JEE Advanced');
+      setWizardFormat('Full Mock');
+      setWizardExamPattern('JEE Advanced Paper 1');
+      setWizardTotalMarks(payload.totalMarks || 180);
+      setWizardDuration(payload.durationMinutes || 180);
+      setPositiveMarks(4);
+      setNegativeMarks(2);
+    } else if (payload.examType === 'BITSAT') {
+      setWizardTargetExam('BITSAT');
+      setWizardFormat('Full Mock');
+      setWizardExamPattern('BITSAT Speed Drill');
+      setWizardTotalMarks(payload.totalMarks || 390);
+      setWizardDuration(payload.durationMinutes || 180);
+      setPositiveMarks(3);
+      setNegativeMarks(1);
+    } else {
+      setWizardTargetExam('JEE Main');
+      setWizardFormat('Full Mock');
+      setWizardExamPattern('NTA JEE Main Pattern');
+      setWizardTotalMarks(payload.totalMarks || 300);
+      setWizardDuration(payload.durationMinutes || 180);
+      setPositiveMarks(4);
+      setNegativeMarks(1);
+    }
     setCurrentStep(1);
     setCompletedSteps([1]);
     setViewMode('BUILDER');
@@ -1306,6 +1332,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       setWizardDifficulty('Moderate');
       setWizardExamPattern('NTA JEE Main Pattern');
       setWizardDuration(180);
+      setWizardTotalMarks(300);
       setPositiveMarks(4);
       setNegativeMarks(1);
       setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
@@ -1317,8 +1344,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       setWizardTargetExam('PartTest');
       setWizardFormat('Part Test');
       setWizardDifficulty('Moderate');
-      setWizardExamPattern('Part Test High-Yield Module');
-      setWizardDuration(90);
+      setWizardExamPattern('JEE Part Test (100 Marks • 25 Qs)');
+      setWizardDuration(60);
+      setWizardTotalMarks(100);
       setPositiveMarks(4);
       setNegativeMarks(1);
       setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
@@ -1332,6 +1360,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       setWizardDifficulty('Advanced');
       setWizardExamPattern('JEE Advanced Paper 1');
       setWizardDuration(180);
+      setWizardTotalMarks(180);
       setPositiveMarks(4);
       setNegativeMarks(2);
       setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
@@ -1345,6 +1374,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       setWizardDifficulty('Moderate');
       setWizardExamPattern('BITSAT Speed Drill');
       setWizardDuration(180);
+      setWizardTotalMarks(390);
       setPositiveMarks(3);
       setNegativeMarks(1);
       setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
@@ -1638,9 +1668,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     }
 
     setIsPublishing(true);
-    const calculatedMarks = questions.length * positiveMarks;
     const isPart = wizardTargetExam === 'PartTest' || wizardFormat === 'Part Test';
     const isMath = wizardTargetExam === 'MathSpeed';
+    const calculatedMarks = wizardTotalMarks > 0 ? wizardTotalMarks : (questions.length * positiveMarks || (isPart ? 100 : 300));
 
     const examTypeVal: 'JEE Main' | 'JEE Advanced' | 'BITSAT' =
       isPart || isMath
@@ -2698,25 +2728,40 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           setWizardTargetExam(val);
                           if (val === 'PartTest') {
                             setWizardFormat('Part Test');
-                            setWizardDuration(90);
-                            setWizardExamPattern('Part Test High-Yield Module');
+                            setWizardDuration(60);
+                            setWizardTotalMarks(100);
+                            setWizardExamPattern('JEE Part Test (100 Marks • 25 Qs)');
+                            setPositiveMarks(4);
+                            setNegativeMarks(1);
                           } else if (val === 'JEE Advanced') {
                             setWizardFormat('Full Mock');
                             setWizardDuration(180);
+                            setWizardTotalMarks(180);
                             setWizardExamPattern('JEE Advanced Paper 1');
+                            setPositiveMarks(4);
+                            setNegativeMarks(2);
                           } else if (val === 'BITSAT') {
                             setWizardFormat('Full Mock');
                             setWizardDuration(180);
+                            setWizardTotalMarks(390);
                             setWizardExamPattern('BITSAT Speed Drill');
+                            setPositiveMarks(3);
+                            setNegativeMarks(1);
                           } else if (val === 'MathSpeed') {
                             setWizardFormat('Chapter Test');
                             setWizardDuration(45);
+                            setWizardTotalMarks(100);
                             setWizardExamPattern('DK Sir Math Speed Sprint');
                             setSelectedSubjects(['Mathematics']);
+                            setPositiveMarks(4);
+                            setNegativeMarks(1);
                           } else {
                             setWizardFormat('Full Mock');
                             setWizardDuration(180);
+                            setWizardTotalMarks(300);
                             setWizardExamPattern('NTA JEE Main Pattern');
+                            setPositiveMarks(4);
+                            setNegativeMarks(1);
                           }
                         }}
                         className={styles.primarySelect}
@@ -2733,7 +2778,17 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       <label>Test Series Format (Student Format Dropdown) *</label>
                       <select
                         value={wizardFormat}
-                        onChange={(e) => setWizardFormat(e.target.value as any)}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setWizardFormat(val);
+                          if (val === 'Part Test') {
+                            setWizardTotalMarks(100);
+                            setWizardDuration(60);
+                          } else if (val === 'Full Mock') {
+                            setWizardTotalMarks(300);
+                            setWizardDuration(180);
+                          }
+                        }}
                         className={styles.primarySelect}
                       >
                         <option value="Full Mock">Full Mock (Full-Length Mocks)</option>
@@ -2759,13 +2814,56 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       <label>Examination Format / Pattern *</label>
                       <select
                         value={wizardExamPattern}
-                        onChange={(e) => setWizardExamPattern(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setWizardExamPattern(val);
+                          if (val.includes('Part Test')) {
+                            setWizardFormat('Part Test');
+                            setWizardTargetExam('PartTest');
+                            setWizardDuration(60);
+                            setWizardTotalMarks(100);
+                            setPositiveMarks(4);
+                            setNegativeMarks(1);
+                          } else if (val.includes('NTA JEE Main')) {
+                            setWizardFormat('Full Mock');
+                            setWizardTargetExam('JEE Main');
+                            setWizardDuration(180);
+                            setWizardTotalMarks(300);
+                            setPositiveMarks(4);
+                            setNegativeMarks(1);
+                          } else if (val.includes('BITSAT')) {
+                            setWizardFormat('Full Mock');
+                            setWizardTargetExam('BITSAT');
+                            setWizardDuration(180);
+                            setWizardTotalMarks(390);
+                            setPositiveMarks(3);
+                            setNegativeMarks(1);
+                          } else if (val.includes('JEE Advanced')) {
+                            setWizardFormat('Full Mock');
+                            setWizardTargetExam('JEE Advanced');
+                            setWizardDuration(180);
+                            setWizardTotalMarks(180);
+                            setPositiveMarks(4);
+                            setNegativeMarks(2);
+                          } else if (val.includes('Math Speed')) {
+                            setWizardFormat('Chapter Test');
+                            setWizardTargetExam('MathSpeed');
+                            setWizardDuration(45);
+                            setWizardTotalMarks(100);
+                            setPositiveMarks(4);
+                            setNegativeMarks(1);
+                          }
+                        }}
                         className={styles.primarySelect}
                       >
-                        <option value="NTA JEE Main Pattern">NTA JEE Main Pattern (300 Marks • 75 Qs)</option>
-                        <option value="JEE Advanced Paper 1">JEE Advanced Paper 1 (Comprehensive)</option>
-                        <option value="JEE Advanced Paper 2">JEE Advanced Paper 2 (Multi-Correct & Matrix)</option>
-                        <option value="BITSAT Speed Drill">BITSAT Speed Drill (130 Qs • Speed Math)</option>
+                        <option value="JEE Part Test (100 Marks • 25 Qs)">JEE Part Test (100 Marks • 25 Qs • 60 Mins)</option>
+                        <option value="Part Test High-Yield Module">Part Test High-Yield Module (100 Marks • 25 Qs)</option>
+                        <option value="NTA JEE Main Pattern">NTA JEE Main Pattern (300 Marks • 75 Qs • 180 Mins)</option>
+                        <option value="JEE Advanced Paper 1">JEE Advanced Paper 1 (180 Marks • Comprehensive)</option>
+                        <option value="JEE Advanced Paper 2">JEE Advanced Paper 2 (180 Marks • Multi-Correct & Matrix)</option>
+                        <option value="BITSAT Speed Drill">BITSAT Speed Drill (390 Marks • 130 Qs • Speed Math)</option>
+                        <option value="DK Sir Math Speed Sprint">DK Sir Math Speed Sprint (100 Marks • 25 Qs • 45 Mins)</option>
+                        <option value="Chapter-wise Topic Test">Chapter-wise Topic Test (100 Marks • 25 Qs • 45 Mins)</option>
                       </select>
                     </div>
 
@@ -2814,13 +2912,31 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
 
                     <div className={styles.formField}>
-                      <label>Total Marks (Auto-Calculated)</label>
-                      <input
-                        type="text"
-                        disabled
-                        value={`${questions.length * positiveMarks} Marks (${questions.length} Problems • +${positiveMarks}/-${negativeMarks})`}
-                        className={`${styles.primaryInput} ${styles.inputDisabled}`}
-                      />
+                      <label>Total Examination Marks *</label>
+                      <div className={styles.inputWithUnit}>
+                        <input
+                          type="number"
+                          value={wizardTotalMarks}
+                          onChange={(e) => setWizardTotalMarks(Number(e.target.value))}
+                          className={styles.primaryInput}
+                        />
+                        <span className={styles.unitTag}>{wizardTotalMarks} Marks</span>
+                      </div>
+                      <div className={styles.durationChipsRow}>
+                        {[100, 120, 180, 300, 390].map((marks) => (
+                          <button
+                            key={marks}
+                            type="button"
+                            className={`${styles.durationChip} ${wizardTotalMarks === marks ? styles.durationChipActive : ''}`}
+                            onClick={() => setWizardTotalMarks(marks)}
+                          >
+                            {marks}M {marks === 100 ? '(Part Test)' : marks === 300 ? '(JEE Main)' : marks === 180 ? '(Adv)' : marks === 390 ? '(BITSAT)' : ''}
+                          </button>
+                        ))}
+                      </div>
+                      <small style={{ fontSize: '11px', color: '#64748B', display: 'block', marginTop: '4px' }}>
+                        Questions loaded: {questions.length} problems • Raw marks: {questions.length * positiveMarks} (+{positiveMarks}/-{negativeMarks})
+                      </small>
                     </div>
 
                     <div className={`${styles.formField} ${styles.fullWidth}`}>
@@ -4526,11 +4642,21 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   <label className={styles.fieldLabel}>Test Series Format *</label>
                   <select
                     value={newFormat}
-                    onChange={(e) => setNewFormat(e.target.value as any)}
+                    onChange={(e) => {
+                      const fVal = e.target.value as any;
+                      setNewFormat(fVal);
+                      if (fVal === 'Part Test') {
+                        setNewTotalMarks(100);
+                        setNewDuration(60);
+                      } else if (fVal === 'Full Mock') {
+                        setNewTotalMarks(300);
+                        setNewDuration(180);
+                      }
+                    }}
                     className={styles.primaryTextInput}
                   >
                     <option value="Full Mock">Full Mock (Full-Length CBT Mocks)</option>
-                    <option value="Part Test">Part Test (Syllabus Unit Part Tests)</option>
+                    <option value="Part Test">Part Test (100 Marks • Syllabus Unit Tests)</option>
                     <option value="Chapter Test">Chapter Test (Targeted Topic Drills)</option>
                   </select>
                 </div>
@@ -4562,6 +4688,27 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     onChange={(e) => setNewDuration(Number(e.target.value))}
                     className={styles.primaryTextInput}
                   />
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    {[45, 60, 90, 180].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          border: newDuration === m ? '1px solid #2563EB' : '1px solid #CBD5E1',
+                          background: newDuration === m ? '#EFF6FF' : '#FFFFFF',
+                          color: newDuration === m ? '#1D4ED8' : '#475569',
+                          cursor: 'pointer',
+                          fontWeight: newDuration === m ? 700 : 500
+                        }}
+                        onClick={() => setNewDuration(m)}
+                      >
+                        {m}m
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.fieldLabel}>Total Marks *</label>
@@ -4573,6 +4720,27 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     onChange={(e) => setNewTotalMarks(Number(e.target.value))}
                     className={styles.primaryTextInput}
                   />
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    {[100, 120, 180, 300, 390].map((mk) => (
+                      <button
+                        key={mk}
+                        type="button"
+                        style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          border: newTotalMarks === mk ? '1px solid #10B981' : '1px solid #CBD5E1',
+                          background: newTotalMarks === mk ? '#ECFDF5' : '#FFFFFF',
+                          color: newTotalMarks === mk ? '#047857' : '#475569',
+                          cursor: 'pointer',
+                          fontWeight: newTotalMarks === mk ? 700 : 500
+                        }}
+                        onClick={() => setNewTotalMarks(mk)}
+                      >
+                        {mk}M {mk === 100 ? '(Part Test)' : mk === 300 ? '(Main)' : ''}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -4895,11 +5063,21 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   <label className={styles.fieldLabel}>Test Format (Filter 2)</label>
                   <select
                     value={drawerFormat}
-                    onChange={(e) => setDrawerFormat(e.target.value as any)}
+                    onChange={(e) => {
+                      const fVal = e.target.value as any;
+                      setDrawerFormat(fVal);
+                      if (fVal === 'Part Test') {
+                        setDrawerTotalMarks(100);
+                        setDrawerDuration(60);
+                      } else if (fVal === 'Full Mock') {
+                        setDrawerTotalMarks(300);
+                        setDrawerDuration(180);
+                      }
+                    }}
                     className={styles.primaryTextInput}
                   >
                     <option value="Full Mock">Full Mock (Full-Length Mocks)</option>
-                    <option value="Part Test">Part Test (Part Tests)</option>
+                    <option value="Part Test">Part Test (100 Marks • Part Tests)</option>
                     <option value="Chapter Test">Chapter Test (Chapter Tests)</option>
                   </select>
                 </div>
@@ -4929,6 +5107,25 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     onChange={(e) => setDrawerDuration(Number(e.target.value))}
                     className={styles.primaryTextInput}
                   />
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                    {[45, 60, 90, 180].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        style={{
+                          fontSize: '11px',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          border: drawerDuration === m ? '1px solid #2563EB' : '1px solid #CBD5E1',
+                          background: drawerDuration === m ? '#EFF6FF' : '#FFF',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => setDrawerDuration(m)}
+                      >
+                        {m}m
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.fieldLabel}>Total Marks</label>
@@ -4938,6 +5135,25 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     onChange={(e) => setDrawerTotalMarks(Number(e.target.value))}
                     className={styles.primaryTextInput}
                   />
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                    {[100, 180, 300, 390].map((mk) => (
+                      <button
+                        key={mk}
+                        type="button"
+                        style={{
+                          fontSize: '11px',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          border: drawerTotalMarks === mk ? '1px solid #10B981' : '1px solid #CBD5E1',
+                          background: drawerTotalMarks === mk ? '#ECFDF5' : '#FFF',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => setDrawerTotalMarks(mk)}
+                      >
+                        {mk}M {mk === 100 ? '(Part)' : ''}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

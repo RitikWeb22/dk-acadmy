@@ -17,11 +17,9 @@ export function normalizeMathText(raw: string): string {
     .replace(/\u2212/g, '-')
     // Normalize double backslashes (e.g. \\frac -> \frac)
     .replace(/\\\\([a-zA-Z]+)/g, '\\$1')
-    // Normalize alternate LaTeX delimiters
-    .replace(/\\\[([\s\S]*?)\\\]/g, '$$$$1$$')
-    .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$')
-    // Normalize \dfrac to \frac
-    .replace(/\\dfrac\b/g, '\\frac')
+    // Normalize alternate LaTeX delimiters safely with callbacks
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, p1) => `$$${p1}$$`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, p1) => `$${p1}$`)
     .trim();
 }
 
