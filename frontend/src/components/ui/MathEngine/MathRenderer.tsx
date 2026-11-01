@@ -109,7 +109,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
                   );
                 }
 
-                return <span key={block.id}>{block.content}</span>;
+                return <span key={block.id} className={styles.plainTextSpan}>{block.content}</span>;
               })}
             </div>
           );
@@ -145,7 +145,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
         }
 
         return (
-          <span key={block.id}>
+          <span key={block.id} className={styles.plainTextSpan}>
             {block.content.split('\n').map((l, idx, arr) => (
               <React.Fragment key={idx}>
                 {l}
@@ -208,7 +208,7 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
  */
 function sanitizeFormula(str: string): string {
   if (!str) return '';
-  return str
+  let res = str
     // Clean invisible Word formatting characters & hair spaces
     .replace(/[\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
     // Remove argument placeholders
@@ -223,6 +223,12 @@ function sanitizeFormula(str: string): string {
     // Clean leading dots from copy-pasting
     .replace(/^\s*\.\s*(?=[A-Za-z])/g, '')
     .trim();
+
+  // If formula contains connecting words inside math mode without \text, wrap them in \text{ ... }
+  // to ensure proper spaces between words and prevent collapsed text
+  res = res.replace(/(?<!\\)\b(is equal to|equal to|then|where|and|or|for|if|such that|be defined as|defined as)\b/gi, (match) => `\\text{ ${match} }`);
+
+  return res;
 }
 
 export default MathRenderer;

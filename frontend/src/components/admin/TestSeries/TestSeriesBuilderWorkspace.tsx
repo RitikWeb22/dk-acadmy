@@ -3383,7 +3383,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       {/* Options Grid */}
                       <div className={styles.optionsList}>
                         {currentEditingQuestion.options.map((opt) => {
-                          const hasFormula = Boolean(opt.text && (/[\$\\^_{}]/.test(opt.text) || /\\(?:cot|tan|sin|cos|sec|csc|log|ln|lim|int|sum|frac|dfrac|sqrt|alpha|beta|gamma|pi)\b/i.test(opt.text)));
                           return (
                             <div key={opt.key} className={styles.optionRowItem} style={{ alignItems: 'flex-start' }}>
                               <label className={styles.radioKeyWrap} style={{ marginTop: '8px' }}>
@@ -3405,11 +3404,36 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                     );
                                     updateCurrentQuestion({ options: newOpts });
                                   }}
+                                  onPaste={(e) => {
+                                    const pasted = e.clipboardData.getData('text');
+                                    if (!pasted) return;
+                                    e.preventDefault();
+                                    const normalized = normalizeMathText(pasted.trim());
+                                    const newOpts = currentEditingQuestion.options.map((o) =>
+                                      o.key === opt.key ? { ...o, text: normalized } : o
+                                    );
+                                    updateCurrentQuestion({ options: newOpts });
+                                  }}
                                   className={styles.optionTextInput}
-                                  placeholder={`Option ${opt.key} text or formula (e.g. \\sqrt{3}/2, x^2 + 1)`}
+                                  placeholder={`Option ${opt.key} text or formula (e.g. \\sqrt{3}/2, x^2 + 1, 1/16)`}
                                 />
-                                {hasFormula && (
-                                  <div style={{ fontSize: '12px', color: '#334155', padding: '3px 8px', background: '#F8FAFC', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                                {opt.text && opt.text.trim().length > 0 && (
+                                  <div style={{
+                                    fontSize: '12.5px',
+                                    color: '#0F172A',
+                                    padding: '5px 10px',
+                                    background: '#F8FAFC',
+                                    borderRadius: '6px',
+                                    border: '1px solid #E2E8F0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    minHeight: '28px',
+                                    overflowX: 'auto'
+                                  }}>
+                                    <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                      Live Preview:
+                                    </span>
                                     <MathText text={opt.text} />
                                   </div>
                                 )}
