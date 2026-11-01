@@ -15,10 +15,13 @@ export const MathPreview: React.FC<MathPreviewProps> = ({
     <div
       style={{
         width: '100%',
+        maxWidth: '100%',
         background: '#ffffff',
         borderRadius: '8px',
-        padding: '14px 16px',
-        minHeight: '100px'
+        padding: '12px 14px',
+        minHeight: '80px',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch'
       }}
     >
       {content.trim() ? (

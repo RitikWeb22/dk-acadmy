@@ -307,3 +307,43 @@ body.cbt-exam-active {
   clip: rect(1px, 1px, 1px, 1px) !important;
 }
 
+// All multiple-choice options & KaTeX expressions inside options must be strictly left-aligned
+[class*="optionsList"],
+[class*="optionRowItem"],
+[class*="optionBtn"],
+[class*="optionText"],
+[class*="optContentText"],
+[class*="optText"],
+[class*="optionCard"] {
+  text-align: left !important;
+
+  .katex-display {
+    text-align: left !important;
+    margin: 2px 0 !important;
+    padding: 0 !important;
+  }
+  .katex-display > .katex {
+    text-align: left !important;
+  }
+  .katex {
+    text-align: left !important;
+  }
+  [class*="displayMathBlock"] {
+    text-align: left !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 2px 0 !important;
+  }
+}
+
+// Question Statement overflow scrolling & left alignment
+[class*="statementArea"],
+[class*="statementText"],
+[class*="qBodySection"],
+[class*="liveMathPreview"] {
+  text-align: left !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
