@@ -1,14 +1,17 @@
 import React from 'react';
-import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { Search, X, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import type { DPPDifficulty } from '../../../types';
 import styles from './DPPFilters.module.scss';
 
+export type SubjectFilterValue = 'All' | 'Physics' | 'Chemistry' | 'Mathematics';
 export type DifficultyFilterValue = 'All' | DPPDifficulty;
 export type StatusFilterValue = 'All' | 'Not Started' | 'In Progress' | 'Completed';
 
 interface DPPFiltersProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  selectedSubject?: SubjectFilterValue;
+  onSubjectChange?: (subject: SubjectFilterValue) => void;
   selectedDifficulty: DifficultyFilterValue;
   onDifficultyChange: (difficulty: DifficultyFilterValue) => void;
   selectedStatus: StatusFilterValue;
@@ -21,6 +24,8 @@ interface DPPFiltersProps {
 export const DPPFilters: React.FC<DPPFiltersProps> = ({
   searchQuery,
   onSearchChange,
+  selectedSubject = 'All',
+  onSubjectChange,
   selectedDifficulty,
   onDifficultyChange,
   selectedStatus,
@@ -57,6 +62,25 @@ export const DPPFilters: React.FC<DPPFiltersProps> = ({
 
         {/* Dropdowns */}
         <div className={styles.selectGroup}>
+          {onSubjectChange && (
+            <div className={styles.selectWrapper}>
+              <label htmlFor="dpp-subject-select" className={styles.visuallyHidden}>
+                Filter by Subject
+              </label>
+              <select
+                id="dpp-subject-select"
+                className={styles.selectControl}
+                value={selectedSubject}
+                onChange={(e) => onSubjectChange(e.target.value as SubjectFilterValue)}
+              >
+                <option value="All">All Subjects</option>
+                <option value="Physics">Physics</option>
+                <option value="Chemistry">Chemistry</option>
+                <option value="Mathematics">Mathematics</option>
+              </select>
+            </div>
+          )}
+
           <div className={styles.selectWrapper}>
             <label htmlFor="dpp-difficulty-select" className={styles.visuallyHidden}>
               Filter by Difficulty
@@ -98,7 +122,7 @@ export const DPPFilters: React.FC<DPPFiltersProps> = ({
               onClick={onClearFilters}
               aria-label="Clear all active filters"
             >
-              <X size={14} />
+              <RotateCcw size={13} />
               <span>Reset</span>
             </button>
           )}

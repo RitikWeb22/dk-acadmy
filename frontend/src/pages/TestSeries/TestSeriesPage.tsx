@@ -41,6 +41,7 @@ export const TestSeriesPage: React.FC = () => {
     if (urlSubject?.toLowerCase() === 'mathematics' || urlFilter === 'math-speed') return 'MathSpeed';
     if (urlExam === 'JEE Main') return 'JEE Main';
     if (urlExam === 'JEE Advanced') return 'JEE Advanced';
+    if (urlExam === 'BITSAT') return 'BITSAT';
     return 'All';
   }, [urlExam, urlSubject, urlFilter]);
 
@@ -240,6 +241,9 @@ export const TestSeriesPage: React.FC = () => {
     } else if (exam === 'JEE Advanced') {
       nextParams.delete('subject');
       nextParams.set('exam', 'JEE Advanced');
+    } else if (exam === 'BITSAT') {
+      nextParams.delete('subject');
+      nextParams.set('exam', 'BITSAT');
     } else {
       nextParams.delete('exam');
       nextParams.delete('subject');

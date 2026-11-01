@@ -336,6 +336,8 @@ export const DPPPage: React.FC = () => {
             <DPPFilters
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
+              selectedSubject={selectedSubject}
+              onSubjectChange={setSelectedSubject}
               selectedDifficulty={selectedDifficulty}
               onDifficultyChange={setSelectedDifficulty}
               selectedStatus={selectedStatus}
