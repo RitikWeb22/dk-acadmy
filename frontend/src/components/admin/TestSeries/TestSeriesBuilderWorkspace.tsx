@@ -499,16 +499,18 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   // 4-Step Wizard State
   const [currentStep, setCurrentStep] = useState<StepId>(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([1]);
+  const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
   const [editingSeriesTitle, setEditingSeriesTitle] = useState('JEE Advanced Specialist: Coordinate Geometry & Vectors');
   const [editingSeriesSubtitle, setEditingSeriesSubtitle] = useState('Focused practice on conic sections, straight lines, circles, planes, and 3D geometry.');
   const [wizardExamPattern, setWizardExamPattern] = useState('JEE Advanced Pattern');
-  const [wizardTargetExam, setWizardTargetExam] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'MathSpeed'>('JEE Advanced');
+  const [wizardTargetExam, setWizardTargetExam] = useState<'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'PartTest' | 'MathSpeed'>('JEE Advanced');
   const [wizardFormat, setWizardFormat] = useState<'Full Mock' | 'Part Test' | 'Chapter Test'>('Full Mock');
   const [wizardDifficulty, setWizardDifficulty] = useState<'Moderate' | 'Challenging' | 'Advanced'>('Advanced');
   const [wizardBatch, setWizardBatch] = useState('Ultimate 2-Year Live Classroom (2028)');
   const [wizardDuration, setWizardDuration] = useState(90);
   const [positiveMarks, setPositiveMarks] = useState(4);
   const [negativeMarks, setNegativeMarks] = useState(1);
+  const [selectedSubjects, setSelectedSubjects] = useState<('Physics' | 'Chemistry' | 'Mathematics')[]>(['Physics', 'Chemistry', 'Mathematics']);
   const [examGuidelines, setExamGuidelines] = useState<string[]>([
     'Advanced section dedicated exclusively to JEE Mathematics high-weightage geometry domains.',
     'Marking Scheme: +4 marks for correct choice, -1 mark penalty for incorrect choice.',
@@ -894,7 +896,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setIsCreateModalOpen(false);
 
     // Immediately launch the 4-step builder so the admin can author tests & questions
+    setEditingSeriesId(payload.id);
     setEditingSeriesTitle(payload.title);
+    setEditingSeriesSubtitle(payload.subtitle || '');
     setWizardExamPattern(
       payload.examType === 'JEE Advanced'
         ? 'JEE Advanced Paper 1'
@@ -909,7 +913,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     try {
       await apiClient.post('/test-series', payload);
-      cmsService.createTestSeries(payload).catch(() => {});
       notificationService.addNotification({
         title: `📝 New Test Series Live: ${payload.title}`,
         description: `${payload.format} • ${payload.totalMarks} Marks • ${payload.durationMinutes} mins`,
@@ -1038,22 +1041,68 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   // Action Handlers (View, Edit, Duplicate, Preview, Publish, Unpublish, Archive, Delete)
   // ─────────────────────────────────────────────────────────────
   const handleOpenCreateWizard = () => {
+    setEditingSeriesId(null);
     setEditingSeriesTitle(`JEE Main 2027 Full Syllabus Series ${testSeriesList.length + 1}`);
+    setEditingSeriesSubtitle('Complete syllabus mock test matching official NTA CBT examination standards.');
+    setWizardTargetExam('JEE Main');
+    setWizardFormat('Full Mock');
+    setWizardDifficulty('Moderate');
     setWizardExamPattern('NTA JEE Main Pattern');
+    setWizardDuration(180);
+    setPositiveMarks(4);
+    setNegativeMarks(1);
+    setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
     setCurrentStep(1);
     setCompletedSteps([1]);
     setViewMode('BUILDER');
   };
 
   const handleEditSeries = (item: TestSeriesTableItem) => {
+    setEditingSeriesId(item.id);
     setEditingSeriesTitle(item.title);
+    setEditingSeriesSubtitle(item.subtitle || '');
+    const isPart = item.format === 'Part Test' || item.badgeCode === 'PART TEST';
+    const isMath = item.badgeCode === 'MATH SPEED' || (item.subjects?.length === 1 && item.subjects[0] === 'Mathematics');
+    
+    const targetCategory = isPart
+      ? 'PartTest'
+      : isMath
+      ? 'MathSpeed'
+      : (item.examType as any) || 'JEE Main';
+
+    setWizardTargetExam(targetCategory);
+    setWizardFormat(isPart ? 'Part Test' : ((item.format as any) || 'Full Mock'));
+    setWizardDifficulty((item.difficulty as any) || 'Moderate');
+    setWizardDuration(item.durationMinutes || 180);
     setWizardExamPattern(
       item.examType === 'JEE Advanced'
         ? 'JEE Advanced Paper 1'
         : item.examType === 'BITSAT'
         ? 'BITSAT Speed Drill'
+        : isPart
+        ? 'Part Test High-Yield Module'
         : 'NTA JEE Main Pattern'
     );
+    if (Array.isArray(item.subjects) && item.subjects.length > 0) {
+      setSelectedSubjects(item.subjects as any);
+    }
+    if (item.schedule) {
+      if ((item.schedule as any).scheduleMode) setScheduleMode((item.schedule as any).scheduleMode);
+      if (item.schedule.startWindow) {
+        try {
+          setStartWindowDate(new Date(item.schedule.startWindow).toISOString().slice(0, 16));
+        } catch {
+          // ignore date parse error
+        }
+      }
+      if (item.schedule.endWindow) {
+        try {
+          setEndWindowDate(new Date(item.schedule.endWindow).toISOString().slice(0, 16));
+        } catch {
+          // ignore date parse error
+        }
+      }
+    }
     setCurrentStep(1);
     setCompletedSteps([1, 2, 3, 4]);
     setViewMode('BUILDER');
@@ -1215,6 +1264,77 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     }
   };
 
+  const applyTemplatePreset = (preset: 'JEE_MAIN' | 'PART_TEST' | 'JEE_ADV' | 'BITSAT') => {
+    if (preset === 'JEE_MAIN') {
+      setWizardTargetExam('JEE Main');
+      setWizardFormat('Full Mock');
+      setWizardDifficulty('Moderate');
+      setWizardExamPattern('NTA JEE Main Pattern');
+      setWizardDuration(180);
+      setPositiveMarks(4);
+      setNegativeMarks(1);
+      setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
+      if (!editingSeriesId) {
+        setEditingSeriesTitle('JEE Main 2026/2027 Full Syllabus CBT Mock Test');
+        setEditingSeriesSubtitle('Complete 75-question syllabus mock test with NTA percentile & AIR prediction.');
+      }
+    } else if (preset === 'PART_TEST') {
+      setWizardTargetExam('PartTest');
+      setWizardFormat('Part Test');
+      setWizardDifficulty('Moderate');
+      setWizardExamPattern('Part Test High-Yield Module');
+      setWizardDuration(90);
+      setPositiveMarks(4);
+      setNegativeMarks(1);
+      setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
+      if (!editingSeriesId) {
+        setEditingSeriesTitle('JEE Main Part Test: High-Yield Chapter Drill');
+        setEditingSeriesSubtitle('Physics: Modern Physics • Chemistry: Amines & Coordination • Math: Vectors & 3D');
+      }
+    } else if (preset === 'JEE_ADV') {
+      setWizardTargetExam('JEE Advanced');
+      setWizardFormat('Full Mock');
+      setWizardDifficulty('Advanced');
+      setWizardExamPattern('JEE Advanced Paper 1');
+      setWizardDuration(180);
+      setPositiveMarks(4);
+      setNegativeMarks(2);
+      setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
+      if (!editingSeriesId) {
+        setEditingSeriesTitle('JEE Advanced Specialist: Conics, Calculus & 3D Vectors');
+        setEditingSeriesSubtitle('Multi-correct, integer numerical & paragraph comprehension problems.');
+      }
+    } else if (preset === 'BITSAT') {
+      setWizardTargetExam('BITSAT');
+      setWizardFormat('Full Mock');
+      setWizardDifficulty('Moderate');
+      setWizardExamPattern('BITSAT Speed Drill');
+      setWizardDuration(180);
+      setPositiveMarks(3);
+      setNegativeMarks(1);
+      setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
+      if (!editingSeriesId) {
+        setEditingSeriesTitle('BITSAT 2026 Comprehensive Speed CBT Mock');
+        setEditingSeriesSubtitle('130 questions • Speed Math, Physics, Chemistry, English & Logical Reasoning.');
+      }
+    }
+    showToast(`Loaded ${preset.replace('_', ' ')} template.`);
+  };
+
+  const toggleSubjectSelection = (subj: 'Physics' | 'Chemistry' | 'Mathematics') => {
+    setSelectedSubjects((prev) => {
+      if (prev.includes(subj)) {
+        if (prev.length <= 1) {
+          showToast('At least one subject must be active in the exam.');
+          return prev;
+        }
+        return prev.filter((s) => s !== subj);
+      } else {
+        return [...prev, subj];
+      }
+    });
+  };
+
   // Step navigation helpers
   const scrollToTop = () => {
     const el = document.getElementById('main-content');
@@ -1350,23 +1470,29 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     setIsPublishing(true);
     const calculatedMarks = questions.length * positiveMarks;
+    const isPart = wizardTargetExam === 'PartTest' || wizardFormat === 'Part Test';
+    const isMath = wizardTargetExam === 'MathSpeed';
+
     const examTypeVal: 'JEE Main' | 'JEE Advanced' | 'BITSAT' =
-      wizardTargetExam === 'MathSpeed'
+      isPart || isMath
         ? 'JEE Main'
         : (wizardTargetExam as any);
 
     const badgeCodeVal =
-      wizardTargetExam === 'JEE Advanced'
+      isPart
+        ? 'PART TEST'
+        : wizardTargetExam === 'JEE Advanced'
         ? 'JEE ADVANCED'
         : wizardTargetExam === 'BITSAT'
         ? 'BITSAT'
-        : wizardTargetExam === 'MathSpeed'
+        : isMath
         ? 'MATH SPEED'
         : 'JEE MAIN';
 
-    const formatVal: 'Full Mock' | 'Part Test' | 'Chapter Test' = wizardFormat;
+    const formatVal: 'Full Mock' | 'Part Test' | 'Chapter Test' = isPart ? 'Part Test' : wizardFormat;
 
     const payload: any = {
+      id: editingSeriesId || `ts-${Date.now()}`,
       title: editingSeriesTitle.trim(),
       subtitle: editingSeriesSubtitle.trim(),
       slug: editingSeriesTitle
@@ -1380,7 +1506,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       durationMinutes: wizardDuration,
       totalQuestions: questions.length,
       totalMarks: calculatedMarks,
-      subjects: wizardTargetExam === 'MathSpeed' ? ['Mathematics'] : Array.from(new Set(questions.map((q) => q.subject))),
+      subjects: isMath ? ['Mathematics'] : selectedSubjects.length > 0 ? selectedSubjects : Array.from(new Set(questions.map((q) => q.subject))),
       markingScheme: {
         correct: positiveMarks,
         incorrect: zeroPenaltyNumerical ? 0 : negativeMarks,
@@ -1431,24 +1557,41 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     };
 
     try {
-      await apiClient.post<any>('/test-series', payload);
-      cmsService.createTestSeries(payload).catch(() => {});
-      notificationService.addNotification({
-        title: `📝 New ${payload.format} Live: ${payload.title}`,
-        description: `${payload.examType} • ${payload.totalMarks} Marks • ${payload.durationMinutes} mins • Status: ${payload.status}`,
-        type: 'test_series',
-        timestamp: Date.now(),
-        unread: true
-      });
-      window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: payload }));
-      showToast('✓ CBT Examination scheduled, proctoring armed, and published!');
+      if (editingSeriesId) {
+        await apiClient.put(`/test-series/${editingSeriesId}`, payload);
+        cmsService.updateTestSeries(editingSeriesId, payload).catch(() => {});
+        window.dispatchEvent(new CustomEvent('dk_test_series_updated', { detail: payload }));
+        notificationService.addNotification({
+          title: `📝 CBT Test Updated: ${payload.title}`,
+          description: `${payload.format} • ${payload.totalMarks} Marks • Status: ${payload.status}`,
+          type: 'test_series',
+          timestamp: Date.now(),
+          unread: true
+        });
+        showToast('✓ CBT Examination updated and schedule saved!');
+      } else {
+        await apiClient.post<any>('/test-series', payload);
+        cmsService.saveTestSeries([payload, ...cmsService.getTestSeries().filter((t) => t.id !== payload.id)]);
+        notificationService.addNotification({
+          title: `📝 New ${payload.format} Live: ${payload.title}`,
+          description: `${payload.examType} • ${payload.totalMarks} Marks • ${payload.durationMinutes} mins • Status: ${payload.status}`,
+          type: 'test_series',
+          timestamp: Date.now(),
+          unread: true
+        });
+        window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: payload }));
+        showToast('✓ CBT Examination scheduled, proctoring armed, and published!');
+      }
+
       setIsPublishModalOpen(true);
       await fetchLiveTestSeries();
     } catch (err: any) {
       console.error('Error saving test series:', err);
+      cmsService.saveTestSeries([payload, ...cmsService.getTestSeries().filter((t) => t.id !== payload.id)]);
       window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: payload }));
       showToast(`Saved locally: ${err?.message || 'Network sync'}`);
       setIsPublishModalOpen(true);
+      await fetchLiveTestSeries();
     } finally {
       setIsPublishing(false);
     }
@@ -2285,6 +2428,48 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* One-Click Quick Templates Bar */}
+                  <div className={styles.quickTemplatesBar}>
+                    <div className={styles.templateBarLabel}>
+                      <Sparkles size={14} className={styles.templateSparkleIcon} />
+                      <span>1-Click Preset Templates (Auto-Configures Pattern, Timing & Marking):</span>
+                    </div>
+                    <div className={styles.templatePillsRow}>
+                      <button
+                        type="button"
+                        className={styles.templatePillBtn}
+                        onClick={() => applyTemplatePreset('JEE_MAIN')}
+                        title="300 Marks, 75 Qs, Physics/Chemistry/Math (+4/-1)"
+                      >
+                        🚀 NTA JEE Main (300M • 75Q)
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.templatePillBtn}
+                        onClick={() => applyTemplatePreset('PART_TEST')}
+                        title="High-Yield Chapter Module (+4/-1, 90 mins)"
+                      >
+                        ⚡ Part Test Engine (High-Yield Chapters)
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.templatePillBtn}
+                        onClick={() => applyTemplatePreset('JEE_ADV')}
+                        title="Advanced Multi-correct & Numerical (+4/-2, 180 mins)"
+                      >
+                        🎯 JEE Advanced Specialist (Paper 1 & 2)
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.templatePillBtn}
+                        onClick={() => applyTemplatePreset('BITSAT')}
+                        title="Speed Test: 130 Questions (+3/-1, 180 mins)"
+                      >
+                        🏎️ BITSAT 2026 Speed CBT (130 Qs)
+                      </button>
+                    </div>
+                  </div>
+
                   <div className={styles.formGrid2Col}>
                     <div className={`${styles.formField} ${styles.fullWidth}`}>
                       <label>Test Title *</label>
@@ -2297,6 +2482,17 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       />
                     </div>
 
+                    <div className={`${styles.formField} ${styles.fullWidth}`}>
+                      <label>Chapter Coverage & Subtitle *</label>
+                      <input
+                        type="text"
+                        value={editingSeriesSubtitle}
+                        onChange={(e) => setEditingSeriesSubtitle(e.target.value)}
+                        placeholder="e.g., Physics: Modern Physics • Chemistry: Amines & Coordination • Math: Vectors & 3D"
+                        className={styles.primaryInput}
+                      />
+                    </div>
+
                     <div className={styles.formField}>
                       <label>Target Exam Category (Student Primary Filter) *</label>
                       <select
@@ -2304,17 +2500,33 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         onChange={(e) => {
                           const val = e.target.value as any;
                           setWizardTargetExam(val);
-                          setWizardExamPattern(
-                            val === 'JEE Advanced'
-                              ? 'JEE Advanced Paper 1'
-                              : val === 'BITSAT'
-                              ? 'BITSAT Speed Drill'
-                              : 'NTA JEE Main Pattern'
-                          );
+                          if (val === 'PartTest') {
+                            setWizardFormat('Part Test');
+                            setWizardDuration(90);
+                            setWizardExamPattern('Part Test High-Yield Module');
+                          } else if (val === 'JEE Advanced') {
+                            setWizardFormat('Full Mock');
+                            setWizardDuration(180);
+                            setWizardExamPattern('JEE Advanced Paper 1');
+                          } else if (val === 'BITSAT') {
+                            setWizardFormat('Full Mock');
+                            setWizardDuration(180);
+                            setWizardExamPattern('BITSAT Speed Drill');
+                          } else if (val === 'MathSpeed') {
+                            setWizardFormat('Chapter Test');
+                            setWizardDuration(45);
+                            setWizardExamPattern('DK Sir Math Speed Sprint');
+                            setSelectedSubjects(['Mathematics']);
+                          } else {
+                            setWizardFormat('Full Mock');
+                            setWizardDuration(180);
+                            setWizardExamPattern('NTA JEE Main Pattern');
+                          }
                         }}
                         className={styles.primarySelect}
                       >
                         <option value="JEE Main">JEE Main Filter</option>
+                        <option value="PartTest">Part Tests Engine (High-Yield Chapter Tests)</option>
                         <option value="JEE Advanced">JEE Advanced Engine</option>
                         <option value="BITSAT">BITSAT Speed CBT</option>
                         <option value="MathSpeed">DK Sir Math Speed</option>
@@ -2512,61 +2724,152 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     <div className={styles.stepHeaderInfo}>
                       <h2 className={styles.stepTitle}>2. Subject Sections & Optional Question Rules</h2>
                       <p className={styles.stepSubtitle}>
-                        Configure Physics, Chemistry, and Mathematics question splits and enforce NTA’s "Attempt 5 of 10" rule.
+                        Select active subjects for this exam, configure question counts, and enforce NTA’s "Attempt 5 of 10" rule.
                       </p>
                     </div>
                   </div>
 
+                  {/* Interactive Active Subject Selection Bar */}
+                  <div className={styles.subjectSelectorWrap}>
+                    <div className={styles.subjectSelectLabel}>
+                      <span>Active Paper Subjects:</span>
+                      <span className={styles.subjectSelectHint}>Click to enable or disable subjects for this test</span>
+                    </div>
+                    <div className={styles.subjectPillGroup}>
+                      {(['Physics', 'Chemistry', 'Mathematics'] as const).map((subj) => (
+                        <button
+                          key={subj}
+                          type="button"
+                          className={`${styles.subjectPillToggle} ${selectedSubjects.includes(subj) ? styles.active : ''}`}
+                          onClick={() => toggleSubjectSelection(subj)}
+                        >
+                          {selectedSubjects.includes(subj) ? '✓ ' : '+ '}
+                          {subj}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className={styles.subjectsContainer}>
-                    {(['Physics', 'Chemistry', 'Mathematics'] as const).map((subjKey) => {
-                      const rule = subjectRules[subjKey];
-                      return (
-                        <div key={subjKey} className={styles.subjectBlockCard}>
-                          <div className={styles.subjectCardHeader}>
-                            <div className={styles.subjectBadgeGroup}>
-                              <span className={styles.subjectPillBadge}>{rule.badgeTitle}</span>
-                              <span className={styles.totalQsPill}>
-                                Total: {rule.secATotal + rule.secBTotal} Questions • 100 Marks
-                              </span>
-                            </div>
-                            <span className={styles.configuredBadge}>✓ Configured</span>
-                          </div>
-
-                          <div className={styles.sectionsSplitGrid}>
-                            <div className={styles.sectionColCard}>
-                              <div className={styles.secColHeader}>
-                                <h4>Section A: Single Correct MCQs</h4>
-                                <span className={styles.compulsoryPill}>All Compulsory</span>
+                    {(['Physics', 'Chemistry', 'Mathematics'] as const)
+                      .filter((subjKey) => selectedSubjects.includes(subjKey))
+                      .map((subjKey) => {
+                        const rule = subjectRules[subjKey];
+                        return (
+                          <div key={subjKey} className={styles.subjectBlockCard}>
+                            <div className={styles.subjectCardHeader}>
+                              <div className={styles.subjectBadgeGroup}>
+                                <span className={styles.subjectPillBadge}>{rule.badgeTitle}</span>
+                                <span className={styles.totalQsPill}>
+                                  Total: {rule.secATotal + rule.secBTotal} Questions • {((rule.secATotal + (rule.secBEnforceOptional ? 5 : rule.secBTotal)) * positiveMarks)} Marks
+                                </span>
                               </div>
-                              <p className={styles.secRuleInfo}>20 Questions • +4 for Correct • -1 for Incorrect</p>
+                              <span className={styles.configuredBadge}>✓ Active & Configured</span>
                             </div>
 
-                            <div className={styles.sectionColCard}>
-                              <div className={styles.secColHeader}>
-                                <h4>Section B: Numerical Value Type</h4>
-                                <span className={styles.optionalPill}>NTA Optional Rule</span>
+                            <div className={styles.sectionsSplitGrid}>
+                              <div className={styles.sectionColCard}>
+                                <div className={styles.secColHeader}>
+                                  <h4>Section A: Single Correct MCQs</h4>
+                                  <span className={styles.compulsoryPill}>Compulsory</span>
+                                </div>
+                                <div className={styles.secRuleInfoRow}>
+                                  <label>Questions Count:</label>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={50}
+                                    value={rule.secATotal}
+                                    onChange={(e) => {
+                                      const val = Math.max(1, Number(e.target.value) || 0);
+                                      setSubjectRules({
+                                        ...subjectRules,
+                                        [subjKey]: { ...rule, secATotal: val }
+                                      });
+                                    }}
+                                    className={styles.secNumInput}
+                                  />
+                                  <span className={styles.secRuleNote}>+{positiveMarks} / -{negativeMarks} Marking</span>
+                                </div>
                               </div>
-                              <label className={styles.toggleRow}>
-                                <input
-                                  type="checkbox"
-                                  checked={rule.secBEnforceOptional}
-                                  onChange={(e) => {
-                                    setSubjectRules({
-                                      ...subjectRules,
-                                      [subjKey]: {
-                                        ...rule,
-                                        secBEnforceOptional: e.target.checked
-                                      }
-                                    });
-                                  }}
-                                />
-                                <span>Enforce NTA Optional: Attempt any 5 out of 10 questions</span>
-                              </label>
+
+                              <div className={styles.sectionColCard}>
+                                <div className={styles.secColHeader}>
+                                  <h4>Section B: Numerical Value Type</h4>
+                                  <span className={styles.optionalPill}>
+                                    {rule.secBEnforceOptional ? 'NTA 5 of 10' : 'Direct Numerical'}
+                                  </span>
+                                </div>
+                                <div className={styles.secRuleInfoRow}>
+                                  <label>Questions Count:</label>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={30}
+                                    value={rule.secBTotal}
+                                    onChange={(e) => {
+                                      const val = Math.max(0, Number(e.target.value) || 0);
+                                      setSubjectRules({
+                                        ...subjectRules,
+                                        [subjKey]: { ...rule, secBTotal: val }
+                                      });
+                                    }}
+                                    className={styles.secNumInput}
+                                  />
+                                  <span className={styles.secRuleNote}>
+                                    {rule.secBEnforceOptional ? 'Attempt any 5' : 'All compulsory'}
+                                  </span>
+                                </div>
+                                <label className={styles.toggleRow}>
+                                  <input
+                                    type="checkbox"
+                                    checked={rule.secBEnforceOptional}
+                                    onChange={(e) => {
+                                      setSubjectRules({
+                                        ...subjectRules,
+                                        [subjKey]: {
+                                          ...rule,
+                                          secBEnforceOptional: e.target.checked
+                                        }
+                                      });
+                                    }}
+                                  />
+                                  <span>Enforce NTA Optional: Attempt any 5 out of 10 questions</span>
+                                </label>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                  </div>
+
+                  {/* Live Exam Structure Summary Box */}
+                  <div className={styles.overallSummaryCard}>
+                    <h4 className={styles.summaryTitle}>📊 Live Examination Blueprint Summary</h4>
+                    <div className={styles.summaryMetricsGrid}>
+                      <div className={styles.summaryMetricItem}>
+                        <span className={styles.summaryMetricLabel}>Active Subjects</span>
+                        <span className={styles.summaryMetricVal}>{selectedSubjects.length} ({selectedSubjects.join(', ')})</span>
+                      </div>
+                      <div className={styles.summaryMetricItem}>
+                        <span className={styles.summaryMetricLabel}>Total Paper Questions</span>
+                        <span className={styles.summaryMetricVal}>
+                          {selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} Questions
+                        </span>
+                      </div>
+                      <div className={styles.summaryMetricItem}>
+                        <span className={styles.summaryMetricLabel}>Total to Attempt</span>
+                        <span className={styles.summaryMetricVal}>
+                          {selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBEnforceOptional ? 5 : (subjectRules[s]?.secBTotal || 10)), 0)} Questions
+                        </span>
+                      </div>
+                      <div className={styles.summaryMetricItem}>
+                        <span className={styles.summaryMetricLabel}>Maximum Exam Marks</span>
+                        <span className={`${styles.summaryMetricVal} ${styles.marksHighlight}`}>
+                          {selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBEnforceOptional ? 5 : (subjectRules[s]?.secBTotal || 10)), 0) * positiveMarks} Marks
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className={styles.stepActionBarBetween}>

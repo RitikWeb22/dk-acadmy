@@ -9,32 +9,30 @@
   bottom: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 9999999;
-  background-color: rgba(15, 23, 42, 0.82);
+  z-index: 99999999;
+  background-color: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem 1rem;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem 1rem;
   overflow-y: auto;
   animation: fadeIn 0.18s ease-out;
 }
 
 .modalBox {
-  width: 100%;
-  max-width: 520px;
-  max-height: min(90vh, 640px);
+  width: min(100%, 480px);
+  max-height: 90vh;
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  margin: auto;
   position: relative;
-  z-index: 1000000;
+  z-index: 10000000;
+  margin: auto;
   animation: modalScale 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
