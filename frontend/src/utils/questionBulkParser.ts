@@ -13,13 +13,40 @@ export function normalizeMathText(raw: string): string {
     // Normalize curly quotes & apostrophes
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2018\u2019]/g, "'")
-    // Normalize unicode minus to standard hyphen-minus
-    .replace(/\u2212/g, '-')
+    // Normalize unicode minus, en-dash, em-dash
+    .replace(/[\u2212\u2013\u2014]/g, '-')
     // Normalize double backslashes (e.g. \\frac -> \frac)
     .replace(/\\\\([a-zA-Z]+)/g, '\\$1')
     // Normalize alternate LaTeX delimiters safely with callbacks
     .replace(/\\\[([\s\S]*?)\\\]/g, (_, p1) => `$$${p1}$$`)
     .replace(/\\\(([\s\S]*?)\\\)/g, (_, p1) => `$${p1}$`)
+    // Inverse trig functions: cot^-1, tan^-1, sin^-1, cos^-1, sec^-1, csc^-1
+    .replace(/\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`)
+    .replace(/\b(cot|tan|sin|cos|sec|csc)⁻¹/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`)
+    // Common unicode superscripts to standard exponents
+    .replace(/²/g, '^2')
+    .replace(/³/g, '^3')
+    .replace(/⁴/g, '^4')
+    .replace(/⁻¹/g, '^{-1}')
+    // Common math symbols to LaTeX
+    .replace(/√/g, '\\sqrt')
+    .replace(/±/g, '\\pm')
+    .replace(/≠/g, '\\neq')
+    .replace(/≤/g, '\\le')
+    .replace(/≥/g, '\\ge')
+    .replace(/×/g, '\\times')
+    .replace(/÷/g, '\\div')
+    .replace(/∞/g, '\\infty')
+    // Greek letters in text
+    .replace(/α/g, '\\alpha')
+    .replace(/β/g, '\\beta')
+    .replace(/γ/g, '\\gamma')
+    .replace(/θ/g, '\\theta')
+    .replace(/λ/g, '\\lambda')
+    .replace(/π/g, '\\pi')
+    .replace(/μ/g, '\\mu')
+    .replace(/σ/g, '\\sigma')
+    .replace(/ω/g, '\\omega')
     .trim();
 }
 
