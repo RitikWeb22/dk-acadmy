@@ -264,6 +264,17 @@ export interface TestScheduleConfig {
   endWindow?: string;
   autoSubmit?: boolean;
   computeRank?: boolean;
+  scheduleMode?: 'SCHEDULED_WINDOW' | 'OPEN_PRACTICE' | 'TIME_SLOTTED';
+  examSlot?: string;
+  fullScreenLock?: boolean;
+  tabSwitchLimit?: number;
+  disableCopyPaste?: boolean;
+  strictTimer?: boolean;
+  autoSaveInterval?: number;
+  singleSessionGuard?: boolean;
+  scorecardRelease?: 'INSTANT' | 'AFTER_WINDOW' | 'MANUAL';
+  bufferEntryMinutes?: number;
+  cutoffTierPredictor?: boolean;
 }
 
 export interface TestSeriesItem {

@@ -3430,11 +3430,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         Step 4.1 — Select Exam Delivery Mode
                       </span>
                       <span style={{ fontSize: '11.5px', color: '#64748B' }}>
-                        Current Mode: <strong>{scheduleMode === 'SCHEDULED_WINDOW' ? 'Strict Live Window' : scheduleMode === 'TIME_SLOTTED' ? 'NTA Shift Based' : '24x7 Open Practice'}</strong>
+                        Current Mode: <strong>{scheduleMode === 'SCHEDULED_WINDOW' ? 'Live Scheduled Window' : '24x7 Open Practice'}</strong>
                       </span>
                     </div>
 
-                    <div className={styles.modeSelectGrid}>
+                    <div className={styles.modeSelectGrid} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                       <div
                         className={`${styles.modeOptionCard} ${scheduleMode === 'SCHEDULED_WINDOW' ? styles.modeOptionCardActive : ''}`}
                         onClick={() => setScheduleMode('SCHEDULED_WINDOW')}
@@ -3445,7 +3445,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </div>
                         <h4 className={styles.modeCardTitle}>Time-Bound Live Window</h4>
                         <p className={styles.modeCardDesc}>
-                          Candidates can only attempt within a strictly bounded start and end datetime. Emulates national exam day pressure.
+                          Candidates can only attempt within a strictly bounded start and end datetime (e.g. Sunday 09:00 AM). Emulates national exam day conditions.
                         </p>
                       </div>
 
@@ -3459,21 +3459,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </div>
                         <h4 className={styles.modeCardTitle}>Open Practice CBT Mock</h4>
                         <p className={styles.modeCardDesc}>
-                          Accessible 24x7 whenever candidate is ready. Starts on-demand with 180-minute countdown and instant evaluation.
-                        </p>
-                      </div>
-
-                      <div
-                        className={`${styles.modeOptionCard} ${scheduleMode === 'TIME_SLOTTED' ? styles.modeOptionCardActive : ''}`}
-                        onClick={() => setScheduleMode('TIME_SLOTTED')}
-                      >
-                        <div className={styles.modeCardHeader}>
-                          <span className={`${styles.modeBadgePill} ${styles.modeBadgeSlotted}`}>Shift Based</span>
-                          <Clock size={16} color={scheduleMode === 'TIME_SLOTTED' ? '#D97706' : '#94A3B8'} />
-                        </div>
-                        <h4 className={styles.modeCardTitle}>Slotted NTA Shifts</h4>
-                        <p className={styles.modeCardDesc}>
-                          Configured for NTA Shift 1 (09:00 AM - 12:00 PM) or Shift 2 (03:00 PM - 06:00 PM) with batch normalization.
+                          Accessible 24x7 anytime on-demand. When the student clicks "Start", their countdown timer begins with full proctoring safeguards.
                         </p>
                       </div>
                     </div>
@@ -3485,7 +3471,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                         <h3 className={styles.cardHeading} style={{ margin: 0 }}>
                           <Calendar size={15} style={{ verticalAlign: 'middle', marginRight: '6px', color: '#2563EB' }} />
-                          {scheduleMode === 'SCHEDULED_WINDOW' ? 'Live Examination Window' : scheduleMode === 'TIME_SLOTTED' ? 'NTA Shift Slot & Timings' : 'Open Practice Settings'}
+                          {scheduleMode === 'SCHEDULED_WINDOW' ? 'Live Examination Window' : 'Open Practice Settings'}
                         </h3>
                         <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563EB', background: '#EFF6FF', padding: '3px 8px', borderRadius: '6px' }}>
                           IST (GMT+5:30)
@@ -3553,17 +3539,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                     className={styles.quickPillBtn}
                                     onClick={() => {
                                       const d = new Date();
-                                      d.setDate(d.getDate() + 2);
-                                      updateStartDate(d.toISOString().slice(0, 10));
-                                    }}
-                                  >
-                                    In 2 Days
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={styles.quickPillBtn}
-                                    onClick={() => {
-                                      const d = new Date();
                                       const day = d.getDay();
                                       const diff = (7 - day) % 7 || 7;
                                       d.setDate(d.getDate() + diff);
@@ -3580,7 +3555,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             <div className={styles.pickerSubSection}>
                               <div className={styles.pickerSectionLabel}>
                                 <span>⏰ 2. Live Opening Time (IST) *</span>
-                                <span className={styles.pickerHint}>Select shift or pick hour/minute</span>
+                                <span className={styles.pickerHint}>Pick starting time or select common shift</span>
                               </div>
                               <div className={styles.timePickerFlexRow}>
                                 {/* Hour Dropdown */}
@@ -3604,7 +3579,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                   className={styles.modernTimeSelect}
                                   title="Minute"
                                 >
-                                  {['00', '10', '15', '20', '30', '40', '45', '50'].map((m) => (
+                                  {['00', '15', '30', '45'].map((m) => (
                                     <option key={m} value={m}>{m}</option>
                                   ))}
                                 </select>
@@ -3651,21 +3626,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                 >
                                   🌆 Shift 2 Std (03:00 PM)
                                 </button>
-                                <button
-                                  type="button"
-                                  className={`${styles.quickPillBtn} ${startParsed.hour12 === '06' && startParsed.minute === '00' && startParsed.ampm === 'PM' ? styles.active : ''}`}
-                                  onClick={() => updateStartTime('06', '00', 'PM')}
-                                >
-                                  🌙 Evening (06:00 PM)
-                                </button>
                               </div>
                             </div>
 
                             {/* 3. Window Duration (End Window Automatic Setup) */}
                             <div className={styles.pickerSubSection}>
                               <div className={styles.pickerSectionLabel}>
-                                <span>⌛ 3. Examination Window Duration *</span>
-                                <span className={styles.pickerHint}>Automatically calculates closing date & time</span>
+                                <span>⌛ 3. Window Availability Duration *</span>
+                                <span className={styles.pickerHint}>How long candidates have to complete the test</span>
                               </div>
                               <div className={styles.quickPillsRow}>
                                 <button
@@ -3673,7 +3641,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                   className={styles.quickPillBtn}
                                   onClick={() => setWindowDurationPreset(3)}
                                 >
-                                  ⏱️ 3 Hours (Single Slot)
+                                  ⏱️ 3 Hours
                                 </button>
                                 <button
                                   type="button"
@@ -3696,13 +3664,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                 >
                                   ⭐ 7 Days (Recommended)
                                 </button>
-                                <button
-                                  type="button"
-                                  className={styles.quickPillBtn}
-                                  onClick={() => setWindowDurationPreset(336)}
-                                >
-                                  ⏱️ 14 Days
-                                </button>
                               </div>
                             </div>
 
@@ -3710,7 +3671,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             <div className={styles.liveWindowPreviewBox}>
                               <CheckCircle2 size={16} className={styles.previewIcon} />
                               <div className={styles.previewText}>
-                                <strong>Live Window: </strong>
+                                <strong>Active Window: </strong>
                                 <span>
                                   Opens {new Date(startWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
                                   {' ➔ '}
@@ -3718,67 +3679,18 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                 </span>
                               </div>
                             </div>
-
-                            <div className={styles.formField} style={{ marginTop: '12px' }}>
-                              <label>Late Candidate Entry Buffer</label>
-                              <select
-                                value={bufferEntryMinutes}
-                                onChange={(e) => setBufferEntryMinutes(Number(e.target.value))}
-                                className={styles.primarySelect}
-                              >
-                                <option value={15}>15 Minutes after Start (Strict NTA Gate Close)</option>
-                                <option value={30}>30 Minutes after Start (Standard Default)</option>
-                                <option value={45}>45 Minutes after Start (Lenient)</option>
-                                <option value={0}>Zero Buffer (Lock exam entry at exact start second)</option>
-                              </select>
-                            </div>
                           </div>
                         );
                       })()}
 
-                      {scheduleMode === 'TIME_SLOTTED' && (
-                        <>
-                          <div className={styles.formField}>
-                            <label>Designated Shift Slot *</label>
-                            <select
-                              value={examSlot}
-                              onChange={(e) => setExamSlot(e.target.value as any)}
-                              className={styles.primarySelect}
-                            >
-                              <option value="MORNING">Morning Shift 1: 09:00 AM – 12:00 PM IST</option>
-                              <option value="EVENING">Evening Shift 2: 03:00 PM – 06:00 PM IST</option>
-                              <option value="FLEXIBLE">Flexible Slot (Student chooses either Shift 1 or Shift 2)</option>
-                            </select>
-                          </div>
-
-                          <div className={styles.formField}>
-                            <label>Exam Date *</label>
-                            <input
-                              type="date"
-                              value={startWindowDate.slice(0, 10)}
-                              onChange={(e) => {
-                                const newDate = e.target.value;
-                                setStartWindowDate(`${newDate}T09:00`);
-                                setEndWindowDate(`${newDate}T18:00`);
-                              }}
-                              className={styles.primaryInput}
-                            />
-                          </div>
-
-                          <div style={{ padding: '12px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '8px', fontSize: '12px', color: '#92400E', lineHeight: '1.45', marginTop: '8px' }}>
-                            <strong>Official NTA Reporting Protocol:</strong> Gates close strictly 15 minutes before exam commencement. Candidate verification and biometric simulation will trigger during the pre-exam warmup lobby.
-                          </div>
-                        </>
-                      )}
-
                       {scheduleMode === 'OPEN_PRACTICE' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: 700, fontSize: '13px' }}>
                             <CheckCircle2 size={16} />
                             Always-On 24x7 Self-Paced Practice
                           </div>
-                          <p style={{ margin: 0, fontSize: '12px', color: '#15803D', lineHeight: '1.5' }}>
-                            This CBT mock will remain active indefinitely for registered aspirants. When a student clicks <em>"Start CBT Mock"</em>, their individual 180-minute countdown timer begins immediately with full proctoring safeguards.
+                          <p style={{ margin: 0, fontSize: '12.5px', color: '#15803D', lineHeight: '1.55' }}>
+                            This CBT mock is open indefinitely. Whenever an aspirant clicks <em>"Start Test"</em>, their individual countdown timer begins immediately with active automated proctoring protection.
                           </p>
                         </div>
                       )}
@@ -3794,15 +3706,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       </div>
 
                       <div className={styles.formField}>
-                        <label>Scorecard &amp; Detailed Solutions Release</label>
+                        <label>Scorecard &amp; Solutions Release Policy</label>
                         <select
                           value={scorecardRelease}
                           onChange={(e) => setScorecardRelease(e.target.value as any)}
                           className={styles.primarySelect}
                         >
-                          <option value="INSTANT">Instant Release — Full solutions immediately upon submission</option>
+                          <option value="INSTANT">Instant Release — Full solutions &amp; marks immediately on submit</option>
                           <option value="AFTER_WINDOW">Release After Window Closes — Prevents answer leaks during live exam</option>
-                          <option value="MANUAL">Manual Admin Release — Retain until admin approves rankings</option>
                         </select>
                       </div>
 
@@ -3814,11 +3725,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           className={styles.primarySelect}
                         >
                           <option value="BATCH_INCLUDED">Enrolled Batches Only (Included in Course Tuition)</option>
-                          <option value="FREE_LEAD_MAGNET">Open All-India Open Mock (Public Lead Magnet)</option>
+                          <option value="FREE_LEAD_MAGNET">Open All-India Mock (Public / Free Access)</option>
                         </select>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
                         <label className={styles.checkToggleLabel}>
                           <input
                             type="checkbox"
@@ -3826,24 +3737,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             onChange={(e) => setAutoSubmitOnExpire(e.target.checked)}
                           />
                           <span><strong>Auto-Submit upon Clock Expiry:</strong> Automatically locks and sends paper when candidate timer reaches 00:00:00</span>
-                        </label>
-
-                        <label className={styles.checkToggleLabel}>
-                          <input
-                            type="checkbox"
-                            checked={computeNtaRank}
-                            onChange={(e) => setComputeNtaRank(e.target.checked)}
-                          />
-                          <span><strong>NTA Percentile Normalization:</strong> Compute normalized All-India Rank (AIR) and marks distribution curve</span>
-                        </label>
-
-                        <label className={styles.checkToggleLabel}>
-                          <input
-                            type="checkbox"
-                            checked={cutoffTierPredictor}
-                            onChange={(e) => setCutoffTierPredictor(e.target.checked)}
-                          />
-                          <span><strong>IIT/NIT Cutoff Forecaster:</strong> Display estimated branch chances &amp; qualifying tier on student scorecard</span>
                         </label>
                       </div>
                     </div>
@@ -3859,7 +3752,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </span>
                       </div>
                       <span style={{ fontSize: '11px', fontWeight: 700, color: '#16A34A', background: '#DCFCE7', padding: '3px 9px', borderRadius: '100px' }}>
-                        Shield Status: Armed
+                        ✓ Enforced in Real-Time Candidate View
                       </span>
                     </div>
 
@@ -3872,7 +3765,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         <div className={styles.proctorRuleText}>
                           <span className={styles.proctorRuleTitle}>Strict Fullscreen Kiosk Mode</span>
                           <span className={styles.proctorRuleDesc}>
-                            Locks browser into fullscreen upon exam start. Exiting fullscreen flashes high-priority warning dialog and logs strike.
+                            Locks browser into fullscreen upon exam start. Exiting fullscreen flashes high-priority warning dialog and logs a strike.
                           </span>
                         </div>
                         <div className={styles.proctorToggleWrap}>
@@ -3902,11 +3795,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             value={tabSwitchLimit}
                             onChange={(e) => setTabSwitchLimit(Number(e.target.value))}
                             className={styles.primarySelect}
-                            style={{ width: '130px', padding: '6px 10px', fontSize: '12px' }}
+                            style={{ width: '150px', padding: '6px 10px', fontSize: '12px' }}
                           >
                             <option value={1}>1 Warning (Strict)</option>
                             <option value={2}>2 Warnings</option>
-                            <option value={3}>3 Warnings (Std)</option>
+                            <option value={3}>3 Warnings (Standard)</option>
                             <option value={5}>5 Warnings</option>
                             <option value={999}>Disabled</option>
                           </select>
@@ -3935,37 +3828,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Rule 4: Non-Pausable Strict Server Timer */}
-                      <div className={styles.proctorRuleItem}>
-                        <div className={styles.proctorRuleIconWrap} style={{ background: '#FFFBEB', color: '#D97706' }}>
-                          <Clock size={16} />
-                        </div>
-                        <div className={styles.proctorRuleText}>
-                          <span className={styles.proctorRuleTitle}>Non-Pausable Centralized Server Timer</span>
-                          <span className={styles.proctorRuleDesc}>
-                            Prevents local device clock tampering. Reloading page or closing browser keeps timer running on server clock.
-                          </span>
-                        </div>
-                        <div className={styles.proctorToggleWrap}>
-                          <input
-                            type="checkbox"
-                            id="rule-timer"
-                            checked={strictTimer}
-                            onChange={(e) => setStrictTimer(e.target.checked)}
-                            style={{ width: '18px', height: '18px', accentColor: '#2563EB', cursor: 'pointer' }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Rule 5: Continuous Cloud Auto-Save */}
+                      {/* Rule 4: Continuous Cloud Auto-Save */}
                       <div className={styles.proctorRuleItem}>
                         <div className={styles.proctorRuleIconWrap}>
                           <RefreshCw size={16} />
                         </div>
                         <div className={styles.proctorRuleText}>
-                          <span className={styles.proctorRuleTitle}>Cloud Response Auto-Save Interval</span>
+                          <span className={styles.proctorRuleTitle}>Continuous Cloud Auto-Save Interval</span>
                           <span className={styles.proctorRuleDesc}>
-                            Automatically persists bubble markings and visited question statuses to MongoDB database to protect against crashes.
+                            Automatically persists bubble markings and visited question statuses in background so no progress is ever lost.
                           </span>
                         </div>
                         <div className={styles.proctorToggleWrap}>
@@ -3973,11 +3844,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             value={autoSaveInterval}
                             onChange={(e) => setAutoSaveInterval(Number(e.target.value))}
                             className={styles.primarySelect}
-                            style={{ width: '130px', padding: '6px 10px', fontSize: '12px' }}
+                            style={{ width: '150px', padding: '6px 10px', fontSize: '12px' }}
                           >
-                            <option value={5}>Every 5 Secs</option>
-                            <option value={10}>Every 10 Secs</option>
-                            <option value={30}>Every 30 Secs</option>
+                            <option value={10}>Every 10 Seconds (Recommended)</option>
+                            <option value={30}>Every 30 Seconds</option>
+                            <option value={60}>Every 60 Seconds</option>
                           </select>
                         </div>
                       </div>
@@ -4027,15 +3898,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     <div className={styles.summaryBadgesRow}>
                       <span className={styles.summaryPill}>
                         <Clock size={12} />
-                        180 Mins
+                        {wizardDuration} Mins
                       </span>
                       <span className={styles.summaryPill}>
                         <Award size={12} />
-                        300 Marks
+                        {wizardTotalMarks} Marks
                       </span>
                       <span className={styles.summaryPill} style={{ background: 'rgba(34, 197, 94, 0.2)', borderColor: 'rgba(34, 197, 94, 0.4)', color: '#86EFAC' }}>
                         <ShieldCheck size={12} />
-                        6 Proctor Shields
+                        Proctor Active
                       </span>
                       <span className={styles.summaryPill}>
                         <FileCheck size={12} />

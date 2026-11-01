@@ -51,6 +51,141 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isExitWarningOpen, setIsExitWarningOpen] = useState(false);
 
+  // ─────────────────────────────────────────────────────────────
+  // Active Automated Proctoring & Anti-Cheating Engine
+  // ─────────────────────────────────────────────────────────────
+  const fullScreenLock = test?.schedule?.fullScreenLock !== false;
+  const tabSwitchLimit = test?.schedule?.tabSwitchLimit ?? 3;
+  const disableCopyPaste = test?.schedule?.disableCopyPaste !== false;
+  const autoSaveSeconds = test?.schedule?.autoSaveInterval || 10;
+
+  const [tabStrikes, setTabStrikes] = useState(0);
+  const [isTabWarningOpen, setIsTabWarningOpen] = useState(false);
+  const [isFullscreenWarningOpen, setIsFullscreenWarningOpen] = useState(false);
+  const [isDisqualified, setIsDisqualified] = useState(false);
+  const [cloudSyncText, setCloudSyncText] = useState('☁️ Cloud Synced');
+  const [isFullscreenActive, setIsFullscreenActive] = useState<boolean>(() => Boolean(document.fullscreenElement));
+
+  const enterFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreenActive(true);
+      }
+    } catch (err) {
+      console.warn('[Proctor] Fullscreen request:', err);
+    }
+  };
+
+  // Fullscreen monitor
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFs = Boolean(document.fullscreenElement);
+      setIsFullscreenActive(isFs);
+      if (fullScreenLock && !isFs && !isDisqualified) {
+        setIsFullscreenWarningOpen(true);
+        setTabStrikes((prev) => {
+          const next = prev + 1;
+          if (tabSwitchLimit < 999 && next >= tabSwitchLimit) {
+            setIsDisqualified(true);
+          }
+          return next;
+        });
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [fullScreenLock, tabSwitchLimit, isDisqualified]);
+
+  // Tab switch & focus loss monitor
+  useEffect(() => {
+    if (tabSwitchLimit >= 999) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && !isDisqualified) {
+        setTabStrikes((prev) => {
+          const next = prev + 1;
+          if (next >= tabSwitchLimit) {
+            setIsDisqualified(true);
+          } else {
+            setIsTabWarningOpen(true);
+          }
+          return next;
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [tabSwitchLimit, isDisqualified]);
+
+  // Disable clipboard, right-click & DevTools inspection
+  useEffect(() => {
+    if (!disableCopyPaste) return;
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      return false;
+    };
+    const handleCut = (e: ClipboardEvent) => {
+      e.preventDefault();
+      return false;
+    };
+    const handlePaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      return false;
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent F12
+      if (e.key === 'F12') {
+        e.preventDefault();
+      }
+      // Prevent Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (DevTools)
+      if (e.ctrlKey && e.shiftKey && ['i', 'I', 'j', 'J', 'c', 'C'].includes(e.key)) {
+        e.preventDefault();
+      }
+      // Prevent Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+C, Ctrl+V, Ctrl+A
+      if (e.ctrlKey && ['u', 'U', 's', 'S', 'p', 'P', 'c', 'C', 'v', 'V'].includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('copy', handleCopy);
+    window.addEventListener('cut', handleCut);
+    window.addEventListener('paste', handlePaste);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('copy', handleCopy);
+      window.removeEventListener('cut', handleCut);
+      window.removeEventListener('paste', handlePaste);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [disableCopyPaste]);
+
+  // Periodic cloud response auto-save
+  useEffect(() => {
+    if (!autoSaveSeconds || autoSaveSeconds <= 0) return;
+
+    const interval = setInterval(() => {
+      onSaveProgress(responses);
+      setCloudSyncText('☁️ Cloud Saved');
+      const timer = setTimeout(() => setCloudSyncText('☁️ Cloud Synced'), 3000);
+      return () => clearTimeout(timer);
+    }, autoSaveSeconds * 1000);
+
+    return () => clearInterval(interval);
+  }, [autoSaveSeconds, responses, onSaveProgress]);
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
@@ -214,6 +349,24 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
         {/* Right Header Area: Timer & Submit */}
         <div className={styles.topBarRight}>
+          <div className={styles.proctorStatusRow}>
+            <span className={`${styles.proctorShieldBadge} ${tabStrikes > 0 ? styles.proctorShieldBadgeWarning : ''}`}>
+              <ShieldAlert size={12} />
+              Proctored {tabSwitchLimit < 999 && `(Strikes: ${tabStrikes}/${tabSwitchLimit})`}
+            </span>
+            <span className={styles.cloudSyncBadge}>{cloudSyncText}</span>
+            {fullScreenLock && !isFullscreenActive && (
+              <button
+                type="button"
+                className={styles.fullscreenBtn}
+                onClick={enterFullscreen}
+                title="Enter Fullscreen Mode"
+              >
+                ⛶ Go Fullscreen
+              </button>
+            )}
+          </div>
+
           <CountdownTimer
             startTime={startTime}
             durationMinutes={test.durationMinutes}
@@ -465,6 +618,82 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
                 Yes, Leave Test
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Proctoring Warning Modal: Fullscreen Exited */}
+      {isFullscreenWarningOpen && !isDisqualified && (
+        <div className={styles.proctorModalOverlay} role="alertdialog" aria-modal="true">
+          <div className={styles.proctorModalCard}>
+            <div className={styles.proctorModalIconWarning}>⚠️</div>
+            <h3 className={styles.proctorModalTitle}>Fullscreen Mode Required</h3>
+            <p className={styles.proctorModalText}>
+              You have exited Fullscreen mode. To maintain test integrity, this examination must remain in Fullscreen until final submission. A strike has been recorded.
+            </p>
+            {tabSwitchLimit < 999 && (
+              <div className={styles.proctorStrikesBadge}>
+                Security Strike: {tabStrikes} of {tabSwitchLimit} infractions logged
+              </div>
+            )}
+            <button
+              type="button"
+              className={styles.proctorResumeBtn}
+              onClick={() => {
+                enterFullscreen();
+                setIsFullscreenWarningOpen(false);
+              }}
+            >
+              Re-Enter Fullscreen &amp; Continue Test
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Proctoring Warning Modal: Tab Switch Detected */}
+      {isTabWarningOpen && !isDisqualified && (
+        <div className={styles.proctorModalOverlay} role="alertdialog" aria-modal="true">
+          <div className={styles.proctorModalCard}>
+            <div className={styles.proctorModalIconWarning}>⚠️</div>
+            <h3 className={styles.proctorModalTitle}>Focus Lost / Tab Switch Detected</h3>
+            <p className={styles.proctorModalText}>
+              Navigating away from the examination window or switching tabs is strictly monitored by automated proctoring.
+            </p>
+            {tabSwitchLimit < 999 && (
+              <div className={styles.proctorStrikesBadge}>
+                Warning {tabStrikes} of {tabSwitchLimit} • {Math.max(0, tabSwitchLimit - tabStrikes)} more will terminate your exam
+              </div>
+            )}
+            <button
+              type="button"
+              className={styles.proctorResumeBtn}
+              onClick={() => setIsTabWarningOpen(false)}
+            >
+              I Understand &amp; Return to Exam
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Proctoring Disqualification Modal */}
+      {isDisqualified && (
+        <div className={styles.proctorModalOverlay} role="alertdialog" aria-modal="true">
+          <div className={`${styles.proctorModalCard} ${styles.proctorModalCardDanger}`}>
+            <div className={styles.proctorModalIconDanger}>❌</div>
+            <h3 className={styles.proctorModalTitle}>Examination Terminated</h3>
+            <p className={styles.proctorModalText}>
+              You have accumulated {tabStrikes} proctoring infractions, exceeding the permitted limit of {tabSwitchLimit} strikes. Your answers have been locked and automatically submitted for academic evaluation.
+            </p>
+            <button
+              type="button"
+              className={styles.proctorDisqualifiedBtn}
+              onClick={() => {
+                setIsDisqualified(false);
+                onSubmitTest(responses);
+              }}
+            >
+              View Examination Scorecard
+            </button>
           </div>
         </div>
       )}
