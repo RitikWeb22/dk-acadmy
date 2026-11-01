@@ -1713,8 +1713,12 @@ export const cmsService = {
         const parsed: TestSeriesItem[] = JSON.parse(stored);
         let hasNew = false;
         for (const test of TEST_SERIES_DATA) {
-          if (!parsed.some((p) => p.id === test.id)) {
+          const idx = parsed.findIndex((p) => p.id === test.id);
+          if (idx === -1) {
             parsed.push(test);
+            hasNew = true;
+          } else if (parsed[idx].format !== test.format) {
+            parsed[idx].format = test.format;
             hasNew = true;
           }
         }
