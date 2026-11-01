@@ -174,7 +174,7 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
         html: katex.renderToString(cleanFormula, {
           displayMode: isDisplay,
           throwOnError: false,
-          output: 'htmlAndMathml',
+          output: 'html',
           strict: false,
           trust: false
         }),
@@ -222,6 +222,9 @@ function sanitizeFormula(str: string): string {
     .replace(/[\u2018\u2019]/g, "'")
     // Clean leading dots from copy-pasting
     .replace(/^\s*\.\s*(?=[A-Za-z])/g, '')
+    // Normalize any duplicated \left\left( or \right\right)
+    .replace(/\\left\s*\\left\s*\(/g, '\\left(')
+    .replace(/\\right\s*\\right\s*\)/g, '\\right)')
     .trim();
 
   // If formula contains connecting words inside math mode without \text, wrap them in \text{ ... }
