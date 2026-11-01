@@ -195,7 +195,11 @@ export const MathInput: React.FC<MathInputProps> = ({
             style={{
               padding: compact ? '6px 10px' : '12px 14px',
               background: '#ffffff',
-              minHeight: compact ? '44px' : '120px'
+              minHeight: compact ? '44px' : '130px',
+              maxHeight: compact ? '180px' : '450px',
+              overflowY: 'auto',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch'
             }}
           >
             <MathPreview content={value} />

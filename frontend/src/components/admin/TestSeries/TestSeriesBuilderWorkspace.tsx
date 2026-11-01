@@ -3370,7 +3370,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             showToast('✨ Auto-detected Question Statement & Options A, B, C, D from Word!');
                           }}
                           placeholder="Type normal text or equations ($x^2$, \frac{a}{b}, \int, \begin{cases}, \begin{bmatrix})... Or paste directly from Word!"
-                          rows={4}
+                          rows={6}
                           defaultViewMode="edit"
                         />
                       </div>
