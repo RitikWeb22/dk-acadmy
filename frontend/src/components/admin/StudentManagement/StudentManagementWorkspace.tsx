@@ -55,21 +55,47 @@ const INITIAL_ASPIRANTS: AspirantItem[] = [
       'JEE PYQ Archive Mastery'
     ],
     joinedAt: 'Recent'
+  },
+  {
+    id: 'std_akshat_real',
+    name: 'Akshat Bhardwaj',
+    targetGrade: 'Class 12',
+    email: 'notakshat0809@gmail.com',
+    mobile: '+91 98765 43210',
+    role: 'Aspirant',
+    status: 'ACTIVE',
+    coursesCount: 2,
+    coursesList: ['JEE Main & Advanced 1-Year Comprehensive Batch'],
+    joinedAt: 'Recent'
+  },
+  {
+    id: 'std_dharmendra_real',
+    name: 'Dharmendra Kumar',
+    targetGrade: 'Dropper',
+    email: 'k.dharmendrabe@gmail.com',
+    mobile: '+91 93259 87875',
+    role: 'Aspirant',
+    status: 'ACTIVE',
+    coursesCount: 3,
+    coursesList: ['Target JEE Droppers Rank Booster Sprint'],
+    joinedAt: 'Recent'
+  },
+  {
+    id: 'std_lakshay_real',
+    name: 'Lakshay Sehrawat',
+    targetGrade: 'Class 11',
+    email: 'lakshaysehrawat49@gmail.com',
+    mobile: '+91 98112 34567',
+    role: 'Aspirant',
+    status: 'ACTIVE',
+    coursesCount: 1,
+    coursesList: ['Foundation 2-Year Classroom Program'],
+    joinedAt: 'Recent'
   }
 ];
 
 export const StudentManagementWorkspace: React.FC = () => {
-  const [aspirants, setAspirants] = useState<AspirantItem[]>(() => {
-    try {
-      const deletedRaw = localStorage.getItem('dk_academy_deleted_student_ids') || '[]';
-      const deletedList = JSON.parse(deletedRaw);
-      return INITIAL_ASPIRANTS.filter(
-        (a) => !deletedList.includes(a.id) && !deletedList.includes(a.email.toLowerCase())
-      );
-    } catch {
-      return INITIAL_ASPIRANTS;
-    }
-  });
+  const [aspirants, setAspirants] = useState<AspirantItem[]>(() => INITIAL_ASPIRANTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -109,7 +135,7 @@ export const StudentManagementWorkspace: React.FC = () => {
     const loadRealStudents = async () => {
       try {
         const res = await apiClient.get('/auth/students');
-        if (res.success && Array.isArray(res.data) && isMounted) {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0 && isMounted) {
           const mapped: AspirantItem[] = res.data.map((u: any) => ({
             id: u._id || `std_${Date.now()}`,
             name: u.name,
@@ -127,24 +153,18 @@ export const StudentManagementWorkspace: React.FC = () => {
               Array.isArray(u.enrolledCourses) && u.enrolledCourses.length > 0
                 ? ['Enrolled Batch']
                 : ['Clean / No courses yet'],
-            joinedAt: 'Recent'
+            joinedAt: u.createdAt
+              ? new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+              : 'Recent'
           }));
 
-          let deletedList: string[] = [];
+          setAspirants(mapped);
           try {
-            deletedList = JSON.parse(localStorage.getItem('dk_academy_deleted_student_ids') || '[]');
+            localStorage.setItem('dk_academy_user_accounts', JSON.stringify(mapped));
           } catch {}
-
-          const activeMapped = mapped.filter(
-            (s: any) =>
-              !deletedList.includes(s.id) &&
-              !deletedList.includes(s.email?.toLowerCase())
-          );
-
-          setAspirants(activeMapped);
         }
-      } catch {
-        // Fallback to initial seed
+      } catch (err) {
+        console.warn('Real student fetch note:', err);
       }
     };
 
