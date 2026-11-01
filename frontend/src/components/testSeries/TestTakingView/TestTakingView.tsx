@@ -75,6 +75,14 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     }
   };
 
+  // Active CBT examination isolation mode: hides public website navbar & footer, locks viewport
+  useEffect(() => {
+    document.body.classList.add('cbt-exam-active');
+    return () => {
+      document.body.classList.remove('cbt-exam-active');
+    };
+  }, []);
+
   // Auto-enter fullscreen upon mount if not already in fullscreen
   useEffect(() => {
     if (fullScreenLock && !isFullScreenActive()) {
