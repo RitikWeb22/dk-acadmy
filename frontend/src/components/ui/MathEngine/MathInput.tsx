@@ -21,6 +21,7 @@ export interface MathInputProps {
   label?: string;
   className?: string;
   defaultViewMode?: 'edit' | 'preview';
+  compact?: boolean;
 }
 
 export const MathInput: React.FC<MathInputProps> = ({
@@ -31,7 +32,8 @@ export const MathInput: React.FC<MathInputProps> = ({
   rows = 4,
   label,
   className = '',
-  defaultViewMode = 'edit'
+  defaultViewMode = 'edit',
+  compact = false
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>(
@@ -132,12 +134,19 @@ export const MathInput: React.FC<MathInputProps> = ({
   };
 
   return (
-    <div className={`${styles.mathInputContainer} ${className}`}>
+    <div className={`${styles.mathInputContainer} ${className}`} style={compact ? { borderRadius: '8px' } : undefined}>
       {/* Top Controls Bar - Only Edit & Preview Buttons */}
-      <div className={styles.inputControlsBar} style={{ padding: '6px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+      <div
+        className={styles.inputControlsBar}
+        style={{
+          padding: compact ? '4px 8px' : '6px 12px',
+          background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {label && (
-            <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>
+            <span style={{ fontWeight: 600, color: '#1e293b', fontSize: compact ? '0.78rem' : '0.85rem' }}>
               {label}
             </span>
           )}
@@ -150,8 +159,9 @@ export const MathInput: React.FC<MathInputProps> = ({
             className={`${styles.viewModeBtn} ${viewMode === 'edit' ? styles.activeViewMode : ''}`}
             onClick={() => setViewMode('edit')}
             title="Edit question statement"
+            style={compact ? { padding: '2px 6px', fontSize: '0.68rem' } : undefined}
           >
-            <Code size={13} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+            <Code size={compact ? 11 : 13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
             Edit
           </button>
           <button
@@ -159,15 +169,16 @@ export const MathInput: React.FC<MathInputProps> = ({
             className={`${styles.viewModeBtn} ${viewMode === 'preview' ? styles.activeViewMode : ''}`}
             onClick={() => setViewMode('preview')}
             title="Preview formatted mathematics"
+            style={compact ? { padding: '2px 6px', fontSize: '0.68rem' } : undefined}
           >
-            <Eye size={13} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+            <Eye size={compact ? 11 : 13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
             Preview
           </button>
         </div>
       </div>
 
       {/* Editor Body */}
-      <div className={styles.editorBody}>
+      <div className={styles.editorBody} style={compact ? { minHeight: 'auto' } : undefined}>
         {viewMode === 'edit' ? (
           <textarea
             ref={textareaRef}
@@ -177,9 +188,16 @@ export const MathInput: React.FC<MathInputProps> = ({
             onPaste={handlePaste}
             placeholder={placeholder}
             className={styles.textareaField}
+            style={compact ? { padding: '6px 10px', fontSize: '0.84rem', lineHeight: '1.4' } : undefined}
           />
         ) : (
-          <div style={{ padding: '12px 14px', background: '#ffffff', minHeight: '120px' }}>
+          <div
+            style={{
+              padding: compact ? '6px 10px' : '12px 14px',
+              background: '#ffffff',
+              minHeight: compact ? '44px' : '120px'
+            }}
+          >
             <MathPreview content={value} />
           </div>
         )}

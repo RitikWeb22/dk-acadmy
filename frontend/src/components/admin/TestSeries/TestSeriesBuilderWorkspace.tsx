@@ -3384,8 +3384,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       <div className={styles.optionsList}>
                         {currentEditingQuestion.options.map((opt) => {
                           return (
-                            <div key={opt.key} className={styles.optionRowItem} style={{ alignItems: 'flex-start' }}>
-                              <label className={styles.radioKeyWrap} style={{ marginTop: '8px' }}>
+                            <div key={opt.key} className={styles.optionRowItem} style={{ alignItems: 'flex-start', marginBottom: '14px' }}>
+                              <label className={styles.radioKeyWrap} style={{ marginTop: '10px' }}>
                                 <input
                                   type="radio"
                                   name="correctKey"
@@ -3394,52 +3394,24 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                 />
                                 <span className={styles.optionKeyCircle}>{opt.key}</span>
                               </label>
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <input
-                                  type="text"
+                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <MathInput
                                   value={opt.text}
-                                  onChange={(e) => {
+                                  onChange={(val) => {
                                     const newOpts = currentEditingQuestion.options.map((o) =>
-                                      o.key === opt.key ? { ...o, text: e.target.value } : o
+                                      o.key === opt.key ? { ...o, text: val } : o
                                     );
                                     updateCurrentQuestion({ options: newOpts });
                                   }}
-                                  onPaste={(e) => {
-                                    const pasted = e.clipboardData.getData('text');
-                                    if (!pasted) return;
-                                    e.preventDefault();
-                                    const normalized = normalizeMathText(pasted.trim());
-                                    const newOpts = currentEditingQuestion.options.map((o) =>
-                                      o.key === opt.key ? { ...o, text: normalized } : o
-                                    );
-                                    updateCurrentQuestion({ options: newOpts });
-                                  }}
-                                  className={styles.optionTextInput}
-                                  placeholder={`Option ${opt.key} text or formula (e.g. \\sqrt{3}/2, x^2 + 1, 1/16)`}
+                                  placeholder={`Option ${opt.key} text or formula ($...$, \\frac{a}{b}, \\sqrt{x}, 1/16)... Or paste from Word`}
+                                  rows={2}
+                                  label={`Option ${opt.key}`}
+                                  compact={true}
+                                  defaultViewMode="edit"
                                 />
-                                {opt.text && opt.text.trim().length > 0 && (
-                                  <div style={{
-                                    fontSize: '12.5px',
-                                    color: '#0F172A',
-                                    padding: '5px 10px',
-                                    background: '#F8FAFC',
-                                    borderRadius: '6px',
-                                    border: '1px solid #E2E8F0',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    minHeight: '28px',
-                                    overflowX: 'auto'
-                                  }}>
-                                    <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                      Live Preview:
-                                    </span>
-                                    <MathText text={opt.text} />
-                                  </div>
-                                )}
                               </div>
                               {currentEditingQuestion.correctKey === opt.key && (
-                                <span className={styles.correctKeyTag} style={{ marginTop: '8px' }}>✓ Answer Key</span>
+                                <span className={styles.correctKeyTag} style={{ marginTop: '10px' }}>✓ Answer Key</span>
                               )}
                             </div>
                           );
