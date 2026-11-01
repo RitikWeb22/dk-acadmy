@@ -8,7 +8,9 @@
 }
 
 .topBar {
-  display: flex;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
   align-items: center;
   justify-content: space-between;
   gap: $space-4;
