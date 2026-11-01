@@ -224,9 +224,34 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
                   </div>
                 )}
 
-                <div className={styles.explanationText}>
-                  <MathText text={activeQuestion.explanation} />
-                </div>
+                {activeQuestion.shortcutTrick && (
+                  <div
+                    style={{
+                      background: 'rgba(254, 243, 199, 0.65)',
+                      border: '1px solid #FCD34D',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      marginBottom: '14px',
+                      color: '#92400E'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontWeight: 800, fontSize: '12.5px', color: '#B45309' }}>
+                      <span>⚡ DK Sir Kota 20-30s Inspection Trick:</span>
+                    </div>
+                    <div style={{ fontSize: '13px', lineHeight: 1.6 }}>
+                      <MathText text={activeQuestion.shortcutTrick} />
+                    </div>
+                  </div>
+                )}
+
+                {activeQuestion.explanation && (
+                  <div className={styles.explanationText}>
+                    <div style={{ fontWeight: 700, fontSize: '12.5px', color: '#1E40AF', marginBottom: '6px' }}>
+                      Detailed Mathematical Derivation:
+                    </div>
+                    <MathText text={activeQuestion.explanation} />
+                  </div>
+                )}
               </div>
 
               {/* Navigation Row */}
