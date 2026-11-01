@@ -64,6 +64,8 @@ import { cmsService } from '../../../services/cmsService';
 import { notificationService } from '../../../services/notificationService';
 
 import { PART_TESTS_DATA } from '../../../data/partTestsData';
+import { MathText } from '../../ui/MathText/MathText';
+import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -1529,6 +1531,83 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setQuestions((prev) => [...prev, dup]);
     setSelectedQuestionId(newId);
     showToast(`Duplicated Question ${q.index} as Q${nextIndex}`);
+  };
+
+  const [isSmartPasteModalOpen, setIsSmartPasteModalOpen] = useState(false);
+  const [smartPasteText, setSmartPasteText] = useState('');
+
+  const handleApplySmartPaste = () => {
+    if (!smartPasteText.trim()) return;
+    const extracted = extractStatementAndOptions(smartPasteText);
+
+    // Also extract answer key
+    const ansMatch = smartPasteText.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Option))?|Option)\s*[:=\-]\s*[(]?([A-Da-d1-4])[)]?/i);
+    let correctKey = currentEditingQuestion?.correctKey || 'A';
+    if (ansMatch) {
+      let raw = ansMatch[1].toUpperCase();
+      if (raw === '1') raw = 'A';
+      else if (raw === '2') raw = 'B';
+      else if (raw === '3') raw = 'C';
+      else if (raw === '4') raw = 'D';
+      if (['A', 'B', 'C', 'D'].includes(raw)) correctKey = raw as any;
+    }
+
+    const solMatch = smartPasteText.match(/(?:^|\n)\s*(?:Sol(?:ution)?|Expl(?:anation)?)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Shortcut|Trick|DK\s*Sir|Video|PDF|Topic)|$))/i);
+    const trickMatch = smartPasteText.match(/(?:^|\n)\s*(?:Shortcut|Trick|DK\s*Sir)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Video|PDF|Topic)|$))/i);
+
+    updateCurrentQuestion({
+      questionText: normalizeMathText(extracted.statement),
+      options: extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) })),
+      correctKey: correctKey as any,
+      solutionDerivation: solMatch ? normalizeMathText(solMatch[1]) : currentEditingQuestion?.solutionDerivation,
+      shortcutTrick: trickMatch ? normalizeMathText(trickMatch[1]) : currentEditingQuestion?.shortcutTrick
+    });
+
+    setSmartPasteText('');
+    setIsSmartPasteModalOpen(false);
+    showToast('✓ Successfully formatted & imported question statement and options!');
+  };
+
+  const handleStatementPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData('text');
+    if (!pasted) return;
+
+    // Check if pasted content contains question options (A)/(B) or A)/B) or (1)/(2)
+    const hasOptions =
+      ((pasted.includes('(A)') || pasted.includes('A)') || pasted.includes('A.')) &&
+       (pasted.includes('(B)') || pasted.includes('B)') || pasted.includes('B.'))) ||
+      ((pasted.includes('(1)') || pasted.includes('1)') || pasted.includes('1.')) &&
+       (pasted.includes('(2)') || pasted.includes('2)') || pasted.includes('2.')));
+
+    if (hasOptions) {
+      const extracted = extractStatementAndOptions(pasted);
+      if (extracted.options.length === 4 && extracted.statement) {
+        e.preventDefault();
+        const ansMatch = pasted.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Option))?|Option)\s*[:=\-]\s*[(]?([A-Da-d1-4])[)]?/i);
+        let correctKey = currentEditingQuestion?.correctKey || 'A';
+        if (ansMatch) {
+          let raw = ansMatch[1].toUpperCase();
+          if (raw === '1') raw = 'A';
+          else if (raw === '2') raw = 'B';
+          else if (raw === '3') raw = 'C';
+          else if (raw === '4') raw = 'D';
+          if (['A', 'B', 'C', 'D'].includes(raw)) correctKey = raw as any;
+        }
+
+        const solMatch = pasted.match(/(?:^|\n)\s*(?:Sol(?:ution)?|Expl(?:anation)?)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Shortcut|Trick|DK\s*Sir|Video|PDF|Topic)|$))/i);
+        const trickMatch = pasted.match(/(?:^|\n)\s*(?:Shortcut|Trick|DK\s*Sir)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Video|PDF|Topic)|$))/i);
+
+        updateCurrentQuestion({
+          questionText: normalizeMathText(extracted.statement),
+          options: extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) })),
+          correctKey: correctKey as any,
+          solutionDerivation: solMatch ? normalizeMathText(solMatch[1]) : currentEditingQuestion?.solutionDerivation,
+          shortcutTrick: trickMatch ? normalizeMathText(trickMatch[1]) : currentEditingQuestion?.shortcutTrick
+        });
+
+        showToast('✓ Auto-extracted Question Statement, 4 Options & Answer Key with Math formatting!');
+      }
+    }
   };
 
   const handleAddGuideline = () => {
@@ -3030,14 +3109,38 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       ))}
                     </div>
 
-                    <button
-                      type="button"
-                      className={styles.addNewQuestionBtn}
-                      onClick={handleAddQuestion}
-                    >
-                      <Plus size={14} />
-                      <span>Add Question</span>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setIsSmartPasteModalOpen(true)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: '#2563eb',
+                          background: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
+                        title="Smart paste full question from PDF/Word with automatic math format extraction"
+                      >
+                        <Sparkles size={13} />
+                        <span>Smart Paste (Maths/MCQ)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={styles.addNewQuestionBtn}
+                        onClick={handleAddQuestion}
+                      >
+                        <Plus size={14} />
+                        <span>Add Question</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Question Editor */}
@@ -3104,6 +3207,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           rows={3}
                           value={currentEditingQuestion.questionText}
                           onChange={(e) => updateCurrentQuestion({ questionText: e.target.value })}
+                          onPaste={handleStatementPaste}
+                          placeholder="Paste or type question statement. Supports LaTeX ($x^2$, \frac{1}{2}, \sqrt{x}, \int) or paste full question with options..."
                           className={styles.questionTextarea}
                         />
 
@@ -3111,7 +3216,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         <div className={styles.liveMathPreview}>
                           <span className={styles.previewLabel}>LIVE CBT CANDIDATE PREVIEW:</span>
                           <div className={styles.mathRenderedBox}>
-                            {currentEditingQuestion.questionText}
+                            <MathText text={currentEditingQuestion.questionText} />
                           </div>
                         </div>
                       </div>
@@ -3119,8 +3224,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       {/* Options Grid */}
                       <div className={styles.optionsList}>
                         {currentEditingQuestion.options.map((opt) => (
-                          <div key={opt.key} className={styles.optionRowItem}>
-                            <label className={styles.radioKeyWrap}>
+                          <div key={opt.key} className={styles.optionRowItem} style={{ alignItems: 'flex-start' }}>
+                            <label className={styles.radioKeyWrap} style={{ marginTop: '8px' }}>
                               <input
                                 type="radio"
                                 name="correctKey"
@@ -3129,19 +3234,28 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               />
                               <span className={styles.optionKeyCircle}>{opt.key}</span>
                             </label>
-                            <input
-                              type="text"
-                              value={opt.text}
-                              onChange={(e) => {
-                                const newOpts = currentEditingQuestion.options.map((o) =>
-                                  o.key === opt.key ? { ...o, text: e.target.value } : o
-                                );
-                                updateCurrentQuestion({ options: newOpts });
-                              }}
-                              className={styles.optionTextInput}
-                            />
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <input
+                                type="text"
+                                value={opt.text}
+                                onChange={(e) => {
+                                  const newOpts = currentEditingQuestion.options.map((o) =>
+                                    o.key === opt.key ? { ...o, text: e.target.value } : o
+                                  );
+                                  updateCurrentQuestion({ options: newOpts });
+                                }}
+                                className={styles.optionTextInput}
+                                placeholder={`Option ${opt.key} text or formula (e.g. \\sqrt{3}/2, x^2 + 1)`}
+                              />
+                              {opt.text && (
+                                <div style={{ fontSize: '12px', color: '#475569', padding: '2px 8px', background: '#f8fafc', borderRadius: '4px', border: '1px dashed #cbd5e1' }}>
+                                  <span style={{ fontSize: '10px', color: '#94a3b8', marginRight: '6px', fontWeight: 700 }}>PREVIEW:</span>
+                                  <MathText text={opt.text} />
+                                </div>
+                              )}
+                            </div>
                             {currentEditingQuestion.correctKey === opt.key && (
-                              <span className={styles.correctKeyTag}>✓ Answer Key</span>
+                              <span className={styles.correctKeyTag} style={{ marginTop: '8px' }}>✓ Answer Key</span>
                             )}
                           </div>
                         ))}
@@ -3159,6 +3273,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           onChange={(e) => updateCurrentQuestion({ shortcutTrick: e.target.value })}
                           placeholder="Key speed formula, visual inspection rule, or option-elimination trick..."
                         />
+                        {currentEditingQuestion.shortcutTrick && (
+                          <div style={{ marginTop: '6px', fontSize: '12px', color: '#1e3a8a', background: 'rgba(239, 246, 255, 0.6)', padding: '6px 10px', borderRadius: '6px' }}>
+                            <MathText text={currentEditingQuestion.shortcutTrick} />
+                          </div>
+                        )}
                       </div>
 
                       {/* Detailed Solution Derivation Card */}
@@ -3173,6 +3292,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           onChange={(e) => updateCurrentQuestion({ solutionDerivation: e.target.value })}
                           placeholder="Provide the comprehensive step-by-step derivation, formula steps, and reasoning..."
                         />
+                        {currentEditingQuestion.solutionDerivation && (
+                          <div style={{ marginTop: '6px', fontSize: '12.5px', color: '#1e293b', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                            <MathText text={currentEditingQuestion.solutionDerivation} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -4097,7 +4221,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
 
                     <div className={styles.cbtStatementArea}>
-                      {currentCbtQ.questionText}
+                      <MathText text={currentCbtQ.questionText} />
                     </div>
 
                     <div className={styles.cbtOptionsGrid}>
@@ -4110,7 +4234,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             onClick={() => handleCbtSelectOption(opt.key)}
                           >
                             <span className={styles.cbtOptionKey}>{opt.key}</span>
-                            <span className={styles.cbtOptionText}>{opt.text}</span>
+                            <span className={styles.cbtOptionText}>
+                              <MathText text={opt.text} />
+                            </span>
                           </div>
                         );
                       })}
@@ -4269,12 +4395,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               {isCorrect ? `✓ Correct (+${positiveMarks})` : userAns ? `✗ Incorrect (-${negativeMarks})` : '— Unattempted (0)'}
                             </span>
                           </div>
-                          <p style={{ fontSize: '12.5px', color: '#334155', margin: '4px 0' }}>{q.questionText}</p>
+                          <div style={{ fontSize: '12.5px', color: '#334155', margin: '4px 0' }}>
+                            <MathText text={q.questionText} />
+                          </div>
                           <div style={{ fontSize: '12px', color: '#059669', fontWeight: 600, marginTop: '6px' }}>
-                            Correct Answer: Option {q.correctKey} ({q.options.find(o => o.key === q.correctKey)?.text})
+                            Correct Answer: Option {q.correctKey} (<MathText text={q.options.find(o => o.key === q.correctKey)?.text || ''} />)
                           </div>
                           <div style={{ background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '8px', padding: '8px 12px', marginTop: '8px', fontSize: '11.5px', color: '#1E40AF' }}>
-                            <strong>DK Sir Shortcut: </strong>{q.shortcutTrick}
+                            <strong>DK Sir Shortcut: </strong><MathText text={q.shortcutTrick} />
                           </div>
                         </div>
                       );
@@ -5044,6 +5172,76 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               >
                 <span>View in Student CBT Portal ↗</span>
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── SMART PASTE QUESTION MODAL (MATHS & MCQ EXTRACTOR) ─── */}
+      {isSmartPasteModalOpen && (
+        <div className={styles.modalBackdropOverlay} onClick={() => setIsSmartPasteModalOpen(false)}>
+          <div className={styles.createModalCard} style={{ maxWidth: '680px' }} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.createModalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: '#EFF6FF', color: '#2563EB', padding: '8px', borderRadius: '8px' }}>
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h3 className={styles.createModalTitle}>Smart Paste Question (Maths &amp; MCQ)</h3>
+                  <p className={styles.createModalSub}>
+                    Paste question text copied from PDF, Word, or web. Automatically extracts Statement, Options (A-D or 1-4), Answer Key, and formats Math/LaTeX.
+                  </p>
+                </div>
+              </div>
+              <button type="button" className={styles.closeModalBtn} onClick={() => setIsSmartPasteModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.createModalBody} style={{ padding: '20px' }}>
+              <div style={{ marginBottom: '14px' }}>
+                <label className={styles.fieldLabel} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Paste Question with Options Here:</span>
+                  <span style={{ fontSize: '11px', color: '#64748B' }}>Supports (A)/(B)/(C)/(D) or (1)/(2)/(3)/(4)</span>
+                </label>
+                <textarea
+                  rows={7}
+                  value={smartPasteText}
+                  onChange={(e) => setSmartPasteText(e.target.value)}
+                  placeholder={`Paste full question here, e.g.:\n\nIf f(x) = \\int_0^x \\sqrt{1 + t^3} dt, then find f'(2).\n(A) 3\n(B) 4\n(C) 5\n(D) 9\nAns: A\nShortcut: Apply Leibniz rule f'(x) = \\sqrt{1 + x^3}`}
+                  className={styles.questionTextarea}
+                  style={{ fontFamily: 'monospace', fontSize: '13px', lineHeight: '1.5' }}
+                />
+              </div>
+
+              {smartPasteText.trim() && (
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', maxHeight: '200px', overflowY: 'auto' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Live Formatted Math Preview:
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#0F172A', lineHeight: '1.6' }}>
+                    <MathText text={smartPasteText} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalFooterActions} style={{ padding: '16px 20px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                className={styles.cancelBtn}
+                onClick={() => setIsSmartPasteModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.submitCreateBtn}
+                disabled={!smartPasteText.trim()}
+                onClick={handleApplySmartPaste}
+              >
+                ✓ Apply &amp; Auto-Fill Question
+              </button>
             </div>
           </div>
         </div>
