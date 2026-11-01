@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, XCircle, Clock, FileText, Lock, Sparkles, Download, Play } from 'lucide-react';
+import { ArrowRight, CheckCircle2, XCircle, Clock, FileText, Lock, Sparkles, Download, Play, BookOpen } from 'lucide-react';
 import { YoutubeIcon } from '../../ui/YoutubeIcon/YoutubeIcon';
 import type { PYQQuestion, PYQUserResponse } from '../../../types';
 import { MathText } from '../../ui/MathText/MathText';
@@ -96,6 +96,14 @@ export const PYQQuestionCard: React.FC<PYQQuestionCardProps> = ({
           <span className={styles.topicTag} title={`Topic: ${question.topic}`}>
             {question.topic}
           </span>
+
+          {/* [Archive / Problem Set Pill] */}
+          {question.courseName && (
+            <span className={styles.archivePill} title={`Archive: ${question.courseName}`}>
+              <BookOpen size={11} aria-hidden="true" />
+              <span>{question.courseName}</span>
+            </span>
+          )}
         </div>
 
         <div className={styles.headerRight}>

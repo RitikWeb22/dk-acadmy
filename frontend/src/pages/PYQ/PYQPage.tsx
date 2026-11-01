@@ -42,6 +42,8 @@ export const PYQPage: React.FC = () => {
   const { student, enrollCourse } = useStudentAuth();
 
   const [pyqList, setPyqList] = useState<PYQQuestion[]>(() => cmsService.getPYQs());
+  const [pyqArchives, setPyqArchives] = useState<any[]>([]);
+  const [selectedArchiveTitle, setSelectedArchiveTitle] = useState<string | null>(null);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -56,12 +58,34 @@ export const PYQPage: React.FC = () => {
         if (!isMounted) return;
 
         const dppPyqList = Array.isArray(dppPyqRes) ? dppPyqRes : dppPyqRes?.data || [];
+        const liveArchives = (Array.isArray(dppPyqList) ? dppPyqList : []).filter((set: any) => {
+          const modType = String(set.moduleType || set.type || '').toUpperCase();
+          return modType === 'PYQ';
+        });
+        setPyqArchives(liveArchives);
+
         const liveQuestions: PYQQuestion[] = [];
         if (Array.isArray(dppPyqList)) {
           dppPyqList.forEach((set: any) => {
             const modType = String(set.moduleType || set.type || '').toUpperCase();
             if (modType === 'PYQ' && Array.isArray(set.questions)) {
               set.questions.forEach((q: any, idx: number) => {
+                const stmt = String(q.statement || '').toLowerCase();
+                // Filter out empty draft placeholders
+                if (stmt.includes('enter the new problem statement here')) {
+                  return;
+                }
+                // Avoid cross-subject template artifacts
+                if (set.subject === 'Mathematics' && (stmt.includes('sn2 nucleophilic') || stmt.includes('solid cylinder of mass m'))) {
+                  return;
+                }
+                if (set.subject === 'Physics' && (stmt.includes('definite integral') || stmt.includes('sn2 nucleophilic'))) {
+                  return;
+                }
+                if (set.subject === 'Chemistry' && (stmt.includes('solid cylinder of mass m') || stmt.includes('definite integral'))) {
+                  return;
+                }
+
                 const yearNum =
                   Number(q.year) ||
                   (q.examYear ? parseInt(String(q.examYear).replace(/\D/g, ''), 10) : 0) ||
@@ -78,7 +102,7 @@ export const PYQPage: React.FC = () => {
                   exam: targetExam as any,
                   year: yearNum,
                   subject: (set.subject === 'Physics' || set.subject === 'Chemistry' ? set.subject : 'Mathematics') as any,
-                  chapter: set.chapter || q.topic || 'Coordinate Geometry',
+                  chapter: set.chapter || q.topic || 'Straight Lines',
                   topic: q.topic || set.title || 'JEE Practice',
                   type: 'Single Choice MCQ',
                   marks: '+4 / -1',
@@ -101,8 +125,8 @@ export const PYQPage: React.FC = () => {
                   youtubeUrl: q.videoUrl || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
                   videoUrl: q.videoUrl || '/videos/1.mp4',
                   pdfUrl: q.pdfUrl || '/assets/downloads/st line-2.pdf',
-                  courseId: 'jee-pyq-archive-mastery',
-                  courseName: set.title || '10-Year JEE Chapter-Wise PYQ Mastery Course',
+                  courseId: set.id || 'jee-pyq-archive-mastery',
+                  courseName: set.title || 'Official JEE PYQ Archive',
                   videoDuration: '05:00'
                 });
               });
@@ -251,6 +275,11 @@ export const PYQPage: React.FC = () => {
   // Filter questions
   const filteredQuestions = useMemo(() => {
     return pyqList.filter((q) => {
+      // If student selected a specific Archive card (e.g. "testing"):
+      if (selectedArchiveTitle && q.courseName !== selectedArchiveTitle) {
+        return false;
+      }
+
       const matchesExam =
         !q.exam ||
         q.exam === selectedExam ||
@@ -275,12 +304,13 @@ export const PYQPage: React.FC = () => {
         const matchesTopic = (q.topic || '').toLowerCase().includes(query);
         const matchesChapter = (q.chapter || '').toLowerCase().includes(query);
         const matchesSubject = (q.subject || '').toLowerCase().includes(query);
-        return matchesStatement || matchesTopic || matchesChapter || matchesSubject;
+        const matchesArchive = (q.courseName || '').toLowerCase().includes(query);
+        return matchesStatement || matchesTopic || matchesChapter || matchesSubject || matchesArchive;
       }
 
       return true;
     });
-  }, [selectedExam, selectedSubject, selectedYear, selectedChapter, searchQuery, pyqList]);
+  }, [selectedExam, selectedSubject, selectedYear, selectedChapter, searchQuery, pyqList, selectedArchiveTitle]);
 
   // Access rule: 5 questions free preview, remainder unlocked upon course enrollment
   const isQuestionAccessible = (q: PYQQuestion, index: number): boolean => {
@@ -292,12 +322,14 @@ export const PYQPage: React.FC = () => {
 
   // Check if any filter is active
   const isFilterActive =
+    Boolean(selectedArchiveTitle) ||
     searchQuery.trim().length > 0 ||
     selectedSubject !== 'All' ||
     selectedYear !== 'All' ||
     selectedChapter !== 'All';
 
   const handleResetFilters = () => {
+    setSelectedArchiveTitle(null);
     setSearchQuery('');
     setSelectedSubject('All');
     setSelectedYear('All');
@@ -528,6 +560,74 @@ export const PYQPage: React.FC = () => {
               <span>Full CBT Test Series</span>
             </Link>
           </div>
+
+          {/* 🌟 Official PYQ Problem Sets & Archives Grid from Command Center */}
+          {pyqArchives.length > 0 && (
+            <div className={styles.archivesSection}>
+              <div className={styles.archivesHeaderRow}>
+                <div className={styles.archivesTitleWrap}>
+                  <Sparkles size={16} className={styles.sparkleIcon} />
+                  <h2 className={styles.archivesHeading}>Official PYQ Archives ({pyqArchives.length})</h2>
+                </div>
+                {selectedArchiveTitle && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedArchiveTitle(null)}
+                    className={styles.clearArchiveBtn}
+                  >
+                    <span>Filtered: <strong>{selectedArchiveTitle}</strong></span>
+                    <span className={styles.clearCross}>✕ View All</span>
+                  </button>
+                )}
+              </div>
+
+              <div className={styles.archivesGrid}>
+                {pyqArchives.map((archive) => {
+                  const isSelected = selectedArchiveTitle === archive.title;
+                  const qCount = Array.isArray(archive.questions)
+                    ? archive.questions.length
+                    : (archive.questionsCount || 0);
+
+                  return (
+                    <article
+                      key={archive.id || archive._id}
+                      className={`${styles.archiveCard} ${isSelected ? styles.archiveCardActive : ''}`}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedArchiveTitle(null);
+                        } else {
+                          setSelectedArchiveTitle(archive.title);
+                          if (archive.subject && ['Mathematics', 'Physics', 'Chemistry'].includes(archive.subject)) {
+                            setSelectedSubject(archive.subject);
+                          }
+                          if (archive.chapter) {
+                            setSelectedChapter(archive.chapter);
+                          }
+                        }
+                      }}
+                    >
+                      <div className={styles.archiveTopRow}>
+                        <span className={styles.archiveBadgeCode}>{archive.badgeCode || 'PYQ'}</span>
+                        <span className={styles.archiveExamPill}>{archive.examTarget || 'JEE Archive'}</span>
+                      </div>
+                      <h3 className={styles.archiveCardTitle}>{archive.title}</h3>
+                      <div className={styles.archiveMetaRow}>
+                        <span className={styles.archiveSubTag}>{archive.subject}</span>
+                        <span>•</span>
+                        <span className={styles.archiveChapterTag}>{archive.chapter || archive.categoryLabel || 'Full Chapter'}</span>
+                      </div>
+                      <div className={styles.archiveFooterRow}>
+                        <span className={styles.archiveQCount}>{qCount} Questions</span>
+                        <span className={styles.archiveActionText}>
+                          {isSelected ? 'Active Filter ✓' : 'Practice Set →'}
+                        </span>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Exam Selection Toggle */}
           <ExamSelector
