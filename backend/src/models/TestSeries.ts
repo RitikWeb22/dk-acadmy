@@ -66,8 +66,8 @@ export interface ITestSeries extends Document {
 
 const optionSchema = new Schema<ITestOption>(
   {
-    id: { type: String, required: true },
-    text: { type: String, required: true },
+    id: { type: String, default: 'A' },
+    text: { type: String, default: '' },
     imageUrl: { type: String }
   },
   { _id: false }
@@ -75,14 +75,14 @@ const optionSchema = new Schema<ITestOption>(
 
 const questionSchema = new Schema<ITestQuestion>(
   {
-    id: { type: String, required: true },
-    questionNumber: { type: Number, required: true },
-    subject: { type: String, required: true },
+    id: { type: String, default: () => `q-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` },
+    questionNumber: { type: Number, default: 1 },
+    subject: { type: String, default: 'General' },
     chapter: { type: String, default: 'General' },
-    statement: { type: String, required: true },
+    statement: { type: String, default: '' },
     imageUrl: { type: String },
-    options: [optionSchema],
-    correctAnswer: { type: String, required: true },
+    options: { type: [optionSchema], default: [] },
+    correctAnswer: { type: String, default: 'A' },
     marks: { type: Number, default: 4 },
     negativeMarks: { type: Number, default: 1 },
     formulaKey: { type: String },
@@ -121,7 +121,7 @@ const testSeriesSchema = new Schema<ITestSeries>(
     badgeCode: { type: String, default: 'JEE MAIN' },
     examType: {
       type: String,
-      enum: ['JEE Main', 'JEE Advanced', 'BITSAT'],
+      enum: ['JEE Main', 'JEE Advanced', 'BITSAT', 'PartTest', 'MathSpeed'],
       default: 'JEE Main'
     },
     format: {
@@ -131,8 +131,8 @@ const testSeriesSchema = new Schema<ITestSeries>(
     },
     difficulty: {
       type: String,
-      enum: ['Easy', 'Medium', 'Hard'],
-      default: 'Hard'
+      enum: ['Easy', 'Medium', 'Hard', 'Moderate', 'Challenging', 'Advanced'],
+      default: 'Medium'
     },
     durationMinutes: { type: Number, default: 180 },
     totalQuestions: { type: Number, default: 0 },

@@ -16,6 +16,7 @@ import {
 } from '../../components/testSeries/TestSeriesFilters/TestSeriesFilters';
 import { TestCard } from '../../components/testSeries/TestCard/TestCard';
 import { TestInstructionsModal } from '../../components/testSeries/TestInstructionsModal/TestInstructionsModal';
+import { ScheduledTestModal } from '../../components/testSeries/ScheduledTestModal/ScheduledTestModal';
 import { TestTakingView } from '../../components/testSeries/TestTakingView/TestTakingView';
 import { TestResultsView } from '../../components/testSeries/TestResultsView/TestResultsView';
 import { AnswerReviewView } from '../../components/testSeries/AnswerReviewView/AnswerReviewView';
@@ -92,6 +93,9 @@ export const TestSeriesPage: React.FC = () => {
 
   // Instructions modal state
   const [instructionsModalTestId, setInstructionsModalTestId] = useState<string | null>(null);
+
+  // Scheduled upcoming test announcement modal state
+  const [scheduledModalData, setScheduledModalData] = useState<{ test: TestSeriesItem; formattedStartTime: string } | null>(null);
 
   const [testSeriesList, setTestSeriesList] = useState<TestSeriesItem[]>(() => cmsService.getTestSeries());
 
@@ -314,12 +318,14 @@ export const TestSeriesPage: React.FC = () => {
     });
 
     setViewState('test');
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   // Resume an in-progress test
   const handleResumeTest = (testId: string) => {
     setActiveTestId(testId);
     setViewState('test');
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   // Save intermediate responses
@@ -462,6 +468,9 @@ export const TestSeriesPage: React.FC = () => {
                     onOpenInstructions={handleOpenInstructions}
                     onResumeTest={handleResumeTest}
                     onViewResults={handleViewResults}
+                    onOpenScheduledNotice={(targetTest, time) =>
+                      setScheduledModalData({ test: targetTest, formattedStartTime: time })
+                    }
                   />
                 ))}
               </div>
@@ -517,6 +526,14 @@ export const TestSeriesPage: React.FC = () => {
           isOpen={Boolean(instructionTest)}
           onClose={() => setInstructionsModalTestId(null)}
           onStartTest={handleStartTest}
+        />
+
+        {/* Scheduled Upcoming Live CBT Mock Modal */}
+        <ScheduledTestModal
+          isOpen={Boolean(scheduledModalData)}
+          onClose={() => setScheduledModalData(null)}
+          test={scheduledModalData?.test || null}
+          formattedStartTime={scheduledModalData?.formattedStartTime || ''}
         />
       </Container>
     </div>

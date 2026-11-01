@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -48,6 +48,10 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isExitWarningOpen, setIsExitWarningOpen] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
 
   const totalQuestions = test.questions.length;
   const currentQuestion = test.questions[currentIndex];

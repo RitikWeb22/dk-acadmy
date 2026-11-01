@@ -333,6 +333,12 @@ const BASE_SEED_TEST_SERIES = [
     targetBatches: ['All Enrolled Aspirants'],
     batch: 'All Enrolled Aspirants',
     status: 'Scheduled',
+    schedule: {
+      startWindow: new Date('2026-11-05T14:30:00.000Z'),
+      endWindow: new Date('2026-11-12T14:30:00.000Z'),
+      autoSubmit: true,
+      computeRank: true
+    },
     attemptsCount: 0,
     totalTests: 1,
     testsBreakdown: { published: 0, draft: 0, scheduled: 1 }
@@ -364,10 +370,16 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
       ];
     }
 
+    // Ensure legacy items have correct formats
+    await TestSeries.updateOne(
+      { id: 'test-ja-coord-geom-01', format: 'Part Test' },
+      { $set: { format: 'Chapter Test' } }
+    ).catch(() => {});
+
     let items = await TestSeries.find(filter).sort({ createdAt: -1 });
 
-    // Ensure all 12 starter test series exist if database has fewer
-    if (items.length < SEED_TEST_SERIES.length && Object.keys(filter).length === 0) {
+    // Only seed initial default test series if database collection is completely empty
+    if (items.length === 0 && Object.keys(filter).length === 0) {
       for (const seed of SEED_TEST_SERIES) {
         await TestSeries.findOneAndUpdate(
           { slug: seed.slug },
@@ -447,18 +459,62 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
         .replace(/(^-|-$)+/g, '');
     }
 
+    // Normalize difficulty
+    if (payload.difficulty) {
+      const d = String(payload.difficulty).toLowerCase();
+      if (d === 'moderate' || d === 'medium') payload.difficulty = 'Medium';
+      else if (d === 'challenging' || d === 'hard' || d === 'advanced') payload.difficulty = 'Hard';
+      else if (d === 'easy') payload.difficulty = 'Easy';
+    }
+
+    // Normalize examType & format if PartTest / MathSpeed
+    if (payload.examType === 'PartTest' || payload.format === 'Part Test') {
+      payload.format = 'Part Test';
+      if (payload.examType === 'PartTest') payload.examType = 'JEE Main';
+      payload.badgeCode = 'PART TEST';
+    } else if (payload.examType === 'MathSpeed') {
+      payload.badgeCode = 'MATH SPEED';
+      payload.examType = 'JEE Main';
+    }
+
     // Set badge code
     if (!payload.badgeCode) {
       payload.badgeCode =
-        payload.examType === 'JEE Advanced'
+        payload.format === 'Part Test'
+          ? 'PART TEST'
+          : payload.examType === 'JEE Advanced'
           ? 'JEE ADVANCED'
           : payload.examType === 'BITSAT'
           ? 'BITSAT'
+          : payload.examType === 'MathSpeed'
+          ? 'MATH SPEED'
           : 'JEE MAIN';
     }
 
-    // Calculate totals
+    // Normalize questions array
     if (Array.isArray(payload.questions)) {
+      payload.questions = payload.questions.map((q: any, idx: number) => ({
+        id: q.id || `q-${idx + 1}-${Date.now()}`,
+        questionNumber: q.questionNumber || q.index || idx + 1,
+        subject: q.subject || 'Mathematics',
+        chapter: q.chapter || q.topicTag || 'General',
+        statement: q.statement || q.questionText || '',
+        imageUrl: q.imageUrl,
+        options: Array.isArray(q.options)
+          ? q.options.map((opt: any, optIdx: number) => ({
+              id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
+              text: opt.text || '',
+              imageUrl: opt.imageUrl
+            }))
+          : [],
+        correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
+        marks: q.marks || 4,
+        negativeMarks: q.negativeMarks ?? 1,
+        formulaKey: q.formulaKey,
+        explanation: q.explanation || q.stepSolution || '',
+        shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
+        videoSolutionUrl: q.videoSolutionUrl
+      }));
       payload.totalQuestions = payload.questions.length;
       if (!payload.totalMarks || payload.totalMarks === 0) {
         const posMark = payload.markingScheme?.correct || 4;
@@ -505,6 +561,41 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
   try {
     const param = String(req.params.id);
     const updates = { ...req.body };
+
+    // Normalize difficulty
+    if (updates.difficulty) {
+      const d = String(updates.difficulty).toLowerCase();
+      if (d === 'moderate' || d === 'medium') updates.difficulty = 'Medium';
+      else if (d === 'challenging' || d === 'hard' || d === 'advanced') updates.difficulty = 'Hard';
+      else if (d === 'easy') updates.difficulty = 'Easy';
+    }
+
+    // Normalize questions array if updated
+    if (Array.isArray(updates.questions)) {
+      updates.questions = updates.questions.map((q: any, idx: number) => ({
+        id: q.id || `q-${idx + 1}-${Date.now()}`,
+        questionNumber: q.questionNumber || q.index || idx + 1,
+        subject: q.subject || 'Mathematics',
+        chapter: q.chapter || q.topicTag || 'General',
+        statement: q.statement || q.questionText || '',
+        imageUrl: q.imageUrl,
+        options: Array.isArray(q.options)
+          ? q.options.map((opt: any, optIdx: number) => ({
+              id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
+              text: opt.text || '',
+              imageUrl: opt.imageUrl
+            }))
+          : [],
+        correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
+        marks: q.marks || 4,
+        negativeMarks: q.negativeMarks ?? 1,
+        formulaKey: q.formulaKey,
+        explanation: q.explanation || q.stepSolution || '',
+        shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
+        videoSolutionUrl: q.videoSolutionUrl
+      }));
+      updates.totalQuestions = updates.questions.length;
+    }
 
     const updated = await TestSeries.findOneAndUpdate(
       {

@@ -9,6 +9,7 @@ interface TestCardProps {
   onOpenInstructions: (testId: string) => void;
   onResumeTest: (testId: string) => void;
   onViewResults: (testId: string) => void;
+  onOpenScheduledNotice?: (test: TestSeriesItem, formattedStartTime: string) => void;
 }
 
 export const TestCard: React.FC<TestCardProps> = ({
@@ -17,6 +18,7 @@ export const TestCard: React.FC<TestCardProps> = ({
   onOpenInstructions,
   onResumeTest,
   onViewResults,
+  onOpenScheduledNotice,
 }) => {
   const status = attempt ? attempt.status : 'Not Started';
 
@@ -247,7 +249,13 @@ export const TestCard: React.FC<TestCardProps> = ({
           <button
             type="button"
             className={styles.scheduledUpcomingBtn}
-            onClick={() => alert(`This scheduled CBT mock opens on ${formattedStartTime}. Please return at that time to take the live test.`)}
+            onClick={() => {
+              if (onOpenScheduledNotice) {
+                onOpenScheduledNotice(test, formattedStartTime);
+              } else {
+                alert(`This scheduled CBT mock opens on ${formattedStartTime}. Please return at that time to take the live test.`);
+              }
+            }}
             aria-label={`Scheduled test opens on ${formattedStartTime}`}
           >
             <Calendar size={14} aria-hidden="true" />
