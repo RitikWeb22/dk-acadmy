@@ -9,7 +9,7 @@ import {
   updateOrderStatus,
   deleteOrder
 } from '../controllers/paymentController.js';
-import { protect, authorize } from '../middlewares/authMiddleware.js';
+import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
@@ -65,12 +65,11 @@ router.post('/verify', validate({ body: verifyPaymentSchema }), verifyPayment);
 // Student personal orders and fee receipts
 router.get('/my-orders', protect, getMyOrders);
 
-// Admin-only orders list, manual invoice creation, and management
-router.get('/orders', protect, authorize('SUPER_ADMIN', 'ADMIN'), getOrdersList);
+// Admin orders list, manual invoice creation, and management (supports valid JWT and admin session)
+router.get('/orders', directoryProtect, getOrdersList);
 router.post(
   '/admin-invoice',
-  protect,
-  authorize('SUPER_ADMIN', 'ADMIN'),
+  directoryProtect,
   validate({ body: adminInvoiceSchema }),
   createAdminInvoice
 );
