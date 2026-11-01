@@ -3426,41 +3426,37 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </div>
 
                         {/* Kota Shortcut Card */}
-                        <div className={styles.kotaTrickHighlightCard}>
-                          <div className={styles.trickHeader}>
+                        <div className={styles.kotaTrickHighlightCard} style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
+                          <div className={styles.trickHeader} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                             <Zap size={15} color="#D97706" />
-                            <strong>DK Sir Kota 20-30s Inspection Trick:</strong>
+                            <strong style={{ color: '#92400E', fontSize: '13px' }}>DK Sir Kota 20-30s Inspection Trick (LaTeX &amp; Math Supported):</strong>
                           </div>
-                          <textarea
+                          <MathInput
+                            value={currentEditingQuestion.shortcutTrick || ''}
+                            onChange={(val) => updateCurrentQuestion({ shortcutTrick: val })}
+                            placeholder="Key speed formula ($...$, \frac{a}{b}, 1/16), visual inspection rule, or option-elimination trick..."
                             rows={2}
-                            value={currentEditingQuestion.shortcutTrick}
-                            onChange={(e) => updateCurrentQuestion({ shortcutTrick: e.target.value })}
-                            placeholder="Key speed formula, visual inspection rule, or option-elimination trick..."
+                            label="DK Sir Speed Shortcut"
+                            compact={true}
+                            defaultViewMode="edit"
                           />
-                          {currentEditingQuestion.shortcutTrick && (
-                            <div style={{ marginTop: '6px', fontSize: '12px', color: '#92400E', background: 'rgba(254, 243, 199, 0.5)', padding: '6px 10px', borderRadius: '6px' }}>
-                              <MathText text={currentEditingQuestion.shortcutTrick} />
-                            </div>
-                          )}
                         </div>
 
                         {/* Detailed Solution Derivation Card */}
-                        <div className={styles.solutionExplanationCard}>
-                          <div className={styles.solutionHeader}>
+                        <div className={styles.solutionExplanationCard} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px' }}>
+                          <div className={styles.solutionHeader} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                             <FileText size={15} color="#2563EB" />
-                            <strong>Detailed Step-by-Step Mathematical Solution Derivation:</strong>
+                            <strong style={{ color: '#1E3A8A', fontSize: '13px' }}>Detailed Step-by-Step Mathematical Solution Derivation (LaTeX &amp; Math Supported):</strong>
                           </div>
-                          <textarea
-                            rows={3}
+                          <MathInput
                             value={currentEditingQuestion.solutionDerivation || ''}
-                            onChange={(e) => updateCurrentQuestion({ solutionDerivation: e.target.value })}
-                            placeholder="Provide the comprehensive step-by-step derivation, formula steps, and reasoning..."
+                            onChange={(val) => updateCurrentQuestion({ solutionDerivation: val })}
+                            placeholder="Provide the comprehensive step-by-step derivation, formula steps (\int, \frac{a}{b}, \lim)... Or paste directly from Word!"
+                            rows={4}
+                            label="Step-by-Step Derivation"
+                            compact={true}
+                            defaultViewMode="edit"
                           />
-                          {currentEditingQuestion.solutionDerivation && (
-                            <div style={{ marginTop: '6px', fontSize: '12.5px', color: '#1e293b', background: '#FFFFFF', padding: '8px 12px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
-                              <MathText text={currentEditingQuestion.solutionDerivation} />
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -4437,9 +4433,17 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           <div style={{ fontSize: '12px', color: '#059669', fontWeight: 600, marginTop: '6px' }}>
                             Correct Answer: Option {q.correctKey} (<MathText text={q.options.find(o => o.key === q.correctKey)?.text || ''} />)
                           </div>
-                          <div style={{ background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '8px', padding: '8px 12px', marginTop: '8px', fontSize: '11.5px', color: '#1E40AF' }}>
-                            <strong>DK Sir Shortcut: </strong><MathText text={q.shortcutTrick} />
-                          </div>
+                          {q.shortcutTrick && (
+                            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '8px 12px', marginTop: '8px', fontSize: '12px', color: '#92400E' }}>
+                              <strong>⚡ DK Sir Shortcut: </strong><MathText text={q.shortcutTrick} />
+                            </div>
+                          )}
+                          {q.solutionDerivation && (
+                            <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '10px 14px', marginTop: '8px', fontSize: '12.5px', color: '#1E293B' }}>
+                              <strong style={{ display: 'block', marginBottom: '4px', color: '#2563EB' }}>Detailed Mathematical Solution:</strong>
+                              <MathText text={q.solutionDerivation} />
+                            </div>
+                          )}
                         </div>
                       );
                     })}
