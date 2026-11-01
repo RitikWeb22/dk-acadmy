@@ -34,6 +34,17 @@ export interface ITestSeriesSchedule {
   endWindow?: Date;
   autoSubmit?: boolean;
   computeRank?: boolean;
+  scheduleMode?: 'SCHEDULED_WINDOW' | 'OPEN_PRACTICE' | 'TIME_SLOTTED';
+  examSlot?: 'MORNING' | 'EVENING' | 'FLEXIBLE';
+  fullScreenLock?: boolean;
+  tabSwitchLimit?: number;
+  disableCopyPaste?: boolean;
+  strictTimer?: boolean;
+  autoSaveInterval?: number;
+  singleSessionGuard?: boolean;
+  scorecardRelease?: 'INSTANT' | 'AFTER_WINDOW' | 'MANUAL';
+  bufferEntryMinutes?: number;
+  cutoffTierPredictor?: boolean;
 }
 
 export interface ITestSeries extends Document {
@@ -107,7 +118,18 @@ const scheduleSchema = new Schema<ITestSeriesSchedule>(
     startWindow: { type: Date },
     endWindow: { type: Date },
     autoSubmit: { type: Boolean, default: true },
-    computeRank: { type: Boolean, default: true }
+    computeRank: { type: Boolean, default: true },
+    scheduleMode: { type: String, default: 'SCHEDULED_WINDOW' },
+    examSlot: { type: String, default: 'FLEXIBLE' },
+    fullScreenLock: { type: Boolean, default: true },
+    tabSwitchLimit: { type: Number, default: 3 },
+    disableCopyPaste: { type: Boolean, default: true },
+    strictTimer: { type: Boolean, default: true },
+    autoSaveInterval: { type: Number, default: 10 },
+    singleSessionGuard: { type: Boolean, default: true },
+    scorecardRelease: { type: String, default: 'INSTANT' },
+    bufferEntryMinutes: { type: Number, default: 30 },
+    cutoffTierPredictor: { type: Boolean, default: true }
   },
   { _id: false }
 );
