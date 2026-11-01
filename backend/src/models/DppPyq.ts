@@ -38,6 +38,7 @@ export interface IDppPyq extends Document {
   videoUrl?: string;
   videoWalkthroughUrl?: string;
   questionsCount: number;
+  durationMinutes?: number;
   solutionNote: string;
   status: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
   scheduledDate?: string;

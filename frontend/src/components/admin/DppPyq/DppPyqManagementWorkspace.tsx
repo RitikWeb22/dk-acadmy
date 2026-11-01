@@ -82,6 +82,7 @@ export interface DppPyqItem {
   videoUrl?: string;
   videoWalkthroughUrl?: string;
   questionsCount: number;
+  durationMinutes?: number;
   solutionNote: string;
   status: ProblemStatus;
   createdAtFormatted: string;
@@ -529,6 +530,7 @@ export const DppPyqManagementWorkspace: React.FC = () => {
   const [newTitle, setNewTitle] = useState<string>('DPP: Straight Lines (Speed Inspection & Concepts)');
   const [newSlug, setNewSlug] = useState<string>('/dpp-straight-lines');
   const [newQuestionsCount, setNewQuestionsCount] = useState<number>(5);
+  const [newDurationMinutes, setNewDurationMinutes] = useState<number>(15);
   const [newSolutionNote, setNewSolutionNote] = useState<string>('5 with step solutions');
   const [newStatus, setNewStatus] = useState<ProblemStatus>('Published');
   const [newIsFree, setNewIsFree] = useState<boolean>(true);
@@ -878,6 +880,7 @@ export const DppPyqManagementWorkspace: React.FC = () => {
       badgeCode,
       categoryLabel,
       questionsCount: Number(newQuestionsCount) || 5,
+      durationMinutes: Number(newDurationMinutes) || 15,
       solutionNote: newSolutionNote.trim() || `${newQuestionsCount} questions with step solutions`,
       status: newStatus,
       attemptsCount: 0,
@@ -2421,6 +2424,19 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                   </div>
 
                   <div className={styles.fieldItem}>
+                    <label className={styles.fieldLabel}>Fixed Timer Duration (Minutes) *</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={180}
+                      className={styles.fieldInputEnhanced}
+                      placeholder="e.g. 15 mins"
+                      value={newDurationMinutes}
+                      onChange={(e) => setNewDurationMinutes(Number(e.target.value))}
+                    />
+                  </div>
+
+                  <div className={styles.fieldItem}>
                     <label className={styles.fieldLabel}>Solution Note</label>
                     <input
                       type="text"
@@ -3214,8 +3230,23 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Also Set-level video and pdf links */}
-                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                  {/* Also Set-level video and pdf links and timer duration */}
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px', display: 'block' }}>
+                        Fixed Timer Duration (Minutes):
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={180}
+                        className={styles.fieldInputSmall}
+                        style={{ width: '100%', boxSizing: 'border-box', fontSize: '11.5px' }}
+                        placeholder="e.g. 15 mins"
+                        value={editingItem.durationMinutes ?? 15}
+                        onChange={(e) => setEditingItem({ ...editingItem, durationMinutes: Number(e.target.value) })}
+                      />
+                    </div>
                     <div>
                       <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px', display: 'block' }}>
                         Overall Paper Walkthrough Video:
