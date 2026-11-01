@@ -654,17 +654,13 @@ export const deleteTestSeries = async (req: Request, res: Response): Promise<voi
       ]
     });
 
-    if (!deleted) {
-      res.status(404).json({ success: false, message: 'Test Series not found' });
-      return;
-    }
-
-    broadcastTestSeriesDeleted(deleted.id || String(deleted._id));
+    const deletedId = deleted?.id || param;
+    broadcastTestSeriesDeleted(deletedId);
 
     res.status(200).json({
       success: true,
       message: 'Test Series deleted successfully',
-      id: deleted.id
+      id: deletedId
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

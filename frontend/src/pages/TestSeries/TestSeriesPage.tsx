@@ -104,7 +104,7 @@ export const TestSeriesPage: React.FC = () => {
     const syncTestSeries = async () => {
       try {
         const items = await cmsService.fetchTestSeriesFromAPI();
-        if (Array.isArray(items) && items.length > 0) {
+        if (Array.isArray(items)) {
           setTestSeriesList(items);
         }
       } catch (err) {
@@ -118,16 +118,24 @@ export const TestSeriesPage: React.FC = () => {
       syncTestSeries();
     };
 
+    const handleDeleteEvent = (e: any) => {
+      const deletedId = e.detail?.id;
+      if (deletedId) {
+        setTestSeriesList((prev) => prev.filter((t) => t.id !== deletedId && t.slug !== deletedId));
+      }
+      syncTestSeries();
+    };
+
     window.addEventListener(CMS_EVENT_KEY, handleUpdate);
     window.addEventListener('dk_test_series_created', handleUpdate);
     window.addEventListener('dk_test_series_updated', handleUpdate);
-    window.addEventListener('dk_test_series_deleted', handleUpdate);
+    window.addEventListener('dk_test_series_deleted', handleDeleteEvent);
 
     return () => {
       window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
       window.removeEventListener('dk_test_series_created', handleUpdate);
       window.removeEventListener('dk_test_series_updated', handleUpdate);
-      window.removeEventListener('dk_test_series_deleted', handleUpdate);
+      window.removeEventListener('dk_test_series_deleted', handleDeleteEvent);
     };
   }, []);
 

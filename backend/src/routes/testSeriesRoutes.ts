@@ -14,19 +14,37 @@ const router = Router();
 
 const createTestSeriesSchema = z
   .object({
+    id: z.string().optional(),
     title: z.string().trim().min(2, 'Title is required'),
+    subtitle: z.string().optional(),
     slug: z.string().trim().optional(),
     description: z.string().optional(),
+    badgeCode: z.string().optional(),
+    examType: z.string().optional(),
+    format: z.string().optional(),
+    difficulty: z.string().optional(),
     targetExam: z.string().optional(),
+    durationMinutes: z.union([z.number(), z.string().regex(/^\d+$/)]).transform(Number).optional(),
+    totalQuestions: z.union([z.number(), z.string().regex(/^\d+$/)]).transform(Number).optional(),
+    totalMarks: z.union([z.number(), z.string().regex(/^\d+$/)]).transform(Number).optional(),
+    subjects: z.array(z.string()).optional(),
+    markingScheme: z.any().optional(),
+    instructions: z.array(z.string()).optional(),
+    questions: z.array(z.any()).optional(),
+    batch: z.string().optional(),
+    targetBatches: z.array(z.string()).optional(),
     totalTests: z.union([z.number(), z.string().regex(/^\d+$/)]).transform(Number).optional(),
     price: z.union([z.number(), z.string().regex(/^\d+(\.\d+)?$/)]).transform(Number).optional(),
     originalPrice: z.union([z.number(), z.string().regex(/^\d+(\.\d+)?$/)]).transform(Number).optional(),
     isFree: z.boolean().optional(),
     isPublished: z.boolean().optional(),
+    status: z.string().optional(),
+    schedule: z.any().optional(),
+    attemptsCount: z.number().optional(),
     syllabus: z.array(z.string()).optional(),
     tests: z.array(z.any()).optional()
   })
-  .strict();
+  .passthrough();
 
 // Public routes for catalog & CBT simulator
 router.get('/', getAllTestSeries);
@@ -50,7 +68,7 @@ router.put(
 router.delete(
   '/:id',
   protect,
-  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'),
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
   validate({ params: idOrSlugParamSchema }),
   deleteTestSeries
 );

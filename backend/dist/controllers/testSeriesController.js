@@ -616,15 +616,12 @@ export const deleteTestSeries = async (req, res) => {
                 { _id: param.match(/^[0-9a-fA-F]{24}$/) ? param : null }
             ]
         });
-        if (!deleted) {
-            res.status(404).json({ success: false, message: 'Test Series not found' });
-            return;
-        }
-        broadcastTestSeriesDeleted(deleted.id || String(deleted._id));
+        const deletedId = deleted?.id || param;
+        broadcastTestSeriesDeleted(deletedId);
         res.status(200).json({
             success: true,
             message: 'Test Series deleted successfully',
-            id: deleted.id
+            id: deletedId
         });
     }
     catch (error) {
