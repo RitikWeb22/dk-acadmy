@@ -1,163 +1,41 @@
 .mathContainer {
   display: inline;
   line-height: 1.7;
+
+  :global(.katex) {
+    font-size: 1.05em;
+    text-rendering: auto;
+  }
+
+  :global(.katex-display) {
+    margin: 0.6em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0;
+  }
 }
 
-.plainMathText {
-  display: inline;
-}
-
-.inlineMath {
+.inlineMathWrapper {
   display: inline-block;
-  font-family: 'STIX Two Math', 'KaTeX_Math', 'Cambria Math', 'Latin Modern Math', 'Times New Roman', serif;
-  letter-spacing: 0.02em;
-  padding: 0.05em 0.25em;
-  background-color: rgba(241, 245, 249, 0.7);
-  border-radius: 4px;
-  border: 1px solid #e2e8f0;
-  color: #0f172a;
-  line-height: 1.45;
+  padding: 0 2px;
   vertical-align: baseline;
 }
 
-.displayMath {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'STIX Two Math', 'KaTeX_Math', 'Cambria Math', 'Latin Modern Math', 'Times New Roman', serif;
-  font-size: 1.0625rem;
-  letter-spacing: 0.02em;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-left: 3.5px solid #2563eb;
+.displayMathWrapper {
+  display: block;
+  margin: 10px 0;
+  padding: 10px 16px;
+  background: rgba(248, 250, 252, 0.85);
+  border: 1px solid #E2E8F0;
+  border-left: 3px solid #3B82F6;
   border-radius: 8px;
-  padding: 12px 20px;
-  margin: 12px 0;
-  color: #0f172a;
   overflow-x: auto;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-}
-
-.sup {
-  font-size: 0.75em;
-  vertical-align: super;
-  line-height: 0;
-  font-family: inherit;
-}
-
-.sub {
-  font-size: 0.75em;
-  vertical-align: sub;
-  line-height: 0;
-  font-family: inherit;
-}
-
-/* Beautiful Vertical Mathematical Fraction */
-.fraction {
-  display: inline-flex;
-  flex-direction: column;
-  vertical-align: -0.55em;
-  padding: 0 0.15em;
-  font-size: 0.92em;
   text-align: center;
-  line-height: 1.1;
 }
 
-.numerator {
-  border-bottom: 1.3px solid currentColor;
-  padding: 0 0.25em 0.1em 0.25em;
-  display: block;
-  text-align: center;
-  font-size: 0.95em;
-}
-
-.denominator {
-  padding: 0.1em 0.25em 0 0.25em;
-  display: block;
-  text-align: center;
-  font-size: 0.95em;
-}
-
-/* Square Root with Radical Symbol & Overline Bar */
-.sqrt {
-  display: inline-flex;
-  align-items: baseline;
-  vertical-align: baseline;
-  padding: 0 0.1em;
-}
-
-.sqrtIndex {
-  font-size: 0.65em;
-  vertical-align: super;
-  margin-right: -0.15em;
-}
-
-.sqrtSymbol {
-  font-size: 1.15em;
-  line-height: 1;
-  font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif;
-}
-
-.sqrtContent {
-  border-top: 1.3px solid currentColor;
-  padding: 0 0.2em;
-  margin-left: 1px;
-  display: inline-block;
-  line-height: 1.25;
-}
-
-/* Large Operators with Limits (Integrals, Summations, Limits) */
-.bigOpWrap {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  vertical-align: -0.45em;
-  margin: 0 0.25em;
-  line-height: 1;
-}
-
-.bigOpUpper {
-  font-size: 0.68em;
-  line-height: 1;
-  padding-bottom: 2px;
-}
-
-.bigOpSymbol {
-  font-size: 1.25em;
-  line-height: 1;
-  font-family: 'Cambria Math', 'STIX Two Math', serif;
-}
-
-.bigOpLower {
-  font-size: 0.68em;
-  line-height: 1;
-  padding-top: 2px;
-}
-
-/* Vector Arrow Over Variable */
-.vectorWrap {
-  display: inline-block;
-  position: relative;
-  padding-top: 0.18em;
-}
-
-.vectorArrow {
-  position: absolute;
-  top: -0.42em;
-  left: 50%;
-  transform: translateX(-50%) scaleX(0.8);
-  font-size: 0.75em;
-  line-height: 1;
-}
-
-.mathSymbol {
-  font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif;
-  font-style: normal;
-  padding: 0 0.08em;
-}
-
-.mathVariable {
-  font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif;
+/* Fallback for unparsed math text */
+.katex-fallback {
+  font-family: 'Cambria Math', 'Times New Roman', serif;
   font-style: italic;
-  padding: 0 0.04em;
+  padding: 0 2px;
 }
