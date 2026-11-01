@@ -75,6 +75,77 @@ function renderKaTeX(formula: string, isDisplay: boolean): string {
 }
 
 /**
+ * Normalizes Unicode mathematical typography, symbols, roots, integrals, and fractions
+ * into clean LaTeX KaTeX-compatible expressions.
+ */
+function normalizeUnicodeMath(text: string): string {
+  if (!text) return '';
+
+  let res = text;
+
+  // 1. Integral with limits: ∫_0^2 or ∫_{0}^{2} -> \int_{0}^{2}
+  res = res.replace(/∫_\{?([0-9a-zA-Z]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\int_{$1}^{$2} ');
+  res = res.replace(/∫/g, '\\int ');
+
+  // 2. Summation / Product: ∑_0^n -> \sum_{0}^{n}
+  res = res.replace(/∑_\{?([0-9a-zA-Z=]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\sum_{$1}^{$2} ');
+  res = res.replace(/∑/g, '\\sum ');
+  res = res.replace(/∏/g, '\\prod ');
+
+  // 3. Square roots: √( ... ) with up to 2 levels of nested parentheses
+  res = res.replace(/√\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (m, g1) => `\\sqrt{${g1.trim()}}`);
+  res = res.replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}');
+  res = res.replace(/√/g, '\\sqrt');
+
+  // 4. Clean superfluous enclosing parens around \sqrt in products: e.g. (\sqrt{A})(\sqrt{B}) -> \sqrt{A}\sqrt{B}
+  res = res.replace(/\(\\sqrt\{([^{}]+)\}\)/g, '\\sqrt{$1}');
+
+  // 5. Fractions: A / ( B ) or A / B where numerator is \sqrt or parens
+  res = res.replace(/((?:\\sqrt\{[^{}]*\}|\([a-zA-Z0-9_\^+\-*/ ]+\)|[a-zA-Z0-9_\^]+))\s*\/\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (m, num, den) => {
+    let cleanDen = den.trim();
+    while (cleanDen.startsWith('(') && cleanDen.endsWith(')')) {
+      cleanDen = cleanDen.slice(1, -1).trim();
+    }
+    cleanDen = cleanDen.replace(/\(\\sqrt\{([^{}]+)\}\)/g, '\\sqrt{$1}');
+    return `\\frac{${num.trim()}}{${cleanDen}}`;
+  });
+
+  // 6. Common unicode superscripts to standard exponents
+  res = res.replace(/²/g, '^2');
+  res = res.replace(/³/g, '^3');
+  res = res.replace(/⁴/g, '^4');
+  res = res.replace(/⁻¹/g, '^{-1}');
+
+  // 7. Inverse trig
+  res = res.replace(/\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
+  res = res.replace(/\b(cot|tan|sin|cos|sec|csc)⁻¹/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
+
+  // 8. Common math symbols to LaTeX
+  res = res.replace(/±/g, '\\pm ');
+  res = res.replace(/≠/g, '\\neq ');
+  res = res.replace(/≤/g, '\\le ');
+  res = res.replace(/≥/g, '\\ge ');
+  res = res.replace(/×/g, '\\times ');
+  res = res.replace(/÷/g, '\\div ');
+  res = res.replace(/∞/g, '\\infty ');
+  res = res.replace(/°/g, '^\\circ ');
+
+  // 9. Greek letters
+  res = res.replace(/α/g, '\\alpha ');
+  res = res.replace(/β/g, '\\beta ');
+  res = res.replace(/γ/g, '\\gamma ');
+  res = res.replace(/θ/g, '\\theta ');
+  res = res.replace(/λ/g, '\\lambda ');
+  res = res.replace(/π/g, '\\pi ');
+  res = res.replace(/μ/g, '\\mu ');
+  res = res.replace(/σ/g, '\\sigma ');
+  res = res.replace(/ω/g, '\\omega ');
+  res = res.replace(/Δ/g, '\\Delta ');
+
+  return res;
+}
+
+/**
  * Determines whether a string is a standalone raw LaTeX formula (without dollar signs)
  */
 function isStandaloneMathFormula(str: string): boolean {
@@ -134,6 +205,9 @@ function renderMathString(rawText: string, forceDisplay: boolean = false): strin
     .replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$')
     // Convert \(...\) to $...$
     .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+
+  // Pre-normalize Unicode math symbols and plain-text math notation (e.g. ∫_0^2, √(x...) )
+  normalized = normalizeUnicodeMath(normalized);
 
   // Auto-wrap unescaped LaTeX expressions into $...$ or $$...$$
   normalized = autoWrapMathDelimiters(normalized);
