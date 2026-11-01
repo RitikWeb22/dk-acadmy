@@ -16,7 +16,7 @@ const BASE_SEED_TEST_SERIES = [
     slug: 'jee-advanced-specialist-coordinate-geometry-vectors',
     badgeCode: 'JEE ADVANCED',
     examType: 'JEE Advanced',
-    format: 'Part Test',
+    format: 'Chapter Test',
     difficulty: 'Hard',
     durationMinutes: 90,
     totalQuestions: 4,

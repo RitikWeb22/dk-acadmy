@@ -17,7 +17,7 @@
 .modalBox {
   width: 100%;
   max-width: 520px;
-  max-height: 90vh;
+  max-height: min(90vh, 640px);
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 16px;

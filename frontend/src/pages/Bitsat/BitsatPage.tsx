@@ -603,6 +603,16 @@ export const BitsatPage: React.FC = () => {
     setRevealedSolution(false);
   }, [activeQuestionIndex]);
 
+  // Lock body scroll when result scorecard or video walkthrough is active
+  useEffect(() => {
+    if (isDrillSubmitted || activeVideoUrl) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isDrillSubmitted, activeVideoUrl]);
+
   // 4. Filter drills in catalog
   const filteredDrills = useMemo(() => {
     return drills.filter((drill) => {

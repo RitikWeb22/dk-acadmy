@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Clock, HelpCircle, Award, AlertTriangle, CheckCircle, ShieldCheck } from 'lucide-react';
 import type { TestSeriesItem } from '../../../types';
 import styles from './TestInstructionsModal.module.scss';
@@ -16,19 +17,23 @@ export const TestInstructionsModal: React.FC<TestInstructionsModalProps> = ({
   onClose,
   onStartTest,
 }) => {
-  // Handle escape key
+  // Handle escape key & body scroll lock
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
+    document.body.style.overflow = 'hidden';
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !test) return null;
+  if (!isOpen || !test || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
       className={styles.overlay}
       onClick={onClose}
@@ -129,6 +134,7 @@ export const TestInstructionsModal: React.FC<TestInstructionsModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
