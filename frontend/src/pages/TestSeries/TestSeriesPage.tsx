@@ -444,6 +444,43 @@ export const TestSeriesPage: React.FC = () => {
     setViewState('catalog');
   };
 
+  // Ensure body lock and hide public website navbar/footer during active CBT test
+  useEffect(() => {
+    if (viewState === 'test') {
+      document.body.classList.add('cbt-exam-active');
+      document.documentElement.classList.add('cbt-exam-active');
+    } else {
+      document.body.classList.remove('cbt-exam-active');
+      document.documentElement.classList.remove('cbt-exam-active');
+    }
+
+    return () => {
+      document.body.classList.remove('cbt-exam-active');
+      document.documentElement.classList.remove('cbt-exam-active');
+    };
+  }, [viewState]);
+
+  // When active exam is taking place, render completely isolated fullscreen interface
+  // (No public header, no website navbar, no footer, no padding)
+  if (viewState === 'test' && activeTest) {
+    return (
+      <div className={styles.fullscreenCbtWrapper}>
+        <TestTakingView
+          test={activeTest}
+          startTime={
+            (attempts[activeTest.id]?.startTime ?? 0) > 0
+              ? (attempts[activeTest.id]?.startTime as number)
+              : Date.now()
+          }
+          savedResponses={attempts[activeTest.id]?.responses || {}}
+          onSaveProgress={handleSaveProgress}
+          onSubmitTest={handleSubmitTest}
+          onExitTest={handleBackToCatalog}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.testSeriesPage}>
       {/* Page Header */}
@@ -521,22 +558,6 @@ export const TestSeriesPage: React.FC = () => {
               />
             )}
           </section>
-        )}
-
-        {/* Test-Taking Mode */}
-        {viewState === 'test' && activeTest && (
-          <TestTakingView
-            test={activeTest}
-            startTime={
-              (attempts[activeTest.id]?.startTime ?? 0) > 0
-                ? (attempts[activeTest.id]?.startTime as number)
-                : Date.now()
-            }
-            savedResponses={attempts[activeTest.id]?.responses || {}}
-            onSaveProgress={handleSaveProgress}
-            onSubmitTest={handleSubmitTest}
-            onExitTest={handleBackToCatalog}
-          />
         )}
 
         {/* Results Analysis Mode */}

@@ -1,4 +1,4 @@
-import { autoWrapMathDelimiters } from '../../../utils/questionBulkParser';
+import { autoWrapMathDelimiters, normalizeMathText } from '../../../utils/questionBulkParser';
 
 /**
  * Mathematical Structured Content Block Definition
@@ -17,8 +17,11 @@ export interface MathContentBlock {
 export function parseContentToBlocks(rawText: string): MathContentBlock[] {
   if (!rawText) return [];
 
+  // Normalize Word equations, unicode math, powers, and fractions
+  const normalized = normalizeMathText(rawText);
+
   // Automatically wrap un-delimited LaTeX if delimiters are absent
-  const text = autoWrapMathDelimiters(rawText);
+  const text = autoWrapMathDelimiters(normalized);
 
   // Delimiters supported:
   // 1. Display math: $$ ... $$ and \[ ... \]
