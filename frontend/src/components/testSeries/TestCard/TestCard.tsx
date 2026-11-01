@@ -156,7 +156,7 @@ export const TestCard: React.FC<TestCardProps> = ({
         <div className={styles.subjectsRow}>
           <span className={styles.subjectLabel}>Coverage:</span>
           <span className={styles.subjectsText}>
-            {test.subjects.join(' • ')}
+            {(Array.isArray(test.subjects) ? test.subjects : []).join(' • ') || 'Physics • Chemistry • Mathematics'}
           </span>
         </div>
       </div>
