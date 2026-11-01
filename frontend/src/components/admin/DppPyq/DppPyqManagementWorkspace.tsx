@@ -80,81 +80,161 @@ export interface DppPyqItem {
   questions: ProblemQuestionItem[];
 }
 
-const SAMPLE_QUESTIONS: ProblemQuestionItem[] = [
-  {
-    id: 'q-sample-1',
-    qNum: 1,
-    statement:
-      'In SN2 nucleophilic substitution reaction at an asymmetric carbon, the absolute stereochemical outcome and transition state geometry involve:',
-    topic: 'Reaction Mechanism',
-    options: [
-      { key: 'A', text: '100% inversion of configuration with trigonal bipyramidal transition state' },
-      { key: 'B', text: 'Complete retention of configuration via frontside attack' },
-      { key: 'C', text: 'Racemization via planar carbocation intermediate' },
-      { key: 'D', text: '50% retention and 50% elimination product' }
-    ],
-    correctKey: 'A',
-    dkSirShortcut: 'DK Sir Rule: SN2 = Backside Attack = Walden Inversion! Always count 5-coordinate T.S.',
-    stepSolution:
-      'In SN2 mechanism, the attacking nucleophile enters from the opposite face to the leaving group (180° angle). This forces inversion of configuration at the stereocenter and passes through a pentacoordinate trigonal bipyramidal transition state.',
-    difficulty: 'Moderate'
-  },
-  {
-    id: 'q-sample-2',
-    qNum: 2,
-    statement:
-      'A uniform solid cylinder of mass M and radius R rolls without slipping down an inclined plane of inclination θ. The magnitude of frictional force acting on it is:',
-    topic: 'Rotational Dynamics',
-    options: [
-      { key: 'A', text: '(1/3) M g sin θ' },
-      { key: 'B', text: '(1/2) M g sin θ' },
-      { key: 'C', text: '(2/3) M g sin θ' },
-      { key: 'D', text: 'M g sin θ' }
-    ],
-    correctKey: 'A',
-    dkSirShortcut: 'DK Sir Rotational Shortcut: f = (I_cm / (I_cm + M*R^2)) * M*g*sinθ. For solid cylinder, fraction = (1/2)/(3/2) = 1/3!',
-    stepSolution:
-      'Using translational equation: M*g*sinθ - f = M*a. Using rotational equation about CM: f*R = I*α = (1/2)*M*R^2*(a/R) ⇒ f = (1/2)*M*a. Solving both yields a = (2/3)*g*sinθ and f = (1/3)*M*g*sinθ.',
-    difficulty: 'Moderate'
-  },
-  {
-    id: 'q-sample-3',
-    qNum: 3,
-    statement:
-      'Evaluate the definite integral: I = ∫[0 to π] (x * sin x) / (1 + cos² x) dx. The exact value of I is:',
-    topic: 'Definite Integration',
-    options: [
-      { key: 'A', text: 'π² / 4' },
-      { key: 'B', text: 'π² / 2' },
-      { key: 'C', text: 'π / 4' },
-      { key: 'D', text: 'π² / 8' }
-    ],
-    correctKey: 'A',
-    dkSirShortcut: "DK Sir King's Property: When x is multiplied by f(sin x), Integral = (π / 2) * ∫[0 to π] (sin x)/(1 + cos²x) dx = π²/4 in 20 seconds!",
-    stepSolution:
-      "Apply King's property: I = ∫[0 to π] ((π - x) sin x)/(1 + cos²x) dx. Adding with original gives 2I = π * ∫[0 to π] sin x/(1 + cos²x) dx. Substitute u = cos x, du = -sin x dx ⇒ I = π²/4.",
-    difficulty: 'Challenging',
-    examYear: 'JEE Main 2024'
-  },
-  {
-    id: 'q-sample-4',
-    qNum: 4,
-    statement:
-      'If the vectors a = 2i - j + k, b = i + 2j - 3k, and c = 3i + λj + 5k are coplanar, then the scalar parameter λ equals:',
-    topic: 'Vectors & 3D',
-    options: [
-      { key: 'A', text: '-4' },
-      { key: 'B', text: '2' },
-      { key: 'C', text: '-2' },
-      { key: 'D', text: '4' }
-    ],
-    correctKey: 'A',
-    dkSirShortcut: 'DK Sir Determinant Rule: For coplanar vectors, scalar triple product [a b c] = 0. Expand 3x3 determinant quickly along row 1.',
-    stepSolution:
-      'Determinant | 2, -1, 1 | | 1, 2, -3 | | 3, λ, 5 | = 2(10 + 3λ) - (-1)(5 - (-9)) + 1(λ - 6) = 7λ + 28 = 0 ⇒ λ = -4.',
-    difficulty: 'Easy'
+export const getSampleQuestionsForSubject = (
+  subject: ProblemSubject,
+  chapter?: string
+): ProblemQuestionItem[] => {
+  if (subject === 'Mathematics') {
+    return [
+      {
+        id: `q-math-${Date.now()}-1`,
+        qNum: 1,
+        statement: 'A straight line L passing through the point P(2, 3) cuts the coordinate axes at A and B such that P divides AB internally in the ratio 1 : 2. If the line perpendicular to L passing through origin is y = mx, then value of m is:',
+        topic: chapter || 'Straight Lines',
+        options: [
+          { key: 'A', text: '1/3' },
+          { key: 'B', text: '4/3' },
+          { key: 'C', text: '3/4' },
+          { key: 'D', text: '-3/4' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Section Formula: a = 3, b = 9. Slope of line = -3. Perpendicular slope m = 1/3 in 15s!',
+        stepSolution: 'Let A=(a,0) and B=(0,b). Section formula gives a=3, b=9. Equation is x/3 + y/9 = 1 with slope -3. Perpendicular line slope is m = 1/3.',
+        difficulty: 'Moderate',
+        examYear: 'JEE Main 2024'
+      },
+      {
+        id: `q-math-${Date.now()}-2`,
+        qNum: 2,
+        statement: 'Evaluate the definite integral: I = ∫[0 to π] (x * sin x) / (1 + cos² x) dx. The exact value of I is:',
+        topic: chapter || 'Definite Integration',
+        options: [
+          { key: 'A', text: 'π² / 4' },
+          { key: 'B', text: 'π² / 2' },
+          { key: 'C', text: 'π / 4' },
+          { key: 'D', text: 'π² / 8' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: "DK Sir King's Property: When x is multiplied by f(sin x), Integral = (π / 2) * ∫[0 to π] (sin x)/(1 + cos²x) dx = π²/4 in 20 seconds!",
+        stepSolution: "Apply King's property: 2I = π * ∫[0 to π] sin x/(1 + cos²x) dx. Substitute u = cos x ⇒ I = π²/4.",
+        difficulty: 'Challenging',
+        examYear: 'JEE Main 2024'
+      },
+      {
+        id: `q-math-${Date.now()}-3`,
+        qNum: 3,
+        statement: 'If the vectors a = 2i - j + k, b = i + 2j - 3k, and c = 3i + λj + 5k are coplanar, then the scalar parameter λ equals:',
+        topic: chapter || 'Vectors & 3D',
+        options: [
+          { key: 'A', text: '-4' },
+          { key: 'B', text: '2' },
+          { key: 'C', text: '-2' },
+          { key: 'D', text: '4' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Determinant Rule: For coplanar vectors, scalar triple product [a b c] = 0. Expand 3x3 determinant quickly along row 1.',
+        stepSolution: 'Determinant | 2 -1 1 | | 1 2 -3 | | 3 λ 5 | = 7λ + 28 = 0 ⇒ λ = -4.',
+        difficulty: 'Easy',
+        examYear: 'JEE Main 2023'
+      },
+      {
+        id: `q-math-${Date.now()}-4`,
+        qNum: 4,
+        statement: 'Let y² = 4ax be a parabola with vertex at the origin. If two chords OP and OQ are perpendicular, then locus of midpoint of PQ has latus rectum of length:',
+        topic: chapter || 'Conic Sections',
+        options: [
+          { key: 'A', text: '2a' },
+          { key: 'B', text: '4a' },
+          { key: 'C', text: '8a' },
+          { key: 'D', text: 'a' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Parabola Shortcut: Orthogonal chords product t1*t2 = -4. Locus midpoint equation is y² = 2a(x - 4a), so latus rectum = 2a!',
+        stepSolution: 'Since OP ⊥ OQ, t1*t2 = -4. Midpoint locus simplifies to y² = 2a(x - 4a). The latus rectum is the coefficient of x, which equals 2a.',
+        difficulty: 'Moderate',
+        examYear: 'JEE Main 2024'
+      }
+    ];
   }
-];
+
+  if (subject === 'Physics') {
+    return [
+      {
+        id: `q-phy-${Date.now()}-1`,
+        qNum: 1,
+        statement: 'A uniform solid cylinder of mass M and radius R rolls without slipping down an inclined plane of inclination θ. The magnitude of frictional force acting on it is:',
+        topic: chapter || 'Rotational Dynamics',
+        options: [
+          { key: 'A', text: '(1/3) M g sin θ' },
+          { key: 'B', text: '(1/2) M g sin θ' },
+          { key: 'C', text: '(2/3) M g sin θ' },
+          { key: 'D', text: 'M g sin θ' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Rotational Shortcut: f = (I_cm / (I_cm + M*R^2)) * M*g*sinθ. For solid cylinder, fraction = (1/2)/(3/2) = 1/3!',
+        stepSolution: 'Torque about CM: f*R = I*α = (1/2)*M*R^2*(a/R) ⇒ f = (1/2)*M*a. Combined with M*g*sinθ - f = M*a gives f = (1/3)*M*g*sinθ.',
+        difficulty: 'Moderate',
+        examYear: 'JEE Main 2024'
+      },
+      {
+        id: `q-phy-${Date.now()}-2`,
+        qNum: 2,
+        statement: 'A uniform solid sphere of mass M and radius R rolls without slipping down an incline. The linear acceleration of its center of mass is:',
+        topic: chapter || 'Rigid Body Dynamics',
+        options: [
+          { key: 'A', text: '(5/7) g sin θ' },
+          { key: 'B', text: '(2/5) g sin θ' },
+          { key: 'C', text: '(5/9) g sin θ' },
+          { key: 'D', text: '(3/5) g sin θ' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Rolling Rule: a = g*sinθ / (1 + k²/R²). For sphere k²/R² = 2/5 ⇒ a = 5/7 g*sinθ.',
+        stepSolution: 'Using energy or torque equations, linear acceleration a = g*sinθ / (1 + I/(M*R^2)) = g*sinθ / (1 + 2/5) = (5/7)g*sinθ.',
+        difficulty: 'Easy',
+        examYear: 'JEE Main 2023'
+      }
+    ];
+  }
+
+  return [
+    {
+      id: `q-chem-${Date.now()}-1`,
+      qNum: 1,
+      statement: 'In SN2 nucleophilic substitution reaction at an asymmetric carbon, the absolute stereochemical outcome and transition state geometry involve:',
+      topic: chapter || 'Reaction Mechanism',
+      options: [
+        { key: 'A', text: '100% inversion of configuration with trigonal bipyramidal transition state' },
+        { key: 'B', text: 'Complete retention of configuration via frontside attack' },
+        { key: 'C', text: 'Racemization via planar carbocation intermediate' },
+        { key: 'D', text: '50% retention and 50% elimination product' }
+      ],
+      correctKey: 'A',
+      dkSirShortcut: 'DK Sir Rule: SN2 = Backside Attack = Walden Inversion! Always count 5-coordinate T.S.',
+      stepSolution: 'Backside attack by nucleophile causes 100% inversion through a pentacoordinate trigonal bipyramidal transition state.',
+      difficulty: 'Moderate',
+      examYear: 'JEE Main 2024'
+    },
+    {
+      id: `q-chem-${Date.now()}-2`,
+      qNum: 2,
+      statement: 'According to Molecular Orbital Theory, which of the following diatomic species possesses a bond order of 2.5 and is paramagnetic?',
+      topic: chapter || 'Chemical Bonding',
+      options: [
+        { key: 'A', text: 'N₂⁺' },
+        { key: 'B', text: 'O₂' },
+        { key: 'C', text: 'O₂²⁻' },
+        { key: 'D', text: 'C₂' }
+      ],
+      correctKey: 'A',
+      dkSirShortcut: 'DK Sir MOT Trick: 13 electrons (N2+) = 2.5 bond order with 1 unpaired electron = Paramagnetic!',
+      stepSolution: 'N2+ has 13 electrons: (σ1s)2 (σ*1s)2 (σ2s)2 (σ*2s)2 (π2px)2 (π2py)2 (σ2pz)1. Bond order = (9 - 4)/2 = 2.5, 1 unpaired electron ⇒ paramagnetic.',
+      difficulty: 'Moderate',
+      examYear: 'JEE Main 2024'
+    }
+  ];
+};
+
+const SAMPLE_QUESTIONS: ProblemQuestionItem[] = getSampleQuestionsForSubject('Mathematics');
 
 const INITIAL_PROBLEMS: DppPyqItem[] = [
   {
@@ -780,7 +860,7 @@ export const DppPyqManagementWorkspace: React.FC = () => {
       solutionNote: newSolutionNote.trim() || `${newQuestionsCount} questions with step solutions`,
       status: newStatus,
       attemptsCount: 0,
-      questions: SAMPLE_QUESTIONS.slice(0, Number(newQuestionsCount) || 4)
+      questions: getSampleQuestionsForSubject(newSubject, newChapter).slice(0, Number(newQuestionsCount) || 4)
     };
 
     try {
