@@ -1224,17 +1224,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       await apiClient.delete(`/test-series/${target.id}`);
       cmsService.deleteTestSeries(target.id).catch(() => {});
 
-      // Real-time admin notification
+      // Real-time admin notification (silent: true so only 1 single operation toast shows)
       notificationService.addNotification({
         title: 'Test Series Deleted',
         description: `"${target.title}" was permanently deleted by Admin.`,
         type: 'test_series',
         unread: true,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        silent: true
       });
 
-      // Platform broadcast events
-      window.dispatchEvent(new CustomEvent('dk_test_series_deleted', { detail: { id: target.id, title: target.title } }));
       showToast(`Deleted test series "${target.title}"`);
     } catch (err) {
       console.error('[Delete Test Series Error]:', err);
@@ -1245,9 +1244,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         description: `"${target.title}" was removed from the system.`,
         type: 'test_series',
         unread: true,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        silent: true
       });
-      window.dispatchEvent(new CustomEvent('dk_test_series_deleted', { detail: { id: target.id, title: target.title } }));
       showToast(`Deleted test series "${target.title}"`);
     } finally {
       setIsDeletingSingle(false);
@@ -1301,18 +1300,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         idsToDelete.map((id) => cmsService.deleteTestSeries(id))
       );
 
-      // Dispatch real-time admin notification
+      // Dispatch real-time admin notification (silent: true so only 1 single operation toast shows)
       notificationService.addNotification({
         title: 'Bulk Test Series Deleted',
         description: `${idsToDelete.length} test series were permanently deleted by Admin.`,
         type: 'test_series',
         unread: true,
-        timestamp: Date.now()
-      });
-
-      // Dispatch real-time events for each deleted test
-      idsToDelete.forEach((id) => {
-        window.dispatchEvent(new CustomEvent('dk_test_series_deleted', { detail: { id } }));
+        timestamp: Date.now(),
+        silent: true
       });
 
       showToast(`Successfully deleted ${idsToDelete.length} test series.`);

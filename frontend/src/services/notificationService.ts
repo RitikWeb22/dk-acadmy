@@ -15,6 +15,7 @@ export interface AdminNotificationItem {
   timestamp: number;
   unread: boolean;
   meta?: any;
+  silent?: boolean;
 }
 
 const STORAGE_KEY = 'dk_admin_notifications_v2';
@@ -71,6 +72,17 @@ export const notificationService = {
     }
 
     const list = this.getNotifications();
+
+    // Deduplicate rapid identical notifications within 4 seconds
+    const isRecentDuplicate = list.some(
+      (n) => n.title === item.title &&
+             n.description === item.description &&
+             Math.abs(Date.now() - (n.timestamp || 0)) < 4000
+    );
+    if (isRecentDuplicate) {
+      return list[0] || ({ ...item, id: '', time: '' } as AdminNotificationItem);
+    }
+
     const newItem: AdminNotificationItem = {
       ...item,
       id: `notif_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
@@ -80,21 +92,24 @@ export const notificationService = {
     const updated = [newItem, ...list.filter((n) => n.id !== newItem.id)].slice(0, 50);
     this.saveNotifications(updated);
 
-    try {
-      soundEffects.playNotificationChime();
-    } catch {}
+    // If silent is true, record in drawer only, do not popup toast or ring audio chime
+    if (!item.silent) {
+      try {
+        soundEffects.playNotificationChime();
+      } catch {}
 
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('dk_live_toast', {
-          detail: {
-            title: newItem.title,
-            message: newItem.description || newItem.title,
-            type: newItem.type === 'system' || newItem.type === 'test_series' ? 'info' : 'success',
-            route: newItem.meta?.route || '/admin/test-series'
-          }
-        })
-      );
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('dk_live_toast', {
+            detail: {
+              title: newItem.title,
+              message: newItem.description || newItem.title,
+              type: newItem.type === 'system' || newItem.type === 'test_series' ? 'info' : 'success',
+              route: newItem.meta?.route || '/admin/test-series'
+            }
+          })
+        );
+      }
     }
 
     return newItem;

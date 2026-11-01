@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { StudentProfile, NotificationPreferences, AppNotification } from '../types';
 import { INITIAL_NOTIFICATIONS } from '../data/notificationsData';
 import { apiClient } from '../services/apiClient';
@@ -267,11 +267,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [student?.id, student?.email]);
 
+  const recentStudentNotifTimestampsRef = useRef<Map<string, number>>(new Map());
+
   // Listen for real-time notifications across the entire platform
   useEffect(() => {
     const pushStudentNotification = (notif: AppNotification) => {
       // Avoid student popup interruption if currently navigating admin portal
       const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+      if (isAdminPath) {
+        return;
+      }
+
+      // Synchronously deduplicate within 5 seconds
+      const dedupKey = `${notif.title}_${notif.id || ''}`;
+      const now = Date.now();
+      const lastSeen = recentStudentNotifTimestampsRef.current.get(dedupKey) || 0;
+      if (now - lastSeen < 5000) {
+        return;
+      }
+      recentStudentNotifTimestampsRef.current.set(dedupKey, now);
 
       setNotifications((prev) => {
         // Prevent duplicate spam within 5 seconds for the exact same resource ID or title
