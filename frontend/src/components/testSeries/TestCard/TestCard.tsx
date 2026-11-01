@@ -49,7 +49,10 @@ export const TestCard: React.FC<TestCardProps> = ({
   let totalScore = 0;
   if (attempt && attempt.isSubmitted) {
     (test.questions || []).forEach((q) => {
-      const resp = attempt.responses[q.id];
+      if (!q) return;
+      const qId = q.id || (q as any)?._id;
+      if (!qId) return;
+      const resp = attempt.responses?.[qId];
       if (resp?.selectedOption) {
         if (resp.selectedOption === q.correctAnswer) {
           totalScore += markingCorrect;
@@ -62,7 +65,7 @@ export const TestCard: React.FC<TestCardProps> = ({
 
   // Answered questions count if in progress
   const answeredCount = attempt
-    ? Object.keys(attempt.responses).filter((id) => Boolean(attempt.responses[id]?.selectedOption)).length
+    ? Object.keys(attempt.responses || {}).filter((id) => Boolean(attempt.responses?.[id]?.selectedOption)).length
     : 0;
 
   // Normalized Exam Badge styling (Accessible WCAG contrast)

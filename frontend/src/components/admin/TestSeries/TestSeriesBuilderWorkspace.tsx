@@ -2868,25 +2868,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
 
                     <div className={styles.formField}>
-                      <label>Target Cohort *</label>
-                      <select
-                        value={wizardBatch}
-                        onChange={(e) => setWizardBatch(e.target.value)}
-                        className={styles.primarySelect}
-                      >
-                        <option value="Ultimate 2-Year Live Classroom (2028)">
-                          Ultimate 2-Year Live Classroom (2028)
-                        </option>
-                        <option value="Class 12th & Dropper Math Sprint">
-                          Class 12th & Dropper Math Sprint
-                        </option>
-                        <option value="All Enrolled Aspirants">
-                          All Enrolled Aspirants
-                        </option>
-                      </select>
-                    </div>
-
-                    <div className={styles.formField}>
                       <label>Total Duration (Minutes) *</label>
                       <div className={styles.inputWithUnit}>
                         <input
@@ -4741,35 +4722,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                </div>
-              </div>
-
-              {/* Field 4: Target Batches Multi-Select Cohorts */}
-              <div className={styles.formGroup}>
-                <label className={styles.fieldLabel}>Target Academy Cohorts</label>
-                <div className={styles.batchCohortSelector}>
-                  {ACTIVE_ACADEMY_BATCHES.map((batch) => {
-                    const isSelected = newTargetBatches.includes(batch);
-                    return (
-                      <button
-                        key={batch}
-                        type="button"
-                        className={`${styles.cohortChip} ${isSelected ? styles.cohortSelected : ''}`}
-                        onClick={() => {
-                          if (isSelected) {
-                            if (newTargetBatches.length > 1) {
-                              setNewTargetBatches(newTargetBatches.filter((b) => b !== batch));
-                            }
-                          } else {
-                            setNewTargetBatches([...newTargetBatches, batch]);
-                          }
-                        }}
-                      >
-                        {isSelected ? '✓ ' : '+ '}
-                        {batch}
-                      </button>
-                    );
-                  })}
                 </div>
               </div>
 

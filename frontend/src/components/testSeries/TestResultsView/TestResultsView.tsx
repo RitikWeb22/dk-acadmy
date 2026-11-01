@@ -76,7 +76,8 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
     sStat.total += 1;
     sStat.maxScore += markingCorrect;
 
-    const resp = attempt.responses[q.id];
+    const qId = q?.id || (q as any)?._id;
+    const resp = qId ? attempt?.responses?.[qId] : undefined;
     if (!resp || !resp.selectedOption) {
       unattemptedCount += 1;
       sStat.unattempted += 1;

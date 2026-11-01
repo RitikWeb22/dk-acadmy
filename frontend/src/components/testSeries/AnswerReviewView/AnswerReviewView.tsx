@@ -31,9 +31,26 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
   const [filter, setFilter] = useState<ReviewFilterType>('All');
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Safe empty questions fallback
+  if (!test?.questions || test.questions.length === 0) {
+    return (
+      <div className={styles.reviewContainer}>
+        <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '500px', margin: '40px auto', background: '#FFFFFF', borderRadius: '12px' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>No Questions to Review</h3>
+          <p style={{ color: '#64748B', marginBottom: '20px' }}>This test series currently does not contain authored questions.</p>
+          <button type="button" onClick={onBackToCatalog} style={{ padding: '8px 20px', background: '#2563EB', color: '#FFF', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
+            Back to Catalog
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Filter questions based on student's performance
-  const filteredQuestions = test.questions.filter((q) => {
-    const resp = attempt.responses[q.id];
+  const filteredQuestions = (test.questions || []).filter((q) => {
+    if (!q) return false;
+    const qId = q.id || (q as any)?._id;
+    const resp = attempt?.responses?.[qId];
     if (filter === 'Incorrect') {
       return resp?.selectedOption && resp.selectedOption !== q.correctAnswer;
     }
@@ -47,7 +64,8 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
   });
 
   const activeQuestion = filteredQuestions[currentIndex] || test.questions[0];
-  const resp = attempt.responses[activeQuestion?.id];
+  const activeQId = activeQuestion?.id || (activeQuestion as any)?._id || 'q-0';
+  const resp = attempt?.responses?.[activeQId];
   const isSelected = Boolean(resp?.selectedOption);
   const isCorrect = resp?.selectedOption === activeQuestion?.correctAnswer;
 

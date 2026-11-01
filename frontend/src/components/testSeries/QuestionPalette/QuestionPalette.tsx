@@ -29,8 +29,9 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
 
       {/* Palette Buttons Grid */}
       <div className={styles.grid} role="navigation" aria-label="Mock Test Question Palette">
-        {questions.map((q, index) => {
-          const resp = responses[q.id];
+        {(questions || []).map((q, index) => {
+          const qId = q?.id || (q as any)?._id || `q-${index}`;
+          const resp = responses[qId];
           const isCurrent = index === currentIndex;
           const isVisited = resp?.isVisited ?? false;
           const isAnswered = Boolean(resp?.selectedOption);
