@@ -4677,3 +4677,176 @@ select.primaryTextInput {
   }
 }
 
+// ─── MODERN INTUITIVE EXAM SCHEDULER & DATE-TIME CONTROLS ───
+.modernSchedulerCard {
+  background: #F8FAFC;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pickerSubSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pickerSectionLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1E293B;
+
+  .pickerHint {
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748B;
+  }
+}
+
+.datePickerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.modernDateInput {
+  padding: 8px 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: #0F172A;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+}
+
+.quickPillsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quickPillBtn {
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #94A3B8;
+    background: #F1F5F9;
+  }
+
+  &.active {
+    background: #EFF6FF;
+    border-color: #2563EB;
+    color: #2563EB;
+    font-weight: 700;
+  }
+}
+
+.timePickerFlexRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modernTimeSelect {
+  padding: 7px 10px;
+  font-size: 14px;
+  font-weight: 800;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: #0F172A;
+  cursor: pointer;
+  outline: none;
+  min-width: 65px;
+  text-align: center;
+
+  &:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+}
+
+.timeColon {
+  font-size: 16px;
+  font-weight: 900;
+  color: #475569;
+}
+
+.ampmToggleWrap {
+  display: inline-flex;
+  border-radius: 8px;
+  background: #E2E8F0;
+  padding: 2px;
+  gap: 2px;
+}
+
+.ampmBtn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &.active {
+    background: #2563EB;
+    color: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+  }
+}
+
+.liveWindowPreviewBox {
+  background: #F0FDF4;
+  border: 1.5px solid #86EFAC;
+  border-radius: 10px;
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #166534;
+  font-size: 12.5px;
+  font-weight: 600;
+
+  .previewIcon {
+    color: #16A34A;
+    flex-shrink: 0;
+  }
+
+  .previewText {
+    strong {
+      color: #14532D;
+      font-weight: 800;
+    }
+  }
+}
+
+

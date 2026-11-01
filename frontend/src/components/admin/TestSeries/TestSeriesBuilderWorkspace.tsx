@@ -874,7 +874,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     // Optimistic UI update
     const optimisticItem: TestSeriesTableItem = {
       id: newId,
-      indexNo: testSeriesList.length + 1,
+      indexNo: 1,
       badgeCode: payload.badgeCode,
       title: payload.title,
       slug: `/${payload.slug}`,
@@ -891,7 +891,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       schedule: payload.schedule
     };
 
-    setTestSeriesList([optimisticItem, ...testSeriesList]);
+    setTestSeriesList([optimisticItem, ...testSeriesList.map((t, i) => ({ ...t, indexNo: i + 2 }))]);
+    setCurrentPage(1);
     showToast('✓ Test Series Created & Saved to Database! Opening Question Builder...');
     setIsCreateModalOpen(false);
 
@@ -1335,6 +1336,63 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     });
   };
 
+  // Modern Date/Time Picker Helpers
+  const parseDateTimeLocal = (val: string) => {
+    if (!val) {
+      const now = new Date();
+      return {
+        dateStr: now.toISOString().slice(0, 10),
+        hour12: '02',
+        minute: '30',
+        ampm: 'PM' as 'AM' | 'PM'
+      };
+    }
+    const [d, t] = val.split('T');
+    const [h, m] = (t || '14:30').split(':');
+    let hNum = parseInt(h, 10) || 0;
+    const ampm: 'AM' | 'PM' = hNum >= 12 ? 'PM' : 'AM';
+    hNum = hNum % 12;
+    if (hNum === 0) hNum = 12;
+    const hour12 = String(hNum).padStart(2, '0');
+    return {
+      dateStr: d || new Date().toISOString().slice(0, 10),
+      hour12,
+      minute: m || '30',
+      ampm
+    };
+  };
+
+  const buildDateTimeLocal = (dateStr: string, hour12: string, minute: string, ampm: 'AM' | 'PM') => {
+    let h = parseInt(hour12, 10) || 12;
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    const hStr = String(h).padStart(2, '0');
+    const mStr = String(minute).padStart(2, '0');
+    return `${dateStr}T${hStr}:${mStr}`;
+  };
+
+  const setWindowDurationPreset = (durationHours: number) => {
+    try {
+      const start = new Date(startWindowDate);
+      const end = new Date(start.getTime() + durationHours * 3600000);
+      setEndWindowDate(end.toISOString().slice(0, 16));
+      showToast(`Set window duration: ${durationHours < 24 ? `${durationHours} Hours` : `${durationHours / 24} Days`}`);
+    } catch {
+      // ignore
+    }
+  };
+
+  const setQuickWindowDurationPreset = (durationHours: number) => {
+    try {
+      const start = new Date(newScheduledStartTime);
+      const end = new Date(start.getTime() + durationHours * 3600000);
+      setNewScheduledEndTime(end.toISOString().slice(0, 16));
+      showToast(`Set window duration: ${durationHours < 24 ? `${durationHours} Hours` : `${durationHours / 24} Days`}`);
+    } catch {
+      // ignore
+    }
+  };
+
   // Step navigation helpers
   const scrollToTop = () => {
     const el = document.getElementById('main-content');
@@ -1583,6 +1641,33 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         showToast('✓ CBT Examination scheduled, proctoring armed, and published!');
       }
 
+      // Optimistically update testSeriesList so it appears immediately on admin table
+      setTestSeriesList((prev) => {
+        const optimisticRow: TestSeriesTableItem = {
+          id: payload.id,
+          indexNo: 1,
+          badgeCode: payload.badgeCode,
+          title: payload.title,
+          subtitle: payload.subtitle,
+          slug: `/${payload.slug}`,
+          examType: payload.examType,
+          format: payload.format,
+          difficulty: payload.difficulty,
+          totalTests: payload.totalQuestions || 4,
+          testsBreakdown: `${payload.totalQuestions} problems • ${payload.totalMarks} marks`,
+          status: payload.status,
+          createdAtFormatted: 'Just now',
+          attemptsCount: 0,
+          durationMinutes: payload.durationMinutes,
+          totalMarks: payload.totalMarks,
+          schedule: payload.schedule,
+          subjects: payload.subjects
+        };
+        const filtered = prev.filter((t) => t.id !== payload.id);
+        return [optimisticRow, ...filtered.map((t, i) => ({ ...t, indexNo: i + 2 }))];
+      });
+
+      setCurrentPage(1);
       setIsPublishModalOpen(true);
       await fetchLiveTestSeries();
     } catch (err: any) {
@@ -3153,102 +3238,249 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </span>
                       </div>
 
-                      {scheduleMode === 'SCHEDULED_WINDOW' && (
-                        <>
-                          <div className={styles.formField}>
-                            <label>Live Exam Opens (Start Window) *</label>
-                            <input
-                              type="datetime-local"
-                              value={startWindowDate}
-                              onChange={(e) => setStartWindowDate(e.target.value)}
-                              className={styles.primaryInput}
-                            />
-                          </div>
+                      {scheduleMode === 'SCHEDULED_WINDOW' && (() => {
+                        const startParsed = parseDateTimeLocal(startWindowDate);
 
-                          <div className={styles.formField}>
-                            <label>Live Exam Closes (End Window) *</label>
-                            <input
-                              type="datetime-local"
-                              value={endWindowDate}
-                              onChange={(e) => setEndWindowDate(e.target.value)}
-                              className={styles.primaryInput}
-                            />
-                          </div>
+                        const updateStartDate = (newDateStr: string) => {
+                          const updated = buildDateTimeLocal(newDateStr, startParsed.hour12, startParsed.minute, startParsed.ampm);
+                          setStartWindowDate(updated);
+                          try {
+                            const s = new Date(updated);
+                            const e = new Date(endWindowDate);
+                            if (e <= s) {
+                              setEndWindowDate(new Date(s.getTime() + 7 * 86400000).toISOString().slice(0, 16));
+                            }
+                          } catch {}
+                        };
 
-                          <div style={{ marginTop: '6px' }}>
-                            <label style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748B' }}>Quick Timing Presets:</label>
-                            <div className={styles.presetChipsRow}>
-                              <button
-                                type="button"
-                                className={styles.presetChip}
-                                onClick={() => {
-                                  const now = new Date();
-                                  setStartWindowDate(new Date(now.getTime() + 10 * 60000).toISOString().slice(0, 16));
-                                  setEndWindowDate(new Date(now.getTime() + 190 * 60000).toISOString().slice(0, 16));
-                                }}
+                        const updateStartTime = (h: string, m: string, ampm: 'AM' | 'PM') => {
+                          const updated = buildDateTimeLocal(startParsed.dateStr, h, m, ampm);
+                          setStartWindowDate(updated);
+                        };
+
+                        return (
+                          <div className={styles.modernSchedulerCard}>
+                            {/* 1. Exam Date Selection */}
+                            <div className={styles.pickerSubSection}>
+                              <div className={styles.pickerSectionLabel}>
+                                <span>📅 1. Examination Opening Date *</span>
+                                <span className={styles.pickerHint}>
+                                  {new Date(startParsed.dateStr + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                              </div>
+                              <div className={styles.datePickerRow}>
+                                <input
+                                  type="date"
+                                  value={startParsed.dateStr}
+                                  onChange={(e) => updateStartDate(e.target.value)}
+                                  className={styles.modernDateInput}
+                                />
+                                <div className={styles.quickPillsRow}>
+                                  <button
+                                    type="button"
+                                    className={styles.quickPillBtn}
+                                    onClick={() => updateStartDate(new Date().toISOString().slice(0, 10))}
+                                  >
+                                    Today
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.quickPillBtn}
+                                    onClick={() => {
+                                      const d = new Date();
+                                      d.setDate(d.getDate() + 1);
+                                      updateStartDate(d.toISOString().slice(0, 10));
+                                    }}
+                                  >
+                                    Tomorrow
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.quickPillBtn}
+                                    onClick={() => {
+                                      const d = new Date();
+                                      d.setDate(d.getDate() + 2);
+                                      updateStartDate(d.toISOString().slice(0, 10));
+                                    }}
+                                  >
+                                    In 2 Days
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.quickPillBtn}
+                                    onClick={() => {
+                                      const d = new Date();
+                                      const day = d.getDay();
+                                      const diff = (7 - day) % 7 || 7;
+                                      d.setDate(d.getDate() + diff);
+                                      updateStartDate(d.toISOString().slice(0, 10));
+                                    }}
+                                  >
+                                    This Sunday
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 2. Exam Start Time Dropdowns & Shift Presets */}
+                            <div className={styles.pickerSubSection}>
+                              <div className={styles.pickerSectionLabel}>
+                                <span>⏰ 2. Live Opening Time (IST) *</span>
+                                <span className={styles.pickerHint}>Select shift or pick hour/minute</span>
+                              </div>
+                              <div className={styles.timePickerFlexRow}>
+                                {/* Hour Dropdown */}
+                                <select
+                                  value={startParsed.hour12}
+                                  onChange={(e) => updateStartTime(e.target.value, startParsed.minute, startParsed.ampm)}
+                                  className={styles.modernTimeSelect}
+                                  title="Hour"
+                                >
+                                  {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((h) => (
+                                    <option key={h} value={h}>{h}</option>
+                                  ))}
+                                </select>
+
+                                <span className={styles.timeColon}>:</span>
+
+                                {/* Minute Dropdown */}
+                                <select
+                                  value={startParsed.minute}
+                                  onChange={(e) => updateStartTime(startParsed.hour12, e.target.value, startParsed.ampm)}
+                                  className={styles.modernTimeSelect}
+                                  title="Minute"
+                                >
+                                  {['00', '10', '15', '20', '30', '40', '45', '50'].map((m) => (
+                                    <option key={m} value={m}>{m}</option>
+                                  ))}
+                                </select>
+
+                                {/* AM/PM Toggle */}
+                                <div className={styles.ampmToggleWrap}>
+                                  <button
+                                    type="button"
+                                    className={`${styles.ampmBtn} ${startParsed.ampm === 'AM' ? styles.active : ''}`}
+                                    onClick={() => updateStartTime(startParsed.hour12, startParsed.minute, 'AM')}
+                                  >
+                                    AM
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`${styles.ampmBtn} ${startParsed.ampm === 'PM' ? styles.active : ''}`}
+                                    onClick={() => updateStartTime(startParsed.hour12, startParsed.minute, 'PM')}
+                                  >
+                                    PM
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* NTA Shift Quick Pills */}
+                              <div className={styles.quickPillsRow} style={{ marginTop: '4px' }}>
+                                <button
+                                  type="button"
+                                  className={`${styles.quickPillBtn} ${startParsed.hour12 === '09' && startParsed.minute === '00' && startParsed.ampm === 'AM' ? styles.active : ''}`}
+                                  onClick={() => updateStartTime('09', '00', 'AM')}
+                                >
+                                  🌅 Shift 1 (09:00 AM)
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`${styles.quickPillBtn} ${startParsed.hour12 === '02' && startParsed.minute === '30' && startParsed.ampm === 'PM' ? styles.active : ''}`}
+                                  onClick={() => updateStartTime('02', '30', 'PM')}
+                                >
+                                  ☀️ Shift 2 (02:30 PM)
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`${styles.quickPillBtn} ${startParsed.hour12 === '03' && startParsed.minute === '00' && startParsed.ampm === 'PM' ? styles.active : ''}`}
+                                  onClick={() => updateStartTime('03', '00', 'PM')}
+                                >
+                                  🌆 Shift 2 Std (03:00 PM)
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`${styles.quickPillBtn} ${startParsed.hour12 === '06' && startParsed.minute === '00' && startParsed.ampm === 'PM' ? styles.active : ''}`}
+                                  onClick={() => updateStartTime('06', '00', 'PM')}
+                                >
+                                  🌙 Evening (06:00 PM)
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 3. Window Duration (End Window Automatic Setup) */}
+                            <div className={styles.pickerSubSection}>
+                              <div className={styles.pickerSectionLabel}>
+                                <span>⌛ 3. Examination Window Duration *</span>
+                                <span className={styles.pickerHint}>Automatically calculates closing date & time</span>
+                              </div>
+                              <div className={styles.quickPillsRow}>
+                                <button
+                                  type="button"
+                                  className={styles.quickPillBtn}
+                                  onClick={() => setWindowDurationPreset(3)}
+                                >
+                                  ⏱️ 3 Hours (Single Slot)
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.quickPillBtn}
+                                  onClick={() => setWindowDurationPreset(24)}
+                                >
+                                  ⏱️ 24 Hours (1 Day)
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.quickPillBtn}
+                                  onClick={() => setWindowDurationPreset(72)}
+                                >
+                                  ⏱️ 3 Days
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`${styles.quickPillBtn} ${styles.active}`}
+                                  onClick={() => setWindowDurationPreset(168)}
+                                >
+                                  ⭐ 7 Days (Recommended)
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.quickPillBtn}
+                                  onClick={() => setWindowDurationPreset(336)}
+                                >
+                                  ⏱️ 14 Days
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 4. Live Visual Confirmation Badge */}
+                            <div className={styles.liveWindowPreviewBox}>
+                              <CheckCircle2 size={16} className={styles.previewIcon} />
+                              <div className={styles.previewText}>
+                                <strong>Live Window: </strong>
+                                <span>
+                                  Opens {new Date(startWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                                  {' ➔ '}
+                                  Closes {new Date(endWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className={styles.formField} style={{ marginTop: '12px' }}>
+                              <label>Late Candidate Entry Buffer</label>
+                              <select
+                                value={bufferEntryMinutes}
+                                onChange={(e) => setBufferEntryMinutes(Number(e.target.value))}
+                                className={styles.primarySelect}
                               >
-                                Live in 10 Mins (+3 Hrs)
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.presetChip}
-                                onClick={() => {
-                                  const d = new Date();
-                                  d.setDate(d.getDate() + 1);
-                                  d.setHours(9, 0, 0, 0);
-                                  const dEnd = new Date(d);
-                                  dEnd.setHours(12, 0, 0, 0);
-                                  setStartWindowDate(d.toISOString().slice(0, 16));
-                                  setEndWindowDate(dEnd.toISOString().slice(0, 16));
-                                }}
-                              >
-                                Tomorrow 09:00 AM (Shift 1)
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.presetChip}
-                                onClick={() => {
-                                  const d = new Date();
-                                  d.setDate(d.getDate() + 1);
-                                  d.setHours(15, 0, 0, 0);
-                                  const dEnd = new Date(d);
-                                  dEnd.setHours(18, 0, 0, 0);
-                                  setStartWindowDate(d.toISOString().slice(0, 16));
-                                  setEndWindowDate(dEnd.toISOString().slice(0, 16));
-                                }}
-                              >
-                                Tomorrow 03:00 PM (Shift 2)
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.presetChip}
-                                onClick={() => {
-                                  const now = new Date();
-                                  const dEnd = new Date(now.getTime() + 7 * 86400000);
-                                  setStartWindowDate(now.toISOString().slice(0, 16));
-                                  setEndWindowDate(dEnd.toISOString().slice(0, 16));
-                                }}
-                              >
-                                7-Day Window
-                              </button>
+                                <option value={15}>15 Minutes after Start (Strict NTA Gate Close)</option>
+                                <option value={30}>30 Minutes after Start (Standard Default)</option>
+                                <option value={45}>45 Minutes after Start (Lenient)</option>
+                                <option value={0}>Zero Buffer (Lock exam entry at exact start second)</option>
+                              </select>
                             </div>
                           </div>
-
-                          <div className={styles.formField} style={{ marginTop: '12px' }}>
-                            <label>Late Candidate Entry Buffer</label>
-                            <select
-                              value={bufferEntryMinutes}
-                              onChange={(e) => setBufferEntryMinutes(Number(e.target.value))}
-                              className={styles.primarySelect}
-                            >
-                              <option value={15}>15 Minutes after Start (Strict NTA Gate Close)</option>
-                              <option value={30}>30 Minutes after Start (Standard Default)</option>
-                              <option value={45}>45 Minutes after Start (Lenient)</option>
-                              <option value={0}>Zero Buffer (Lock exam entry at exact start second)</option>
-                            </select>
-                          </div>
-                        </>
-                      )}
+                        );
+                      })()}
 
                       {scheduleMode === 'TIME_SLOTTED' && (
                         <>
@@ -4248,43 +4480,167 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               </div>
 
               {/* Conditional Scheduling Date & Time Picker */}
-              {newInitialStatus === 'Scheduled' && (
-                <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1e40af', fontWeight: 800, fontSize: '0.85rem', marginBottom: '10px' }}>
-                    <Calendar size={16} />
-                    <span>Live CBT Examination Window Schedule</span>
-                  </div>
+              {newInitialStatus === 'Scheduled' && (() => {
+                const quickStartParsed = parseDateTimeLocal(newScheduledStartTime);
 
-                  <div className={styles.twoColumnGrid}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.fieldLabel}>Live Opening Date &amp; Time *</label>
-                      <input
-                        type="datetime-local"
-                        required
-                        value={newScheduledStartTime}
-                        onChange={(e) => setNewScheduledStartTime(e.target.value)}
-                        className={styles.primaryTextInput}
-                      />
+                const updateQuickStartDate = (dStr: string) => {
+                  const updated = buildDateTimeLocal(dStr, quickStartParsed.hour12, quickStartParsed.minute, quickStartParsed.ampm);
+                  setNewScheduledStartTime(updated);
+                  try {
+                    const s = new Date(updated);
+                    const e = new Date(newScheduledEndTime);
+                    if (e <= s) {
+                      setNewScheduledEndTime(new Date(s.getTime() + 7 * 86400000).toISOString().slice(0, 16));
+                    }
+                  } catch {}
+                };
+
+                const updateQuickStartTime = (h: string, m: string, ampm: 'AM' | 'PM') => {
+                  const updated = buildDateTimeLocal(quickStartParsed.dateStr, h, m, ampm);
+                  setNewScheduledStartTime(updated);
+                };
+
+                return (
+                  <div className={styles.modernSchedulerCard} style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1e40af', fontWeight: 800, fontSize: '0.85rem' }}>
+                      <Calendar size={16} />
+                      <span>Live CBT Examination Window Schedule</span>
                     </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.fieldLabel}>Closing Date &amp; Time *</label>
-                      <input
-                        type="datetime-local"
-                        required
-                        value={newScheduledEndTime}
-                        onChange={(e) => setNewScheduledEndTime(e.target.value)}
-                        className={styles.primaryTextInput}
-                      />
+
+                    {/* Opening Date */}
+                    <div className={styles.pickerSubSection}>
+                      <div className={styles.pickerSectionLabel}>
+                        <span>Opening Date *</span>
+                        <span className={styles.pickerHint}>
+                          {new Date(quickStartParsed.dateStr + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' })}
+                        </span>
+                      </div>
+                      <div className={styles.datePickerRow}>
+                        <input
+                          type="date"
+                          value={quickStartParsed.dateStr}
+                          onChange={(e) => updateQuickStartDate(e.target.value)}
+                          className={styles.modernDateInput}
+                        />
+                        <div className={styles.quickPillsRow}>
+                          <button
+                            type="button"
+                            className={styles.quickPillBtn}
+                            onClick={() => updateQuickStartDate(new Date().toISOString().slice(0, 10))}
+                          >
+                            Today
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.quickPillBtn}
+                            onClick={() => {
+                              const d = new Date();
+                              d.setDate(d.getDate() + 1);
+                              updateQuickStartDate(d.toISOString().slice(0, 10));
+                            }}
+                          >
+                            Tomorrow
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Opening Time */}
+                    <div className={styles.pickerSubSection}>
+                      <div className={styles.pickerSectionLabel}>
+                        <span>Opening Time (IST) *</span>
+                      </div>
+                      <div className={styles.timePickerFlexRow}>
+                        <select
+                          value={quickStartParsed.hour12}
+                          onChange={(e) => updateQuickStartTime(e.target.value, quickStartParsed.minute, quickStartParsed.ampm)}
+                          className={styles.modernTimeSelect}
+                        >
+                          {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((h) => (
+                            <option key={h} value={h}>{h}</option>
+                          ))}
+                        </select>
+                        <span className={styles.timeColon}>:</span>
+                        <select
+                          value={quickStartParsed.minute}
+                          onChange={(e) => updateQuickStartTime(quickStartParsed.hour12, e.target.value, quickStartParsed.ampm)}
+                          className={styles.modernTimeSelect}
+                        >
+                          {['00', '10', '15', '20', '30', '40', '45', '50'].map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <div className={styles.ampmToggleWrap}>
+                          <button
+                            type="button"
+                            className={`${styles.ampmBtn} ${quickStartParsed.ampm === 'AM' ? styles.active : ''}`}
+                            onClick={() => updateQuickStartTime(quickStartParsed.hour12, quickStartParsed.minute, 'AM')}
+                          >
+                            AM
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.ampmBtn} ${quickStartParsed.ampm === 'PM' ? styles.active : ''}`}
+                            onClick={() => updateQuickStartTime(quickStartParsed.hour12, quickStartParsed.minute, 'PM')}
+                          >
+                            PM
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className={styles.quickPillsRow} style={{ marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          className={`${styles.quickPillBtn} ${quickStartParsed.hour12 === '09' && quickStartParsed.minute === '00' && quickStartParsed.ampm === 'AM' ? styles.active : ''}`}
+                          onClick={() => updateQuickStartTime('09', '00', 'AM')}
+                        >
+                          🌅 Shift 1 (09:00 AM)
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.quickPillBtn} ${quickStartParsed.hour12 === '02' && quickStartParsed.minute === '30' && quickStartParsed.ampm === 'PM' ? styles.active : ''}`}
+                          onClick={() => updateQuickStartTime('02', '30', 'PM')}
+                        >
+                          ☀️ Shift 2 (02:30 PM)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Window Duration Presets */}
+                    <div className={styles.pickerSubSection}>
+                      <div className={styles.pickerSectionLabel}>
+                        <span>Duration Window</span>
+                      </div>
+                      <div className={styles.quickPillsRow}>
+                        <button
+                          type="button"
+                          className={styles.quickPillBtn}
+                          onClick={() => setQuickWindowDurationPreset(24)}
+                        >
+                          24 Hrs
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.quickPillBtn} ${styles.active}`}
+                          onClick={() => setQuickWindowDurationPreset(168)}
+                        >
+                          7 Days Window
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirmation */}
+                    <div className={styles.liveWindowPreviewBox}>
+                      <CheckCircle2 size={15} className={styles.previewIcon} />
+                      <div className={styles.previewText} style={{ fontSize: '11.5px' }}>
+                        Opens {new Date(newScheduledStartTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                        {' ➔ '}
+                        Closes {new Date(newScheduledEndTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </div>
                     </div>
                   </div>
-
-                  {newScheduledStartTime && (
-                    <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#059669', fontWeight: 700 }}>
-                      ✓ Live test will unlock on: {new Date(newScheduledStartTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-                    </div>
-                  )}
-                </div>
-              )}
+                );
+              })()}
 
               {/* Modal Actions */}
               <div className={styles.createModalFooter}>
@@ -4620,7 +4976,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
       {/* ─── SUCCESS PUBLISH MODAL ─── */}
       {isPublishModalOpen && (
-        <div className={styles.modalBackdropOverlay} onClick={() => setIsPublishModalOpen(false)}>
+        <div className={styles.modalBackdropOverlay} onClick={() => { setIsPublishModalOpen(false); setViewMode('TABLE'); }}>
           <div className={styles.successModalCard} onClick={(e) => e.stopPropagation()}>
             <div className={styles.successIconBubble}>
               <CheckCircle size={36} />

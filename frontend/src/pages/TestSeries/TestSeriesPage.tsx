@@ -101,14 +101,21 @@ export const TestSeriesPage: React.FC = () => {
 
   useEffect(() => {
     // Sync latest from MongoDB
-    cmsService.fetchTestSeriesFromAPI().then((items) => {
-      if (items && items.length > 0) {
-        setTestSeriesList(items);
+    const syncTestSeries = async () => {
+      try {
+        const items = await cmsService.fetchTestSeriesFromAPI();
+        if (Array.isArray(items) && items.length > 0) {
+          setTestSeriesList(items);
+        }
+      } catch (err) {
+        console.warn('[TestSeriesPage] sync error:', err);
       }
-    }).catch(() => {});
+    };
+
+    syncTestSeries();
 
     const handleUpdate = () => {
-      setTestSeriesList(cmsService.getTestSeries());
+      syncTestSeries();
     };
 
     window.addEventListener(CMS_EVENT_KEY, handleUpdate);
@@ -234,7 +241,7 @@ export const TestSeriesPage: React.FC = () => {
 
       return true;
     });
-  }, [selectedExam, selectedFormat, selectedSubject, selectedDifficulty, selectedStatus, searchQuery, attempts]);
+  }, [selectedExam, selectedFormat, selectedSubject, selectedDifficulty, selectedStatus, searchQuery, attempts, testSeriesList]);
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
