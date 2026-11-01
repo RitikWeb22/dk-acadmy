@@ -134,6 +134,16 @@ export interface TestSeriesTableItem {
   attemptsCount: number;
   durationMinutes: number;
   totalMarks: number;
+  questions?: any[];
+  markingScheme?: {
+    correct: number;
+    incorrect: number;
+    unattempted: number;
+  };
+  instructions?: string[];
+  batch?: string;
+  targetBatches?: string[];
+  accessLevel?: 'BATCH_INCLUDED' | 'FREE_LEAD_MAGNET';
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -295,7 +305,8 @@ const PART_TEST_TABLE_ITEMS: TestSeriesTableItem[] = PART_TESTS_DATA.map((pt, id
   createdAtFormatted: 'Recent',
   attemptsCount: pt.attemptsCount || 0,
   durationMinutes: pt.durationMinutes,
-  totalMarks: pt.totalMarks
+  totalMarks: pt.totalMarks,
+  questions: pt.questions || []
 }));
 
 const INITIAL_TABLE_ITEMS: TestSeriesTableItem[] = [
@@ -424,6 +435,69 @@ const INITIAL_SAMPLE_QUESTIONS: QuestionItem[] = [
     videoSolutionUrl: 'https://dkacademy.in/lms/lectures/circles-radical-axis'
   }
 ];
+
+export const mapBackendQuestionsToBuilder = (rawQuestions: any[]): QuestionItem[] => {
+  if (!Array.isArray(rawQuestions) || rawQuestions.length === 0) {
+    return [];
+  }
+
+  return rawQuestions.map((q: any, idx: number) => {
+    // Subject normalize
+    let subject: 'Physics' | 'Chemistry' | 'Mathematics' = 'Mathematics';
+    if (q.subject === 'Physics' || q.subject === 'Chemistry') {
+      subject = q.subject;
+    }
+
+    // Options normalize
+    let options: { key: 'A' | 'B' | 'C' | 'D'; text: string; imageUrl?: string }[] = [];
+    if (Array.isArray(q.options) && q.options.length > 0) {
+      options = q.options.map((opt: any, optIdx: number) => {
+        const rawKey = opt.key || opt.id || String.fromCharCode(65 + optIdx);
+        const upperKey = String(rawKey).toUpperCase();
+        const validKey: 'A' | 'B' | 'C' | 'D' = ['A', 'B', 'C', 'D'].includes(upperKey)
+          ? (upperKey as 'A' | 'B' | 'C' | 'D')
+          : ((['A', 'B', 'C', 'D'][optIdx] || 'A') as 'A' | 'B' | 'C' | 'D');
+        return {
+          key: validKey,
+          text: opt.text ?? '',
+          imageUrl: opt.imageUrl
+        };
+      });
+    } else {
+      options = [
+        { key: 'A', text: '' },
+        { key: 'B', text: '' },
+        { key: 'C', text: '' },
+        { key: 'D', text: '' }
+      ];
+    }
+
+    // Correct key
+    const rawCorrect = String(q.correctAnswer || q.correctKey || q.correctOption || 'A').toUpperCase();
+    const correctKey: 'A' | 'B' | 'C' | 'D' = ['A', 'B', 'C', 'D'].includes(rawCorrect)
+      ? (rawCorrect as 'A' | 'B' | 'C' | 'D')
+      : 'A';
+
+    return {
+      id: String(q.id || `q-${idx + 1}-${Date.now()}`),
+      subject,
+      section: q.section === 'B' ? 'B' : 'A',
+      index: Number(q.questionNumber || q.index || idx + 1),
+      type: q.type || 'SINGLE_CORRECT',
+      difficulty: q.difficulty ? (String(q.difficulty).toUpperCase() as any) : 'MEDIUM',
+      topicTag: q.chapter || q.topicTag || q.formulaKey || 'General',
+      questionText: q.statement || q.questionText || '',
+      statementBlocks: q.statementBlocks,
+      imageUrl: q.imageUrl,
+      options,
+      correctKey,
+      numericalAnswer: q.numericalAnswer ? String(q.numericalAnswer) : undefined,
+      solutionDerivation: q.explanation || q.stepSolution || q.solutionDerivation || '',
+      shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
+      videoSolutionUrl: q.videoSolutionUrl
+    };
+  });
+};
 
 export const TestSeriesBuilderWorkspace: React.FC = () => {
   // View Mode: Table Console (image_2586bb.jpg) vs 4-Step Builder Wizard
@@ -597,8 +671,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           status: (item.status || 'Published') as any,
           createdAtFormatted: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
           attemptsCount: item.attemptsCount || 0,
-          durationMinutes: item.durationMinutes || 180,
-          totalMarks: item.totalMarks || 300
+          durationMinutes: Number(item.durationMinutes) > 0 ? Number(item.durationMinutes) : 180,
+          totalMarks: Number(item.totalMarks) > 0 ? Number(item.totalMarks) : 300,
+          questions: Array.isArray(item.questions) ? item.questions : [],
+          markingScheme: item.markingScheme,
+          instructions: item.instructions,
+          batch: item.batch,
+          targetBatches: item.targetBatches,
+          accessLevel: item.accessLevel
         }));
         setTestSeriesList(formatted);
       }
@@ -887,8 +967,33 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         computeRank: true
       } : undefined,
       attemptsCount: 0,
-      questions: INITIAL_SAMPLE_QUESTIONS
+      questions: [
+        {
+          id: `q-1-${Date.now()}`,
+          subject: isMathSpeed ? 'Mathematics' : 'Physics',
+          section: 'A',
+          index: 1,
+          type: 'SINGLE_CORRECT',
+          difficulty: newDifficulty === 'Challenging' ? 'HARD' : 'MEDIUM',
+          topicTag: 'General Problem',
+          questionText: '',
+          options: [
+            { key: 'A', text: '' },
+            { key: 'B', text: '' },
+            { key: 'C', text: '' },
+            { key: 'D', text: '' }
+          ],
+          correctKey: 'A',
+          solutionDerivation: '',
+          shortcutTrick: ''
+        }
+      ]
     };
+
+    const freshNewQuestions = mapBackendQuestionsToBuilder(payload.questions);
+    setQuestions(freshNewQuestions);
+    setSelectedQuestionId(freshNewQuestions[0].id);
+    setActiveSubjectTab(freshNewQuestions[0].subject);
 
     // Optimistic UI update
     const optimisticItem: TestSeriesTableItem = {
@@ -900,14 +1005,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       examType: examTypeVal,
       format: payload.format,
       difficulty: newDifficulty,
-      totalTests: 4,
-      testsBreakdown: `4 problems • ${payload.totalMarks} marks`,
+      totalTests: freshNewQuestions.length,
+      testsBreakdown: `${freshNewQuestions.length} problems • ${payload.totalMarks} marks`,
       status: payload.status,
       createdAtFormatted: 'Just now',
       attemptsCount: 0,
       durationMinutes: payload.durationMinutes,
       totalMarks: payload.totalMarks,
-      schedule: payload.schedule
+      schedule: payload.schedule,
+      questions: payload.questions
     };
 
     setTestSeriesList([optimisticItem, ...testSeriesList.map((t, i) => ({ ...t, indexNo: i + 2 }))]);
@@ -1087,7 +1193,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   // ─────────────────────────────────────────────────────────────
   const handleOpenCreateWizard = () => {
     setEditingSeriesId(null);
-    setEditingSeriesTitle(`JEE Main 2027 Full Syllabus Series ${testSeriesList.length + 1}`);
+    const newIdx = testSeriesList.length + 1;
+    setEditingSeriesTitle(`JEE Main 2027 Full Syllabus Series ${newIdx}`);
     setEditingSeriesSubtitle('Complete syllabus mock test matching official NTA CBT examination standards.');
     setWizardTargetExam('JEE Main');
     setWizardFormat('Full Mock');
@@ -1097,12 +1204,77 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setPositiveMarks(4);
     setNegativeMarks(1);
     setSelectedSubjects(['Physics', 'Chemistry', 'Mathematics']);
+
+    // Initialize fresh template questions for authoring
+    const freshTemplateQuestions: QuestionItem[] = [
+      {
+        id: `q-p1-${Date.now()}`,
+        subject: 'Physics',
+        section: 'A',
+        index: 1,
+        type: 'SINGLE_CORRECT',
+        difficulty: 'MEDIUM',
+        topicTag: 'General Physics',
+        questionText: '',
+        options: [
+          { key: 'A', text: '' },
+          { key: 'B', text: '' },
+          { key: 'C', text: '' },
+          { key: 'D', text: '' }
+        ],
+        correctKey: 'A',
+        solutionDerivation: '',
+        shortcutTrick: ''
+      },
+      {
+        id: `q-c1-${Date.now() + 1}`,
+        subject: 'Chemistry',
+        section: 'A',
+        index: 2,
+        type: 'SINGLE_CORRECT',
+        difficulty: 'MEDIUM',
+        topicTag: 'General Chemistry',
+        questionText: '',
+        options: [
+          { key: 'A', text: '' },
+          { key: 'B', text: '' },
+          { key: 'C', text: '' },
+          { key: 'D', text: '' }
+        ],
+        correctKey: 'A',
+        solutionDerivation: '',
+        shortcutTrick: ''
+      },
+      {
+        id: `q-m1-${Date.now() + 2}`,
+        subject: 'Mathematics',
+        section: 'A',
+        index: 3,
+        type: 'SINGLE_CORRECT',
+        difficulty: 'MEDIUM',
+        topicTag: 'General Mathematics',
+        questionText: '',
+        options: [
+          { key: 'A', text: '' },
+          { key: 'B', text: '' },
+          { key: 'C', text: '' },
+          { key: 'D', text: '' }
+        ],
+        correctKey: 'A',
+        solutionDerivation: '',
+        shortcutTrick: ''
+      }
+    ];
+    setQuestions(freshTemplateQuestions);
+    setSelectedQuestionId(freshTemplateQuestions[0].id);
+    setActiveSubjectTab('Physics');
+
     setCurrentStep(1);
     setCompletedSteps([1]);
     setViewMode('BUILDER');
   };
 
-  const handleEditSeries = (item: TestSeriesTableItem) => {
+  const handleEditSeries = async (item: TestSeriesTableItem) => {
     setEditingSeriesId(item.id);
     setEditingSeriesTitle(item.title);
     setEditingSeriesSubtitle(item.subtitle || '');
@@ -1118,7 +1290,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setWizardTargetExam(targetCategory);
     setWizardFormat(isPart ? 'Part Test' : ((item.format as any) || 'Full Mock'));
     setWizardDifficulty((item.difficulty as any) || 'Moderate');
-    setWizardDuration(item.durationMinutes || 180);
+    setWizardDuration(Number(item.durationMinutes) > 0 ? Number(item.durationMinutes) : 180);
+    setWizardTotalMarks(Number(item.totalMarks) > 0 ? Number(item.totalMarks) : 300);
     setWizardExamPattern(
       item.examType === 'JEE Advanced'
         ? 'JEE Advanced Paper 1'
@@ -1131,26 +1304,102 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     if (Array.isArray(item.subjects) && item.subjects.length > 0) {
       setSelectedSubjects(item.subjects as any);
     }
+    if (item.markingScheme) {
+      if (typeof item.markingScheme.correct === 'number') setPositiveMarks(item.markingScheme.correct);
+      if (typeof item.markingScheme.incorrect === 'number') setNegativeMarks(item.markingScheme.incorrect);
+    }
+    if (Array.isArray(item.instructions) && item.instructions.length > 0) {
+      setExamGuidelines(item.instructions);
+    }
+    if (item.batch) setWizardBatch(item.batch);
+    if (item.accessLevel) setAccessLevel(item.accessLevel);
+
     if (item.schedule) {
       if ((item.schedule as any).scheduleMode) setScheduleMode((item.schedule as any).scheduleMode);
       if (item.schedule.startWindow) {
         try {
           setStartWindowDate(new Date(item.schedule.startWindow).toISOString().slice(0, 16));
-        } catch {
-          // ignore date parse error
-        }
+        } catch {}
       }
       if (item.schedule.endWindow) {
         try {
           setEndWindowDate(new Date(item.schedule.endWindow).toISOString().slice(0, 16));
-        } catch {
-          // ignore date parse error
-        }
+        } catch {}
       }
     }
+
+    // 1. Immediately populate from local cache if questions exist to prevent flash of wrong questions
+    if (Array.isArray(item.questions) && item.questions.length > 0) {
+      const parsed = mapBackendQuestionsToBuilder(item.questions);
+      if (parsed.length > 0) {
+        setQuestions(parsed);
+        setSelectedQuestionId(parsed[0].id);
+        setActiveSubjectTab(parsed[0].subject);
+      }
+    }
+
     setCurrentStep(1);
     setCompletedSteps([1, 2, 3, 4]);
     setViewMode('BUILDER');
+
+    // 2. Fetch authoritative fresh record directly from MongoDB to guarantee zero data loss
+    try {
+      const res = await apiClient.get<any>(`/test-series/${item.id}`);
+      const freshData = res?.data || res;
+      if (freshData && typeof freshData === 'object') {
+        if (Array.isArray(freshData.questions) && freshData.questions.length > 0) {
+          const freshQuestions = mapBackendQuestionsToBuilder(freshData.questions);
+          if (freshQuestions.length > 0) {
+            setQuestions(freshQuestions);
+            setSelectedQuestionId(freshQuestions[0].id);
+            setActiveSubjectTab(freshQuestions[0].subject);
+          }
+        }
+        if (freshData.markingScheme) {
+          if (typeof freshData.markingScheme.correct === 'number') setPositiveMarks(freshData.markingScheme.correct);
+          if (typeof freshData.markingScheme.incorrect === 'number') setNegativeMarks(freshData.markingScheme.incorrect);
+        }
+        if (Array.isArray(freshData.instructions) && freshData.instructions.length > 0) {
+          setExamGuidelines(freshData.instructions);
+        }
+        if (freshData.durationMinutes) {
+          setWizardDuration(Number(freshData.durationMinutes));
+        }
+        if (freshData.totalMarks) {
+          setWizardTotalMarks(Number(freshData.totalMarks));
+        }
+        if (freshData.batch) {
+          setWizardBatch(freshData.batch);
+        }
+        if (freshData.accessLevel) {
+          setAccessLevel(freshData.accessLevel);
+        }
+      }
+    } catch (fetchErr) {
+      console.warn('[TestSeriesBuilder] Could not fetch fresh data from MongoDB:', fetchErr);
+    }
+  };
+
+  const handleOpenPreview = async (item: TestSeriesTableItem, tab: 'OVERVIEW' | 'CBT_SIMULATOR' = 'OVERVIEW') => {
+    setPreviewItem(item);
+    setPreviewTab(tab);
+    setCbtQIndex(0);
+    setCbtSubmitted(false);
+    setCbtSecondsRemaining(item.durationMinutes ? item.durationMinutes * 60 : 5400);
+
+    if (Array.isArray(item.questions) && item.questions.length > 0) {
+      const parsed = mapBackendQuestionsToBuilder(item.questions);
+      setQuestions(parsed);
+    }
+
+    try {
+      const res = await apiClient.get<any>(`/test-series/${item.id}`);
+      const fresh = res?.data || res;
+      if (fresh && Array.isArray(fresh.questions) && fresh.questions.length > 0) {
+        const freshParsed = mapBackendQuestionsToBuilder(fresh.questions);
+        setQuestions(freshParsed);
+      }
+    } catch {}
   };
 
   const handleDuplicateSeries = async (item: TestSeriesTableItem) => {
@@ -1802,7 +2051,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           durationMinutes: payload.durationMinutes,
           totalMarks: payload.totalMarks,
           schedule: payload.schedule,
-          subjects: payload.subjects
+          subjects: payload.subjects,
+          questions: payload.questions,
+          markingScheme: payload.markingScheme,
+          instructions: payload.instructions,
+          batch: payload.batch,
+          accessLevel: payload.accessLevel
         };
         const filtered = prev.filter((t) => t.id !== payload.id);
         return [optimisticRow, ...filtered.map((t, i) => ({ ...t, indexNo: i + 2 }))];
@@ -2445,8 +2699,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                     type="button"
                                     className={styles.contextMenuItem}
                                     onClick={() => {
-                                      setPreviewItem(item);
-                                      setPreviewTab('OVERVIEW');
+                                      handleOpenPreview(item, 'OVERVIEW');
                                       setOpenActionRowId(null);
                                     }}
                                   >
@@ -2482,11 +2735,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                     type="button"
                                     className={styles.contextMenuItem}
                                     onClick={() => {
-                                      setPreviewItem(item);
-                                      setPreviewTab('CBT_SIMULATOR');
-                                      setCbtQIndex(0);
-                                      setCbtSubmitted(false);
-                                      setCbtSecondsRemaining(5372);
+                                      handleOpenPreview(item, 'CBT_SIMULATOR');
                                       setOpenActionRowId(null);
                                     }}
                                   >
