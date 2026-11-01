@@ -15,8 +15,19 @@ const router = Router();
 const createDppPyqSchema = z
   .object({
     title: z.string().trim().min(2, 'Title is required'),
-    type: z.enum(['DPP', 'PYQ']),
-    subject: z.string().trim(),
+    moduleType: z.enum(['DPP', 'PYQ', 'BITSAT']).optional(),
+    type: z.string().optional(),
+    subject: z.string().trim().optional(),
+    chapter: z.string().optional(),
+    examTarget: z.string().optional(),
+    badgeCode: z.string().optional(),
+    categoryLabel: z.string().optional(),
+    questionsCount: z.number().optional(),
+    solutionNote: z.string().optional(),
+    status: z.enum(['Published', 'Draft', 'Scheduled', 'Archived']).optional(),
+    scheduledDate: z.string().optional(),
+    attemptsCount: z.number().optional(),
+    slug: z.string().optional(),
     targetExam: z.string().optional(),
     year: z.union([z.number(), z.string()]).optional(),
     shift: z.string().optional(),
@@ -26,7 +37,7 @@ const createDppPyqSchema = z
     isPublished: z.boolean().optional(),
     questions: z.array(z.any()).optional()
   })
-  .strict();
+  .passthrough();
 
 // Public routes for student catalog & practice view
 router.get('/', getAllDppPyq);

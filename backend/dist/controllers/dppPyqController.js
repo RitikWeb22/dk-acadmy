@@ -299,24 +299,74 @@ export const createDppPyq = async (req, res) => {
             res.status(400).json({ error: 'Problem set title is required' });
             return;
         }
+        const rawType = (payload.moduleType || payload.type || 'DPP').toString().toUpperCase();
+        const validModuleType = ['DPP', 'PYQ', 'BITSAT'].includes(rawType) ? rawType : 'DPP';
+        let subject = payload.subject || 'Mathematics';
+        if (typeof subject === 'string') {
+            const lower = subject.toLowerCase();
+            if (lower.includes('math'))
+                subject = 'Mathematics';
+            else if (lower.includes('phys'))
+                subject = 'Physics';
+            else if (lower.includes('chem'))
+                subject = 'Chemistry';
+            else if (!['Mathematics', 'Physics', 'Chemistry', 'Mixed'].includes(subject))
+                subject = 'Mathematics';
+        }
+        else {
+            subject = 'Mathematics';
+        }
         const baseSlug = payload.slug
             ? payload.slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
             : payload.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
         const existingSlug = await DppPyq.findOne({ slug: baseSlug });
-        const finalSlug = existingSlug ? `${baseSlug}-${Date.now().toString().slice(-4)}` : baseSlug;
+        const finalSlug = existingSlug
+            ? `${baseSlug}-${Date.now().toString().slice(-4)}`
+            : (baseSlug || `drill-${Date.now()}`);
+        const sanitizedQuestions = Array.isArray(payload.questions) && payload.questions.length > 0
+            ? payload.questions.map((q, idx) => ({
+                id: q.id || `q-${Date.now()}-${idx + 1}`,
+                qNum: q.qNum || idx + 1,
+                statement: q.statement || `Question ${idx + 1}`,
+                topic: q.topic || payload.chapter || 'Practice Question',
+                options: Array.isArray(q.options) && q.options.length > 0
+                    ? q.options.map((opt, optIdx) => ({
+                        key: ['A', 'B', 'C', 'D'][optIdx] || opt.key || 'A',
+                        text: opt.text || `Option ${optIdx + 1}`
+                    }))
+                    : [
+                        { key: 'A', text: 'Option A' },
+                        { key: 'B', text: 'Option B' },
+                        { key: 'C', text: 'Option C' },
+                        { key: 'D', text: 'Option D' }
+                    ],
+                correctKey: ['A', 'B', 'C', 'D'].includes(q.correctKey) ? q.correctKey : 'A',
+                dkSirShortcut: q.dkSirShortcut || '',
+                stepSolution: q.stepSolution || '',
+                difficulty: ['Easy', 'Moderate', 'Challenging'].includes(q.difficulty)
+                    ? q.difficulty
+                    : 'Moderate',
+                examYear: q.examYear || ''
+            }))
+            : SEED_QUESTIONS;
         const newItem = new DppPyq({
             ...payload,
-            id: payload.id || `dpp-pyq-${Date.now()}`,
+            id: payload.id || `dpp-pyq-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            title: payload.title.trim(),
             slug: finalSlug,
+            moduleType: validModuleType,
+            subject,
             badgeCode: payload.badgeCode ||
-                (payload.moduleType === 'BITSAT'
+                (validModuleType === 'BITSAT'
                     ? 'BITSAT'
-                    : `${payload.moduleType} • ${payload.subject ? payload.subject.slice(0, 3).toUpperCase() : 'MTH'}`),
+                    : `${validModuleType} • ${subject.slice(0, 3).toUpperCase()}`),
             categoryLabel: payload.categoryLabel ||
-                `${payload.subject || 'Mathematics'} ${payload.moduleType || 'DPP'}`,
-            questionsCount: payload.questions ? payload.questions.length : (payload.questionsCount || 0),
+                (validModuleType === 'BITSAT' ? 'BITSAT Speed Drill' : `${subject} ${validModuleType}`),
+            questionsCount: sanitizedQuestions.length,
+            solutionNote: payload.solutionNote || `${sanitizedQuestions.length} with step solutions`,
             attemptsCount: payload.attemptsCount || 0,
-            status: payload.status || 'Published'
+            status: payload.status || 'Published',
+            questions: sanitizedQuestions
         });
         const saved = await newItem.save();
         broadcastDppPyqCreated(saved);

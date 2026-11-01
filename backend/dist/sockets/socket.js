@@ -251,21 +251,11 @@ export const broadcastDoubtAnswered = (doubt) => {
         };
         // Emit targeted user message and global event
         io.emit('doubt:answered', payload);
-        io.emit('notification:new', {
-            title: `Doubt Resolved: ${doubt.subject} (${doubt.courseTitle})`,
-            description: `Answered by ${doubt.answer?.adminName || 'DK Sir'}: "${doubt.answer?.answerText?.slice(0, 80)}..."`,
-            type: 'doubt',
-            recipientEmail: doubt.studentEmail,
-            timestamp: Date.now(),
-            unread: true,
-            meta: payload
-        });
         io.emit('cms_updated', { type: 'doubts', action: 'answer', data: doubt, timestamp: Date.now() });
     }
 };
 export const broadcastNewDoubt = (doubt) => {
     if (io) {
-        console.log(`[Socket.IO] Emitting doubt:new from student: ${doubt.studentName}`);
         io.emit('doubt:new', doubt);
         io.emit('notification:new', {
             title: `New Doubt Raised by ${doubt.studentName}`,

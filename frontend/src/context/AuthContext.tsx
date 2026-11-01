@@ -211,6 +211,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [student?.id]);
 
+  // Sync live answered doubts from database for the active student
+  useEffect(() => {
+    const currentEmail = student?.email?.trim();
+    if (!student || !currentEmail) return;
+
+    let isMounted = true;
+    (async () => {
+      try {
+        const res = await apiClient.get<any>(`/doubts?search=${encodeURIComponent(currentEmail)}&status=ANSWERED`);
+        if (res && res.success && Array.isArray(res.data) && isMounted) {
+          const answeredForMe = res.data.filter(
+            (d: any) =>
+              (d.studentEmail && d.studentEmail.toLowerCase() === currentEmail.toLowerCase()) ||
+              (d.studentId && (d.studentId === student.id || d.studentId === student.studentId))
+          );
+
+          if (answeredForMe.length > 0) {
+            setNotifications((prev) => {
+              const existingIds = new Set(prev.map((n) => n.id));
+              const newDoubtNotifs: AppNotification[] = [];
+
+              for (const d of answeredForMe) {
+                const notifId = `notif_doubt_${d._id || d.id}`;
+                if (!existingIds.has(notifId)) {
+                  const answerSnippet = d.answer?.answerText || 'Your doubt has been answered by DK Sir.';
+                  newDoubtNotifs.push({
+                    id: notifId,
+                    title: `✅ Doubt Answered: ${d.subject || 'Academic'}`,
+                    message: `${d.answer?.adminName || 'DK Sir'} answered: "${answerSnippet.slice(0, 95)}..."`,
+                    timestamp: new Date(d.answer?.answeredAt || d.updatedAt || d.createdAt).getTime(),
+                    category: 'course',
+                    read: false,
+                    linkText: 'Open Doubt in Course',
+                    linkUrl: `/learn/${d.courseId || 'jee-main-advanced-2yr-ultimate'}?tab=doubts`
+                  });
+                }
+              }
+
+              if (newDoubtNotifs.length > 0) {
+                const merged = [...newDoubtNotifs, ...prev].slice(0, 40);
+                try {
+                  localStorage.setItem(`dk_academy_notifications_${student.id}`, JSON.stringify(merged));
+                } catch {}
+                return merged;
+              }
+              return prev;
+            });
+          }
+        }
+      } catch {
+        // Silently fail
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [student?.id, student?.email]);
+
   // Listen for real-time notifications across the entire platform for logged-in students
   useEffect(() => {
     if (!student) return;
@@ -252,6 +311,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleDoubtAnswered = (e: any) => {
       const data = e.detail;
       if (!data) return;
+
+      if (
+        data.studentEmail &&
+        student.email &&
+        data.studentEmail.toLowerCase() !== student.email.toLowerCase()
+      ) {
+        return;
+      }
+
       const answerSnippet = data.answer?.answerText || data.answerText || 'Your doubt has been answered by DK Sir.';
       pushStudentNotification({
         id: `notif_doubt_${data.doubtId || Date.now()}`,
@@ -297,20 +365,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     };
 
-    // 4. New DPP or PYQ Set Notification
+    // 4. New DPP, PYQ or BITSAT Set Notification
     const handleDppPyqCreated = (e: any) => {
       const item = e.detail;
       if (!item) return;
-      const isPyq = item.type === 'pyq' || item.exam || item.year;
+      const isBitsat = item.moduleType === 'BITSAT';
+      const isPyq = item.moduleType === 'PYQ' || item.type === 'pyq' || item.exam || item.year;
+
+      let title = `📝 New DPP Sheet: ${item.title || item.chapter || 'Daily Practice Problem'}`;
+      let message = `New Kota Daily Practice Problem sheet has been uploaded. Solve now!`;
+      let linkText = 'Solve DPP';
+      let linkUrl = '/dpp';
+
+      if (isBitsat) {
+        title = `⚡ New BITSAT Speed Drill: ${item.title || 'BITSAT Speed Test'}`;
+        message = `New BITSAT Rapid Speed Drill (${item.questionsCount || item.questions?.length || 25} Questions) is live. Train your 45-second inspection speed!`;
+        linkText = 'Practice BITSAT Drill';
+        linkUrl = '/bitsat';
+      } else if (isPyq) {
+        title = `📚 New PYQ Set: ${item.subject || 'JEE'} (${item.year || 'Past Years'})`;
+        message = `New Kota PYQ question set with video walkthrough and DK Sir shortcuts has been uploaded. Solve now!`;
+        linkText = 'Solve PYQ';
+        linkUrl = '/pyq';
+      }
+
       pushStudentNotification({
         id: `notif_dpp_${item.id || item._id || Date.now()}`,
-        title: isPyq ? `📚 New PYQ Set: ${item.subject || 'JEE'} (${item.year || '2026/25'})` : `📝 New DPP Sheet: ${item.title || item.chapter || 'Daily Practice Problem'}`,
-        message: `New Kota ${isPyq ? 'PYQ question set with video walkthrough' : 'Daily Practice Problem sheet'} has been uploaded. Solve now!`,
+        title,
+        message,
         timestamp: Date.now(),
         category: 'practice_test',
         read: false,
-        linkText: isPyq ? 'Solve PYQ' : 'Solve DPP',
-        linkUrl: isPyq ? '/pyq' : '/dpp'
+        linkText,
+        linkUrl
       });
     };
 

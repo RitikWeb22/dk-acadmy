@@ -791,26 +791,30 @@ export const DppPyqManagementWorkspace: React.FC = () => {
       const formattedForAuthoring: DppPyqItem = {
         ...payload,
         id: createdDoc.id || createdDoc._id || `dpp-pyq-${Date.now()}`,
-        indexNo: problemSets.length + 1,
+        indexNo: 1,
         createdAtFormatted: 'Just now',
-        questions: payload.questions
+        questions: createdDoc.questions || payload.questions
       };
+      setProblemSets((prev) => [formattedForAuthoring, ...prev.filter((p) => p.id !== formattedForAuthoring.id)]);
       setNewTitle('');
       setNewSlug('');
-      window.dispatchEvent(new CustomEvent('dk_dpp_pyq_created', { detail: payload }));
+      window.dispatchEvent(new CustomEvent('dk_dpp_pyq_created', { detail: createdDoc }));
       handleOpenEditModal(formattedForAuthoring);
       await fetchLiveDppPyq();
     } catch (err: any) {
       console.error('Failed to create:', err);
-      showToast(`Created locally: ${err?.message || 'Sync'}`);
+      const errMsg = err?.response?.data?.error || err?.message || 'Sync issue';
+      showToast(`Saved locally: ${errMsg}`);
       setIsCreateModalOpen(false);
-      handleOpenEditModal({
+      const fallbackItem: DppPyqItem = {
         ...payload,
         id: `dpp-pyq-${Date.now()}`,
-        indexNo: problemSets.length + 1,
+        indexNo: 1,
         createdAtFormatted: 'Just now',
         questions: payload.questions
-      });
+      };
+      setProblemSets((prev) => [fallbackItem, ...prev]);
+      handleOpenEditModal(fallbackItem);
     } finally {
       setIsSaving(false);
     }

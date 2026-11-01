@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ChevronRight,
+  ChevronLeft,
   Home,
   Zap,
   Target,
@@ -19,9 +20,12 @@ import {
   Calendar,
   Users,
   Flame,
-  Check
+  Check,
+  X,
+  BookOpen
 } from 'lucide-react';
 import { Container } from '../../components/ui/Container/Container';
+import { apiClient } from '../../services/apiClient';
 import styles from './BitsatPage.module.scss';
 
 interface FAQItem {
@@ -62,6 +66,36 @@ export const BitsatPage: React.FC = () => {
     mode: 'Online Live Batch'
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Live BITSAT speed drills from Admin Command Center (/dpp-pyq?moduleType=BITSAT)
+  const [bitsatDrills, setBitsatDrills] = useState<any[]>([]);
+  const [selectedDrill, setSelectedDrill] = useState<any | null>(null);
+  const [drillQIndex, setDrillQIndex] = useState<number>(0);
+  const [drillAnswers, setDrillAnswers] = useState<Record<string, string>>({});
+  const [showDrillSolution, setShowDrillSolution] = useState<boolean>(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBitsat = async () => {
+      try {
+        const res = await apiClient.get<any>('/dpp-pyq?moduleType=BITSAT');
+        const items = Array.isArray(res) ? res : res?.data || [];
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          setBitsatDrills(items);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch BITSAT drills:', e);
+      }
+    };
+    fetchBitsat();
+    window.addEventListener('dk_dpp_pyq_created', fetchBitsat);
+    window.addEventListener('dk_dpp_pyq_updated', fetchBitsat);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('dk_dpp_pyq_created', fetchBitsat);
+      window.removeEventListener('dk_dpp_pyq_updated', fetchBitsat);
+    };
+  }, []);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -646,6 +680,283 @@ export const BitsatPage: React.FC = () => {
           </div>
         </Container>
       </section>
+
+      {/* 5B. Live BITSAT Speed Drills & Question Archives */}
+      {bitsatDrills.length > 0 && (
+        <section className={styles.section} id="speed-drills">
+          <Container size="wide">
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionBadge}>
+                <Zap size={12} />
+                <span>LIVE SPEED DRILLS</span>
+              </div>
+              <h2 className={styles.sectionTitle}>
+                BITSAT Rapid Fire Drills &amp; <span className={styles.titleGradient}>Question Archives</span>
+              </h2>
+              <p className={styles.sectionDescription}>
+                Strict 45-second timer practice drills curated by DK Sir with 20–30s inspection shortcuts and official CBT answer keys.
+              </p>
+            </div>
+
+            <div className={styles.batchesGrid}>
+              {bitsatDrills.map((drill) => (
+                <article key={drill.id || drill._id} className={styles.batchCard}>
+                  <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #ec4899, #f43f5e)' }} />
+                  <div className={styles.batchTopBadgeRow}>
+                    <span className={styles.batchFlagshipBadge} style={{ background: '#fdf2f8', color: '#db2777', borderColor: '#fbcfe8' }}>
+                      <Sparkles size={11} /> {drill.badgeCode || 'BITSAT Speed Drill'}
+                    </span>
+                    <span className={styles.batchTargetYear}>
+                      {drill.subject || 'Mathematics'}
+                    </span>
+                  </div>
+                  <h3 className={styles.batchTitle}>{drill.title}</h3>
+                  <p style={{ margin: '8px 0 16px', fontSize: '0.88rem', color: '#64748b', lineHeight: 1.5 }}>
+                    {drill.categoryLabel || `${drill.subject} Speed Drill`} • {drill.solutionNote || 'Strict 45s timer format with step solutions'}
+                  </p>
+                  <div className={styles.metaPillsRow} style={{ marginBottom: '16px' }}>
+                    <div className={styles.metaPillBatch}>
+                      <Clock size={12} />
+                      <span>{drill.questionsCount || drill.questions?.length || 25} Questions</span>
+                    </div>
+                    <div className={styles.metaPillMode}>
+                      <Brain size={12} />
+                      <span>{drill.attemptsCount || 120}+ Solved</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDrill(drill);
+                      setDrillQIndex(0);
+                      setDrillAnswers({});
+                      setShowDrillSolution(false);
+                    }}
+                    className={styles.enrollBatchBtn}
+                    style={{
+                      width: '100%',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '11px 16px',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    <Flame size={15} />
+                    <span>Practice Speed Drill</span>
+                  </button>
+                </article>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* Interactive Modal for BITSAT Drill Practice */}
+      {selectedDrill && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedDrill(null);
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '18px',
+              maxWidth: '780px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              border: '1px solid #e2e8f0',
+              padding: '24px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px', marginBottom: '18px' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {selectedDrill.badgeCode || 'BITSAT Speed Drill'} • {selectedDrill.subject}
+                </span>
+                <h3 style={{ margin: '4px 0 0', fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                  {selectedDrill.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedDrill(null)}
+                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {selectedDrill.questions && selectedDrill.questions.length > 0 ? (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>
+                    Question {drillQIndex + 1} of {selectedDrill.questions.length}
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      disabled={drillQIndex === 0}
+                      onClick={() => {
+                        setDrillQIndex((prev) => Math.max(0, prev - 1));
+                        setShowDrillSolution(false);
+                      }}
+                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: drillQIndex === 0 ? 'not-allowed' : 'pointer', opacity: drillQIndex === 0 ? 0.5 : 1, fontSize: '0.82rem', fontWeight: 600 }}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      disabled={drillQIndex === selectedDrill.questions.length - 1}
+                      onClick={() => {
+                        setDrillQIndex((prev) => Math.min(selectedDrill.questions.length - 1, prev + 1));
+                        setShowDrillSolution(false);
+                      }}
+                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #2563eb', background: '#2563eb', color: '#fff', cursor: drillQIndex === selectedDrill.questions.length - 1 ? 'not-allowed' : 'pointer', opacity: drillQIndex === selectedDrill.questions.length - 1 ? 0.5 : 1, fontSize: '0.82rem', fontWeight: 600 }}
+                    >
+                      Next Question
+                    </button>
+                  </div>
+                </div>
+
+                {(() => {
+                  const currentQ = selectedDrill.questions[drillQIndex] || selectedDrill.questions[0];
+                  const qId = currentQ.id || `q-${drillQIndex}`;
+                  const selectedKey = drillAnswers[qId];
+
+                  return (
+                    <div>
+                      <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                        <p style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 600, lineHeight: 1.6 }}>
+                          {currentQ.statement}
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+                        {(currentQ.options || []).map((opt: any) => {
+                          const isChosen = selectedKey === opt.key;
+                          const isCorrect = showDrillSolution && opt.key === currentQ.correctKey;
+                          const isWrong = showDrillSolution && isChosen && !isCorrect;
+
+                          return (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => {
+                                setDrillAnswers({ ...drillAnswers, [qId]: opt.key });
+                              }}
+                              style={{
+                                textAlign: 'left',
+                                padding: '12px 14px',
+                                borderRadius: '10px',
+                                border: isCorrect
+                                  ? '2px solid #16a34a'
+                                  : isWrong
+                                  ? '2px solid #dc2626'
+                                  : isChosen
+                                  ? '2px solid #2563eb'
+                                  : '1px solid #cbd5e1',
+                                background: isCorrect
+                                  ? '#f0fdf4'
+                                  : isWrong
+                                  ? '#fef2f2'
+                                  : isChosen
+                                  ? '#eff6ff'
+                                  : '#ffffff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
+                              }}
+                            >
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  background: isCorrect ? '#16a34a' : isChosen ? '#2563eb' : '#f1f5f9',
+                                  color: isCorrect || isChosen ? '#fff' : '#475569',
+                                  fontWeight: 700,
+                                  fontSize: '0.8rem'
+                                }}
+                              >
+                                {opt.key}
+                              </span>
+                              <span style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: isChosen ? 700 : 500 }}>
+                                {opt.text}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowDrillSolution(!showDrillSolution)}
+                          style={{
+                            padding: '10px 16px',
+                            borderRadius: '8px',
+                            background: showDrillSolution ? '#f1f5f9' : '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            color: '#1d4ed8',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            fontSize: '0.85rem'
+                          }}
+                        >
+                          {showDrillSolution ? 'Hide Solution' : '💡 Reveal DK Sir Shortcut & Answer'}
+                        </button>
+                      </div>
+
+                      {showDrillSolution && (
+                        <div style={{ marginTop: '14px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                          {currentQ.dkSirShortcut && (
+                            <div style={{ marginBottom: '10px', padding: '10px 12px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontWeight: 600, fontSize: '0.85rem' }}>
+                              ⚡ {currentQ.dkSirShortcut}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.6 }}>
+                            <strong>Solution:</strong> {currentQ.stepSolution || 'Detailed step-by-step solution available in student portal.'}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <p style={{ color: '#64748b', fontSize: '0.9rem' }}>No questions in this drill yet.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 6. BITSAT Campus Cutoffs & Target Score Benchmarks */}
       <section className={`${styles.section} ${styles.sectionAlt}`} id="cutoffs">
