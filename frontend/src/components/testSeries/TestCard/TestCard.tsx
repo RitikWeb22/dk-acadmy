@@ -1,6 +1,7 @@
 import React from 'react';
 import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2, Calendar } from 'lucide-react';
 import type { TestSeriesItem, TestAttempt } from '../../../types';
+import { requestFullScreen } from '../../../utils/fullscreen';
 import styles from './TestCard.module.scss';
 
 interface TestCardProps {
@@ -232,7 +233,10 @@ export const TestCard: React.FC<TestCardProps> = ({
           <button
             type="button"
             className={styles.resumeTestBtn}
-            onClick={() => onResumeTest(test.id)}
+            onClick={async () => {
+              await requestFullScreen();
+              onResumeTest(test.id);
+            }}
             aria-label={`Resume test: ${test.title}`}
           >
             <span>Resume Test</span>
