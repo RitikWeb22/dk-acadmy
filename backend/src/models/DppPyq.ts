@@ -33,6 +33,7 @@ export interface IDppPyq extends Document {
   chapter?: string;
   examTarget?: string;
   isFree?: boolean;
+  price?: number;
   pdfUrl?: string;
   videoUrl?: string;
   videoWalkthroughUrl?: string;
@@ -91,6 +92,7 @@ const dppPyqSchema = new Schema<IDppPyq>(
     chapter: { type: String, default: '' },
     examTarget: { type: String, default: '' },
     isFree: { type: Boolean, default: true },
+    price: { type: Number, default: 0 },
     pdfUrl: { type: String, default: '' },
     videoUrl: { type: String, default: '' },
     videoWalkthroughUrl: { type: String, default: '' },
