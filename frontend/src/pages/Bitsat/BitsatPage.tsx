@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   ChevronRight,
   ChevronLeft,
@@ -22,11 +22,72 @@ import {
   Flame,
   Check,
   X,
-  BookOpen
+  BookOpen,
+  Search,
+  Filter,
+  PlayCircle,
+  FileText,
+  RotateCcw,
+  Flag,
+  ListOrdered,
+  Pause,
+  Play,
+  Lock,
+  Unlock,
+  Video,
+  BarChart2,
+  HelpCircle
 } from 'lucide-react';
 import { Container } from '../../components/ui/Container/Container';
 import { apiClient } from '../../services/apiClient';
+import { CMS_EVENT_KEY } from '../../services/cmsService';
+import { soundEffects } from '../../utils/sound';
 import styles from './BitsatPage.module.scss';
+
+export interface BITSATQuestion {
+  id: string;
+  qNum: number;
+  statement: string;
+  topic?: string;
+  subject?: string;
+  options: { key: string; text: string }[];
+  correctKey: string;
+  dkSirShortcut?: string;
+  stepSolution?: string;
+  difficulty?: 'Easy' | 'Moderate' | 'Challenging';
+  examYear?: string;
+}
+
+export interface BITSATDrillItem {
+  id: string;
+  _id?: string;
+  title: string;
+  slug?: string;
+  moduleType: 'BITSAT' | string;
+  subject: string;
+  chapter?: string;
+  examTarget?: string;
+  badgeCode?: string;
+  categoryLabel?: string;
+  isFree?: boolean;
+  price?: number;
+  pdfUrl?: string;
+  videoUrl?: string;
+  videoWalkthroughUrl?: string;
+  questionsCount?: number;
+  solutionNote?: string;
+  status?: string;
+  attemptsCount?: number;
+  questions: BITSATQuestion[];
+}
+
+interface UserQuestionResponse {
+  selectedOption?: string;
+  isEvaluated?: boolean;
+  isCorrect?: boolean;
+  isMarkedForReview?: boolean;
+  timeSpentSeconds?: number;
+}
 
 interface FAQItem {
   question: string;
@@ -56,7 +117,319 @@ const BITSAT_FAQS: FAQItem[] = [
   }
 ];
 
+const INITIAL_FALLBACK_DRILLS: BITSATDrillItem[] = [
+  {
+    id: 'bitsat-drill-math-01',
+    title: 'BITSAT 2026 Speed Drill 01: Calculus & Vectors Rapid-Fire',
+    slug: 'bitsat-2026-speed-drill-01',
+    moduleType: 'BITSAT',
+    subject: 'Mathematics',
+    chapter: 'Definite Integration & Vectors',
+    examTarget: 'BITSAT 2026',
+    badgeCode: 'BITSAT • MTH',
+    categoryLabel: 'Mathematics Speed Drill',
+    isFree: true,
+    price: 0,
+    questionsCount: 4,
+    solutionNote: 'Strict 45s timer format with DK Sir 20s shortcuts',
+    status: 'Published',
+    attemptsCount: 2480,
+    questions: [
+      {
+        id: 'bq-m1',
+        qNum: 1,
+        statement: 'Evaluate the definite integral: I = ∫[0 to π] (x * sin x) / (1 + cos² x) dx. In BITSAT speed conditions, the exact value of I is:',
+        topic: 'Definite Integration',
+        options: [
+          { key: 'A', text: 'π² / 4' },
+          { key: 'B', text: 'π² / 2' },
+          { key: 'C', text: 'π / 4' },
+          { key: 'D', text: 'π² / 8' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: "DK Sir King's Property: When x is multiplied by f(sin x), Integral = (π / 2) * ∫[0 to π] (sin x)/(1 + cos²x) dx = π²/4 in 20 seconds!",
+        stepSolution: "Apply King's property: 2I = π * ∫[0 to π] sin x/(1 + cos²x) dx. Substitute u = cos x ⇒ I = π²/4.",
+        difficulty: 'Moderate',
+        examYear: 'BITSAT 2024'
+      },
+      {
+        id: 'bq-m2',
+        qNum: 2,
+        statement: 'A straight line passing through P(2, 3) cuts axes at A and B such that P divides AB internally 1 : 2. If line perpendicular to AB through origin is y = mx, value of m is:',
+        topic: 'Straight Lines',
+        options: [
+          { key: 'A', text: '1/3' },
+          { key: 'B', text: '4/3' },
+          { key: 'C', text: '3/4' },
+          { key: 'D', text: '-3/4' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Section Formula: a = 3, b = 9. Slope of line = -3. Perpendicular slope m = 1/3 in 15s!',
+        stepSolution: 'Let A=(a,0) and B=(0,b). Section formula gives a=3, b=9. Line equation is x/3 + y/9 = 1 with slope -3. Perpendicular slope is m = 1/3.',
+        difficulty: 'Easy',
+        examYear: 'BITSAT 2023'
+      },
+      {
+        id: 'bq-m3',
+        qNum: 3,
+        statement: 'If vectors a = 2i - j + k, b = i + 2j - 3k, and c = 3i + λj + 5k are coplanar, then the scalar parameter λ equals:',
+        topic: 'Vectors & 3D',
+        options: [
+          { key: 'A', text: '-4' },
+          { key: 'B', text: '2' },
+          { key: 'C', text: '-2' },
+          { key: 'D', text: '4' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Determinant Rule: For coplanar vectors, scalar triple product [a b c] = 0. Row 1 expand: 7λ + 28 = 0 ⇒ λ = -4 in 18 seconds.',
+        stepSolution: 'Determinant | 2, -1, 1 | | 1, 2, -3 | | 3, λ, 5 | = 7λ + 28 = 0 ⇒ λ = -4.',
+        difficulty: 'Easy',
+        examYear: 'BITSAT 2024'
+      },
+      {
+        id: 'bq-m4',
+        qNum: 4,
+        statement: 'Let y² = 4ax be a parabola. If two perpendicular chords OP and OQ meet at vertex O, then locus of midpoint of PQ has latus rectum of length:',
+        topic: 'Conic Sections',
+        options: [
+          { key: 'A', text: '2a' },
+          { key: 'B', text: '4a' },
+          { key: 'C', text: '8a' },
+          { key: 'D', text: 'a' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Parabola Shortcut: Orthogonal chords parameter t1*t2 = -4. Locus midpoint equation is y² = 2a(x - 4a), so latus rectum = 2a!',
+        stepSolution: 'Since OP ⊥ OQ, t1*t2 = -4. Midpoint locus is y² = 2a(x - 4a). The coefficient of x gives the latus rectum = 2a.',
+        difficulty: 'Moderate',
+        examYear: 'BITSAT 2022'
+      }
+    ]
+  },
+  {
+    id: 'bitsat-drill-phy-02',
+    title: 'BITSAT 2026 Physics Rapid Fire: Optics & Electrodynamics',
+    slug: 'bitsat-rapid-fire-optics',
+    moduleType: 'BITSAT',
+    subject: 'Physics',
+    chapter: 'Ray Optics & Capacitors',
+    examTarget: 'BITSAT 2026',
+    badgeCode: 'BITSAT • PHY',
+    categoryLabel: 'Physics Speed Drill',
+    isFree: true,
+    price: 0,
+    questionsCount: 4,
+    solutionNote: 'Strict 45s timer format with step solutions',
+    status: 'Published',
+    attemptsCount: 1890,
+    questions: [
+      {
+        id: 'bq-p1',
+        qNum: 1,
+        statement: 'A uniform solid cylinder of mass M and radius R rolls without slipping down an inclined plane of inclination θ. The magnitude of frictional force acting on it is:',
+        topic: 'Rotational Dynamics',
+        options: [
+          { key: 'A', text: '(1/3) M g sin θ' },
+          { key: 'B', text: '(1/2) M g sin θ' },
+          { key: 'C', text: '(2/3) M g sin θ' },
+          { key: 'D', text: 'M g sin θ' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Rotational Shortcut: f = (I_cm / (I_cm + M*R^2)) * M*g*sinθ. For solid cylinder, fraction = (1/2)/(3/2) = 1/3!',
+        stepSolution: 'Translation: M*g*sinθ - f = M*a. Rotation about CM: f*R = (1/2)*M*R²*(a/R) ⇒ f = (1/3)*M*g*sinθ.',
+        difficulty: 'Moderate',
+        examYear: 'BITSAT 2024'
+      },
+      {
+        id: 'bq-p2',
+        qNum: 2,
+        statement: 'A parallel plate capacitor with plate area A and separation d is filled with two dielectric slabs of constants K1 and K2 of thickness d/2 each. Equivalent capacitance is:',
+        topic: 'Capacitance',
+        options: [
+          { key: 'A', text: '2ε₀A / d * (K1*K2 / (K1 + K2))' },
+          { key: 'B', text: 'ε₀A / d * (K1 + K2) / 2' },
+          { key: 'C', text: 'ε₀A / (2d) * (K1*K2)' },
+          { key: 'D', text: '4ε₀A / d * (K1*K2 / (K1 + K2))' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Series Trick: Two slabs in series C_eq = (C1*C2)/(C1+C2). With thickness d/2, factor 2 comes in numerator!',
+        stepSolution: 'C1 = 2*K1*ε₀A/d, C2 = 2*K2*ε₀A/d. In series: 1/C = 1/C1 + 1/C2 ⇒ C_eq = (2ε₀A/d)*(K1*K2/(K1+K2)).',
+        difficulty: 'Easy',
+        examYear: 'BITSAT 2023'
+      },
+      {
+        id: 'bq-p3',
+        qNum: 3,
+        statement: 'In Young’s double slit experiment, if the distance between slits is doubled and screen distance is halved, the fringe width becomes:',
+        topic: 'Wave Optics',
+        options: [
+          { key: 'A', text: 'One-fourth of original' },
+          { key: 'B', text: 'Half of original' },
+          { key: 'C', text: 'Four times original' },
+          { key: 'D', text: 'Unchanged' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Proportionality Rule: β = λD/d. D → D/2 and d → 2d ⇒ β becomes 1/4th in 5 seconds!',
+        stepSolution: 'Fringe width β = λ*D/d. New fringe width β’ = λ*(D/2)/(2d) = (1/4)*β.',
+        difficulty: 'Easy',
+        examYear: 'BITSAT 2024'
+      },
+      {
+        id: 'bq-p4',
+        qNum: 4,
+        statement: 'An electron and a proton have identical de-Broglie wavelengths. Which particle possesses greater kinetic energy?',
+        topic: 'Modern Physics',
+        options: [
+          { key: 'A', text: 'Electron' },
+          { key: 'B', text: 'Proton' },
+          { key: 'C', text: 'Both have equal kinetic energy' },
+          { key: 'D', text: 'Cannot be determined' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Energy-Momentum Rule: KE = p² / (2m). Same λ ⇒ same momentum p. Since m_e << m_p, KE_electron >> KE_proton!',
+        stepSolution: 'λ = h/p ⇒ same p. Kinetic energy K = p²/(2m). Since electron mass is ~1836 times smaller than proton mass, electron has much higher kinetic energy.',
+        difficulty: 'Easy',
+        examYear: 'BITSAT 2022'
+      }
+    ]
+  },
+  {
+    id: 'bitsat-drill-lr-03',
+    title: 'BITSAT 2026 Part III Booster: Logical Reasoning & English Speed Drill',
+    slug: 'bitsat-lr-english-booster',
+    moduleType: 'BITSAT',
+    subject: 'Logical Reasoning & English',
+    chapter: 'Verbal Analogy & Deductive Logic',
+    examTarget: 'BITSAT 2026',
+    badgeCode: 'BITSAT • LR',
+    categoryLabel: 'Part III Speed Drill',
+    isFree: true,
+    price: 0,
+    questionsCount: 4,
+    solutionNote: '90 Marks Part III scoring booster',
+    status: 'Published',
+    attemptsCount: 3120,
+    questions: [
+      {
+        id: 'bq-lr1',
+        qNum: 1,
+        statement: 'Select the related pair that has the same relationship as: ARCHIPELAGO : ISLAND ::',
+        topic: 'Verbal Analogy',
+        options: [
+          { key: 'A', text: 'Constellation : Star' },
+          { key: 'B', text: 'Peninsula : Strait' },
+          { key: 'C', text: 'Desert : Oasis' },
+          { key: 'D', text: 'Mountain : Valley' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Group-Element Rule: An archipelago is a group of islands; a constellation is a group of stars.',
+        stepSolution: 'The relationship is collection-to-unit. An archipelago is a group of islands. Similarly, a constellation is a group of stars.',
+        difficulty: 'Easy',
+        examYear: 'BITSAT 2024'
+      },
+      {
+        id: 'bq-lr2',
+        qNum: 2,
+        statement: 'Find the missing number in the sequence: 4, 18, 48, 100, 180, ?',
+        topic: 'Number Sequences',
+        options: [
+          { key: 'A', text: '294' },
+          { key: 'B', text: '280' },
+          { key: 'C', text: '312' },
+          { key: 'D', text: '290' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Pattern Rule: n² * (n + 1). For n=1: 1²*2=2 (or n³-n²). Let n=1..6: n²*(n+1) -> n=6: 6²*7 = 36*7 = 294 in 15 seconds!',
+        stepSolution: 'Pattern is n²*(n+1) or n³-n² with offset: 2²*1=4 (or 1*4), 3²*2=18, 4²*3=48, 5²*4=100, 6²*5=180, 7²*6=49*6=294. Correct is 294.',
+        difficulty: 'Moderate',
+        examYear: 'BITSAT 2023'
+      },
+      {
+        id: 'bq-lr3',
+        qNum: 3,
+        statement: 'Choose the correct preposition to complete the sentence: "The professor dissuaded him _______ taking up such a risky venture."',
+        topic: 'English Proficiency',
+        options: [
+          { key: 'A', text: 'from' },
+          { key: 'B', text: 'for' },
+          { key: 'C', text: 'against' },
+          { key: 'D', text: 'to' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Preposition Rule: The verb "dissuade" strictly takes the preposition "from" followed by a gerund.',
+        stepSolution: 'The standard idiomatic collocation in English grammar is "dissuade someone from doing something". Therefore, "from" is correct.',
+        difficulty: 'Easy',
+        examYear: 'BITSAT 2024'
+      },
+      {
+        id: 'bq-lr4',
+        qNum: 4,
+        statement: 'In a certain code, "PILANI" is coded as "QKMBOJ". What will be the code for "BITS"?',
+        topic: 'Coding-Decoding',
+        options: [
+          { key: 'A', text: 'CJUT' },
+          { key: 'B', text: 'CKVT' },
+          { key: 'C', text: 'BJUS' },
+          { key: 'D', text: 'AKSR' }
+        ],
+        correctKey: 'A',
+        dkSirShortcut: 'DK Sir Shift Rule: Each letter shifted by +1: B(+1)->C, I(+1)->J, T(+1)->U, S(+1)->T = CJUT.',
+        stepSolution: 'Every letter in PILANI is shifted forward by +1: P->Q, I->K (+2? Wait: P+1=Q, I+2=K, L+1=M, A+1=B, N+1=O, I+1=J). For BITS: B+1=C, I+1=J, T+1=U, S+1=T = CJUT.',
+        difficulty: 'Easy',
+        examYear: 'BITSAT 2022'
+      }
+    ]
+  }
+];
+
 export const BitsatPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlDrillId = searchParams.get('drill');
+  const urlTab = searchParams.get('tab');
+
+  // View mode switcher: 'drills' (direct solving like PYQ) | 'batches' | 'blueprint' | 'diagnostic'
+  const [viewMode, setViewMode] = useState<'drills' | 'batches' | 'blueprint' | 'diagnostic'>(() => {
+    if (urlTab === 'batches') return 'batches';
+    if (urlTab === 'blueprint') return 'blueprint';
+    if (urlTab === 'diagnostic') return 'diagnostic';
+    return 'drills';
+  });
+
+  // BITSAT Drills state
+  const [drills, setDrills] = useState<BITSATDrillItem[]>(INITIAL_FALLBACK_DRILLS);
+  const [selectedDrillId, setSelectedDrillId] = useState<string | null>(urlDrillId);
+  const [isLoadingDrills, setIsLoadingDrills] = useState<boolean>(true);
+
+  // Filters for drills catalog
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedSubject, setSelectedSubject] = useState<string>('All');
+  const [selectedAccess, setSelectedAccess] = useState<'All' | 'Free' | 'Pro'>('All');
+
+  // Active drill workspace solving state
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0);
+  const [responses, setResponses] = useState<Record<string, UserQuestionResponse>>({});
+  const [revealedShortcut, setRevealedShortcut] = useState<boolean>(false);
+  const [revealedSolution, setRevealedSolution] = useState<boolean>(false);
+
+  // 45-Second Question Speed Timer
+  const [secondsLeftPerQ, setSecondsLeftPerQ] = useState<number>(45);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(true);
+  const [overallElapsedSeconds, setOverallElapsedSeconds] = useState<number>(0);
+
+  // Video Solution Modal
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+
+  // Submission Summary Dialog
+  const [isDrillSubmitted, setIsDrillSubmitted] = useState<boolean>(false);
+
+  // Toast feedback
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Diagnostic form state
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [formData, setFormData] = useState({
     name: '',
@@ -65,60 +438,265 @@ export const BitsatPage: React.FC = () => {
     targetCampus: 'BITS Pilani (Main Campus)',
     mode: 'Online Live Batch'
   });
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
-  // Live BITSAT speed drills from Admin Command Center (/dpp-pyq?moduleType=BITSAT)
-  const [bitsatDrills, setBitsatDrills] = useState<any[]>([]);
-  const [selectedDrill, setSelectedDrill] = useState<any | null>(null);
-  const [drillQIndex, setDrillQIndex] = useState<number>(0);
-  const [drillAnswers, setDrillAnswers] = useState<Record<string, string>>({});
-  const [showDrillSolution, setShowDrillSolution] = useState<boolean>(false);
+  // 1. Fetch live BITSAT drills from MongoDB API
+  const fetchLiveDrills = async () => {
+    setIsLoadingDrills(true);
+    try {
+      const res = await apiClient.get<any>('/dpp-pyq');
+      const allItems = Array.isArray(res) ? res : res?.data || [];
+      if (Array.isArray(allItems)) {
+        const liveBitsat = allItems.filter((item: any) => {
+          const mod = String(item.moduleType || item.type || '').toUpperCase();
+          const badge = String(item.badgeCode || '').toUpperCase();
+          const exam = String(item.examTarget || '').toUpperCase();
+          const cat = String(item.categoryLabel || '').toUpperCase();
+          const title = String(item.title || '').toUpperCase();
+          return (
+            mod === 'BITSAT' ||
+            badge.includes('BITSAT') ||
+            exam.includes('BITSAT') ||
+            cat.includes('BITSAT') ||
+            title.includes('BITSAT')
+          );
+        });
+
+        if (liveBitsat.length > 0) {
+          // Merge API drills with fallback drills without duplicates
+          const seenIds = new Set<string>();
+          const merged: BITSATDrillItem[] = [];
+
+          liveBitsat.forEach((d: any) => {
+            const id = String(d.id || d._id);
+            if (!seenIds.has(id)) {
+              seenIds.add(id);
+              merged.push({
+                ...d,
+                id,
+                moduleType: 'BITSAT',
+                questions: Array.isArray(d.questions) && d.questions.length > 0 ? d.questions : INITIAL_FALLBACK_DRILLS[0].questions
+              });
+            }
+          });
+
+          // Add initial fallbacks if not already in list
+          INITIAL_FALLBACK_DRILLS.forEach((f) => {
+            if (!seenIds.has(f.id)) {
+              seenIds.add(f.id);
+              merged.push(f);
+            }
+          });
+
+          setDrills(merged);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load live BITSAT drills:', err);
+    } finally {
+      setIsLoadingDrills(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
-    const fetchBitsat = async () => {
-      try {
-        const res = await apiClient.get<any>('/dpp-pyq');
-        const allItems = Array.isArray(res) ? res : res?.data || [];
-        if (isMounted && Array.isArray(allItems)) {
-          const bitsatItems = allItems.filter((item: any) => {
-            const mod = String(item.moduleType || item.type || '').toUpperCase();
-            const badge = String(item.badgeCode || '').toUpperCase();
-            const exam = String(item.examTarget || '').toUpperCase();
-            const cat = String(item.categoryLabel || '').toUpperCase();
-            return mod === 'BITSAT' || badge.includes('BITSAT') || exam.includes('BITSAT') || cat.includes('BITSAT');
-          });
-          if (bitsatItems.length > 0) {
-            setBitsatDrills(bitsatItems);
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to fetch BITSAT drills:', e);
-      }
+    fetchLiveDrills();
+
+    const handleSync = () => {
+      if (isMounted) fetchLiveDrills();
     };
-    fetchBitsat();
-    window.addEventListener('dk_dpp_pyq_created', fetchBitsat);
-    window.addEventListener('dk_dpp_pyq_updated', fetchBitsat);
+
+    window.addEventListener(CMS_EVENT_KEY, handleSync);
+    window.addEventListener('dk_dpp_pyq_created', handleSync);
+    window.addEventListener('dk_dpp_pyq_updated', handleSync);
+    window.addEventListener('dk_dpp_pyq_deleted', handleSync);
+
     return () => {
       isMounted = false;
-      window.removeEventListener('dk_dpp_pyq_created', fetchBitsat);
-      window.removeEventListener('dk_dpp_pyq_updated', fetchBitsat);
+      window.removeEventListener(CMS_EVENT_KEY, handleSync);
+      window.removeEventListener('dk_dpp_pyq_created', handleSync);
+      window.removeEventListener('dk_dpp_pyq_updated', handleSync);
+      window.removeEventListener('dk_dpp_pyq_deleted', handleSync);
     };
   }, []);
+
+  // 2. Sync selected drill with URL query params
+  useEffect(() => {
+    const currentParam = searchParams.get('drill');
+    if (currentParam !== selectedDrillId) {
+      const nextParams = new URLSearchParams(searchParams);
+      if (selectedDrillId) {
+        nextParams.set('drill', selectedDrillId);
+      } else {
+        nextParams.delete('drill');
+      }
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [selectedDrillId]);
+
+  // Find active drill
+  const activeDrill = useMemo(() => {
+    if (!selectedDrillId) return null;
+    return (
+      drills.find(
+        (d) => String(d.id) === String(selectedDrillId) || String(d._id) === String(selectedDrillId)
+      ) || null
+    );
+  }, [selectedDrillId, drills]);
+
+  // Current questions list for active drill
+  const activeQuestions = useMemo(() => {
+    if (!activeDrill || !Array.isArray(activeDrill.questions) || activeDrill.questions.length === 0) {
+      return [];
+    }
+    return activeDrill.questions;
+  }, [activeDrill]);
+
+  const currentQ = useMemo(() => {
+    return activeQuestions[activeQuestionIndex] || activeQuestions[0] || null;
+  }, [activeQuestions, activeQuestionIndex]);
+
+  // 3. 45-Second Question Speed Timer Hook
+  useEffect(() => {
+    if (!activeDrill || !isTimerRunning || isDrillSubmitted) return;
+
+    const interval = setInterval(() => {
+      setSecondsLeftPerQ((prev) => {
+        if (prev <= 1) {
+          // Play warning chime when 45s speed budget expires
+          soundEffects.playCautionBeep();
+          return 0;
+        }
+        return prev - 1;
+      });
+      setOverallElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeDrill, isTimerRunning, isDrillSubmitted]);
+
+  // Reset 45s timer whenever changing question index
+  useEffect(() => {
+    setSecondsLeftPerQ(45);
+    setRevealedShortcut(false);
+    setRevealedSolution(false);
+  }, [activeQuestionIndex, selectedDrillId]);
+
+  // 4. Filter drills in catalog
+  const filteredDrills = useMemo(() => {
+    return drills.filter((drill) => {
+      if (selectedSubject !== 'All' && drill.subject !== selectedSubject) {
+        return false;
+      }
+      if (selectedAccess === 'Free' && drill.isFree === false && (drill.price || 0) > 0) {
+        return false;
+      }
+      if (selectedAccess === 'Pro' && (drill.isFree !== false || (drill.price || 0) === 0)) {
+        return false;
+      }
+      if (searchQuery.trim().length > 0) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesTitle = (drill.title || '').toLowerCase().includes(q);
+        const matchesChapter = (drill.chapter || '').toLowerCase().includes(q);
+        const matchesSubject = (drill.subject || '').toLowerCase().includes(q);
+        return matchesTitle || matchesChapter || matchesSubject;
+      }
+      return true;
+    });
+  }, [drills, selectedSubject, selectedAccess, searchQuery]);
+
+  // 5. Practice & solving handlers
+  const handleSelectOption = (questionId: string, optionKey: string) => {
+    soundEffects.playOptionSelect();
+    setResponses((prev) => ({
+      ...prev,
+      [questionId]: {
+        ...prev[questionId],
+        selectedOption: optionKey
+      }
+    }));
+  };
+
+  const handleClearResponse = (questionId: string) => {
+    setResponses((prev) => {
+      const updated = { ...prev };
+      delete updated[questionId];
+      return updated;
+    });
+  };
+
+  const handleToggleMarkForReview = (questionId: string) => {
+    setResponses((prev) => {
+      const current = prev[questionId] || {};
+      return {
+        ...prev,
+        [questionId]: {
+          ...current,
+          isMarkedForReview: !current.isMarkedForReview
+        }
+      };
+    });
+  };
+
+  const handleJumpQuestion = (idx: number) => {
+    if (idx >= 0 && idx < activeQuestions.length) {
+      setActiveQuestionIndex(idx);
+    }
+  };
+
+  const handleSubmitDrill = () => {
+    setIsDrillSubmitted(true);
+    soundEffects.playSubmissionFanfare();
+  };
+
+  // Performance stats for active drill
+  const drillStats = useMemo(() => {
+    let attempted = 0;
+    let correct = 0;
+    let score = 0;
+
+    activeQuestions.forEach((q) => {
+      const resp = responses[q.id];
+      if (resp?.selectedOption) {
+        attempted += 1;
+        if (resp.selectedOption === q.correctKey) {
+          correct += 1;
+          score += 3;
+        } else {
+          score -= 1;
+        }
+      }
+    });
+
+    const totalPossible = activeQuestions.length * 3;
+    const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
+    const bonusEligible = attempted === activeQuestions.length && activeQuestions.length >= 4;
+
+    return { attempted, correct, score, totalPossible, accuracy, bonusEligible };
+  }, [activeQuestions, responses]);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleDiagnosticSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name && formData.phone) {
       setIsSubmitted(true);
+      showToast('✓ Diagnostic test session booked! Mentor will contact you.');
     }
   };
 
   return (
     <div className={styles.bitsatPageWrapper}>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={styles.floatingToast} role="alert">
+          <CheckCircle2 size={16} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* 1. Breadcrumb Bar */}
       <nav className={styles.breadcrumbBar} aria-label="Breadcrumb">
         <Container size="wide">
@@ -128,12 +706,27 @@ export const BitsatPage: React.FC = () => {
               <span>Home</span>
             </Link>
             <span className={styles.breadcrumbSep}><ChevronRight size={13} /></span>
-            <span className={styles.breadcrumbCurrent}>BITSAT Speed Math &amp; CBT Mastery</span>
+            <span
+              className={styles.breadcrumbLink}
+              onClick={() => {
+                setSelectedDrillId(null);
+                setIsDrillSubmitted(false);
+              }}
+              style={{ cursor: activeDrill ? 'pointer' : 'default', color: !activeDrill ? '#2563eb' : undefined }}
+            >
+              BITSAT Speed Drills
+            </span>
+            {activeDrill && (
+              <>
+                <span className={styles.breadcrumbSep}><ChevronRight size={13} /></span>
+                <span className={styles.breadcrumbCurrent}>{activeDrill.title}</span>
+              </>
+            )}
           </div>
         </Container>
       </nav>
 
-      {/* 2. Hero Section - Executive Light Design matching site styling */}
+      {/* 2. Hero Header Section */}
       <section className={styles.heroSection}>
         <div className={styles.ambientGlow} aria-hidden="true" />
         <Container size="wide">
@@ -141,635 +734,548 @@ export const BitsatPage: React.FC = () => {
             {/* Urgency Eyebrow Badge */}
             <div className={styles.heroBadge}>
               <Flame size={14} className={styles.flameIcon} />
-              <span>BITSAT 2026 &amp; 2027 • ADMISSIONS OPEN</span>
+              <span>BITSAT 2026 &amp; 2027 • CBT SPEED ENGINE &amp; DRILL BANK</span>
             </div>
 
             {/* Main Page Headline */}
             <h1 className={styles.heroHeading}>
-              Conquer BITSAT with DK Sir's <br />
-              <span className={styles.highlightText}>20–30s Speed Math &amp; CBT Mastery</span>
+              BITSAT 2026 Speed Practice &amp; <br />
+              <span className={styles.highlightText}>Rapid Option Elimination Drill Bank</span>
             </h1>
 
             {/* Subtitle */}
             <p className={styles.heroSubtext}>
-              <strong>130 Questions in 180 Minutes</strong> gives you just 83 seconds per question. Learn rapid option elimination, master English &amp; Logical Reasoning (90 marks), and train with our exact <strong>12-Bonus Questions CBT simulation engine</strong> to score 330+ for BITS Pilani CS.
+              <strong>130 Questions in 180 Minutes</strong> gives you strictly 83 seconds per question. Solve live speed drills curated by DK Sir with <strong>strict 45s question timers</strong>, 20–30s inspection shortcuts, and authentic 12-Bonus Questions CBT simulation.
             </p>
 
-            {/* Action CTAs */}
-            <div className={styles.heroCtas}>
-              <a href="#batches" className={styles.primaryCtaBtn}>
-                <Zap size={16} />
-                <span>Explore BITSAT Batches</span>
-                <ArrowRight size={15} />
-              </a>
-              <a href="#diagnostic-form" className={styles.secondaryCtaBtn}>
-                <Target size={16} />
-                <span>Book Free Diagnostic Test</span>
-              </a>
+            {/* Hub Switcher Tabs */}
+            <div className={styles.hubTabs}>
+              <button
+                type="button"
+                className={`${styles.hubTab} ${styles.hubTabActive}`}
+              >
+                <Zap size={15} />
+                <span>BITSAT Speed Drills (Active)</span>
+              </button>
+              <Link to="/pyq" className={styles.hubTab}>
+                <BookOpen size={15} />
+                <span>JEE Main &amp; Adv PYQ Bank</span>
+              </Link>
+              <Link to="/dpp" className={styles.hubTab}>
+                <CheckCircle2 size={15} />
+                <span>Daily Practice Problems (DPP)</span>
+              </Link>
+              <Link to="/test-series" className={styles.hubTab}>
+                <Target size={15} />
+                <span>Full CBT Test Series</span>
+              </Link>
             </div>
 
-            {/* Reassurance Micro-copy */}
-            <div className={styles.heroMicroNote}>
-              <ShieldCheck size={14} className={styles.microShield} />
-              <span>Strictly Max 25 Students/Batch • 1-on-1 Speed Diagnostic Included</span>
-            </div>
-
-            {/* 4 Elevated Quick KPI Stat Cards */}
-            <div className={styles.statsGrid}>
-              <div className={styles.statCard}>
-                <div className={styles.statIconWrap}>
-                  <Clock size={18} />
-                </div>
-                <div className={styles.statValue}>83 Sec</div>
-                <p className={styles.statLabel}>Avg. Speed per Question Target</p>
-              </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIconWrap}>
-                  <Award size={18} />
-                </div>
-                <div className={styles.statValue}>330+</div>
-                <p className={styles.statLabel}>Target Score for BITS Pilani CS</p>
-              </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIconWrap}>
-                  <Sparkles size={18} />
-                </div>
-                <div className={styles.statValue}>+36 Marks</div>
-                <p className={styles.statLabel}>12 Bonus Questions Strategy</p>
-              </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIconWrap}>
-                  <Brain size={18} />
-                </div>
-                <div className={styles.statValue}>90 Marks</div>
-                <p className={styles.statLabel}>English &amp; Logical Reasoning Focus</p>
-              </div>
+            {/* View Mode Switcher Pills */}
+            <div className={styles.viewModeSwitcher}>
+              <button
+                type="button"
+                className={`${styles.viewModePill} ${viewMode === 'drills' ? styles.viewModePillActive : ''}`}
+                onClick={() => {
+                  setViewMode('drills');
+                  setSelectedDrillId(null);
+                }}
+              >
+                <Zap size={14} />
+                <span>⚡ Live Speed Drills ({drills.length})</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.viewModePill} ${viewMode === 'batches' ? styles.viewModePillActive : ''}`}
+                onClick={() => setViewMode('batches')}
+              >
+                <Flame size={14} />
+                <span>🏆 Crash Programs &amp; Batches</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.viewModePill} ${viewMode === 'blueprint' ? styles.viewModePillActive : ''}`}
+                onClick={() => setViewMode('blueprint')}
+              >
+                <Brain size={14} />
+                <span>📊 Exam Architecture &amp; Cutoffs</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.viewModePill} ${viewMode === 'diagnostic' ? styles.viewModePillActive : ''}`}
+                onClick={() => setViewMode('diagnostic')}
+              >
+                <Award size={14} />
+                <span>📋 Free Diagnostic Test</span>
+              </button>
             </div>
           </div>
         </Container>
       </section>
 
-      {/* 3. BITSAT Exam Pattern Blueprint */}
-      <section className={styles.section} id="pattern">
-        <Container size="wide">
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionBadge}>
-              <Sparkles size={12} />
-              <span>EXAM ARCHITECTURE</span>
-            </div>
-            <h2 className={styles.sectionTitle}>
-              BITSAT Blueprint: <span className={styles.titleGradient}>130 Questions, 390 Marks, 180 Mins</span>
-            </h2>
-            <p className={styles.sectionDescription}>
-              Mathematics carries the highest weightage (40 questions), while English &amp; Logic (30 questions) form the make-or-break scoring zone.
-            </p>
-          </div>
-
-          <div className={styles.patternGrid}>
-            {/* Part IV - Mathematics */}
-            <div className={styles.patternCard}>
-              <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #d97706, #f59e0b)' }} />
-              <div className={styles.patternTop}>
-                <span className={`${styles.subjectBadge} ${styles.mathBadge}`}>Part IV</span>
-                <Clock size={16} className={styles.accentClock} />
-              </div>
-              <h3 className={styles.patternTitle}>Mathematics</h3>
-              <div className={styles.patternStatsRow}>
-                <span className={styles.patternQuestions}>40 Qs</span>
-                <span className={styles.patternMarks}>• 120 Marks (+3, -1)</span>
-              </div>
-              <p className={styles.patternNote}>
-                Highest scoring section. DK Sir's 20-30s shortcuts eliminate 2 options instantly in Coordinate Geometry, Calculus, &amp; Vectors.
-              </p>
-            </div>
-
-            {/* Part III - English & Logic */}
-            <div className={styles.patternCard}>
-              <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #4f46e5, #818cf8)' }} />
-              <div className={styles.patternTop}>
-                <span className={`${styles.subjectBadge} ${styles.lrBadge}`}>Part III</span>
-                <Brain size={16} className={styles.accentBrain} />
-              </div>
-              <h3 className={styles.patternTitle}>English &amp; Logical Reasoning</h3>
-              <div className={styles.patternStatsRow}>
-                <span className={styles.patternQuestions}>30 Qs</span>
-                <span className={styles.patternMarks}>• 90 Marks (10 Eng + 20 LR)</span>
-              </div>
-              <p className={styles.patternNote}>
-                Neglected by 85% of JEE students. We dedicate 40+ structured hours to grammar, vocabulary, syllogisms, and sequence deduction.
-              </p>
-            </div>
-
-            {/* Part I - Physics */}
-            <div className={styles.patternCard}>
-              <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #2563eb, #38bdf8)' }} />
-              <div className={styles.patternTop}>
-                <span className={`${styles.subjectBadge} ${styles.phyBadge}`}>Part I</span>
-                <Zap size={16} className={styles.accentZap} />
-              </div>
-              <h3 className={styles.patternTitle}>Physics</h3>
-              <div className={styles.patternStatsRow}>
-                <span className={styles.patternQuestions}>30 Qs</span>
-                <span className={styles.patternMarks}>• 90 Marks (+3, -1)</span>
-              </div>
-              <p className={styles.patternNote}>
-                Formula recall speed drills and dimensional boundary condition checks to solve kinematics and electrodynamics in under 60 seconds.
-              </p>
-            </div>
-
-            {/* Part II - Chemistry */}
-            <div className={styles.patternCard}>
-              <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #059669, #34d399)' }} />
-              <div className={styles.patternTop}>
-                <span className={`${styles.subjectBadge} ${styles.chemBadge}`}>Part II</span>
-                <Award size={16} className={styles.accentAward} />
-              </div>
-              <h3 className={styles.patternTitle}>Chemistry</h3>
-              <div className={styles.patternStatsRow}>
-                <span className={styles.patternQuestions}>30 Qs</span>
-                <span className={styles.patternMarks}>• 90 Marks (+3, -1)</span>
-              </div>
-              <p className={styles.patternNote}>
-                100% NCERT memory retention maps for Inorganic trends, direct reaction mechanisms in Organic, and rapid Physical Chem formulas.
-              </p>
-            </div>
-          </div>
-
-          {/* 12 Bonus Questions Round Highlight Banner */}
-          <div className={styles.bonusBanner}>
-            <div className={styles.bonusGlowAura} aria-hidden="true" />
-            <div className={styles.bonusLeft}>
-              <span className={styles.bonusPill}>
-                <Sparkles size={12} /> THE BITSAT ADVANTAGE
-              </span>
-              <h3 className={styles.bonusTitle}>Unlock the 12 Bonus Questions Engine</h3>
-              <p className={styles.bonusDesc}>
-                If you attempt all 130 questions, BITSAT unlocks 12 extra questions (4 Math, 4 Physics, 4 Chemistry) for <strong>+36 bonus marks</strong>. DK Sir trains students on the exact time-budgeting and risk-mitigation algorithm to safely trigger the bonus round without negative marking penalties.
-              </p>
-            </div>
-            <div className={styles.bonusRight}>
-              <div className={styles.bonusStatBox}>
-                <span className={styles.bonusNumber}>+36</span>
-                <span className={styles.bonusLabel}>Bonus Marks Potential</span>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* 4. Why DK Sir's Pedagogy Outperforms in BITSAT */}
-      <section className={`${styles.section} ${styles.sectionAlt}`} id="pedagogy">
-        <Container size="wide">
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionBadge}>
-              <Zap size={12} />
-              <span>SPEED-FIRST METHODOLOGY</span>
-            </div>
-            <h2 className={styles.sectionTitle}>
-              Why JEE Main Coaching Fails in BITSAT <span className={styles.titleGradient}>Without Speed Conditioning</span>
-            </h2>
-            <p className={styles.sectionDescription}>
-              In JEE, you have time to derive from fundamentals. In BITSAT, a 3-minute solution is equivalent to a failure. Here is how DK Sir rewires your exam reflexes.
-            </p>
-          </div>
-
-          <div className={styles.methodsGrid}>
-            {/* Card 01 */}
-            <div className={styles.methodCard}>
-              <span className={styles.numberWatermark} aria-hidden="true">01</span>
-              <div className={styles.methodHeader}>
-                <div className={`${styles.methodIcon} ${styles.iconAmber}`}>
-                  <Zap size={22} />
-                </div>
-                <span className={`${styles.methodBadge} ${styles.badgeAmber}`}>Signature Technique</span>
-              </div>
-              <h3 className={styles.methodTitle}>20–30s Option Elimination</h3>
-              <p className={styles.methodText}>
-                Substitute boundary values, test dimensional symmetry, and evaluate extreme cases. In 70% of BITSAT math problems, 2 options are mathematically impossible within 15 seconds.
-              </p>
-
-              <div className={styles.methodDivider} />
-
-              <ul className={styles.methodPointsList}>
-                <li className={styles.methodPointItem}>
-                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkAmber}`} />
-                  <span>Boundary value &amp; extreme-case substitution</span>
-                </li>
-                <li className={styles.methodPointItem}>
-                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkAmber}`} />
-                  <span>Eliminate 2 choices in under 15 seconds</span>
-                </li>
-                <li className={styles.methodPointItem}>
-                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkAmber}`} />
-                  <span>Bypasses 6–7 lines of lengthy algebraic derivations</span>
-                </li>
-              </ul>
-
-              <div className={`${styles.methodFooter} ${styles.footerAmber}`}>
-                <div className={styles.methodMetricBox}>
-                  <Clock size={15} />
-                  <span className={styles.methodMetricVal}>15–20 Mins Saved</span>
-                </div>
-                <span className={styles.methodMetricLabel}>Per BITSAT Paper</span>
-              </div>
-            </div>
-
-            {/* Card 02 */}
-            <div className={styles.methodCard}>
-              <span className={styles.numberWatermark} aria-hidden="true">02</span>
-              <div className={styles.methodHeader}>
-                <div className={`${styles.methodIcon} ${styles.iconIndigo}`}>
-                  <Brain size={22} />
-                </div>
-                <span className={`${styles.methodBadge} ${styles.badgeIndigo}`}>Scoring Multiplier</span>
-              </div>
-              <h3 className={styles.methodTitle}>English &amp; Logic Maximization</h3>
-              <p className={styles.methodText}>
-                30 questions (90 marks) can elevate your rank from an MSc branch to Computer Science. We teach systematic verbal analogy algorithms, high-frequency root words, and pattern recognition.
-              </p>
-
-              <div className={styles.methodDivider} />
-
-              <ul className={styles.methodPointsList}>
-                <li className={styles.methodPointItem}>
-                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkIndigo}`} />
-                  <span>30 questions (90 marks) rank multiplier strategy</span>
-                </li>
-                <li className={styles.methodPointItem}>
-                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkIndigo}`} />
-                  <span>Verbal analogies, roots &amp; contextual deduction</span>
-                </li>
-                <li className={styles.methodPointItem}>
-                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkIndigo}`} />
-                  <span>Syllogisms, pattern sequences &amp; logic algorithms</span>
-                </li>
-              </ul>
-
-              <div className={`${styles.methodFooter} ${styles.footerIndigo}`}>
-                <div className={styles.methodMetricBox}>
-                  <Award size={15} />
-                  <span className={styles.methodMetricVal}>Target: 75+ / 90</span>
-                </div>
-                <span className={styles.methodMetricLabel}>English &amp; LR Score</span>
-              </div>
-            </div>
-
-            {/* Card 03 */}
-            <div className={styles.methodCard}>
-              <span className={styles.numberWatermark} aria-hidden="true">03</span>
-              <div className={styles.methodHeader}>
-                <div className={`${styles.methodIcon} ${styles.iconBlue}`}>
-                  <Target size={22} />
-                </div>
-                <span className={`${styles.methodBadge} ${styles.badgeBlue}`}>TCS-iON Clone</span>
-              </div>
-              <h3 className={styles.methodTitle}>CBT Simulation &amp; Bonus Trigger</h3>
-              <p className={styles.methodText}>
-                Practice on an interface identical to the official BITSAT TCS-iON engine with the live question palette, section jumper, and authentic 12 bonus questions prompt.
-              </p>
-
-              <div className={styles.methodDivider} />
-
-              <ul className={styles.methodPointsList}>
-                <li className={styles.methodPointItem}>
-                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkBlue}`} />
-                  <span>Authentic TCS-iON UI test simulation environment</span>
-                </li>
-                <li className={styles.methodPointItem}>
-                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkBlue}`} />
-                  <span>Official 12 Bonus Questions trigger algorithm</span>
-                </li>
-                <li className={styles.methodPointItem}>
-                  <CheckCircle2 size={15} className={`${styles.methodPointIcon} ${styles.checkBlue}`} />
-                  <span>Time-budgeting &amp; negative mark mitigation</span>
-                </li>
-              </ul>
-
-              <div className={`${styles.methodFooter} ${styles.footerBlue}`}>
-                <div className={styles.methodMetricBox}>
-                  <Sparkles size={15} />
-                  <span className={styles.methodMetricVal}>15 Full Mocks</span>
-                </div>
-                <span className={styles.methodMetricLabel}>CBT with AIR Ranking</span>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* 5. Active BITSAT Batches - Matching PopularCourses Award-Winning Design */}
-      <section className={styles.section} id="batches">
-        <Container size="wide">
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionBadge}>
-              <Flame size={12} />
-              <span>ENROLLMENT OPEN 2026–27</span>
-            </div>
-            <h2 className={styles.sectionTitle}>
-              Active BITSAT Batches &amp; <span className={styles.titleGradient}>Tuition Plans</span>
-            </h2>
-            <p className={styles.sectionDescription}>
-              Target BITS Pilani, Goa, and Hyderabad with targeted crash courses, speed math boosters, and full-length CBT test series.
-            </p>
-          </div>
-
-          <div className={styles.batchesGrid}>
-            {/* Batch 1: Complete Crash Course (Most Popular) */}
-            <article className={`${styles.batchCard} ${styles.popularBatch}`}>
-              <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #2563eb, #38bdf8)' }} />
-              
-              <div className={styles.batchTopBadgeRow}>
-                <span className={styles.batchFlagshipBadge}>
-                  <Sparkles size={11} /> MOST POPULAR BITSAT BATCH
-                </span>
-                <span className={styles.batchTargetYear}>
-                  <Calendar size={12} /> Target 2026/27
-                </span>
-              </div>
-
-              <h3 className={styles.batchTitle}>BITSAT 2026 Speed Master Crash Program</h3>
-
-              {/* Rigor Meta Pills */}
-              <div className={styles.metaPillsRow}>
-                <div className={styles.metaPillBatch}>
-                  <Users size={12} />
-                  <span>Strictly Max 25 / Batch</span>
-                </div>
-                <div className={styles.metaPillMode}>
-                  <Zap size={12} />
-                  <span>Online Live • Sessions 1 &amp; 2</span>
-                </div>
-              </div>
-
-              {/* Key Deliverables */}
-              <ul className={styles.featuresList}>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>120+ Live Interactive Speed Hack Sessions</strong> by DK Sir &amp; Team</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>Full Math (40 Qs), Physics, Chem, English &amp; LR</strong> covered end-to-end</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>15 Full-length BITSAT CBT Mocks</strong> with Bonus 12 Questions simulator</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>BITSAT Formula Handbooks</strong> &amp; High-Frequency English Vocab Bank</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>Daily 1:1 Live Doubt Counter</strong> &amp; BITS Pilani Alumni Mentorship</span>
-                </li>
-              </ul>
-
-              {/* Pricing Box */}
-              <div className={styles.pricingBlock}>
-                <div className={styles.priceRow}>
-                  <span className={styles.currentPrice}>₹14,999</span>
-                  <span className={styles.originalPrice}>₹24,999</span>
-                  <span className={styles.discountBadge}>Save 40%</span>
-                </div>
-                <div className={styles.taxSubtext}>Incl. 18% GST • 5 Subjects + 15 Mocks</div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className={styles.cardActionsRow}>
-                <a href="#diagnostic-form" className={styles.enrollPrimaryBtn}>
-                  <span>Enroll in Speed Master</span>
-                  <ArrowRight size={14} />
-                </a>
-              </div>
-            </article>
-
-            {/* Batch 2: Math + LR & English Super Booster */}
-            <article className={styles.batchCard}>
-              <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #4f46e5, #818cf8)' }} />
-              
-              <div className={styles.batchTopBadgeRow}>
-                <span className={styles.batchBoosterBadge}>
-                  <Brain size={11} /> 210 MARKS SCORING BOOSTER
-                </span>
-                <span className={styles.batchTargetYear}>
-                  <Calendar size={12} /> Target 2026/27
-                </span>
-              </div>
-
-              <h3 className={styles.batchTitle}>BITSAT Math + LR &amp; English Super Booster</h3>
-
-              {/* Rigor Meta Pills */}
-              <div className={styles.metaPillsRow}>
-                <div className={styles.metaPillBatch}>
-                  <Users size={12} />
-                  <span>Strictly Max 25 / Batch</span>
-                </div>
-                <div className={styles.metaPillMode}>
-                  <Zap size={12} />
-                  <span>Online Live • 70/130 Qs Focus</span>
-                </div>
-              </div>
-
-              {/* Key Deliverables */}
-              <ul className={styles.featuresList}>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>Complete BITSAT Mathematics (40 Qs)</strong> with DK Sir's 20-30s techniques</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>40+ Hours English &amp; Logical Reasoning drills</strong> for 75+ mark score</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>10 Targeted Math + LR Subject Mocks</strong> with timer diagnostics</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>Daily Speed Practice Sheets (DPS)</strong> with video solution keys</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>Full access to recorded lecture library</strong> till BITSAT Session 2</span>
-                </li>
-              </ul>
-
-              {/* Pricing Box */}
-              <div className={styles.pricingBlock}>
-                <div className={styles.priceRow}>
-                  <span className={styles.currentPrice}>₹8,999</span>
-                  <span className={styles.originalPrice}>₹14,999</span>
-                  <span className={styles.discountBadge}>Save 40%</span>
-                </div>
-                <div className={styles.taxSubtext}>Incl. 18% GST • Math, English &amp; LR Special</div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className={styles.cardActionsRow}>
-                <a href="#diagnostic-form" className={styles.enrollPrimaryBtn}>
-                  <span>Enroll in Booster</span>
-                  <ArrowRight size={14} />
-                </a>
-              </div>
-            </article>
-
-            {/* Batch 3: All-India BITSAT CBT Test Series */}
-            <article className={styles.batchCard}>
-              <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #059669, #34d399)' }} />
-              
-              <div className={styles.batchTopBadgeRow}>
-                <span className={styles.batchTestBadge}>
-                  <Target size={11} /> CBT ENGINE SIMULATION
-                </span>
-                <span className={styles.batchTargetYear}>
-                  <Calendar size={12} /> Target 2026/27
-                </span>
-              </div>
-
-              <h3 className={styles.batchTitle}>All India BITSAT CBT Online Test Series</h3>
-
-              {/* Rigor Meta Pills */}
-              <div className={styles.metaPillsRow}>
-                <div className={styles.metaPillBatch}>
-                  <Users size={12} />
-                  <span>10,000+ Rank Pool</span>
-                </div>
-                <div className={styles.metaPillMode}>
-                  <Zap size={12} />
-                  <span>Self-Paced • 15 Full CBT Mocks</span>
-                </div>
-              </div>
-
-              {/* Key Deliverables */}
-              <ul className={styles.featuresList}>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>15 Full-length BITSAT mock tests</strong> strictly aligned with 2026 pattern</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>Authentic Bonus Question trigger</strong> when all 130 Qs are completed</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>Question-wise time analytics</strong> (Time spent per question vs topper)</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>All India Rank (AIR) &amp; BITS Campus cutoff predictor</strong> algorithms</span>
-                </li>
-                <li>
-                  <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
-                  <span><strong>Detailed step-by-step video solutions</strong> for every math question</span>
-                </li>
-              </ul>
-
-              {/* Pricing Box */}
-              <div className={styles.pricingBlock}>
-                <div className={styles.priceRow}>
-                  <span className={styles.currentPrice}>₹3,499</span>
-                  <span className={styles.originalPrice}>₹6,999</span>
-                  <span className={styles.discountBadge}>Save 50%</span>
-                </div>
-                <div className={styles.taxSubtext}>Incl. 18% GST • Full TCS-iON Interface Simulator</div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className={styles.cardActionsRow}>
-                <a href="#diagnostic-form" className={styles.enrollPrimaryBtn}>
-                  <span>Join Test Series</span>
-                  <ArrowRight size={14} />
-                </a>
-              </div>
-            </article>
-          </div>
-        </Container>
-      </section>
-
-      {/* 5B. Live BITSAT Speed Drills & Question Archives */}
-      {bitsatDrills.length > 0 && (
-        <section className={styles.section} id="speed-drills">
+      {/* ─── MAIN WORKSPACE: CATALOG VIEW vs ACTIVE DRILL SOLVING ─── */}
+      {viewMode === 'drills' && (
+        <section className={styles.section} id="drills-catalog" style={{ paddingTop: '2rem' }}>
           <Container size="wide">
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionBadge}>
-                <Zap size={12} />
-                <span>LIVE SPEED DRILLS</span>
-              </div>
-              <h2 className={styles.sectionTitle}>
-                BITSAT Rapid Fire Drills &amp; <span className={styles.titleGradient}>Question Archives</span>
-              </h2>
-              <p className={styles.sectionDescription}>
-                Strict 45-second timer practice drills curated by DK Sir with 20–30s inspection shortcuts and official CBT answer keys.
-              </p>
-            </div>
+            {!activeDrill ? (
+              /* ═══════════════════════════════════════════════════════════════
+                 A. DRILL CATALOG VIEW (Direct Titles Created by Admin)
+                 ═══════════════════════════════════════════════════════════════ */
+              <div className={styles.catalogSection}>
+                {/* Search & Multi-Subject Filters */}
+                <div className={styles.catalogFilterBar}>
+                  <div className={styles.catalogSearchBox}>
+                    <Search size={18} className={styles.searchIcon} />
+                    <input
+                      type="text"
+                      className={styles.searchInput}
+                      placeholder="Search BITSAT drills by title, chapter, or shortcut..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        style={{ position: 'absolute', right: '14px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
 
-            <div className={styles.batchesGrid}>
-              {bitsatDrills.map((drill) => (
-                <article key={drill.id || drill._id} className={styles.batchCard}>
-                  <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #ec4899, #f43f5e)' }} />
-                  <div className={styles.batchTopBadgeRow}>
-                    <span className={styles.batchFlagshipBadge} style={{ background: '#fdf2f8', color: '#db2777', borderColor: '#fbcfe8' }}>
-                      <Sparkles size={11} /> {drill.badgeCode || 'BITSAT Speed Drill'}
-                    </span>
-                    <span className={styles.batchTargetYear}>
-                      {drill.subject || 'Mathematics'}
-                    </span>
-                  </div>
-                  <h3 className={styles.batchTitle}>{drill.title}</h3>
-                  <p style={{ margin: '8px 0 16px', fontSize: '0.88rem', color: '#64748b', lineHeight: 1.5 }}>
-                    {drill.categoryLabel || `${drill.subject} Speed Drill`} • {drill.solutionNote || 'Strict 45s timer format with step solutions'}
-                  </p>
-                  <div className={styles.metaPillsRow} style={{ marginBottom: '16px' }}>
-                    <div className={styles.metaPillBatch}>
-                      <Clock size={12} />
-                      <span>{drill.questionsCount || drill.questions?.length || 25} Questions</span>
+                  <div className={styles.filterRowsStack}>
+                    {/* Subject Filter */}
+                    <div className={styles.filterRow}>
+                      <span className={styles.filterRowLabel}>Subject:</span>
+                      <div className={styles.filterPillsGroup}>
+                        {['All', 'Mathematics', 'Physics', 'Chemistry', 'Logical Reasoning & English'].map((sub) => (
+                          <button
+                            key={sub}
+                            type="button"
+                            className={`${styles.filterPill} ${selectedSubject === sub ? styles.filterPillActive : ''}`}
+                            onClick={() => setSelectedSubject(sub)}
+                          >
+                            {sub === 'All' ? 'All Subjects' : sub}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className={styles.metaPillMode}>
-                      <Brain size={12} />
-                      <span>{drill.attemptsCount || 120}+ Solved</span>
+
+                    {/* Access Filter */}
+                    <div className={styles.filterRow}>
+                      <span className={styles.filterRowLabel}>Access:</span>
+                      <div className={styles.filterPillsGroup}>
+                        {(['All', 'Free', 'Pro'] as const).map((acc) => (
+                          <button
+                            key={acc}
+                            type="button"
+                            className={`${styles.filterPill} ${selectedAccess === acc ? styles.filterPillActive : ''}`}
+                            onClick={() => setSelectedAccess(acc)}
+                          >
+                            {acc === 'All' ? 'All Drills' : acc === 'Free' ? 'Free Speed Drills' : 'Pro Drills'}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDrill(drill);
-                      setDrillQIndex(0);
-                      setDrillAnswers({});
-                      setShowDrillSolution(false);
-                    }}
-                    className={styles.enrollBatchBtn}
-                    style={{
-                      width: '100%',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '11px 16px',
-                      borderRadius: '10px',
-                      fontWeight: 700,
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    <Flame size={15} />
-                    <span>Practice Speed Drill</span>
-                  </button>
-                </article>
-              ))}
-            </div>
+                </div>
+
+                {/* Drills Grid */}
+                {isLoadingDrills ? (
+                  <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
+                    <div className={styles.flameIcon} style={{ fontSize: '24px', marginBottom: '8px' }}>⚡</div>
+                    <p style={{ fontWeight: 600 }}>Loading live BITSAT drills from DK Academy Command Center...</p>
+                  </div>
+                ) : filteredDrills.length === 0 ? (
+                  <div style={{ padding: '60px', textAlign: 'center', background: '#fff', borderRadius: '16px', border: '1.5px dashed #cbd5e1' }}>
+                    <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#334155' }}>No BITSAT drills match your search.</p>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Try clearing your filters or check other subjects.</p>
+                    <button
+                      type="button"
+                      onClick={() => { setSearchQuery(''); setSelectedSubject('All'); setSelectedAccess('All'); }}
+                      style={{ marginTop: '12px', padding: '8px 16px', borderRadius: '8px', background: '#2563eb', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Reset All Filters
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.setsCardsGrid}>
+                    {filteredDrills.map((drill) => (
+                      <article
+                        key={drill.id || drill._id}
+                        className={styles.setCard}
+                        onClick={() => {
+                          setSelectedDrillId(drill.id || drill._id || '');
+                          setActiveQuestionIndex(0);
+                          setResponses({});
+                          setIsDrillSubmitted(false);
+                          window.scrollTo({ top: 320, behavior: 'smooth' });
+                        }}
+                      >
+                        <div
+                          className={styles.setCardTopAccent}
+                          style={{
+                            background: drill.subject === 'Mathematics'
+                              ? 'linear-gradient(90deg, #d97706, #f59e0b)'
+                              : drill.subject === 'Physics'
+                              ? 'linear-gradient(90deg, #2563eb, #38bdf8)'
+                              : drill.subject === 'Chemistry'
+                              ? 'linear-gradient(90deg, #059669, #34d399)'
+                              : 'linear-gradient(90deg, #7c3aed, #a855f7)'
+                          }}
+                        />
+
+                        <div className={styles.setCardTopRow}>
+                          <span className={styles.setModuleBadge}>
+                            <Zap size={11} /> {drill.badgeCode || 'BITSAT Speed Drill'}
+                          </span>
+                          {drill.isFree === false && (drill.price || 0) > 0 ? (
+                            <span className={styles.accessBadgeLocked}>PRO • ₹{drill.price}</span>
+                          ) : (
+                            <span className={styles.accessBadgeFree}>FREE ACCESS</span>
+                          )}
+                        </div>
+
+                        <h3 className={styles.setCardTitle}>{drill.title}</h3>
+                        <p className={styles.setCardSubtext}>
+                          {drill.chapter ? `${drill.chapter} • ` : ''}{drill.solutionNote || 'Strict 45s timer format with DK Sir shortcuts'}
+                        </p>
+
+                        <div className={styles.setCardMetaStrip}>
+                          <span className={styles.setCardMetaItem}>
+                            <Clock size={13} style={{ color: '#d97706' }} /> 45s / Question
+                          </span>
+                          <span className={styles.setCardMetaItem}>
+                            <ListOrdered size={13} style={{ color: '#2563eb' }} /> {drill.questionsCount || drill.questions?.length || 4} Questions
+                          </span>
+                          <span className={styles.setCardMetaItem}>
+                            <Brain size={13} style={{ color: '#059669' }} /> {drill.attemptsCount || 120}+ Solved
+                          </span>
+                        </div>
+
+                        <button type="button" className={styles.setCardActionBtn}>
+                          <Flame size={15} />
+                          <span>Start Speed Drill</span>
+                          <ArrowRight size={14} />
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ═══════════════════════════════════════════════════════════════
+                 B. ACTIVE DRILL SOLVING WORKSPACE ("Jaisa PYQ Hai Vaise Hi")
+                 ═══════════════════════════════════════════════════════════════ */
+              <div className={styles.activeWorkspaceWrap}>
+                {/* Workspace Top Bar */}
+                <div className={styles.workspaceTopBar}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className={styles.backBtn}
+                      onClick={() => {
+                        setSelectedDrillId(null);
+                        setIsDrillSubmitted(false);
+                      }}
+                    >
+                      <ChevronLeft size={16} />
+                      <span>Back to BITSAT Drills</span>
+                    </button>
+
+                    <div className={styles.activeTitleBlock}>
+                      <h2 className={styles.activeDrillTitle}>{activeDrill.title}</h2>
+                      <div className={styles.activeDrillBadges}>
+                        <span className={styles.setModuleBadge}>
+                          <Zap size={11} /> {activeDrill.badgeCode || 'BITSAT Speed Drill'}
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                          {activeDrill.subject} • {activeQuestions.length} Questions
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 45-Second Question Speed Countdown Timer */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className={`${styles.speedTimerBox} ${secondsLeftPerQ <= 15 ? styles.timerDanger : ''}`}>
+                      <Clock size={16} style={{ color: secondsLeftPerQ <= 15 ? '#dc2626' : '#2563eb' }} />
+                      <div>
+                        <div className={styles.timerLabel}>45s Question Timer</div>
+                        <div className={`${styles.timerValue} ${secondsLeftPerQ <= 15 ? styles.timerDangerVal : ''}`}>
+                          {String(Math.floor(secondsLeftPerQ / 60)).padStart(2, '0')}:
+                          {String(secondsLeftPerQ % 60).padStart(2, '0')}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsTimerRunning(!isTimerRunning)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}
+                        title={isTimerRunning ? 'Pause timer' : 'Resume timer'}
+                      >
+                        {isTimerRunning ? <Pause size={14} /> : <Play size={14} />}
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSubmitDrill}
+                      className={styles.submitDrillBtn}
+                    >
+                      <CheckCircle2 size={16} />
+                      <span>Finish &amp; Score</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Question Area & CBT Palette Grid */}
+                <div className={styles.workspaceColumnsGrid}>
+                  {/* Left Column: Current Question */}
+                  <div className={styles.questionCard}>
+                    {currentQ ? (
+                      <>
+                        <div className={styles.questionCardHeader}>
+                          <span className={styles.qIndexPill}>
+                            Question {activeQuestionIndex + 1} of {activeQuestions.length}
+                          </span>
+                          <span className={styles.qTopicLabel}>
+                            {currentQ.topic || activeDrill.chapter || 'BITSAT Speed Problem'} • {currentQ.difficulty || 'Moderate'}
+                          </span>
+                        </div>
+
+                        <p className={styles.questionStatement}>
+                          {currentQ.statement}
+                        </p>
+
+                        {/* Interactive Option Buttons */}
+                        <div className={styles.optionsList}>
+                          {(currentQ.options || []).map((opt) => {
+                            const isSelected = responses[currentQ.id]?.selectedOption === opt.key;
+                            return (
+                              <button
+                                key={opt.key}
+                                type="button"
+                                className={`${styles.optionItemBtn} ${isSelected ? styles.optionSelected : ''}`}
+                                onClick={() => handleSelectOption(currentQ.id, opt.key)}
+                              >
+                                <span className={`${styles.optionKeyCircle} ${isSelected ? styles.optionKeySelected : ''}`}>
+                                  {opt.key}
+                                </span>
+                                <span className={styles.optionTextString}>{opt.text}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Action Toolbar */}
+                        <div className={styles.actionToolbar}>
+                          <button
+                            type="button"
+                            className={styles.shortcutToggleBtn}
+                            onClick={() => {
+                              soundEffects.playDkSirReveal();
+                              setRevealedShortcut(!revealedShortcut);
+                            }}
+                          >
+                            <Sparkles size={14} />
+                            <span>{revealedShortcut ? 'Hide Shortcut' : '💡 DK Sir 20s Inspection Shortcut'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className={styles.solutionToggleBtn}
+                            onClick={() => setRevealedSolution(!revealedSolution)}
+                          >
+                            <BookOpen size={14} />
+                            <span>{revealedSolution ? 'Hide Derivation' : '📖 Step Derivation'}</span>
+                          </button>
+
+                          {(activeDrill.videoUrl || activeDrill.videoWalkthroughUrl) && (
+                            <button
+                              type="button"
+                              className={styles.videoSolutionBtn}
+                              onClick={() => setActiveVideoUrl(activeDrill.videoUrl || activeDrill.videoWalkthroughUrl || '')}
+                            >
+                              <Video size={14} />
+                              <span>▶ Video Solution</span>
+                            </button>
+                          )}
+
+                          {activeDrill.pdfUrl && (
+                            <a
+                              href={activeDrill.pdfUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={styles.pdfSolutionBtn}
+                            >
+                              <FileText size={14} />
+                              <span>📄 PDF Solution</span>
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Revealed DK Sir Shortcut Box */}
+                        {revealedShortcut && (
+                          <div className={styles.shortcutBox}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, marginBottom: '6px' }}>
+                              <Zap size={16} /> DK Sir 20–30s Inspection Trick:
+                            </div>
+                            <p style={{ margin: 0 }}>
+                              {currentQ.dkSirShortcut || 'Use boundary-value substitution and eliminate choices with opposite parity or sign in under 20 seconds!'}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Revealed Step Derivation Box */}
+                        {revealedSolution && (
+                          <div className={styles.solutionBox}>
+                            <div style={{ fontWeight: 800, marginBottom: '6px', color: '#0f172a' }}>
+                              Official Step-by-Step Derivation:
+                            </div>
+                            <p style={{ margin: 0 }}>
+                              {currentQ.stepSolution || 'Detailed theoretical proof and algebraic breakdown.'}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Navigation Controls */}
+                        <div className={styles.navigationBar}>
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                              type="button"
+                              className={styles.navPrevBtn}
+                              disabled={activeQuestionIndex === 0}
+                              onClick={() => setActiveQuestionIndex((prev) => Math.max(0, prev - 1))}
+                            >
+                              <ChevronLeft size={16} />
+                              <span>Previous</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className={styles.navNextBtn}
+                              disabled={activeQuestionIndex === activeQuestions.length - 1}
+                              onClick={() => setActiveQuestionIndex((prev) => Math.min(activeQuestions.length - 1, prev + 1))}
+                            >
+                              <span>Next Question</span>
+                              <ChevronRight size={16} />
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              className={styles.clearBtn}
+                              onClick={() => handleClearResponse(currentQ.id)}
+                            >
+                              Clear Response
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleMarkForReview(currentQ.id)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: responses[currentQ.id]?.isMarkedForReview ? '#f3e8ff' : '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                padding: '8px 12px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                color: responses[currentQ.id]?.isMarkedForReview ? '#7e22ce' : '#475569',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Flag size={13} />
+                              <span>{responses[currentQ.id]?.isMarkedForReview ? 'Marked for Review' : 'Mark for Review'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                        No questions available in this drill yet.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: CBT Question Palette & Live Speed Metrics */}
+                  <div className={styles.sidebarPaletteCard}>
+                    <div className={styles.paletteHeader}>
+                      <h3 className={styles.paletteTitle}>CBT Question Palette</h3>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#2563eb' }}>
+                        {drillStats.attempted}/{activeQuestions.length} Attempted
+                      </span>
+                    </div>
+
+                    <div className={styles.paletteGrid}>
+                      {activeQuestions.map((q, idx) => {
+                        const isCurrent = idx === activeQuestionIndex;
+                        const isAnswered = Boolean(responses[q.id]?.selectedOption);
+                        const isMarked = Boolean(responses[q.id]?.isMarkedForReview);
+
+                        return (
+                          <button
+                            key={q.id}
+                            type="button"
+                            className={`${styles.paletteBubble} ${isCurrent ? styles.paletteActive : ''} ${isAnswered ? styles.paletteAnswered : ''} ${isMarked ? styles.paletteMarked : ''}`}
+                            onClick={() => handleJumpQuestion(idx)}
+                          >
+                            {idx + 1}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className={styles.paletteLegend}>
+                      <div className={styles.legendRow}>
+                        <span className={styles.legendDot} style={{ background: '#86efac' }} />
+                        <span>Answered ({drillStats.attempted})</span>
+                      </div>
+                      <div className={styles.legendRow}>
+                        <span className={styles.legendDot} style={{ background: '#d8b4fe' }} />
+                        <span>Marked for Review ({Object.values(responses).filter((r) => r.isMarkedForReview).length})</span>
+                      </div>
+                      <div className={styles.legendRow}>
+                        <span className={styles.legendDot} style={{ background: '#e2e8f0' }} />
+                        <span>Unattempted ({activeQuestions.length - drillStats.attempted})</span>
+                      </div>
+                    </div>
+
+                    {/* 12 Bonus Questions Simulator Card */}
+                    <div style={{ background: '#eff6ff', borderRadius: '12px', padding: '14px', border: '1px solid #bfdbfe' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1e40af', fontWeight: 800, fontSize: '0.82rem' }}>
+                        <Sparkles size={14} /> 12 Bonus Round Engine:
+                      </div>
+                      <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#3b82f6', lineHeight: 1.5 }}>
+                        {drillStats.bonusEligible
+                          ? '🎉 All questions attempted! In official BITSAT, the +36 marks Bonus Round triggers now!'
+                          : `Attempt all ${activeQuestions.length} questions to simulate triggering the official 12 Bonus Questions round.`}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSubmitDrill}
+                      className={styles.submitDrillBtn}
+                      style={{ width: '100%' }}
+                    >
+                      <Award size={16} />
+                      <span>Finish &amp; Check AIR Score</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </Container>
         </section>
       )}
 
-      {/* Interactive Modal for BITSAT Drill Practice */}
-      {selectedDrill && (
+      {/* Video Solution Modal */}
+      {activeVideoUrl && (
         <div
           role="dialog"
           aria-modal="true"
@@ -777,7 +1283,7 @@ export const BitsatPage: React.FC = () => {
             position: 'fixed',
             inset: 0,
             zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backgroundColor: 'rgba(15, 23, 42, 0.8)',
             backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
@@ -785,289 +1291,579 @@ export const BitsatPage: React.FC = () => {
             padding: '16px'
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedDrill(null);
+            if (e.target === e.currentTarget) setActiveVideoUrl(null);
+          }}
+        >
+          <div
+            style={{
+              background: '#0f172a',
+              borderRadius: '16px',
+              maxWidth: '800px',
+              width: '100%',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Video size={16} style={{ color: '#ef4444' }} /> Video Solution Walkthrough
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveVideoUrl(null)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+              <iframe
+                title="BITSAT Video Solution"
+                src={
+                  activeVideoUrl.includes('watch?v=')
+                    ? activeVideoUrl.replace('watch?v=', 'embed/')
+                    : activeVideoUrl
+                }
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Drill Result & AIR Benchmark Modal */}
+      {isDrillSubmitted && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(15, 23, 42, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
           }}
         >
           <div
             style={{
               background: '#ffffff',
-              borderRadius: '18px',
-              maxWidth: '780px',
+              borderRadius: '20px',
+              maxWidth: '560px',
               width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
+              padding: '28px',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              border: '1px solid #e2e8f0',
-              padding: '24px'
+              textAlign: 'center'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px', marginBottom: '18px' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {selectedDrill.badgeCode || 'BITSAT Speed Drill'} • {selectedDrill.subject}
-                </span>
-                <h3 style={{ margin: '4px 0 0', fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                  {selectedDrill.title}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedDrill(null)}
-                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#64748b' }}
-              >
-                <X size={18} />
-              </button>
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: drillStats.score >= (drillStats.totalPossible * 0.7) ? '#dcfce7' : '#eff6ff',
+                color: drillStats.score >= (drillStats.totalPossible * 0.7) ? '#16a34a' : '#2563eb',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px'
+              }}
+            >
+              <Award size={34} />
             </div>
 
-            {selectedDrill.questions && selectedDrill.questions.length > 0 ? (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>
-                    Question {drillQIndex + 1} of {selectedDrill.questions.length}
-                  </span>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      type="button"
-                      disabled={drillQIndex === 0}
-                      onClick={() => {
-                        setDrillQIndex((prev) => Math.max(0, prev - 1));
-                        setShowDrillSolution(false);
-                      }}
-                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: drillQIndex === 0 ? 'not-allowed' : 'pointer', opacity: drillQIndex === 0 ? 0.5 : 1, fontSize: '0.82rem', fontWeight: 600 }}
-                    >
-                      Previous
-                    </button>
-                    <button
-                      type="button"
-                      disabled={drillQIndex === selectedDrill.questions.length - 1}
-                      onClick={() => {
-                        setDrillQIndex((prev) => Math.min(selectedDrill.questions.length - 1, prev + 1));
-                        setShowDrillSolution(false);
-                      }}
-                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #2563eb', background: '#2563eb', color: '#fff', cursor: drillQIndex === selectedDrill.questions.length - 1 ? 'not-allowed' : 'pointer', opacity: drillQIndex === selectedDrill.questions.length - 1 ? 0.5 : 1, fontSize: '0.82rem', fontWeight: 600 }}
-                    >
-                      Next Question
-                    </button>
-                  </div>
+            <h3 style={{ margin: '0 0 6px', fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
+              BITSAT Speed Drill Result
+            </h3>
+            <p style={{ margin: '0 0 20px', color: '#64748b', fontSize: '0.88rem' }}>
+              Performance summary calibrated against BITS Pilani CS threshold standards.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb' }}>
+                  {drillStats.score} <span style={{ fontSize: '0.85rem', color: '#64748b' }}>/ {drillStats.totalPossible}</span>
                 </div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Net Score (+3, -1)</div>
+              </div>
 
-                {(() => {
-                  const currentQ = selectedDrill.questions[drillQIndex] || selectedDrill.questions[0];
-                  const qId = currentQ.id || `q-${drillQIndex}`;
-                  const selectedKey = drillAnswers[qId];
+              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#16a34a' }}>
+                  {drillStats.accuracy}%
+                </div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Accuracy</div>
+              </div>
 
-                  return (
-                    <div>
-                      <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-                        <p style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 600, lineHeight: 1.6 }}>
-                          {currentQ.statement}
-                        </p>
-                      </div>
+              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#d97706' }}>
+                  {drillStats.attempted > 0 ? Math.round(overallElapsedSeconds / drillStats.attempted) : 45}s
+                </div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Avg Speed / Q</div>
+              </div>
+            </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px', marginBottom: '16px' }}>
-                        {(currentQ.options || []).map((opt: any) => {
-                          const isChosen = selectedKey === opt.key;
-                          const isCorrect = showDrillSolution && opt.key === currentQ.correctKey;
-                          const isWrong = showDrillSolution && isChosen && !isCorrect;
-
-                          return (
-                            <button
-                              key={opt.key}
-                              type="button"
-                              onClick={() => {
-                                setDrillAnswers({ ...drillAnswers, [qId]: opt.key });
-                              }}
-                              style={{
-                                textAlign: 'left',
-                                padding: '12px 14px',
-                                borderRadius: '10px',
-                                border: isCorrect
-                                  ? '2px solid #16a34a'
-                                  : isWrong
-                                  ? '2px solid #dc2626'
-                                  : isChosen
-                                  ? '2px solid #2563eb'
-                                  : '1px solid #cbd5e1',
-                                background: isCorrect
-                                  ? '#f0fdf4'
-                                  : isWrong
-                                  ? '#fef2f2'
-                                  : isChosen
-                                  ? '#eff6ff'
-                                  : '#ffffff',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px'
-                              }}
-                            >
-                              <span
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '26px',
-                                  height: '26px',
-                                  borderRadius: '50%',
-                                  background: isCorrect ? '#16a34a' : isChosen ? '#2563eb' : '#f1f5f9',
-                                  color: isCorrect || isChosen ? '#fff' : '#475569',
-                                  fontWeight: 700,
-                                  fontSize: '0.8rem'
-                                }}
-                              >
-                                {opt.key}
-                              </span>
-                              <span style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: isChosen ? 700 : 500 }}>
-                                {opt.text}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setShowDrillSolution(!showDrillSolution)}
-                          style={{
-                            padding: '10px 16px',
-                            borderRadius: '8px',
-                            background: showDrillSolution ? '#f1f5f9' : '#eff6ff',
-                            border: '1px solid #bfdbfe',
-                            color: '#1d4ed8',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            fontSize: '0.85rem'
-                          }}
-                        >
-                          {showDrillSolution ? 'Hide Solution' : '💡 Reveal DK Sir Shortcut & Answer'}
-                        </button>
-                      </div>
-
-                      {showDrillSolution && (
-                        <div style={{ marginTop: '14px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                          {currentQ.dkSirShortcut && (
-                            <div style={{ marginBottom: '10px', padding: '10px 12px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontWeight: 600, fontSize: '0.85rem' }}>
-                              ⚡ {currentQ.dkSirShortcut}
-                            </div>
-                          )}
-                          <div style={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.6 }}>
-                            <strong>Solution:</strong> {currentQ.stepSolution || 'Detailed step-by-step solution available in student portal.'}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+            {drillStats.bonusEligible ? (
+              <div style={{ background: '#fef3c7', padding: '12px', borderRadius: '10px', color: '#92400e', fontSize: '0.85rem', fontWeight: 600, marginBottom: '20px' }}>
+                ⚡ Bonus Round Unlocked! 100% attempt qualifies you for +36 extra BITSAT marks.
               </div>
             ) : (
-              <p style={{ color: '#64748b', fontSize: '0.9rem' }}>No questions in this drill yet.</p>
+              <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '10px', color: '#475569', fontSize: '0.85rem', marginBottom: '20px' }}>
+                Attempted {drillStats.attempted} of {activeQuestions.length} questions. Speed target: &lt;60s per problem.
+              </div>
             )}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setResponses({});
+                  setActiveQuestionIndex(0);
+                  setIsDrillSubmitted(false);
+                }}
+                style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
+              >
+                Re-attempt Drill
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDrillSubmitted(false);
+                  setSelectedDrillId(null);
+                }}
+                style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
+              >
+                Return to Drills
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 6. BITSAT Campus Cutoffs & Target Score Benchmarks */}
-      <section className={`${styles.section} ${styles.sectionAlt}`} id="cutoffs">
-        <Container size="wide">
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionBadge}>
-              <Award size={12} />
-              <span>CAMPUS BENCHMARKS</span>
-            </div>
-            <h2 className={styles.sectionTitle}>
-              Target Scores for Top BITS Campuses <span className={styles.titleGradient}>(Out of 390)</span>
-            </h2>
-            <p className={styles.sectionDescription}>
-              Reference cutoffs from previous official admissions to help you target your score threshold.
-            </p>
-          </div>
-
-          <div className={styles.cutoffsCard}>
-            <div className={styles.tableResponsive}>
-              <table className={styles.cutoffTable}>
-                <thead>
-                  <tr>
-                    <th>Branch / Discipline</th>
-                    <th>
-                      <div className={styles.thCampus}>
-                        <span>BITS Pilani</span>
-                        <span className={styles.campusFlagshipBadge}>Flagship Campus</span>
-                      </div>
-                    </th>
-                    <th>
-                      <div className={styles.thCampus}>
-                        <span>BITS K.K. Birla Goa</span>
-                      </div>
-                    </th>
-                    <th>
-                      <div className={styles.thCampus}>
-                        <span>BITS Hyderabad</span>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className={styles.highlightRow}>
-                    <td className={styles.branchCell}>
-                      <span className={styles.branchDot} />
-                      <strong>Computer Science &amp; Engineering (CSE)</strong>
-                    </td>
-                    <td><span className={`${styles.scorePill} ${styles.scorePillTop}`}>331 Marks</span></td>
-                    <td><span className={styles.scorePill}>301 Marks</span></td>
-                    <td><span className={styles.scorePill}>298 Marks</span></td>
-                  </tr>
-                  <tr className={styles.highlightRow}>
-                    <td className={styles.branchCell}>
-                      <span className={styles.branchDot} />
-                      <strong>Mathematics &amp; Computing (MnC)</strong>
-                    </td>
-                    <td><span className={`${styles.scorePill} ${styles.scorePillTop}`}>310 Marks</span></td>
-                    <td><span className={styles.scorePill}>288 Marks</span></td>
-                    <td><span className={styles.scorePill}>285 Marks</span></td>
-                  </tr>
-                  <tr>
-                    <td className={styles.branchCell}>Electronics &amp; Communication (ECE)</td>
-                    <td><span className={styles.scorePill}>296 Marks</span></td>
-                    <td><span className={styles.scorePill}>278 Marks</span></td>
-                    <td><span className={styles.scorePill}>275 Marks</span></td>
-                  </tr>
-                  <tr>
-                    <td className={styles.branchCell}>Electrical &amp; Electronics (EEE)</td>
-                    <td><span className={styles.scorePill}>272 Marks</span></td>
-                    <td><span className={styles.scorePill}>256 Marks</span></td>
-                    <td><span className={styles.scorePill}>252 Marks</span></td>
-                  </tr>
-                  <tr>
-                    <td className={styles.branchCell}>Mechanical Engineering</td>
-                    <td><span className={styles.scorePill}>244 Marks</span></td>
-                    <td><span className={styles.scorePill}>223 Marks</span></td>
-                    <td><span className={styles.scorePill}>221 Marks</span></td>
-                  </tr>
-                  <tr>
-                    <td className={styles.branchCell}>Chemical Engineering</td>
-                    <td><span className={styles.scorePill}>224 Marks</span></td>
-                    <td><span className={styles.scorePill}>207 Marks</span></td>
-                    <td><span className={styles.scorePill}>204 Marks</span></td>
-                  </tr>
-                </tbody>
-              </table>
+      {/* ─── 3. BITSAT Exam Pattern Blueprint ─── */}
+      {(viewMode === 'blueprint' || viewMode === 'batches') && (
+        <section className={styles.section} id="pattern">
+          <Container size="wide">
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionBadge}>
+                <Sparkles size={12} />
+                <span>EXAM ARCHITECTURE</span>
+              </div>
+              <h2 className={styles.sectionTitle}>
+                BITSAT Blueprint: <span className={styles.titleGradient}>130 Questions, 390 Marks, 180 Mins</span>
+              </h2>
+              <p className={styles.sectionDescription}>
+                Mathematics carries the highest weightage (40 questions), while English &amp; Logic (30 questions) form the make-or-break scoring zone.
+              </p>
             </div>
 
-            <div className={styles.cutoffTableFooter}>
-              <ShieldCheck size={14} className={styles.footerShield} />
-              <span>Cutoffs reflect Round 1–5 Iteration standards. Safe target for Pilani CS is 330+ with bonus question conditioning.</span>
-            </div>
-          </div>
-        </Container>
-      </section>
+            <div className={styles.patternGrid}>
+              <div className={styles.patternCard}>
+                <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #d97706, #f59e0b)' }} />
+                <div className={styles.patternTop}>
+                  <span className={`${styles.subjectBadge} ${styles.mathBadge}`}>Part IV</span>
+                  <Clock size={16} className={styles.accentClock} />
+                </div>
+                <h3 className={styles.patternTitle}>Mathematics</h3>
+                <div className={styles.patternStatsRow}>
+                  <span className={styles.patternQuestions}>40 Qs</span>
+                  <span className={styles.patternMarks}>• 120 Marks (+3, -1)</span>
+                </div>
+                <p className={styles.patternNote}>
+                  Highest scoring section. DK Sir's 20-30s shortcuts eliminate 2 options instantly in Coordinate Geometry, Calculus, &amp; Vectors.
+                </p>
+              </div>
 
-      {/* 7. Free BITSAT Diagnostic & Speed Test Registration Form */}
+              <div className={styles.patternCard}>
+                <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #4f46e5, #818cf8)' }} />
+                <div className={styles.patternTop}>
+                  <span className={`${styles.subjectBadge} ${styles.lrBadge}`}>Part III</span>
+                  <Brain size={16} className={styles.accentBrain} />
+                </div>
+                <h3 className={styles.patternTitle}>English &amp; Logical Reasoning</h3>
+                <div className={styles.patternStatsRow}>
+                  <span className={styles.patternQuestions}>30 Qs</span>
+                  <span className={styles.patternMarks}>• 90 Marks (10 Eng + 20 LR)</span>
+                </div>
+                <p className={styles.patternNote}>
+                  Neglected by 85% of JEE students. We dedicate 40+ structured hours to grammar, vocabulary, syllogisms, and sequence deduction.
+                </p>
+              </div>
+
+              <div className={styles.patternCard}>
+                <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #2563eb, #38bdf8)' }} />
+                <div className={styles.patternTop}>
+                  <span className={`${styles.subjectBadge} ${styles.phyBadge}`}>Part I</span>
+                  <Zap size={16} className={styles.accentZap} />
+                </div>
+                <h3 className={styles.patternTitle}>Physics</h3>
+                <div className={styles.patternStatsRow}>
+                  <span className={styles.patternQuestions}>30 Qs</span>
+                  <span className={styles.patternMarks}>• 90 Marks (+3, -1)</span>
+                </div>
+                <p className={styles.patternNote}>
+                  Formula recall speed drills and dimensional boundary condition checks to solve kinematics and electrodynamics in under 60 seconds.
+                </p>
+              </div>
+
+              <div className={styles.patternCard}>
+                <div className={styles.cardAccentBar} style={{ background: 'linear-gradient(90deg, #059669, #34d399)' }} />
+                <div className={styles.patternTop}>
+                  <span className={`${styles.subjectBadge} ${styles.chemBadge}`}>Part II</span>
+                  <Award size={16} className={styles.accentAward} />
+                </div>
+                <h3 className={styles.patternTitle}>Chemistry</h3>
+                <div className={styles.patternStatsRow}>
+                  <span className={styles.patternQuestions}>30 Qs</span>
+                  <span className={styles.patternMarks}>• 90 Marks (+3, -1)</span>
+                </div>
+                <p className={styles.patternNote}>
+                  100% NCERT memory retention maps for Inorganic trends, direct reaction mechanisms in Organic, and rapid Physical Chem formulas.
+                </p>
+              </div>
+            </div>
+
+            {/* 12 Bonus Questions Round Highlight Banner */}
+            <div className={styles.bonusBanner}>
+              <div className={styles.bonusGlowAura} aria-hidden="true" />
+              <div className={styles.bonusLeft}>
+                <span className={styles.bonusPill}>
+                  <Sparkles size={12} /> THE BITSAT ADVANTAGE
+                </span>
+                <h3 className={styles.bonusTitle}>Unlock the 12 Bonus Questions Engine</h3>
+                <p className={styles.bonusDesc}>
+                  If you attempt all 130 questions, BITSAT unlocks 12 extra questions (4 Math, 4 Physics, 4 Chemistry) for <strong>+36 bonus marks</strong>. DK Sir trains students on the exact time-budgeting and risk-mitigation algorithm to safely trigger the bonus round without negative marking penalties.
+                </p>
+              </div>
+              <div className={styles.bonusRight}>
+                <div className={styles.bonusStatBox}>
+                  <span className={styles.bonusNumber}>+36</span>
+                  <span className={styles.bonusLabel}>Bonus Marks Potential</span>
+                </div>
+              </div>
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─── 4. Active BITSAT Batches & Plans ─── */}
+      {(viewMode === 'batches' || viewMode === 'drills') && (
+        <section className={styles.section} id="batches">
+          <Container size="wide">
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionBadge}>
+                <Flame size={12} />
+                <span>ENROLLMENT OPEN 2026–27</span>
+              </div>
+              <h2 className={styles.sectionTitle}>
+                Active BITSAT Batches &amp; <span className={styles.titleGradient}>Tuition Plans</span>
+              </h2>
+              <p className={styles.sectionDescription}>
+                Target BITS Pilani, Goa, and Hyderabad with targeted crash courses, speed math boosters, and full-length CBT test series.
+              </p>
+            </div>
+
+            <div className={styles.batchesGrid}>
+              {/* Batch 1: Complete Crash Course (Most Popular) */}
+              <article className={`${styles.batchCard} ${styles.popularBatch}`}>
+                <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #2563eb, #38bdf8)' }} />
+                
+                <div className={styles.batchTopBadgeRow}>
+                  <span className={styles.batchFlagshipBadge}>
+                    <Sparkles size={11} /> MOST POPULAR BITSAT BATCH
+                  </span>
+                  <span className={styles.batchTargetYear}>
+                    <Calendar size={12} /> Target 2026/27
+                  </span>
+                </div>
+
+                <h3 className={styles.batchTitle}>BITSAT 2026 Speed Master Crash Program</h3>
+
+                <div className={styles.metaPillsRow}>
+                  <div className={styles.metaPillBatch}>
+                    <Users size={12} />
+                    <span>Strictly Max 25 / Batch</span>
+                  </div>
+                  <div className={styles.metaPillMode}>
+                    <Zap size={12} />
+                    <span>Online Live • Sessions 1 &amp; 2</span>
+                  </div>
+                </div>
+
+                <ul className={styles.featuresList}>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>120+ Live Interactive Speed Hack Sessions</strong> by DK Sir &amp; Team</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>Full Math (40 Qs), Physics, Chem, English &amp; LR</strong> covered end-to-end</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>15 Full-length BITSAT CBT Mocks</strong> with Bonus 12 Questions simulator</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>BITSAT Formula Handbooks</strong> &amp; High-Frequency English Vocab Bank</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>Daily 1:1 Live Doubt Counter</strong> &amp; BITS Pilani Alumni Mentorship</span>
+                  </li>
+                </ul>
+
+                <div className={styles.pricingBlock}>
+                  <div className={styles.priceRow}>
+                    <span className={styles.currentPrice}>₹14,999</span>
+                    <span className={styles.originalPrice}>₹24,999</span>
+                    <span className={styles.discountBadge}>Save 40%</span>
+                  </div>
+                  <div className={styles.taxSubtext}>Incl. 18% GST • 5 Subjects + 15 Mocks</div>
+                </div>
+
+                <div className={styles.cardActionsRow}>
+                  <a href="#diagnostic-form" className={styles.enrollPrimaryBtn}>
+                    <span>Enroll in Speed Master</span>
+                    <ArrowRight size={14} />
+                  </a>
+                </div>
+              </article>
+
+              {/* Batch 2: Math + LR & English Booster */}
+              <article className={styles.batchCard}>
+                <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #4f46e5, #818cf8)' }} />
+                
+                <div className={styles.batchTopBadgeRow}>
+                  <span className={styles.batchBoosterBadge}>
+                    <Brain size={11} /> 210 MARKS SCORING BOOSTER
+                  </span>
+                  <span className={styles.batchTargetYear}>
+                    <Calendar size={12} /> Target 2026/27
+                  </span>
+                </div>
+
+                <h3 className={styles.batchTitle}>BITSAT Math + LR &amp; English Super Booster</h3>
+
+                <div className={styles.metaPillsRow}>
+                  <div className={styles.metaPillBatch}>
+                    <Users size={12} />
+                    <span>Strictly Max 25 / Batch</span>
+                  </div>
+                  <div className={styles.metaPillMode}>
+                    <Zap size={12} />
+                    <span>Online Live • 70/130 Qs Focus</span>
+                  </div>
+                </div>
+
+                <ul className={styles.featuresList}>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>Complete BITSAT Mathematics (40 Qs)</strong> with DK Sir's 20-30s techniques</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>40+ Hours English &amp; Logical Reasoning drills</strong> for 75+ mark score</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>10 Targeted Math + LR Subject Mocks</strong> with timer diagnostics</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>Daily Speed Practice Sheets (DPS)</strong> with video solution keys</span>
+                  </li>
+                </ul>
+
+                <div className={styles.pricingBlock}>
+                  <div className={styles.priceRow}>
+                    <span className={styles.currentPrice}>₹8,999</span>
+                    <span className={styles.originalPrice}>₹14,999</span>
+                    <span className={styles.discountBadge}>Save 40%</span>
+                  </div>
+                  <div className={styles.taxSubtext}>Incl. 18% GST • Math, English &amp; LR Special</div>
+                </div>
+
+                <div className={styles.cardActionsRow}>
+                  <a href="#diagnostic-form" className={styles.enrollPrimaryBtn}>
+                    <span>Enroll in Booster</span>
+                    <ArrowRight size={14} />
+                  </a>
+                </div>
+              </article>
+
+              {/* Batch 3: All-India Test Series */}
+              <article className={styles.batchCard}>
+                <div className={styles.cardTopAccent} style={{ background: 'linear-gradient(90deg, #059669, #34d399)' }} />
+                
+                <div className={styles.batchTopBadgeRow}>
+                  <span className={styles.batchTestBadge}>
+                    <Target size={11} /> CBT ENGINE SIMULATION
+                  </span>
+                  <span className={styles.batchTargetYear}>
+                    <Calendar size={12} /> Target 2026/27
+                  </span>
+                </div>
+
+                <h3 className={styles.batchTitle}>All India BITSAT CBT Online Test Series</h3>
+
+                <div className={styles.metaPillsRow}>
+                  <div className={styles.metaPillBatch}>
+                    <Users size={12} />
+                    <span>10,000+ Rank Pool</span>
+                  </div>
+                  <div className={styles.metaPillMode}>
+                    <Zap size={12} />
+                    <span>Self-Paced • 15 Full CBT Mocks</span>
+                  </div>
+                </div>
+
+                <ul className={styles.featuresList}>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>15 Full-length BITSAT mock tests</strong> strictly aligned with 2026 pattern</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>Authentic Bonus Question trigger</strong> when all 130 Qs are completed</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>Question-wise time analytics</strong> (Time spent per question vs topper)</span>
+                  </li>
+                  <li>
+                    <div className={styles.checkIconWrap}><CheckCircle2 size={14} className={styles.checkIcon} /></div>
+                    <span><strong>All India Rank (AIR) &amp; BITS Campus cutoff predictor</strong> algorithms</span>
+                  </li>
+                </ul>
+
+                <div className={styles.pricingBlock}>
+                  <div className={styles.priceRow}>
+                    <span className={styles.currentPrice}>₹3,499</span>
+                    <span className={styles.originalPrice}>₹6,999</span>
+                    <span className={styles.discountBadge}>Save 50%</span>
+                  </div>
+                  <div className={styles.taxSubtext}>Incl. 18% GST • Full TCS-iON Interface Simulator</div>
+                </div>
+
+                <div className={styles.cardActionsRow}>
+                  <a href="#diagnostic-form" className={styles.enrollPrimaryBtn}>
+                    <span>Join Test Series</span>
+                    <ArrowRight size={14} />
+                  </a>
+                </div>
+              </article>
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─── 5. Campus Cutoffs Benchmark Table ─── */}
+      {(viewMode === 'blueprint' || viewMode === 'batches') && (
+        <section className={`${styles.section} ${styles.sectionAlt}`} id="cutoffs">
+          <Container size="wide">
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionBadge}>
+                <Award size={12} />
+                <span>CAMPUS BENCHMARKS</span>
+              </div>
+              <h2 className={styles.sectionTitle}>
+                Target Scores for Top BITS Campuses <span className={styles.titleGradient}>(Out of 390)</span>
+              </h2>
+              <p className={styles.sectionDescription}>
+                Reference cutoffs from previous official admissions to help you target your score threshold.
+              </p>
+            </div>
+
+            <div className={styles.cutoffsCard}>
+              <div className={styles.tableResponsive}>
+                <table className={styles.cutoffTable}>
+                  <thead>
+                    <tr>
+                      <th>Branch / Discipline</th>
+                      <th>
+                        <div className={styles.thCampus}>
+                          <span>BITS Pilani</span>
+                          <span className={styles.campusFlagshipBadge}>Flagship Campus</span>
+                        </div>
+                      </th>
+                      <th>
+                        <div className={styles.thCampus}>
+                          <span>BITS K.K. Birla Goa</span>
+                        </div>
+                      </th>
+                      <th>
+                        <div className={styles.thCampus}>
+                          <span>BITS Hyderabad</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className={styles.highlightRow}>
+                      <td className={styles.branchCell}>
+                        <span className={styles.branchDot} />
+                        <strong>Computer Science &amp; Engineering (CSE)</strong>
+                      </td>
+                      <td><span className={`${styles.scorePill} ${styles.scorePillTop}`}>331 Marks</span></td>
+                      <td><span className={styles.scorePill}>301 Marks</span></td>
+                      <td><span className={styles.scorePill}>298 Marks</span></td>
+                    </tr>
+                    <tr className={styles.highlightRow}>
+                      <td className={styles.branchCell}>
+                        <span className={styles.branchDot} />
+                        <strong>Mathematics &amp; Computing (MnC)</strong>
+                      </td>
+                      <td><span className={`${styles.scorePill} ${styles.scorePillTop}`}>310 Marks</span></td>
+                      <td><span className={styles.scorePill}>288 Marks</span></td>
+                      <td><span className={styles.scorePill}>285 Marks</span></td>
+                    </tr>
+                    <tr>
+                      <td className={styles.branchCell}>Electronics &amp; Communication (ECE)</td>
+                      <td><span className={styles.scorePill}>296 Marks</span></td>
+                      <td><span className={styles.scorePill}>278 Marks</span></td>
+                      <td><span className={styles.scorePill}>275 Marks</span></td>
+                    </tr>
+                    <tr>
+                      <td className={styles.branchCell}>Electrical &amp; Electronics (EEE)</td>
+                      <td><span className={styles.scorePill}>272 Marks</span></td>
+                      <td><span className={styles.scorePill}>256 Marks</span></td>
+                      <td><span className={styles.scorePill}>252 Marks</span></td>
+                    </tr>
+                    <tr>
+                      <td className={styles.branchCell}>Mechanical Engineering</td>
+                      <td><span className={styles.scorePill}>244 Marks</span></td>
+                      <td><span className={styles.scorePill}>223 Marks</span></td>
+                      <td><span className={styles.scorePill}>221 Marks</span></td>
+                    </tr>
+                    <tr>
+                      <td className={styles.branchCell}>Chemical Engineering</td>
+                      <td><span className={styles.scorePill}>224 Marks</span></td>
+                      <td><span className={styles.scorePill}>207 Marks</span></td>
+                      <td><span className={styles.scorePill}>204 Marks</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className={styles.cutoffTableFooter}>
+                <ShieldCheck size={14} className={styles.footerShield} />
+                <span>Cutoffs reflect Round 1–5 standards. Safe target for Pilani CS is 330+ with bonus question conditioning.</span>
+              </div>
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─── 6. Free Diagnostic Form ─── */}
       <section className={styles.section} id="diagnostic-form">
         <Container size="wide">
           <div className={styles.bookingWrapper}>
             <div className={styles.bookingRow}>
-              {/* Left Column: Value Proposition & Reassurance */}
               <div className={styles.bookingLeft}>
                 <span className={styles.bookingBadge}>
                   <ShieldCheck size={13} /> ZERO COST SPEED DIAGNOSTIC
@@ -1076,7 +1872,7 @@ export const BitsatPage: React.FC = () => {
                   Book Free BITSAT Speed Diagnostic &amp; <span className={styles.titleGradient}>Strategy Consultation</span>
                 </h2>
                 <p className={styles.bookingDesc}>
-                  Take our 45-minute mini BITSAT Diagnostic Speed Test. DK Sir and our senior academic mentors will evaluate your question inspection speed, option elimination accuracy, and recommend your personalized preparation schedule.
+                  Take our 45-minute mini BITSAT Diagnostic Speed Test. DK Sir and senior mentors will evaluate your question inspection speed, option elimination accuracy, and recommend your personalized preparation schedule.
                 </p>
 
                 <ul className={styles.bookingPerks}>
@@ -1097,118 +1893,103 @@ export const BitsatPage: React.FC = () => {
                     <span><strong>Direct WhatsApp Guidance</strong> for batch allotment &amp; diagnostic test slot</span>
                   </li>
                 </ul>
-
-                {/* Mentor Quick Note Card */}
-                <div className={styles.mentorBriefCard}>
-                  <img
-                    src="/img/dk-sir.jpg"
-                    alt="Dharmendra Kumar (DK Sir)"
-                    className={styles.mentorMiniAvatar}
-                    onError={(e) => {
-                      const img = e.target as HTMLImageElement;
-                      if (!img.src.includes('founder')) {
-                        img.src = '/img/founder.jpeg';
-                      }
-                    }}
-                  />
-                  <div className={styles.mentorMiniText}>
-                    <strong>Dharmendra Kumar (DK Sir)</strong>
-                    <span>"In BITSAT, a 3-minute correct solution is an exam failure. Speed conditioning makes all the difference."</span>
-                  </div>
-                </div>
               </div>
 
-              {/* Right Column: Lead Form Card with Clean Floating Styling */}
               <div className={styles.bookingRight}>
                 <div className={styles.bookingFormCard}>
+                  <div className={styles.formHeader}>
+                    <h3 className={styles.formTitle}>Reserve Your Diagnostic Slot</h3>
+                    <p className={styles.formSubtitle}>Limited to 25 students per week for individualized attention.</p>
+                  </div>
+
                   {isSubmitted ? (
-                    <div className={styles.successCard}>
-                      <div className={styles.successIcon}>
-                        <CheckCircle2 size={40} />
+                    <div className={styles.formSuccessState}>
+                      <div className={styles.successIconWrap}>
+                        <CheckCircle2 size={38} className={styles.successIcon} />
                       </div>
-                      <h3 className={styles.successTitle}>Diagnostic Test Booked!</h3>
+                      <h4 className={styles.successTitle}>Diagnostic Session Requested!</h4>
                       <p className={styles.successText}>
-                        Thank you, <strong>{formData.name}</strong>. Our BITSAT admissions team has reserved your test slot and sent access credentials to <strong>{formData.phone}</strong>.
+                        Thank you, <strong>{formData.name}</strong>. Our senior counselor will connect with you via WhatsApp/call on <strong>{formData.phone}</strong> within 2 hours.
                       </p>
-                      <a
-                        href={`https://wa.me/919325987875?text=Hello%20DK%20Academy,%20I%20have%20booked%20the%20BITSAT%20Diagnostic%20Test%20for%20${encodeURIComponent(formData.name)}.%20Please%20share%20my%20test%20credentials.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={styles.whatsappConfirmBtn}
+                      <button
+                        type="button"
+                        onClick={() => setIsSubmitted(false)}
+                        className={styles.resetFormBtn}
                       >
-                        <MessageSquare size={16} />
-                        <span>Confirm on WhatsApp Instantly</span>
-                        <ArrowRight size={14} />
-                      </a>
+                        Submit Another Request
+                      </button>
                     </div>
                   ) : (
-                    <>
-                      <h3 className={styles.formTitle}>Register for Free Diagnostic Test</h3>
-                      <p className={styles.formSubtitle}>Zero fees • No credit card required • Instant Slot Allocation</p>
+                    <form onSubmit={handleDiagnosticSubmit} className={styles.bookingForm}>
+                      <div className={styles.inputGroup}>
+                        <label htmlFor="student-name" className={styles.inputLabel}>
+                          Student Full Name <span className={styles.requiredStar}>*</span>
+                        </label>
+                        <input
+                          id="student-name"
+                          type="text"
+                          required
+                          placeholder="e.g. Aryan Sharma"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className={styles.formInput}
+                        />
+                      </div>
 
-                      <form onSubmit={handleSubmit} className={styles.formGrid}>
-                        <div className={styles.formGroup}>
-                          <label htmlFor="student-name">Student Full Name *</label>
-                          <input
-                            id="student-name"
-                            type="text"
-                            placeholder="Enter student's name"
-                            required
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          />
-                        </div>
+                      <div className={styles.inputGroup}>
+                        <label htmlFor="student-phone" className={styles.inputLabel}>
+                          WhatsApp / Mobile Number <span className={styles.requiredStar}>*</span>
+                        </label>
+                        <input
+                          id="student-phone"
+                          type="tel"
+                          required
+                          placeholder="10-digit mobile number"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          className={styles.formInput}
+                        />
+                      </div>
 
-                        <div className={styles.formGroup}>
-                          <label htmlFor="student-phone">Mobile / WhatsApp Number *</label>
-                          <div className={styles.phoneInputWrap}>
-                            <span className={styles.phonePrefix}>🇮🇳 +91</span>
-                            <input
-                              id="student-phone"
-                              type="tel"
-                              placeholder="10-digit mobile number"
-                              pattern="[0-9]{10}"
-                              required
-                              value={formData.phone}
-                              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            />
-                          </div>
-                        </div>
+                      <div className={styles.inputGroup}>
+                        <label htmlFor="target-class" className={styles.inputLabel}>Current Academic Class</label>
+                        <select
+                          id="target-class"
+                          value={formData.targetClass}
+                          onChange={(e) => setFormData({ ...formData, targetClass: e.target.value })}
+                          className={styles.formSelect}
+                        >
+                          <option value="Class 12th">Class 12th (Appearing 2026)</option>
+                          <option value="Class 12th Dropper / Repeater">Class 12th Passed / Repeater</option>
+                          <option value="Class 11th">Class 11th (Targeting 2027)</option>
+                        </select>
+                      </div>
 
-                        <div className={styles.formGroup}>
-                          <label htmlFor="target-class">Current Class / Cohort</label>
-                          <select
-                            id="target-class"
-                            value={formData.targetClass}
-                            onChange={(e) => setFormData({ ...formData, targetClass: e.target.value })}
-                          >
-                            <option value="Class 12th">Class 12th (Appearing 2026/27)</option>
-                            <option value="Dropper / Repeater">Dropper / Repeater (Dedicated Target)</option>
-                            <option value="Class 11th">Class 11th (Early Foundation)</option>
-                          </select>
-                        </div>
+                      <div className={styles.inputGroup}>
+                        <label htmlFor="target-campus" className={styles.inputLabel}>Primary Dream Campus</label>
+                        <select
+                          id="target-campus"
+                          value={formData.targetCampus}
+                          onChange={(e) => setFormData({ ...formData, targetCampus: e.target.value })}
+                          className={styles.formSelect}
+                        >
+                          <option value="BITS Pilani (Main Campus)">BITS Pilani (Main Campus)</option>
+                          <option value="BITS K.K. Birla Goa Campus">BITS K.K. Birla Goa Campus</option>
+                          <option value="BITS Hyderabad Campus">BITS Hyderabad Campus</option>
+                          <option value="All 3 Campuses (Open)">Open to All 3 Campuses</option>
+                        </select>
+                      </div>
 
-                        <div className={styles.formGroup}>
-                          <label htmlFor="target-campus">Dream BITS Campus</label>
-                          <select
-                            id="target-campus"
-                            value={formData.targetCampus}
-                            onChange={(e) => setFormData({ ...formData, targetCampus: e.target.value })}
-                          >
-                            <option value="BITS Pilani (Main Campus)">BITS Pilani (Main Campus)</option>
-                            <option value="BITS K.K. Birla Goa Campus">BITS K.K. Birla Goa Campus</option>
-                            <option value="BITS Hyderabad Campus">BITS Hyderabad Campus</option>
-                            <option value="Open to Any Campus">Open to Any Campus (Branch Priority)</option>
-                          </select>
-                        </div>
+                      <button type="submit" className={styles.formSubmitBtn}>
+                        <Send size={15} />
+                        <span>Confirm Diagnostic Slot</span>
+                      </button>
 
-                        <button type="submit" className={styles.submitBtn}>
-                          <Send size={15} />
-                          <span>Reserve My Free Diagnostic Test</span>
-                          <ArrowRight size={15} />
-                        </button>
-                      </form>
-                    </>
+                      <div className={styles.formPrivacyNote}>
+                        <ShieldCheck size={12} />
+                        <span>We respect your privacy. No spam guarantee.</span>
+                      </div>
+                    </form>
                   )}
                 </div>
               </div>
@@ -1217,19 +1998,19 @@ export const BitsatPage: React.FC = () => {
         </Container>
       </section>
 
-      {/* 8. FAQs Accordion */}
+      {/* ─── 7. FAQs Accordion ─── */}
       <section className={`${styles.section} ${styles.sectionAlt}`} id="faq">
         <Container size="wide">
           <div className={styles.sectionHeader}>
             <div className={styles.sectionBadge}>
-              <Brain size={12} />
+              <MessageSquare size={12} />
               <span>FREQUENTLY ASKED QUESTIONS</span>
             </div>
             <h2 className={styles.sectionTitle}>
-              Everything You Need to Know <span className={styles.titleGradient}>About BITSAT</span>
+              Everything You Need to Know About <span className={styles.titleGradient}>BITSAT Prep</span>
             </h2>
             <p className={styles.sectionDescription}>
-              Exam pattern, 12 bonus questions engine, cutoffs, and speed preparation methodology with DK Sir.
+              Answers to the most common queries asked by JEE aspirants targeting BITS Pilani.
             </p>
           </div>
 
@@ -1237,10 +2018,7 @@ export const BitsatPage: React.FC = () => {
             {BITSAT_FAQS.map((faq, index) => {
               const isOpen = openFaqIndex === index;
               return (
-                <div
-                  key={index}
-                  className={`${styles.faqItem} ${isOpen ? styles.faqOpen : ''}`}
-                >
+                <div key={index} className={`${styles.faqItem} ${isOpen ? styles.faqOpen : ''}`}>
                   <button
                     type="button"
                     className={styles.faqButton}
@@ -1266,5 +2044,4 @@ export const BitsatPage: React.FC = () => {
     </div>
   );
 };
-
 export default BitsatPage;

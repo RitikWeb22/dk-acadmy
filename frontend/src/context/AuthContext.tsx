@@ -188,20 +188,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .catch(() => {});
   }, []);
 
-  // Initialize and sync notifications scoped to active student
+  // Initialize and sync notifications (scoped to student or site-wide public for visitors)
   useEffect(() => {
-    if (!student) {
-      setNotifications([]);
-      return;
-    }
-    const notifKey = `dk_academy_notifications_${student.id}`;
+    const notifKey = student ? `dk_academy_notifications_${student.id}` : 'dk_academy_notifications_public';
     try {
       const stored = localStorage.getItem(notifKey);
       if (stored) {
         setNotifications(JSON.parse(stored) as AppNotification[]);
       } else {
-        // Seed default notifications ONLY for the demo account; all registered students get clean empty notifications
-        const initial = student.id === DEMO_STUDENT.id ? INITIAL_NOTIFICATIONS : [];
+        // Seed default notifications ONLY for demo account or guest; clean start otherwise
+        const initial = !student || student.id === DEMO_STUDENT.id ? INITIAL_NOTIFICATIONS : [];
         localStorage.setItem(notifKey, JSON.stringify(initial));
         setNotifications(initial);
       }
@@ -252,7 +248,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (newDoubtNotifs.length > 0) {
                 const merged = [...newDoubtNotifs, ...prev].slice(0, 40);
                 try {
-                  localStorage.setItem(`dk_academy_notifications_${student.id}`, JSON.stringify(merged));
+                  const notifKey = student ? `dk_academy_notifications_${student.id}` : 'dk_academy_notifications_public';
+                  localStorage.setItem(notifKey, JSON.stringify(merged));
                 } catch {}
                 return merged;
               }
@@ -270,10 +267,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [student?.id, student?.email]);
 
-  // Listen for real-time notifications across the entire platform for logged-in students
+  // Listen for real-time notifications across the entire platform
   useEffect(() => {
-    if (!student) return;
-
     const pushStudentNotification = (notif: AppNotification) => {
       // Avoid student popup interruption if currently navigating admin portal
       const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
@@ -287,7 +282,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const next = [notif, ...prev].slice(0, 40);
         try {
-          localStorage.setItem(`dk_academy_notifications_${student.id}`, JSON.stringify(next));
+          const notifKey = student ? `dk_academy_notifications_${student.id}` : 'dk_academy_notifications_public';
+          localStorage.setItem(notifKey, JSON.stringify(next));
         } catch {}
         return next;
       });
@@ -314,7 +310,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (
         data.studentEmail &&
-        student.email &&
+        student?.email &&
         data.studentEmail.toLowerCase() !== student.email.toLowerCase()
       ) {
         return;
@@ -473,13 +469,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const saveNotifications = useCallback((updated: AppNotification[]) => {
     setNotifications(updated);
-    if (student) {
-      const notifKey = `dk_academy_notifications_${student.id}`;
-      try {
-        localStorage.setItem(notifKey, JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to persist notifications', e);
-      }
+    const notifKey = student ? `dk_academy_notifications_${student.id}` : 'dk_academy_notifications_public';
+    try {
+      localStorage.setItem(notifKey, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to persist notifications', e);
     }
   }, [student]);
 
