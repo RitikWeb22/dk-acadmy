@@ -369,28 +369,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleDppPyqCreated = (e: any) => {
       const item = e.detail;
       if (!item) return;
-      const isBitsat = item.moduleType === 'BITSAT';
-      const isPyq = item.moduleType === 'PYQ' || item.type === 'pyq' || item.exam || item.year;
+
+      const modType = String(item.moduleType || item.type || '').toUpperCase();
+      const titleUpper = String(item.title || '').toUpperCase();
+      const badgeUpper = String(item.badgeCode || '').toUpperCase();
+      const catUpper = String(item.categoryLabel || '').toUpperCase();
+
+      const isBitsat =
+        modType === 'BITSAT' ||
+        titleUpper.includes('BITSAT') ||
+        badgeUpper.includes('BITSAT') ||
+        catUpper.includes('BITSAT');
+
+      const isPyq =
+        !isBitsat &&
+        (modType === 'PYQ' ||
+          titleUpper.includes('PYQ') ||
+          badgeUpper.includes('PYQ') ||
+          catUpper.includes('PYQ') ||
+          Boolean(item.exam) ||
+          Boolean(item.year));
 
       let title = `📝 New DPP Sheet: ${item.title || item.chapter || 'Daily Practice Problem'}`;
       let message = `New Kota Daily Practice Problem sheet has been uploaded. Solve now!`;
       let linkText = 'Solve DPP';
       let linkUrl = '/dpp';
+      let notifId = `notif_dpp_${item.id || item._id || Date.now()}`;
 
       if (isBitsat) {
         title = `⚡ New BITSAT Speed Drill: ${item.title || 'BITSAT Speed Test'}`;
         message = `New BITSAT Rapid Speed Drill (${item.questionsCount || item.questions?.length || 25} Questions) is live. Train your 45-second inspection speed!`;
         linkText = 'Practice BITSAT Drill';
         linkUrl = '/bitsat';
+        notifId = `notif_bitsat_${item.id || item._id || Date.now()}`;
       } else if (isPyq) {
-        title = `📚 New PYQ Set: ${item.subject || 'JEE'} (${item.year || 'Past Years'})`;
-        message = `New Kota PYQ question set with video walkthrough and DK Sir shortcuts has been uploaded. Solve now!`;
-        linkText = 'Solve PYQ';
+        title = `📚 New PYQ Archive: ${item.title || `${item.subject || 'JEE'} Solved Archive`}`;
+        message = `New solved past year question archive (${item.questionsCount || item.questions?.length || 20} Questions) with DK Sir video solutions & speed shortcuts is now live. Solve now!`;
+        linkText = 'Solve PYQ Archive';
         linkUrl = '/pyq';
+        notifId = `notif_pyq_${item.id || item._id || Date.now()}`;
       }
 
       pushStudentNotification({
-        id: `notif_dpp_${item.id || item._id || Date.now()}`,
+        id: notifId,
         title,
         message,
         timestamp: Date.now(),

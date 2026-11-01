@@ -201,6 +201,13 @@ if (resolvedFrontendDir) {
         if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
             return next();
         }
+        // Never serve index.html for missing assets/chunks (prevents MIME type script error on old client caches)
+        if (req.path.startsWith('/assets/') ||
+            /\.(js|css|map|png|jpg|jpeg|gif|ico|svg|woff2|woff|ttf|webp)$/i.test(req.path)) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+            return res.status(404).json({ error: 'Asset not found', path: req.path });
+        }
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.sendFile(path.join(resolvedFrontendDir, 'index.html'));
     });
 }
