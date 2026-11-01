@@ -20,9 +20,31 @@ export function normalizeMathText(raw: string): string {
     // Normalize alternate LaTeX delimiters safely with callbacks
     .replace(/\\\[([\s\S]*?)\\\]/g, (_, p1) => `$$${p1}$$`)
     .replace(/\\\(([\s\S]*?)\\\)/g, (_, p1) => `$${p1}$`)
+    // Integral with limits: ∫_0^2 -> \int_{0}^{2}
+    .replace(/∫_\{?([0-9a-zA-Z]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\int_{$1}^{$2} ')
+    .replace(/∫/g, '\\int ')
+    // Summation / Product: ∑_0^n -> \sum_{0}^{n}
+    .replace(/∑_\{?([0-9a-zA-Z=]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\sum_{$1}^{$2} ')
+    .replace(/∑/g, '\\sum ')
+    .replace(/∏/g, '\\prod ')
     // Inverse trig functions: cot^-1, tan^-1, sin^-1, cos^-1, sec^-1, csc^-1
     .replace(/\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`)
     .replace(/\b(cot|tan|sin|cos|sec|csc)⁻¹/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`)
+    // Square roots: √( ... ) with balanced parens to \sqrt{ ... }
+    .replace(/√\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (_, g1) => `\\sqrt{${g1.trim()}}`)
+    .replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}')
+    .replace(/√/g, '\\sqrt')
+    // Clean superfluous parens around \sqrt in products: (\sqrt{A})(\sqrt{B})
+    .replace(/\(\\sqrt\{([^{}]+)\}\)/g, '\\sqrt{$1}')
+    // Fractions: A / ( B )
+    .replace(/((?:\\sqrt\{[^{}]*\}|\([a-zA-Z0-9_\^+\-*/ ]+\)|[a-zA-Z0-9_\^]+))\s*\/\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (_, num, den) => {
+      let cleanDen = den.trim();
+      while (cleanDen.startsWith('(') && cleanDen.endsWith(')')) {
+        cleanDen = cleanDen.slice(1, -1).trim();
+      }
+      cleanDen = cleanDen.replace(/\(\\sqrt\{([^{}]+)\}\)/g, '\\sqrt{$1}');
+      return `\\frac{${num.trim()}}{${cleanDen}}`;
+    })
     // Common unicode superscripts to standard exponents
     .replace(/²/g, '^2')
     .replace(/³/g, '^3')
