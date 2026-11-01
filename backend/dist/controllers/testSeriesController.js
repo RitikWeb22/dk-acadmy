@@ -504,10 +504,18 @@ export const createTestSeries = async (req, res) => {
                 payload.totalMarks = payload.questions.length * posMark;
             }
         }
-        // Check if test series with this id or slug already exists
-        const existing = await TestSeries.findOne({
-            $or: [{ id: payload.id }, { slug: payload.slug }]
-        });
+        // Check if test series with this id, slug or title already exists to prevent duplicate creation
+        const normalizedSlug = payload.slug || payload.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        payload.slug = normalizedSlug;
+        const queryOr = [];
+        if (payload.id)
+            queryOr.push({ id: payload.id });
+        if (normalizedSlug)
+            queryOr.push({ slug: normalizedSlug });
+        if (payload.title) {
+            queryOr.push({ title: { $regex: new RegExp(`^${payload.title.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } });
+        }
+        const existing = queryOr.length > 0 ? await TestSeries.findOne({ $or: queryOr }) : null;
         if (existing) {
             const updated = await TestSeries.findByIdAndUpdate(existing._id, payload, {
                 new: true,

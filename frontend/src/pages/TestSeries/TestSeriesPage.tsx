@@ -148,11 +148,14 @@ export const TestSeriesPage: React.FC = () => {
     };
 
     testSeriesList.forEach((test) => {
-      if (test.examType === 'JEE Main') counts['JEE Main'] += 1;
-      if (test.examType === 'JEE Advanced') counts['JEE Advanced'] += 1;
+      const isPart = test.format === 'Part Test' || test.badgeCode === 'PART TEST' || (test as any).examType === 'PartTest';
+      const isMath = (test.subjects.includes('Mathematics') && test.subjects.length === 1) || test.badgeCode === 'MATH SPEED' || (test as any).examType === 'MathSpeed';
+
+      if (test.examType === 'JEE Main' && !isPart) counts['JEE Main'] += 1;
+      if (test.examType === 'JEE Advanced' && !isPart) counts['JEE Advanced'] += 1;
       if (test.examType === 'BITSAT') counts['BITSAT'] += 1;
-      if (test.format === 'Part Test') counts['PartTest'] += 1;
-      if (test.subjects.includes('Mathematics') && test.subjects.length === 1) counts['MathSpeed'] += 1;
+      if (isPart) counts['PartTest'] += 1;
+      if (isMath) counts['MathSpeed'] += 1;
     });
 
     return counts;
@@ -160,7 +163,7 @@ export const TestSeriesPage: React.FC = () => {
 
   // Total questions count across all tests
   const totalQuestions = useMemo(() => {
-    return testSeriesList.reduce((sum, t) => sum + t.questions.length, 0);
+    return testSeriesList.reduce((sum, t) => sum + (t.questions?.length || 0), 0);
   }, [testSeriesList]);
 
   // Attempted tests count
@@ -175,9 +178,11 @@ export const TestSeriesPage: React.FC = () => {
     return testSeriesList.filter((test) => {
       // 1. Exam or MathSpeed or PartTest filter
       if (selectedExam === 'MathSpeed') {
-        if (!test.subjects.includes('Mathematics') || test.subjects.length !== 1) return false;
+        const isMath = (test.subjects.includes('Mathematics') && test.subjects.length === 1) || test.badgeCode === 'MATH SPEED' || (test as any).examType === 'MathSpeed';
+        if (!isMath) return false;
       } else if (selectedExam === 'PartTest') {
-        if (test.format !== 'Part Test') return false;
+        const isPart = test.format === 'Part Test' || test.badgeCode === 'PART TEST' || (test as any).examType === 'PartTest';
+        if (!isPart) return false;
       } else if (selectedExam !== 'All' && test.examType !== selectedExam) {
         return false;
       }
