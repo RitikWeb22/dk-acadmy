@@ -129,12 +129,12 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
                     isCorrect ? (
                       <span className={`${styles.scoreTag} ${styles.scoreCorrect}`}>
                         <CheckCircle2 size={14} />
-                        <span>Correct (+{test.markingScheme.correct} Marks)</span>
+                        <span>Correct (+{test.markingScheme?.correct ?? 4} Marks)</span>
                       </span>
                     ) : (
                       <span className={`${styles.scoreTag} ${styles.scoreIncorrect}`}>
                         <XCircle size={14} />
-                        <span>Incorrect (-{test.markingScheme.incorrect} Mark)</span>
+                        <span>Incorrect (-{test.markingScheme?.incorrect ?? 1} Mark)</span>
                       </span>
                     )
                   ) : (

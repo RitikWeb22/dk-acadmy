@@ -370,10 +370,17 @@ export const getAllTestSeries = async (req, res) => {
             }
             items = await TestSeries.find({}).sort({ createdAt: -1 });
         }
+        const sanitizedItems = items.map((it) => {
+            const obj = it.toObject ? it.toObject() : { ...it };
+            if (!obj.markingScheme || typeof obj.markingScheme.correct !== 'number') {
+                obj.markingScheme = { correct: 4, incorrect: 1, unattempted: 0 };
+            }
+            return obj;
+        });
         res.status(200).json({
             success: true,
-            count: items.length,
-            data: items
+            count: sanitizedItems.length,
+            data: sanitizedItems
         });
     }
     catch (error) {

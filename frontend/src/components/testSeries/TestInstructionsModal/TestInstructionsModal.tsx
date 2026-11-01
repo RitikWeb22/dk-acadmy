@@ -93,7 +93,7 @@ export const TestInstructionsModal: React.FC<TestInstructionsModalProps> = ({
           <div className={styles.specItem}>
             <CheckCircle size={16} className={styles.specIcon} />
             <div className={styles.specContent}>
-              <span className={styles.specValue}>+{test.markingScheme.correct} / -{test.markingScheme.incorrect}</span>
+              <span className={styles.specValue}>+{test.markingScheme?.correct ?? 4} / -{test.markingScheme?.incorrect ?? 1}</span>
               <span className={styles.specLabel}>Marking Scheme</span>
             </div>
           </div>

@@ -1739,9 +1739,16 @@ export const cmsService = {
       const response = await apiClient.get<TestSeriesItem[]>('/test-series');
       const items = Array.isArray(response) ? response : (response as any)?.data || [];
       if (Array.isArray(items) && items.length > 0) {
-        localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(items));
+        const sanitized = items.map((t: any) => ({
+          ...t,
+          markingScheme: t.markingScheme && typeof t.markingScheme.correct === 'number'
+            ? t.markingScheme
+            : { correct: 4, incorrect: 1, unattempted: 0 },
+          questions: Array.isArray(t.questions) ? t.questions : []
+        }));
+        localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(sanitized));
         this.notifyUpdate('test_series');
-        return items;
+        return sanitized;
       }
     } catch (err) {
       console.warn('[cmsService] Failed to fetch test series from API, using cached data:', err);
@@ -1765,14 +1772,21 @@ export const cmsService = {
             hasNew = true;
           }
         }
+        const sanitized = parsed.map((t: any) => ({
+          ...t,
+          markingScheme: t.markingScheme && typeof t.markingScheme.correct === 'number'
+            ? t.markingScheme
+            : { correct: 4, incorrect: 1, unattempted: 0 },
+          questions: Array.isArray(t.questions) ? t.questions : []
+        }));
         if (hasNew) {
           try {
-            localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(parsed));
+            localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(sanitized));
           } catch {
             // ignore quota errors
           }
         }
-        return parsed;
+        return sanitized;
       }
     } catch {
       // fallback
