@@ -3376,8 +3376,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           }}
                           placeholder="Type normal text or equations ($x^2$, \frac{a}{b}, \int, \begin{cases}, \begin{bmatrix})... Or paste directly from Word!"
                           rows={4}
-                          defaultViewMode="split"
-                          showToolbar={true}
+                          defaultViewMode="edit"
                         />
                       </div>
 

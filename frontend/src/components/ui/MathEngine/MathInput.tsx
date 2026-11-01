@@ -20,27 +20,23 @@ export interface MathInputProps {
   rows?: number;
   label?: string;
   className?: string;
-  showToolbar?: boolean;
-  defaultViewMode?: 'split' | 'tabs' | 'editor';
+  defaultViewMode?: 'edit' | 'preview';
 }
 
 export const MathInput: React.FC<MathInputProps> = ({
   value,
   onChange,
   onExtractOptions,
-  placeholder = 'Type normal text or LaTeX ($x^2$, \\frac{a}{b}, \\int, \\begin{cases})...',
+  placeholder = 'Type normal text or equations ($x^2$, \\frac{a}{b}, \\int, \\begin{cases})... Or paste directly from Word!',
   rows = 4,
   label,
   className = '',
-  showToolbar = true,
-  defaultViewMode = 'split'
+  defaultViewMode = 'edit'
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('Algebra');
-  const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>(
-    defaultViewMode === 'split' ? 'split' : 'edit'
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>(
+    defaultViewMode === 'preview' ? 'preview' : 'edit'
   );
-  const [isToolbarOpen, setIsToolbarOpen] = useState<boolean>(showToolbar);
 
   // Inserts a mathematical symbol or template at current cursor location
   const handleInsertTemplate = useCallback(
@@ -135,135 +131,44 @@ export const MathInput: React.FC<MathInputProps> = ({
     }, 0);
   };
 
-  const currentCategoryItems = JEE_MATH_TOOLBAR.find((c) => c.name === activeCategory)?.items || [];
-
   return (
     <div className={`${styles.mathInputContainer} ${className}`}>
-      {/* Top Controls Bar */}
-      <div className={styles.inputControlsBar}>
+      {/* Top Controls Bar - Only Edit & Preview Buttons */}
+      <div className={styles.inputControlsBar} style={{ padding: '6px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {label && (
             <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>
               {label}
             </span>
           )}
-          <button
-            type="button"
-            onClick={() => setIsToolbarOpen(!isToolbarOpen)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              background: isToolbarOpen ? '#eff6ff' : '#f8fafc',
-              color: isToolbarOpen ? '#2563eb' : '#64748b',
-              cursor: 'pointer'
-            }}
-          >
-            <Sparkles size={12} />
-            {isToolbarOpen ? 'Hide Math Toolbar' : 'Insert Math Symbol'}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (!value) return;
-              const formatted = normalizeMathText(value);
-              onChange(formatted, parseContentToBlocks(formatted));
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: '6px',
-              border: '1px solid #bfdbfe',
-              background: '#eff6ff',
-              color: '#1d4ed8',
-              cursor: 'pointer'
-            }}
-            title="Clean Word formatting, fix powers & convert formulas into textbook LaTeX"
-          >
-            <Sparkles size={12} color="#2563eb" />
-            Format Math &amp; LaTeX
-          </button>
         </div>
 
-        {/* View Mode Switcher: Split / Edit / Preview */}
-        <div className={styles.viewModePills}>
+        {/* View Mode Switcher: Only Edit and Preview */}
+        <div className={styles.viewModePills} style={{ marginLeft: 'auto' }}>
           <button
             type="button"
             className={`${styles.viewModeBtn} ${viewMode === 'edit' ? styles.activeViewMode : ''}`}
             onClick={() => setViewMode('edit')}
-            title="Editor only"
+            title="Edit question statement"
           >
-            <Code size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+            <Code size={13} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
             Edit
-          </button>
-          <button
-            type="button"
-            className={`${styles.viewModeBtn} ${viewMode === 'split' ? styles.activeViewMode : ''}`}
-            onClick={() => setViewMode('split')}
-            title="Split side-by-side view"
-          >
-            <Columns size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-            Split
           </button>
           <button
             type="button"
             className={`${styles.viewModeBtn} ${viewMode === 'preview' ? styles.activeViewMode : ''}`}
             onClick={() => setViewMode('preview')}
-            title="Preview only"
+            title="Preview formatted mathematics"
           >
-            <Eye size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+            <Eye size={13} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
             Preview
           </button>
         </div>
       </div>
 
-      {/* Math Symbol Toolbar */}
-      {isToolbarOpen && (
-        <div className={styles.toolbarHeader}>
-          {/* Category Tabs */}
-          <div className={styles.toolbarCategoryTabs}>
-            {JEE_MATH_TOOLBAR.map((cat) => (
-              <button
-                key={cat.name}
-                type="button"
-                className={`${styles.categoryTabBtn} ${activeCategory === cat.name ? styles.activeCategoryTab : ''}`}
-                onClick={() => setActiveCategory(cat.name)}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Buttons for active category */}
-          <div className={styles.symbolGrid}>
-            {currentCategoryItems.map((item, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className={styles.symbolBtn}
-                onClick={() => handleInsertTemplate(item)}
-                title={`${item.description} (${item.template})`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Editor Body */}
-      <div className={`${styles.editorBody} ${viewMode === 'split' ? styles.splitActive : ''}`}>
-        {/* Textarea for editing */}
-        {viewMode !== 'preview' && (
+      <div className={styles.editorBody}>
+        {viewMode === 'edit' ? (
           <textarea
             ref={textareaRef}
             rows={rows}
@@ -273,11 +178,8 @@ export const MathInput: React.FC<MathInputProps> = ({
             placeholder={placeholder}
             className={styles.textareaField}
           />
-        )}
-
-        {/* Live Preview Side Pane */}
-        {viewMode !== 'edit' && (
-          <div className={styles.previewSidePane}>
+        ) : (
+          <div style={{ padding: '12px 14px', background: '#ffffff', minHeight: '120px' }}>
             <MathPreview content={value} />
           </div>
         )}
