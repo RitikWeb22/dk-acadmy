@@ -649,6 +649,58 @@
   background: #94A3B8;
 }
 
+.partTestPill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+  white-space: nowrap;
+}
+
+.fullMockPill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+  white-space: nowrap;
+}
+
+.subtitleCoverageText {
+  font-size: 11.5px;
+  color: #475569;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.subjectsInlineBadge {
+  font-size: 10.5px;
+  color: #2563EB;
+  background: #EFF6FF;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.scheduleWindowDateText {
+  font-size: 10.5px;
+  color: #6366F1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .createdAtCell {
   font-size: 11.5px;
   color: #64748B;

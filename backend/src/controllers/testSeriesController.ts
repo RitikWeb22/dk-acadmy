@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { TestSeries } from '../models/TestSeries.js';
+import { PART_TESTS_DATA } from '../data/partTestsData.js';
 import {
   broadcastTestSeriesCreated,
   broadcastTestSeriesUpdated,
@@ -7,7 +8,7 @@ import {
 } from '../sockets/socket.js';
 
 // Default starter dataset if DB is empty
-const SEED_TEST_SERIES = [
+const BASE_SEED_TEST_SERIES = [
   {
     id: 'test-ja-coord-geom-01',
     title: 'JEE Advanced Specialist: Coordinate Geometry & Vectors',
@@ -337,6 +338,8 @@ const SEED_TEST_SERIES = [
     testsBreakdown: { published: 0, draft: 0, scheduled: 1 }
   }
 ];
+
+const SEED_TEST_SERIES = [...BASE_SEED_TEST_SERIES, ...PART_TESTS_DATA];
 
 export const getAllTestSeries = async (req: Request, res: Response): Promise<void> => {
   try {

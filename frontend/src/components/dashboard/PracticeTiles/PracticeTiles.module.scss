@@ -81,6 +81,14 @@
     }
   }
 
+  &:nth-child(5) {
+    grid-column: span 2;
+
+    @media (max-width: 480px) {
+      grid-column: span 1;
+    }
+  }
+
   &.emeraldTint {
     background-color: #f0fdf4;
     border-color: #dcfce7;

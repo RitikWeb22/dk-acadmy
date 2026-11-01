@@ -35,6 +35,7 @@ const dppPyqSchema = new Schema({
     chapter: { type: String, default: '' },
     examTarget: { type: String, default: '' },
     isFree: { type: Boolean, default: true },
+    price: { type: Number, default: 0 },
     pdfUrl: { type: String, default: '' },
     videoUrl: { type: String, default: '' },
     videoWalkthroughUrl: { type: String, default: '' },

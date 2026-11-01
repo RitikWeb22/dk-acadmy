@@ -5,6 +5,7 @@ import {
   BookOpen,
   Trophy,
   Video,
+  Layers,
   ArrowUpRight
 } from 'lucide-react';
 import styles from './PracticeTiles.module.scss';
@@ -39,9 +40,18 @@ export const PracticeTiles: React.FC = () => {
       tintClass: 'blueTint'
     },
     {
+      id: 'tile-part-tests',
+      title: 'Part Tests Engine',
+      description: '20 Modular Units (PCM)',
+      route: '/test-series?format=Part+Test',
+      icon: <Layers size={18} aria-hidden="true" />,
+      badge: '20 Tests',
+      tintClass: 'emeraldTint'
+    },
+    {
       id: 'tile-mock',
-      title: 'Mock Tests',
-      description: 'CBT Exam Simulator',
+      title: 'Full CBT Mocks',
+      description: 'NTA Exam Simulator',
       route: '/test-series',
       icon: <Trophy size={18} aria-hidden="true" />,
       badge: 'NTA CBT',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2 } from 'lucide-react';
+import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2, Calendar } from 'lucide-react';
 import type { TestSeriesItem, TestAttempt } from '../../../types';
 import styles from './TestCard.module.scss';
 
@@ -19,6 +19,26 @@ export const TestCard: React.FC<TestCardProps> = ({
   onViewResults,
 }) => {
   const status = attempt ? attempt.status : 'Not Started';
+
+  // Check scheduling status
+  const now = Date.now();
+  const isScheduled = test.status === 'Scheduled' && Boolean(test.schedule?.startWindow);
+  const startTime = isScheduled ? new Date(test.schedule!.startWindow!).getTime() : null;
+  const endTime = test.schedule?.endWindow ? new Date(test.schedule.endWindow).getTime() : null;
+
+  const isUpcoming = Boolean(isScheduled && startTime && now < startTime);
+  const isLiveWindow = Boolean(isScheduled && startTime && now >= startTime && (!endTime || now <= endTime));
+  const isWindowClosed = Boolean(isScheduled && endTime && now > endTime);
+
+  const formattedStartTime = startTime
+    ? new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }).format(new Date(startTime))
+    : '';
 
   // Calculate score if completed
   let totalScore = 0;
@@ -88,7 +108,7 @@ export const TestCard: React.FC<TestCardProps> = ({
           </span>
         </div>
 
-        {/* Status Pill: "In Progress", "Completed", "Not Started" */}
+        {/* Status Pill: "In Progress", "Completed", "Not Started", "Scheduled", "LIVE" */}
         <div className={styles.statusWrap}>
           {status === 'Completed' ? (
             <span className={`${styles.statusPill} ${styles.statusCompleted}`}>
@@ -99,6 +119,20 @@ export const TestCard: React.FC<TestCardProps> = ({
             <span className={`${styles.statusPill} ${styles.statusInProgress}`}>
               <span className={styles.pulseDot} aria-hidden="true" />
               <span>In Progress ({answeredCount}/{test.totalQuestions})</span>
+            </span>
+          ) : isLiveWindow ? (
+            <span className={`${styles.statusPill} ${styles.statusLive}`}>
+              <span className={styles.liveRedDot} aria-hidden="true" />
+              <span>LIVE CBT EXAM</span>
+            </span>
+          ) : isUpcoming ? (
+            <span className={`${styles.statusPill} ${styles.statusScheduled}`}>
+              <Calendar size={12} aria-hidden="true" />
+              <span>Starts {formattedStartTime}</span>
+            </span>
+          ) : isWindowClosed ? (
+            <span className={`${styles.statusPill} ${styles.statusClosed}`}>
+              <span>Window Closed • Practice</span>
             </span>
           ) : (
             <span className={`${styles.statusPill} ${styles.statusNotStarted}`}>
@@ -196,6 +230,29 @@ export const TestCard: React.FC<TestCardProps> = ({
             <span>Resume Test</span>
             <ArrowRight size={15} aria-hidden="true" />
           </button>
+        ) : isLiveWindow ? (
+          /* Live exam button */
+          <button
+            type="button"
+            className={styles.liveExamBtn}
+            onClick={() => onOpenInstructions(test.id)}
+            aria-label={`Enter live exam: ${test.title}`}
+          >
+            <span className={styles.liveRedDot} style={{ backgroundColor: '#ffffff', boxShadow: 'none' }} />
+            <span>Enter Live Exam</span>
+            <ArrowRight size={15} aria-hidden="true" />
+          </button>
+        ) : isUpcoming ? (
+          /* Upcoming scheduled test button */
+          <button
+            type="button"
+            className={styles.scheduledUpcomingBtn}
+            onClick={() => alert(`This scheduled CBT mock opens on ${formattedStartTime}. Please return at that time to take the live test.`)}
+            aria-label={`Scheduled test opens on ${formattedStartTime}`}
+          >
+            <Calendar size={14} aria-hidden="true" />
+            <span>Opens {formattedStartTime}</span>
+          </button>
         ) : (
           /* "Start Test" (Solid Primary Blue) */
           <button
@@ -204,7 +261,7 @@ export const TestCard: React.FC<TestCardProps> = ({
             onClick={() => onOpenInstructions(test.id)}
             aria-label={`Start test: ${test.title}`}
           >
-            <span>Start Test</span>
+            <span>{isWindowClosed ? 'Start Practice Test' : 'Start Test'}</span>
             <ArrowRight size={15} aria-hidden="true" />
           </button>
         )}

@@ -5,9 +5,26 @@ import rateLimit from 'express-rate-limit';
  */
 export const globalApiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 600, // 600 requests per 15 minutes per IP
+    max: 10000, // Generous ceiling to prevent false-positive lockouts
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+        // Never rate limit administrative sessions, internal analytics, or authenticated users
+        const auth = req.headers.authorization;
+        if (auth && (auth.startsWith('Bearer ') || auth.includes('dka_sess_'))) {
+            return true;
+        }
+        const path = req.path || req.originalUrl || '';
+        if (path.includes('/admin') ||
+            path.includes('/analytics') ||
+            path.includes('/payment') ||
+            path.includes('/coupons') ||
+            path.includes('/auth/students') ||
+            path.includes('/auth/staff')) {
+            return true;
+        }
+        return false;
+    },
     message: {
         success: false,
         message: 'Rate limit exceeded: Too many requests from this IP address. Please try again later.'

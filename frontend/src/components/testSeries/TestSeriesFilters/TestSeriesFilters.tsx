@@ -1,12 +1,12 @@
 import React from 'react';
-import { Search, X, SlidersHorizontal, Layers, GraduationCap, Flame, Zap } from 'lucide-react';
+import { Search, X, SlidersHorizontal, Layers, GraduationCap, Flame, Zap, BookOpen } from 'lucide-react';
 import type { TestFormat, TestDifficulty, TestExamType } from '../../../types';
 import styles from './TestSeriesFilters.module.scss';
 
 export type FormatFilterValue = 'All' | TestFormat;
 export type DifficultyFilterValue = 'All' | TestDifficulty;
 export type StatusFilterValue = 'All' | 'Not Started' | 'In Progress' | 'Completed';
-export type ExamFilterValue = 'All' | TestExamType | 'MathSpeed';
+export type ExamFilterValue = 'All' | TestExamType | 'PartTest' | 'MathSpeed';
 
 interface PrimaryTabItem {
   value: ExamFilterValue;
@@ -20,6 +20,7 @@ const PRIMARY_EXAM_TABS: PrimaryTabItem[] = [
   { value: 'JEE Main', label: 'JEE Main Filter', icon: GraduationCap },
   { value: 'JEE Advanced', label: 'JEE Advanced Engine', icon: Flame },
   { value: 'BITSAT', label: 'BITSAT Speed CBT', icon: Zap },
+  { value: 'PartTest', label: 'Part Tests Engine', icon: BookOpen, badge: '20' },
   { value: 'MathSpeed', label: 'DK Sir Math Speed', icon: Zap, badge: 'HOT' },
 ];
 
@@ -54,7 +55,7 @@ export const TestSeriesFilters: React.FC<TestSeriesFiltersProps> = ({
   totalResults,
   selectedExam = 'All',
   onSelectExam,
-  examCounts = { All: 0, 'JEE Main': 0, 'JEE Advanced': 0, BITSAT: 0, MathSpeed: 0 }
+  examCounts = { All: 0, 'JEE Main': 0, 'JEE Advanced': 0, BITSAT: 0, PartTest: 0, MathSpeed: 0 }
 }) => {
   return (
     <div className={styles.toolbarContainer} aria-label="Mock Test Filters and Search Toolbar">
