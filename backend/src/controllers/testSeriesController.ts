@@ -506,6 +506,8 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
         questionNumber: q.questionNumber || q.index || idx + 1,
         subject: q.subject || 'Mathematics',
         chapter: q.chapter || q.topicTag || 'General',
+        section: q.section || (idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A'),
+        type: q.type || (q.section === 'B' || idx >= 20 ? 'NUMERICAL' : 'SINGLE_CORRECT'),
         statement: q.statement || q.questionText || '',
         statementBlocks: q.statementBlocks,
         explanationBlocks: q.explanationBlocks,
@@ -513,11 +515,13 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
         options: Array.isArray(q.options)
           ? q.options.map((opt: any, optIdx: number) => ({
               id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
+              key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
               text: opt.text || '',
               imageUrl: opt.imageUrl
             }))
           : [],
         correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
+        numericalAnswer: q.numericalAnswer || (q.section === 'B' ? q.correctKey || q.correctAnswer : undefined),
         marks: q.marks || 4,
         negativeMarks: q.negativeMarks ?? 1,
         formulaKey: q.formulaKey || q.topicTag,
@@ -595,6 +599,8 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
         questionNumber: q.questionNumber || q.index || idx + 1,
         subject: q.subject || 'Mathematics',
         chapter: q.chapter || q.topicTag || 'General',
+        section: q.section || (idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A'),
+        type: q.type || (q.section === 'B' || idx >= 20 ? 'NUMERICAL' : 'SINGLE_CORRECT'),
         statement: q.statement || q.questionText || '',
         statementBlocks: q.statementBlocks,
         explanationBlocks: q.explanationBlocks,
@@ -602,11 +608,13 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
         options: Array.isArray(q.options)
           ? q.options.map((opt: any, optIdx: number) => ({
               id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
+              key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
               text: opt.text || '',
               imageUrl: opt.imageUrl
             }))
           : [],
         correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
+        numericalAnswer: q.numericalAnswer || (q.section === 'B' ? q.correctKey || q.correctAnswer : undefined),
         marks: q.marks || 4,
         negativeMarks: q.negativeMarks ?? 1,
         formulaKey: q.formulaKey || q.topicTag,

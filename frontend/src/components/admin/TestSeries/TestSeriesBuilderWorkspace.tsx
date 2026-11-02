@@ -354,7 +354,7 @@ const INITIAL_SUBJECT_RULES: Record<'Physics' | 'Chemistry' | 'Mathematics', Sub
   }
 };
 
-const INITIAL_SAMPLE_QUESTIONS: QuestionItem[] = [
+const INITIAL_SAMPLE_RAW: QuestionItem[] = [
   {
     id: 'ja-cg-q1',
     subject: 'Mathematics',
@@ -437,6 +437,18 @@ const INITIAL_SAMPLE_QUESTIONS: QuestionItem[] = [
   }
 ];
 
+const INITIAL_SAMPLE_QUESTIONS: QuestionItem[] = INITIAL_SAMPLE_RAW.map((q) => {
+  const norm = normalizeMathText(q.questionText);
+  return {
+    ...q,
+    questionText: norm,
+    statementBlocks: parseContentToBlocks(norm),
+    options: q.options.map((o) => ({ ...o, text: normalizeMathText(o.text) })),
+    solutionDerivation: normalizeMathText(q.solutionDerivation || ''),
+    shortcutTrick: normalizeMathText(q.shortcutTrick || '')
+  };
+});
+
 export const mapBackendQuestionsToBuilder = (rawQuestions: any[]): QuestionItem[] => {
   if (!Array.isArray(rawQuestions) || rawQuestions.length === 0) {
     return [];
@@ -483,6 +495,14 @@ export const mapBackendQuestionsToBuilder = (rawQuestions: any[]): QuestionItem[
     const section: 'A' | 'B' = isSectionB ? 'B' : 'A';
     const type = q.type || (isSectionB ? 'NUMERICAL' : 'SINGLE_CORRECT');
 
+    const rawStatement = q.statement || q.questionText || '';
+    const normalizedStatement = normalizeMathText(rawStatement);
+
+    const normalizedOptions = options.map((opt) => ({
+      ...opt,
+      text: normalizeMathText(opt.text || '')
+    }));
+
     return {
       id: String(q.id || `q-${idx + 1}-${Date.now()}`),
       subject,
@@ -491,14 +511,14 @@ export const mapBackendQuestionsToBuilder = (rawQuestions: any[]): QuestionItem[
       type,
       difficulty: q.difficulty ? (String(q.difficulty).toUpperCase() as any) : 'MEDIUM',
       topicTag: q.chapter || q.topicTag || q.formulaKey || 'General',
-      questionText: q.statement || q.questionText || '',
-      statementBlocks: q.statementBlocks,
+      questionText: normalizedStatement,
+      statementBlocks: parseContentToBlocks(normalizedStatement),
       imageUrl: q.imageUrl,
-      options,
+      options: normalizedOptions,
       correctKey,
       numericalAnswer: q.numericalAnswer ? String(q.numericalAnswer) : undefined,
-      solutionDerivation: q.explanation || q.stepSolution || q.solutionDerivation || '',
-      shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
+      solutionDerivation: q.explanation || q.stepSolution || q.solutionDerivation ? normalizeMathText(q.explanation || q.stepSolution || q.solutionDerivation) : '',
+      shortcutTrick: q.shortcutTrick || q.dkSirShortcut ? normalizeMathText(q.shortcutTrick || q.dkSirShortcut) : '',
       videoSolutionUrl: q.videoSolutionUrl
     };
   });
@@ -1955,6 +1975,40 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [isSmartPasteModalOpen, setIsSmartPasteModalOpen] = useState(false);
   const [smartPasteText, setSmartPasteText] = useState('');
 
+  // Live parsed preview computation for Smart Paste Modal
+  const liveSmartExtracted = useMemo(() => {
+    if (!smartPasteText.trim()) return null;
+    const extracted = extractStatementAndOptions(smartPasteText);
+    const hasOptions =
+      Array.isArray(extracted.options) &&
+      extracted.options.length > 0 &&
+      extracted.options.some((o) => o.text && !o.text.startsWith('Option '));
+
+    const ansMatch = smartPasteText.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Option))?|Option)\s*[:=\-]\s*[(]?([A-Da-d1-4])[)]?/i);
+    let detectedKey = extracted.correctKey;
+    if (ansMatch) {
+      let raw = ansMatch[1].toUpperCase();
+      if (raw === '1') raw = 'A';
+      else if (raw === '2') raw = 'B';
+      else if (raw === '3') raw = 'C';
+      else if (raw === '4') raw = 'D';
+      if (['A', 'B', 'C', 'D'].includes(raw)) detectedKey = raw as any;
+    }
+
+    const numAnsMatch = smartPasteText.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Answer|Value))?|Value)\s*[:=\-]\s*(-?[0-9]+(?:\.[0-9]+)?)/i);
+
+    const cleanStmt = normalizeMathText(extracted.statement);
+    return {
+      statement: cleanStmt,
+      options: hasOptions
+        ? extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) }))
+        : [],
+      hasRealOptions: hasOptions,
+      detectedCorrectKey: detectedKey,
+      detectedNumericalAnswer: numAnsMatch ? numAnsMatch[1] : undefined
+    };
+  }, [smartPasteText]);
+
   const handleApplySmartPaste = () => {
     if (!smartPasteText.trim()) return;
     const extracted = extractStatementAndOptions(smartPasteText);
@@ -1977,14 +2031,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     // Extract numerical answer for Section B questions (e.g. "Ans: 14", "Answer = -2.5")
     const numAnsMatch = smartPasteText.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Answer|Value))?|Value)\s*[:=\-]\s*(-?[0-9]+(?:\.[0-9]+)?)/i);
     const isSectionB = currentEditingQuestion?.section === 'B';
+    const hasOptions = Array.isArray(extracted.options) && extracted.options.some((o) => o.text && !o.text.startsWith('Option '));
 
     const cleanStmt = normalizeMathText(extracted.statement);
     updateCurrentQuestion({
       questionText: cleanStmt,
       statementBlocks: parseContentToBlocks(cleanStmt),
-      options: isSectionB && (!extracted.options || extracted.options.every(o => o.text.startsWith('Option ')))
-        ? (currentEditingQuestion?.options || extracted.options)
-        : extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) })),
+      options: hasOptions
+        ? extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) }))
+        : (currentEditingQuestion?.options || extracted.options),
       correctKey: (extracted.correctKey || correctKey) as any,
       numericalAnswer: numAnsMatch ? numAnsMatch[1] : currentEditingQuestion?.numericalAnswer,
       solutionDerivation: solMatch ? normalizeMathText(solMatch[1]) : currentEditingQuestion?.solutionDerivation,
@@ -5873,14 +5928,76 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 />
               </div>
 
-              {smartPasteText.trim() && (
-                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', maxHeight: '200px', overflowY: 'auto' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>
-                    Live Formatted Math Preview:
+              {liveSmartExtracted && (
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '14px', maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      ✨ Live Formatted Math Preview:
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {liveSmartExtracted.detectedCorrectKey && (
+                        <span style={{ fontSize: '11px', fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '2px 8px', borderRadius: '4px' }}>
+                          ✓ Detected Key: Option {liveSmartExtracted.detectedCorrectKey}
+                        </span>
+                      )}
+                      {liveSmartExtracted.detectedNumericalAnswer && (
+                        <span style={{ fontSize: '11px', fontWeight: 700, background: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: '4px' }}>
+                          ✓ Numerical Key: {liveSmartExtracted.detectedNumericalAnswer}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '13px', color: '#0F172A', lineHeight: '1.6' }}>
-                    <MathText text={smartPasteText} />
+
+                  {/* Statement Card */}
+                  <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', color: '#0F172A', lineHeight: '1.6' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 600, color: '#64748B', marginBottom: '4px' }}>QUESTION STATEMENT</div>
+                    <MathText text={liveSmartExtracted.statement} />
                   </div>
+
+                  {/* Options Grid */}
+                  {liveSmartExtracted.hasRealOptions && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                      {liveSmartExtracted.options.map((opt) => {
+                        const isCorrect = liveSmartExtracted.detectedCorrectKey === opt.key;
+                        return (
+                          <div
+                            key={opt.key}
+                            style={{
+                              background: isCorrect ? '#F0FDF4' : '#FFFFFF',
+                              border: `1.5px solid ${isCorrect ? '#22C55E' : '#E2E8F0'}`,
+                              borderRadius: '6px',
+                              padding: '8px 10px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              fontSize: '12.5px'
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '50%',
+                                background: isCorrect ? '#22C55E' : '#EFF6FF',
+                                color: isCorrect ? '#FFFFFF' : '#1D4ED8',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 700,
+                                fontSize: '11px',
+                                flexShrink: 0
+                              }}
+                            >
+                              {opt.key}
+                            </span>
+                            <span style={{ flex: 1 }}>
+                              <MathText text={opt.text} />
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
