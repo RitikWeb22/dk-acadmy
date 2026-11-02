@@ -227,6 +227,31 @@ function sanitizeFormula(str: string): string {
     // Normalize any duplicated \left\left( or \right\right)
     .replace(/\\left\s*\\left\s*\(/g, '\\left(')
     .replace(/\\right\s*\\right\s*\)/g, '\\right)')
+    // Normalize prime derivatives: ϕ^' (t) -> \phi'(t)
+    .replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ")
+    // Normalize empty set phi
+    .replace(/∅/g, '\\phi ')
+    // Normalize unbraced fractions in powers: x^\frac{{2}}{2} -> x^{\frac{2}{2}}
+    .replace(/\^\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}')
+    .replace(/\^\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}')
+    // Normalize vectors: (OA) ⃗ -> \vec{OA}, a ⃗ -> \vec{a}, i ˆ -> \hat{i}
+    .replace(/\(([A-Za-z]{1,3})\)\s*[\u20D7\u2192⃗]/g, '\\vec{$1}')
+    .replace(/([a-zA-Z])\s*[\u20D7\u2192⃗]/g, '\\vec{$1}')
+    .replace(/([ijk])\s*[\u0302\u02C6ˆ]/g, '\\hat{$1}')
+    .replace(/⋅/g, ' \\cdot ')
+    .replace(/×/g, ' \\times ')
+    .replace(/∀/g, '\\forall ')
+    .replace(/sint\b/g, '\\sin t')
+    .replace(/sinxdx\b/g, '\\sin x\\,dx')
+    .replace(/cos2([ABC])\b/g, '\\cos 2$1')
+    // Exponential powers: e^(2-4x) -> e^{2-4x}, e^2 -> e^{2}
+    .replace(/e\^\(([^()]+)\)/g, 'e^{$1}')
+    .replace(/e\^([0-9a-zA-Z]+)/g, 'e^{$1}')
+    // Greek powers and unbraced variable exponents: \alpha^4 -> \alpha^{4}, \beta^4 -> \beta^{4}, x^2 -> x^{2}
+    .replace(/\\(alpha|beta|gamma|theta|lambda|pi|phi|omega)\^([0-9a-zA-Z])(?![0-9a-zA-Z\{])/g, '\\$1^{$2}')
+    .replace(/([a-zA-Z0-9_\)\]\}])\^([0-9a-zA-Z])(?![0-9a-zA-Z\{])/g, '$1^{$2}')
+    // Tall bracket display fractions: \left(\frac -> \left(\dfrac
+    .replace(/\\left\(\s*\\frac/g, '\\left(\\dfrac')
     .trim();
 
   // If formula contains connecting words inside math mode without \text, wrap them in \text{ ... }

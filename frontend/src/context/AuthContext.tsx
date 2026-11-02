@@ -373,20 +373,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     };
 
-    // 3b. Test Series Deleted Notification
-    const handleTestSeriesDeleted = (e: any) => {
-      const data = e.detail;
-      if (!data) return;
-      pushStudentNotification({
-        id: `notif_test_del_${data.id || Date.now()}`,
-        title: `🗑️ Test Series Deleted: ${data.title || 'CBT Mock'}`,
-        message: `"${data.title || 'CBT Mock'}" has been permanently removed by Academic Administration.`,
-        timestamp: Date.now(),
-        category: 'practice_test',
-        read: false,
-        linkText: 'Check Test Series',
-        linkUrl: '/test-series'
-      });
+    // 3b. Test Series Deleted - silent handling (no popups or student broadcast for deletions)
+    const handleTestSeriesDeleted = (_e: any) => {
+      // Deletions are administrative and handled silently without user toast popups
     };
 
     // 4. New DPP, PYQ or BITSAT Set Notification
