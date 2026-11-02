@@ -176,6 +176,11 @@ export function autoWrapMathDelimiters(text: string): string {
   // Smart wrap all mathematical formulas within mixed prose:
   let s = text;
 
+  // Pre-normalize differentials after integrals if missing \,
+  s = s.replace(/(\\(?:int|iint|iiint)[^,\n]+?)\s*d([txyz]|\\theta)\b/g, '$1\\,d$2');
+  // Spacing for Greek letters before vectors: \lambda\vec{a} -> \lambda \vec{a}
+  s = s.replace(/\\(lambda|alpha|beta|gamma|theta|mu|nu|pi|sigma|phi|omega)\s*(\\vec\{[a-zA-Z0-9]+\})/g, '\\$1 $2');
+
   // 1. Protect existing $...$ and $$...$$
   const protectedMath: string[] = [];
   const protect = (match: string) => {
@@ -183,6 +188,11 @@ export function autoWrapMathDelimiters(text: string): string {
     if (trimmed.startsWith('$') && trimmed.endsWith('$')) {
       trimmed = trimmed.slice(1, -1).trim();
     }
+    // Clean binary operators inside math expression for authentic spacing
+    trimmed = trimmed.replace(/([0-9a-zA-Z\\\}])\s*([=+\-−*/×⋅<>]|\\le|\\ge|\\in|\\neq|\\pm|\\cdot|\\times)\s*([0-9a-zA-Z\\\{])/g, '$1 $2 $3');
+    trimmed = trimmed.replace(/\s*([_\^])\s*/g, '$1');
+    trimmed = trimmed.replace(/\s*,\s*/g, ', ');
+    trimmed = trimmed.replace(/\s+/g, ' ').trim();
     const key = `___PROT_MATH_${protectedMath.length}___`;
     protectedMath.push(`$${trimmed}$`);
     return ` ${key} `;
@@ -195,7 +205,7 @@ export function autoWrapMathDelimiters(text: string): string {
   });
 
   // 2. Protect standalone integrals with limits, differentials and optional equation:
-  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?\\,(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)\s*(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?\\,(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
   // 3. Protect function evaluations with fraction arguments like \phi'(\frac{\pi}{4}) or f(\frac{\pi^2}{4})
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\[a-zA-Z]+'?(?:\s*\(|\s*\\left\()[\s\S]*?(?:\)|\s*\\right\)|(?=[,;.\s]|$))|[a-zA-Z]['′]?(?:\s*\(|\s*\\left\()[\s\S]*?(?:\)|\s*\\right\)))(?=[,;.\s]|$)/g, (m) => {
@@ -205,22 +215,28 @@ export function autoWrapMathDelimiters(text: string): string {
     return m;
   });
 
-  // 4. Protect standalone fractions: \frac{...}{...}
-  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  // 4. Wrap compound math expressions, equations, vector linear combinations, and polynomials:
+  // Uses atomic singleTerm so it NEVER matches multi-letter English words like "vectors", "perpendicular", etc.
+  const singleAtom = '(?:-?\\s*(?:[0-9]+(?:\\.[0-9]+)?|\\\\[a-zA-Z]+(?:\\{[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\}|_[0-9a-zA-Z\\{\\}]+|\\^[0-9a-zA-Z\\{\\}]+)*|(?<![a-zA-Z])[a-zA-Z](?![a-zA-Z])(?:_[0-9a-zA-Z\\{\\}]+|\\^[0-9a-zA-Z\\{\\}]+)*|\\((?:[^()]+|\\([^()]*\\))*\\)|\\[(?:[^\\[\\]]+|\\[[^\\[\\]]*\\])*\\]|\\|(?:[^|]+)*\\|))';
+  const term = `(?:${singleAtom}\\s*)+`;
+  const mathOp = '(?:[=+\\-−*/×⋅<>]|\\in|\\ge|\\le|\\neq|\\pm|\\cdot|\\times)';
+  const compoundMath = new RegExp(`(?<![a-zA-Z0-9_\\$])(${term}\\s*${mathOp}\\s*${term}(?:\\s*${mathOp}\\s*${term})*)(?![a-zA-Z0-9_\\$])`, 'g');
+  s = s.replace(compoundMath, (_, m) => {
+    // If it contains English prose words like "is", "then", "and", "between", don't wrap entire thing
+    if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where|satisfying|between|perpendicular)\b/i.test(m)) {
+      return m;
+    }
+    return protect(m);
+  });
 
-  // 5. Protect and wrap intervals: e.g. [-1, 3] or [0, 1] or [-1,3]
+  // 5. Protect standalone fractions: \frac{...}{...} (only if not preceded by ^ or _)
+  s = s.replace(/(?<![\^_{a-zA-Z0-9_\$])(\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?![\^}a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 6. Protect and wrap intervals: e.g. [-1, 3] or [0, 1] or [-1,3]
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\[\s*-?[0-9]+(?:\.[0-9]+)?\s*,\s*-?[0-9]+(?:\.[0-9]+)?\s*\])(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
-  // 6. Protect and wrap coordinate tuples: e.g. (\alpha, \beta) or (-1, -1, 2)
+  // 7. Protect and wrap coordinate tuples: e.g. (\alpha, \beta) or (-1, -1, 2)
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\(\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*(?:,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?))?\s*\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
-
-  // 7. Wrap compound math expressions, equations, vector linear combinations, and polynomials:
-  // Uses atomic singleTerm so it NEVER matches multi-letter English words like "vectors", "perpendicular", etc.
-  const singleAtom = '(?:-?\\s*(?:[0-9]+(?:\\.[0-9]+)?|\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_[0-9a-zA-Z\\{\\}]+|\\^[0-9a-zA-Z\\{\\}]+)*|(?<![a-zA-Z])[a-zA-Z](?![a-zA-Z])(?:_[0-9a-zA-Z\\{\\}]+|\\^[0-9a-zA-Z\\{\\}]+)*|\\([0-9a-zA-Z_\\+\\-*\\/\\s,\\\\\^\\{\\}]+\\)|\\|[0-9a-zA-Z_\\+\\-*\\/\\s,\\\\\^\\{\\}]+\\|))';
-  const term = `(?:${singleAtom}\\s*)+`;
-  const mathOp = '(?:[=+\\-−*/×⋅<>]|\\in|\\ge|\\le|\\neq|\\cdot|\\times)';
-  const compoundMath = new RegExp(`(?<![a-zA-Z0-9_\\$])(${term}\\s*${mathOp}\\s*${term}(?:\\s*${mathOp}\\s*${term})*)(?![a-zA-Z0-9_\\$])`, 'g');
-  s = s.replace(compoundMath, (_, m) => protect(m));
 
   // 8. Wrap remaining standalone LaTeX commands / variables outside $:
   // e.g. \vec{a}, \vec{b}, \lambda, \alpha, \beta, \hat{i}
@@ -333,8 +349,9 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ");
     res = res.replace(/∅/g, '\\phi ');
 
-    // 1c. MS Word combining vector arrows: a ⃗ or (OA) ⃗ or a\u20D7
+    // 1c. MS Word combining vector arrows: a ⃗ or OA ⃗ or (OA) ⃗ or a\u20D7
     res = res.replace(/\(([A-Za-z]{1,3})\)\s*[\u20D7\u2192⃗]/g, '\\vec{$1}');
+    res = res.replace(/([A-Z]{2,3})\s*[\u20D7\u2192⃗]/g, '\\vec{$1}');
     res = res.replace(/([a-zA-Z])\s*[\u20D7\u2192⃗]/g, '\\vec{$1}');
     // Unit vectors: i ˆ or j ˆ or k ˆ or \u0302
     res = res.replace(/([ijk])\s*[\u0302\u02C6ˆ]/g, '\\hat{$1}');
@@ -513,8 +530,17 @@ export function normalizeMathText(raw: string): string {
     // 14b. Scale parentheses enclosing fractions to dynamic tall brackets \left( ... \right)
     res = res.replace(/(?<!\\left)\s*\(([^\(\)]*\\frac[^\(\)]*)\)/g, ' \\left($1\\right)');
 
-    // 15. Words inside formulas: where -> \text{ ... }
-    res = res.replace(/(?<=[,\$])\s*(where)\s+/gi, ' \\text{$1} ');
+    // 15. Spacing for Greek letters before vectors: \lambda\vec{a} -> \lambda \vec{a}
+    res = res.replace(/\\(lambda|alpha|beta|gamma|theta|mu|nu|pi|sigma|phi|omega)\s*(\\vec\{[a-zA-Z0-9]+\})/g, '\\$1 $2');
+
+    // 15b. Spacing around mathematical equality, inequality and basic binary operators in equations
+    res = res.replace(/([0-9a-zA-Z\\\}])\s*=\s*([0-9a-zA-Z\\\{\-])/g, '$1 = $2');
+    res = res.replace(/([0-9a-zA-Z\\\}])\s*([+\-−*/×⋅·])\s*([0-9a-zA-Z\\\{])/g, (match, left, op, right) => {
+      // Don't separate exponent sign e.g. ^- or ^{-
+      if (left.endsWith('^') || left.endsWith('_')) return match;
+      return `${left} ${op} ${right}`;
+    });
+    res = res.replace(/([0-9a-zA-Z\\\}])\s*(>=|<=|≥|≤|>|<|≠|\\neq|\\ge|\\le|\\in)\s*([0-9a-zA-Z\\\{])/g, '$1 $2 $3');
 
     // 16. Vectors in 3D: i+2j+k -> \hat{i} + 2\hat{j} + \hat{k}
     res = res.replace(/\b([0-9]*)\s*i\s*([+-])\s*([0-9]*)\s*j\s*([+-])\s*([0-9]*)\s*k\b/g, (_, c1, s1, c2, s2, c3) => {
@@ -924,7 +950,8 @@ export function extractStatementAndOptions(text: string): {
 
   // Strategy 1: Match genuine options A, B, C, D
   // Exclude false positives where 'A' is part of prose (e.g. "point A divide", "matrix A", "set A", "arc AC")
-  const optPattern = /(?:^|\r?\n|\s+|\t)(?:\(([A-Da-d])\)|\[([A-Da-d])\]|\b([A-Da-d])\s*[\.\)\:\-]\s*|\b([A-Da-d])\s+(?=[0-9\-\+\(\$]|\\(?:frac|sqrt|log|pi|alpha|beta)|[A-Z][a-z]{0,2}\b))/g;
+  // Matches: (A), [A], A), A., A:, A -, or bare A followed by options (number, formula, word)
+  const optPattern = /(?:^|\r?\n|\s{2,}|\t|\s+(?=[A-D]\s+[0-9\-\+\(\$]|\\|[A-Za-z]))(?:\(([A-Da-d])\)|\[([A-Da-d])\]|\b([A-Da-d])\s*[\.\)\:\-]\s*|\b([A-Da-d])\s+(?=[^\s]))/g;
   const matches: { index: number; key: string; fullLength: number; matchStart: number }[] = [];
   let m: RegExpExecArray | null;
 
@@ -987,6 +1014,7 @@ export function extractStatementAndOptions(text: string): {
       let optText = cleanText.substring(contentStart, contentEnd).trim();
       optText = optText.replace(/^[\.\)\:\-\s]+/, '').trim();
       optText = optText.replace(/([0-9]+)\.\s*$/, '$1').trim();
+      optText = optText.replace(/\.\s*$/, '').trim();
       optionsMap[optKey as 'A' | 'B' | 'C' | 'D'] = optText;
     }
 
