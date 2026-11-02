@@ -42,7 +42,7 @@ export const TestPerformance: React.FC<TestPerformanceProps> = ({ attempts, allT
 
   // Evaluate genuine metrics for each attempted test
   let evaluatedTests: EvaluatedTestSummary[] = attemptedEntries.map(([testId, att]) => {
-    const test = allTests.find((t) => t.id === testId);
+    const test = allTests.find((t) => t.id === testId || (t as any)._id === testId || t.slug === testId);
     const questions = test?.questions || [];
     const scheme = test?.markingScheme || { correct: 4, incorrect: 1, unattempted: 0 };
 
@@ -52,7 +52,8 @@ export const TestPerformance: React.FC<TestPerformanceProps> = ({ attempts, allT
     let score = 0;
 
     questions.forEach((q) => {
-      const resp = att.responses?.[q.id];
+      const qId = q.id || (q as any)?._id;
+      const resp = qId ? (att.responses?.[qId] || (q.id && att.responses?.[q.id])) : undefined;
       if (resp && resp.selectedOption) {
         attemptedCount++;
         if (resp.selectedOption === q.correctAnswer) {
@@ -66,15 +67,21 @@ export const TestPerformance: React.FC<TestPerformanceProps> = ({ attempts, allT
     });
 
     const accuracy = attemptedCount > 0 ? Math.round((correctCount / attemptedCount) * 100) : 0;
-    const maxScore = test?.totalMarks || (questions.length * 4) || 24;
+    const maxScore = test?.totalMarks || (questions.length * scheme.correct) || 24;
 
-    let submittedDateText = 'Oct 22, 2026';
+    let submittedDateText = 'Recently';
     if (att.submittedAt) {
       submittedDateText = new Intl.DateTimeFormat('en-IN', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
       }).format(new Date(att.submittedAt));
+    } else if (att.startTime) {
+      submittedDateText = new Intl.DateTimeFormat('en-IN', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      }).format(new Date(att.startTime));
     }
 
     return {
@@ -86,7 +93,7 @@ export const TestPerformance: React.FC<TestPerformanceProps> = ({ attempts, allT
       maxScore,
       correctCount,
       attemptedCount,
-      totalQuestions: questions.length || 6,
+      totalQuestions: questions.length || test?.totalQuestions || 6,
       accuracy,
       submittedDateText,
       isSubmitted: att.isSubmitted || att.status === 'Completed'
@@ -277,13 +284,13 @@ export const TestPerformance: React.FC<TestPerformanceProps> = ({ attempts, allT
               {/* Card Action */}
               <div className={styles.cardFooter}>
                 {item.isSubmitted ? (
-                  <Link to="/test-series" className={styles.outlineReviewBtn}>
+                  <Link to={`/test-series?testId=${item.testId}&view=results`} className={styles.outlineReviewBtn}>
                     <BarChart3 size={15} />
                     <span>View Detailed Analysis</span>
                     <ArrowUpRight size={14} />
                   </Link>
                 ) : (
-                  <Link to="/test-series" className={styles.solidResumeBtn}>
+                  <Link to={`/test-series?testId=${item.testId}&view=test`} className={styles.solidResumeBtn}>
                     <Play size={14} fill="#ffffff" />
                     <span>Resume Mock Test</span>
                   </Link>
