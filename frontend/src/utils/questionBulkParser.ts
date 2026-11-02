@@ -236,10 +236,12 @@ export function autoWrapMathDelimiters(text: string): string {
     return ` ${key} `;
   });
 
-  // 2. Protect standalone integrals with limits, differentials and optional equation:
-  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)\s*(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?\\,\s*(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
-  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*\\int\s*\\frac\{(?:\\,)?\s*d[txyz]\}\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
-  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)\s*\\frac\{(?:\\,)?\s*d[txyz]\}\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  // 2. Protect integrals with differential in numerator first: e.g. f(x) = \int \frac{dx}{...} or \int \frac{dx}{...}
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*(?:[0-9]+\s*)?\\int\s*\\frac\{(?:\\,)?\s*d[txyz]\}\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  s = s.replace(/(?<![a-zA-Z0-9_\$])((?:[0-9]+\s*)?\\(?:int|iint|iiint)\s*\\frac\{(?:\\,)?\s*d[txyz]\}\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 2b. Protect standalone integrals with limits, differentials and optional equation:
+  s = s.replace(/(?<![a-zA-Z_\$])((?:-?\s*[0-9]+(?:\.[0-9]+)?\s*)?\\(?:int|iint|iiint)(?!\s*\\frac)\s*(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?(?:\\,)?\s*(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
   // 2b. Protect functions with inverse trig: f(1) = \frac{1}{\alpha\beta} \tan^{-1}\left(\frac{\alpha}{\beta}\right)
   s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=\s*\\frac\{[^{}]+\}\{(?:[^{}]|\{[^{}]*\})*\}\s*\\tan\s*\^\s*\{?-1\}?\s*\\left\([^\)]*\\right\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
@@ -378,6 +380,20 @@ export function normalizeMathText(raw: string): string {
   const lines = text.split(/\r?\n/);
   const processedLines = lines.map((line) => {
     let res = line;
+
+    // Clean leading question numbers e.g. "10..Let", "10. Let", "1, If", "Q1."
+    res = res.replace(/^\s*(?:Q(?:uestion)?\s*#?\s*\d+[\.\:\,\)]+|\bProblem\s*\d+[\.\:\,\)]+|\bQ\d+[\.\:\,\)]+|\d{1,3}[\.\,\)]+)\s*/i, '');
+    res = res.replace(/^\s*[\.\,]+\s*(?=[A-Za-z])/g, '');
+
+    // Absorb LHS math expression immediately preceding $ before parenthesized or left bracket:
+    // e.g. "Let 5f(x)+4f $\left(\dfrac{1}{x}\right)=\frac{1}{x}$" -> "Let $ 5f(x)+4f\left(\dfrac{1}{x}\right)=\frac{1}{x} $"
+    res = res.replace(/((?:[0-9]*\s*[a-zA-Z]\s*\([^)]*\)\s*[+\-−*\/]\s*)*[0-9]*\s*[a-zA-Z])\s*\$\s*(\\(?:left\s*)?[\(\[][\s\S]+?)\$/g,
+      (_, lhs, rest) => `$ ${lhs}${rest} $`);
+
+    // Absorb trailing arithmetic expression immediately following $ before punctuation, next formula, or prose conjunction:
+    // e.g. "=\frac{1}{x}$ + 3, $x > 0$" -> "=\frac{1}{x} + 3$, $x > 0$"
+    res = res.replace(/\$\s*([^$]+?)\s*\$\s*([+\-−*\/]\s*[0-9a-zA-Z\.\-]+(?:\s*[+\-−*\/]\s*[0-9a-zA-Z\.\-]+)*)(?=\s*[,;.]|\s+\$|\s+where\b|\s+when\b|\s+for\b|\s+then\b)/g,
+      (_, expr, trailing) => `$ ${expr} ${trailing} $`);
 
     // Word real-to-real function corruption: e.g. f:\vec{R}R -> $ f : \mathbb{R} \to \mathbb{R} $
     res = res.replace(/\b([a-zA-Z])\s*:\s*(?:\\vec\{R\}R|\\vec\{R\}\s*R|RR|R\s*R)\b/g, '$ $1 : \\mathbb{R} \\to \\mathbb{R} $');
@@ -686,13 +702,13 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/\\(lambda|alpha|beta|gamma|theta|mu|nu|pi|sigma|phi|omega)\s*(\\vec\{[a-zA-Z0-9]+\})/g, '\\$1 $2');
 
     // 15b. Spacing around mathematical equality, inequality and basic binary operators in equations
-    res = res.replace(/([0-9a-zA-Z\\\}])\s*=\s*([0-9a-zA-Z\\\{\-])/g, '$1 = $2');
-    res = res.replace(/([0-9a-zA-Z\\\}])\s*([+\-−*/×⋅·])\s*([0-9a-zA-Z\\\{])/g, (match, left, op, right) => {
+    res = res.replace(/([0-9a-zA-Z\\\}\)\]])\s*=\s*([0-9a-zA-Z\\\{\-])/g, '$1 = $2');
+    res = res.replace(/([0-9a-zA-Z\\\}\)\]])\s*([+\-−*/×⋅·])\s*([0-9a-zA-Z\\\{])/g, (match, left, op, right) => {
       // Don't separate exponent sign e.g. ^- or ^{-
       if (left.endsWith('^') || left.endsWith('_')) return match;
       return `${left} ${op} ${right}`;
     });
-    res = res.replace(/([0-9a-zA-Z\}])\s*(>=|<=|≥|≤|>|<|≠|\\neq\b|\\ge\b|\\le\b|\\in\b)\s*([0-9a-zA-Z\\\{])/g, '$1 $2 $3');
+    res = res.replace(/([0-9a-zA-Z\}\)\]])\s*(>=|<=|≥|≤|>|<|≠|\\neq\b|\\ge\b|\\le\b|\\in\b)\s*([0-9a-zA-Z\\\{])/g, '$1 $2 $3');
 
     // 16. Vectors in 3D: i+2j+k -> \hat{i} + 2\hat{j} + \hat{k}
     res = res.replace(/\b([0-9]*)\s*i\s*([+-])\s*([0-9]*)\s*j\s*([+-])\s*([0-9]*)\s*k\b/g, (_, c1, s1, c2, s2, c3) => {
@@ -762,7 +778,7 @@ export function normalizeMathText(raw: string): string {
         // Line already contains some '$' delimiters.
         // Check if there is still un-delimited math outside '$' that needs wrapping:
         const textOutsideDollars = res.replace(/\$[^\$\n]*\$/g, ' ');
-        const hasUnwrappedMath = /\\(?:frac|dfrac|int|sqrt|alpha|beta|gamma|theta|lambda|pi|sigma|phi|omega|vec|hat|left)\b|\b[a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=|\|\s*[^|]+\s*\|\s*(?:\^|[=<>])|\([0-9a-zA-Z\\]+\s*,\s*[0-9a-zA-Z\\]+/.test(textOutsideDollars);
+        const hasUnwrappedMath = /\\(?:frac|dfrac|int|sqrt|alpha|beta|gamma|theta|lambda|pi|sigma|phi|omega|vec|hat|left)(?![a-zA-Z])|\b[a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=|\|\s*[^|]+\s*\|\s*(?:\^|[=<>])|\([0-9a-zA-Z\\]+\s*,\s*[0-9a-zA-Z\\]+/.test(textOutsideDollars);
         if (hasUnwrappedMath) {
           res = autoWrapMathDelimiters(res);
         }
