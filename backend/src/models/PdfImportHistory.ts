@@ -39,28 +39,26 @@ export interface IPdfImportHistory extends Document {
 
 const extractedQuestionSchema = new Schema<IExtractedQuestionStage>(
   {
-    tempId: { type: String, required: true },
-    qNum: { type: Number, required: true },
-    statement: { type: String, required: true },
+    tempId: { type: String, default: () => `q-ext-${Date.now()}` },
+    qNum: { type: Number, default: 1 },
+    statement: { type: String, default: '' },
     topic: { type: String, default: 'General' },
     options: [
       {
-        key: { type: String, enum: ['A', 'B', 'C', 'D'], required: true },
-        text: { type: String, required: true }
+        key: { type: String, default: 'A' },
+        text: { type: String, default: '' }
       }
     ],
-    suggestedAnswer: { type: String, enum: ['A', 'B', 'C', 'D'], default: 'A' },
-    verifiedAnswer: { type: String, enum: ['A', 'B', 'C', 'D'] },
+    suggestedAnswer: { type: String, default: 'A' },
+    verifiedAnswer: { type: String },
     stepSolution: { type: String, default: '' },
     dkSirShortcut: { type: String, default: '' },
     difficulty: {
       type: String,
-      enum: ['Easy', 'Moderate', 'Challenging'],
       default: 'Moderate'
     },
     status: {
       type: String,
-      enum: ['EXTRACTED', 'NEEDS_REVIEW', 'VERIFIED', 'REJECTED'],
       default: 'EXTRACTED'
     },
     reviewReason: { type: String, default: '' },

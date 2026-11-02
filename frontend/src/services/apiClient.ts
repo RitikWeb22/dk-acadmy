@@ -315,9 +315,13 @@ export const apiClient = {
       xhr.onload = () => {
         try {
           const res = JSON.parse(xhr.responseText);
-          resolve(res);
+          if (xhr.status >= 400 || res.error || res.success === false) {
+            reject(new Error(res.error || res.details || res.message || `Server returned error (${xhr.status})`));
+          } else {
+            resolve(res);
+          }
         } catch {
-          reject(new Error('Invalid response from server'));
+          reject(new Error(xhr.status >= 400 ? `Upload failed with status ${xhr.status}` : 'Invalid response from server'));
         }
       };
 

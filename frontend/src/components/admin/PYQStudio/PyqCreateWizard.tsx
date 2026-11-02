@@ -9,6 +9,7 @@ import {
   ChevronUp,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
   Clock,
   Sparkles,
   Eye,
@@ -121,6 +122,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isPdfUploading, setIsPdfUploading] = useState(false);
   const [pdfUploadProgress, setPdfUploadProgress] = useState(0);
+  const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
   const [extractedSummary, setExtractedSummary] = useState<{
     totalDetected: number;
     successfulCount: number;
@@ -207,6 +209,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
     setPdfFile(file);
     setIsPdfUploading(true);
     setPdfUploadProgress(20);
+    setPdfUploadError(null);
 
     try {
       const res = await apiClient.uploadPdfForExtraction(
@@ -221,29 +224,32 @@ export const PyqCreateWizard: React.FC<Props> = ({
       );
 
       if (res && res.summary && Array.isArray(res.summary.questions)) {
-        const newExtracted: PyqQuestion[] = res.summary.questions.map((q: any, idx: number) => ({
-          id: `q-ext-${Date.now()}-${idx + 1}`,
-          qNum: q.qNum || idx + 1,
-          statement: q.statement,
-          subject,
-          chapter: selectedChapters[0] || 'General',
-          difficulty: q.difficulty || 'Moderate',
-          questionType: 'Single Correct MCQ',
-          options: q.options || [
-            { key: 'A', text: '' },
-            { key: 'B', text: '' },
-            { key: 'C', text: '' },
-            { key: 'D', text: '' }
-          ],
-          correctKey: q.suggestedAnswer || 'A',
-          stepSolution: q.stepSolution || '',
-          dkSirShortcut: q.dkSirShortcut || '',
-          videoUrl: '',
-          pdfUrl: '',
-          isFree: true,
-          status: q.status || 'EXTRACTED',
-          reviewReason: q.reviewReason || ''
-        }));
+        const newExtracted: PyqQuestion[] = res.summary.questions.map((q: any, idx: number) => {
+          const hasOptionText = Array.isArray(q.options) && q.options.some((o: any) => o.text && o.text.trim().length > 0);
+          return {
+            id: `q-ext-${Date.now()}-${idx + 1}`,
+            qNum: q.qNum || idx + 1,
+            statement: q.statement,
+            subject,
+            chapter: q.topic || selectedChapters[0] || 'General',
+            difficulty: q.difficulty || 'Moderate',
+            questionType: hasOptionText ? 'Single Correct MCQ' : 'Numerical Value',
+            options: q.options || [
+              { key: 'A', text: '' },
+              { key: 'B', text: '' },
+              { key: 'C', text: '' },
+              { key: 'D', text: '' }
+            ],
+            correctKey: q.suggestedAnswer || 'A',
+            stepSolution: q.stepSolution || '',
+            dkSirShortcut: q.dkSirShortcut || '',
+            videoUrl: '',
+            pdfUrl: '',
+            isFree: true,
+            status: q.status || 'EXTRACTED',
+            reviewReason: q.reviewReason || ''
+          };
+        });
 
         setQuestions(newExtracted);
         setActiveQuestionIndex(0);
@@ -255,7 +261,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
       }
     } catch (err: any) {
       console.error('PDF extraction failed:', err);
-      alert('PDF extraction encountered an issue: ' + (err.message || 'Server error'));
+      setPdfUploadError(err.message || 'Server error during extraction');
     } finally {
       setIsPdfUploading(false);
       setPdfUploadProgress(100);
@@ -728,6 +734,43 @@ export const PyqCreateWizard: React.FC<Props> = ({
                   Browse Computer
                 </button>
               </div>
+
+              {/* Upload Error Banner */}
+              {pdfUploadError && (
+                <div
+                  style={{
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: 8,
+                    padding: '0.85rem 1.25rem',
+                    color: '#991b1b',
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '1rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <AlertCircle size={18} style={{ color: '#dc2626', flexShrink: 0 }} />
+                    <span><strong>PDF Extraction Issue:</strong> {pdfUploadError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPdfUploadError(null)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#991b1b',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      fontSize: '1rem'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               {/* Upload Progress Bar */}
               {isPdfUploading && (

@@ -87,39 +87,49 @@ export function parseQuestionsFromText(
   }
 
   // Pre-clean linebreaks and normalize spaces
-  const cleanedText = fullText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  let cleanedText = fullText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  // Check for separate Answer Key block at the end (e.g. "Answer Key", "Answers:", "HINTS & SOLUTIONS")
+  // Remove page footer markers like "-- 1 of 5 --"
+  cleanedText = cleanedText.replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '');
+
+  // 1. Check for separate Answer Key block (e.g. "Answer Key", "Answers:", or trailing answer grid like "1.C 2.D 3.D")
   const answerKeyMap = new Map<number, 'A' | 'B' | 'C' | 'D'>();
-  const ansKeyMatch = cleanedText.match(/(?:Answer\s*Key|Answers?|ANSWERS?)\s*[:\n]([\s\S]+)$/i);
-  if (ansKeyMatch && ansKeyMatch[1]) {
-    const keyBlock = ansKeyMatch[1];
-    const keyRegex = /(?:Q\.?)?\s*(\d+)[\.\s\:\-\)]+\s*\(?([A-D])\)?/gi;
+  const ansGridMatch = cleanedText.match(/(?:(?:^|\n)\s*(?:JEE\s+Main[^\n]*\n\s*)?)1\s*[\.:]\s*[A-Da-d0-9][\s\S]*$/i);
+  const explicitAnsMatch = cleanedText.match(/(?:Answer\s*Key|Answers?|ANSWERS?)\s*[:\n]([\s\S]+)$/i);
+
+  const matchedAnsKey = explicitAnsMatch || ansGridMatch;
+  if (matchedAnsKey && matchedAnsKey.index !== undefined) {
+    const keyBlock = matchedAnsKey[0];
+    const keyPairRegex = /(\d{1,3})\s*[\.:]\s*([A-Da-d0-9\.\-]+)/g;
     let km;
-    while ((km = keyRegex.exec(keyBlock)) !== null) {
+    while ((km = keyPairRegex.exec(keyBlock)) !== null) {
       const qn = parseInt(km[1], 10);
-      const ans = km[2].toUpperCase() as 'A' | 'B' | 'C' | 'D';
-      if (!isNaN(qn) && ['A', 'B', 'C', 'D'].includes(ans)) {
-        answerKeyMap.set(qn, ans);
+      const rawAns = km[2].trim().toUpperCase();
+      if (!isNaN(qn) && ['A', 'B', 'C', 'D'].includes(rawAns)) {
+        answerKeyMap.set(qn, rawAns as 'A' | 'B' | 'C' | 'D');
       }
     }
+    // Trim answer key block from question statements
+    cleanedText = cleanedText.substring(0, matchedAnsKey.index).trim();
   }
 
-  // Question splitting pattern:
-  // e.g. "1.", "1..Let", "Q.1", "Question 1:", "23.Let", "\n10."
-  const questionDelimiter = /(?:^|\n)\s*(?:(?:Q\.?|Question)\s*)?(\d{1,3})\s*(?:\.{1,2}|\:|\))\s*/gi;
+  // 2. Identify sequential Question Delimiters:
+  // e.g. "1.", "2.Let", "\n3.If", "Q.1", "Question 1:"
+  const questionDelimiter = /(?:^|\n)\s*(?:(?:Q\.?|Question)\s*)?(\d{1,3})\s*\.\s*(?=[A-Za-z\(\[\\\|∫√])/g;
 
   const matches: { index: number; qNum: number; fullMatch: string }[] = [];
   let match;
+  let expectedQ = 1;
   while ((match = questionDelimiter.exec(cleanedText)) !== null) {
-    // Avoid matching option indicators like (1) inside options or footnotes
     const qNum = parseInt(match[1], 10);
-    if (!isNaN(qNum) && qNum > 0 && qNum <= 300) {
+    // Ensure sequential progression (expectedQ or up to +3), preventing spurious formula matches like "3)dt"
+    if (!isNaN(qNum) && qNum >= expectedQ && qNum <= expectedQ + 3) {
       matches.push({
         index: match.index,
         qNum,
         fullMatch: match[0]
       });
+      expectedQ = qNum + 1;
     }
   }
 
@@ -142,21 +152,21 @@ export function parseQuestionsFromText(
     const tempId = `ext-q-${Date.now()}-${idx + 1}-${uuidv4().slice(0, 6)}`;
 
     // Strip leading question number
-    const blockContent = block.replace(/^\s*(?:(?:Q\.?|Question)\s*)?\d{1,3}\s*(?:\.{1,2}|\:|\))\s*/i, '').trim();
+    let blockContent = block.replace(/^\s*(?:(?:Q\.?|Question)\s*)?\d{1,3}\s*\.\s*/i, '').trim();
 
-    // Try parsing 4 options (A), (B), (C), (D) or A., B., C., D. or A), B), C), D)
-    const optionMatches = [
-      { key: 'A', regex: /(?:^|\s|\n)(?:\(?A\)?\.?|\(A\))\s+([\s\S]*?)(?=(?:^|\s|\n)(?:\(?B\)?\.?|\(B\))|$)/i },
-      { key: 'B', regex: /(?:^|\s|\n)(?:\(?B\)?\.?|\(B\))\s+([\s\S]*?)(?=(?:^|\s|\n)(?:\(?C\)?\.?|\(C\))|$)/i },
-      { key: 'C', regex: /(?:^|\s|\n)(?:\(?C\)?\.?|\(C\))\s+([\s\S]*?)(?=(?:^|\s|\n)(?:\(?D\)?\.?|\(D\))|$)/i },
-      { key: 'D', regex: /(?:^|\s|\n)(?:\(?D\)?\.?|\(D\))\s+([\s\S]*?)(?=$)/i }
-    ];
+    // Extract shift or year badge if embedded at the end of block (e.g. "JEE Main 2026 (Online) 8th April Evening Shift")
+    let shiftBadge = '';
+    const shiftMatch = blockContent.match(/(?:^|\n)\s*(JEE\s+Main[^\n]*Shift[^\n]*)/i);
+    if (shiftMatch) {
+      shiftBadge = shiftMatch[1].trim();
+      blockContent = blockContent.replace(shiftMatch[0], '').trim();
+    }
 
     let statement = blockContent;
     const options: { key: 'A' | 'B' | 'C' | 'D'; text: string }[] = [];
     let reviewReasons: string[] = [];
 
-    // Find first option position (A)
+    // Find first option position: (A), A., (A) etc.
     const firstOptionIndex = blockContent.search(/(?:^|\s|\n)(?:\(?A\)?\.?|\(A\))\s+/i);
 
     if (firstOptionIndex !== -1) {
@@ -178,9 +188,13 @@ export function parseQuestionsFromText(
         reviewReasons.push(`Missing option(s): ${missingOptions.map(o => o.key).join(', ')}`);
       }
     } else {
-      // Numerical / subjective question or options not in standard A-D format
-      reviewReasons.push('Options not automatically identified (possible numerical type or non-standard format)');
-      options.push({ key: 'A', text: '' }, { key: 'B', text: '' }, { key: 'C', text: '' }, { key: 'D', text: '' });
+      // Numerical / integer type question: no A-D options
+      options.push(
+        { key: 'A', text: '' },
+        { key: 'B', text: '' },
+        { key: 'C', text: '' },
+        { key: 'D', text: '' }
+      );
     }
 
     // Mathematical sanitization on statement
@@ -204,7 +218,7 @@ export function parseQuestionsFromText(
       tempId,
       qNum: qNum || idx + 1,
       statement,
-      topic: `${subject} PYQ`,
+      topic: shiftBadge || `${subject} PYQ`,
       options,
       suggestedAnswer,
       stepSolution: '',
