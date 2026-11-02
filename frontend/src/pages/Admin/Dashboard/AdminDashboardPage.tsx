@@ -62,9 +62,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
         ? 'invoices'
         : location.pathname.includes('/test-series')
         ? 'test-series'
-        : location.pathname.includes('/pyq')
-        ? 'pyq-studio'
-        : location.pathname.includes('/dpp-pyq')
+        : location.pathname.includes('/pyq') || location.pathname.includes('/dpp-pyq')
         ? 'dpp-pyq'
         : location.pathname.includes('/free-lectures') || location.pathname.includes('/lectures')
         ? 'free-lectures'
@@ -94,9 +92,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
       setActiveMenu('invoices');
     } else if (location.pathname.includes('/test-series')) {
       setActiveMenu('test-series');
-    } else if (location.pathname.includes('/pyq')) {
-      setActiveMenu('pyq-studio');
-    } else if (location.pathname.includes('/dpp-pyq')) {
+    } else if (location.pathname.includes('/pyq') || location.pathname.includes('/dpp-pyq')) {
       setActiveMenu('dpp-pyq');
     } else if (location.pathname.includes('/free-lectures') || location.pathname.includes('/lectures')) {
       setActiveMenu('free-lectures');
@@ -335,9 +331,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
             <InvoicesManagementWorkspace />
           ) : activeMenu === 'test-series' ? (
             <TestSeriesBuilderWorkspace />
-          ) : activeMenu === 'pyq-studio' ? (
-            <PyqManagementStudio />
-          ) : activeMenu === 'dpp-pyq' ? (
+          ) : activeMenu === 'pyq-studio' || activeMenu === 'dpp-pyq' ? (
             <DppPyqManagementWorkspace />
           ) : activeMenu === 'free-lectures' ? (
             <FreeLecturesManagementWorkspace />

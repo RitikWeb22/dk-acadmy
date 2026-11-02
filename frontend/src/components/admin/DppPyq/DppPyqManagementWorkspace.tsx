@@ -494,7 +494,11 @@ export const HIGH_YIELD_CHAPTERS: Record<ProblemSubject, string[]> = {
   ]
 };
 
-export const DppPyqManagementWorkspace: React.FC = () => {
+export interface DppPyqManagementWorkspaceProps {
+  initialFilter?: 'ALL' | 'DPP' | 'PYQ' | 'BITSAT';
+}
+
+export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps> = ({ initialFilter = 'ALL' }) => {
   // Problem sets list & loading
   const [problemSets, setProblemSets] = useState<DppPyqItem[]>(INITIAL_PROBLEMS);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -503,10 +507,10 @@ export const DppPyqManagementWorkspace: React.FC = () => {
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
-  const [moduleFilter, setModuleFilter] = useState<string>('ALL');
+  const [moduleFilter, setModuleFilter] = useState<string>(initialFilter);
   const [subjectFilter, setSubjectFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [activePreset, setActivePreset] = useState<PresetFilter>('ALL');
+  const [activePreset, setActivePreset] = useState<PresetFilter>(initialFilter === 'ALL' ? 'ALL' : initialFilter as any);
 
   // Sorting & Pagination
   const [sortField, setSortField] = useState<SortField>('indexNo');
@@ -644,19 +648,93 @@ export const DppPyqManagementWorkspace: React.FC = () => {
 
   // Bulk Questions Upload State
   const [isBulkModalOpen, setIsBulkModalOpen] = useState<boolean>(false);
-  const [bulkInputMode, setBulkInputMode] = useState<'csv' | 'paste'>('csv');
+  const [bulkInputMode, setBulkInputMode] = useState<'doc' | 'csv' | 'paste'>('doc');
   const [bulkPastedText, setBulkPastedText] = useState<string>('');
   const [bulkParsedQuestions, setBulkParsedQuestions] = useState<ProblemQuestionItem[]>([]);
   const [bulkParseErrors, setBulkParseErrors] = useState<string[]>([]);
   const [isBulkForCreateModal, setIsBulkForCreateModal] = useState<boolean>(false);
   const [createdCustomQuestions, setCreatedCustomQuestions] = useState<ProblemQuestionItem[] | null>(null);
 
+  // Document (Word .docx / PDF) Upload & Extraction State
+  const [isDocUploading, setIsDocUploading] = useState<boolean>(false);
+  const [docUploadProgress, setDocUploadProgress] = useState<number>(0);
+  const [docUploadError, setDocUploadError] = useState<string | null>(null);
+
   const handleOpenBulkModal = (forCreate: boolean = false) => {
     setIsBulkForCreateModal(forCreate);
     setBulkParsedQuestions([]);
     setBulkParseErrors([]);
     setBulkPastedText('');
+    setDocUploadError(null);
     setIsBulkModalOpen(true);
+  };
+
+  const handleUploadDocument = async (file: File) => {
+    const name = file.name.toLowerCase();
+    const isDoc = name.endsWith('.docx') || name.endsWith('.doc');
+    const isPdf = name.endsWith('.pdf');
+    if (!isDoc && !isPdf && !name.endsWith('.txt') && !name.endsWith('.csv')) {
+      showToast('Please upload a valid Word (.docx, .doc) or PDF (.pdf) file.');
+      return;
+    }
+
+    setIsDocUploading(true);
+    setDocUploadProgress(15);
+    setDocUploadError(null);
+
+    const activeSub = isBulkForCreateModal ? newSubject : (editingItem?.subject || 'Mathematics');
+    const activeExam = isBulkForCreateModal ? newExamTarget : (editingItem?.examTarget || 'JEE Main');
+    const activeTitle = isBulkForCreateModal ? newTitle : (editingItem?.title || '');
+
+    try {
+      const res = await apiClient.uploadPdfForExtraction(
+        file,
+        {
+          subject: activeSub,
+          exam: activeExam,
+          paperTitle: activeTitle
+        },
+        (progress) => setDocUploadProgress(progress)
+      );
+
+      if (res && res.summary && Array.isArray(res.summary.questions) && res.summary.questions.length > 0) {
+        const mappedQuestions: ProblemQuestionItem[] = res.summary.questions.map((q: any, idx: number) => ({
+          id: q.tempId || `q-${Date.now()}-${idx + 1}`,
+          examYear: q.topic || activeExam || 'JEE Main 2026',
+          marks: '+4 / -1',
+          statement: q.statement || '',
+          options: Array.isArray(q.options) && q.options.length > 0 ? q.options : [
+            { key: 'A', text: '' },
+            { key: 'B', text: '' },
+            { key: 'C', text: '' },
+            { key: 'D', text: '' }
+          ],
+          correctKey: q.suggestedAnswer || 'A',
+          dkSirShortcut: q.dkSirShortcut || '',
+          stepSolution: q.stepSolution || '',
+          isFree: true,
+          videoUrl: '',
+          pdfUrl: ''
+        }));
+
+        setBulkParsedQuestions(mappedQuestions);
+        setBulkParseErrors([]);
+        showToast(`✓ Extracted ${mappedQuestions.length} questions from ${file.name}!`);
+
+        if (isBulkForCreateModal && !newTitle.trim()) {
+          const guessedName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ');
+          setNewTitle(`${activeSub} ${newModuleType}: ${guessedName}`);
+        }
+      } else {
+        setDocUploadError(res?.error || 'No questions could be extracted from this document.');
+      }
+    } catch (err: any) {
+      console.error('Document extraction failed:', err);
+      setDocUploadError(err.message || 'Server extraction error');
+    } finally {
+      setIsDocUploading(false);
+      setDocUploadProgress(100);
+    }
   };
 
   const handleParseText = (textToParse: string) => {
@@ -670,6 +748,13 @@ export const DppPyqManagementWorkspace: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const name = file.name.toLowerCase();
+    if (name.endsWith('.pdf') || name.endsWith('.docx') || name.endsWith('.doc')) {
+      handleUploadDocument(file);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = String(event.target?.result || '');
@@ -2662,8 +2747,8 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                         <Upload size={13} />
                         <span>
                           {createdCustomQuestions
-                            ? `✓ ${createdCustomQuestions.length} Questions Bulk Imported (Click to change)`
-                            : '📥 Bulk Upload 200+ Questions (CSV / Paste)'}
+                            ? `✓ ${createdCustomQuestions.length} Questions Imported (Click to edit/change)`
+                            : '📄 Upload Word (.docx) / PDF (.pdf) / CSV Questions'}
                         </span>
                       </button>
                     </div>
@@ -3383,10 +3468,10 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                     onChange={(e) => handleUpdateActiveQuestion({ statement: e.target.value })}
                   />
                   <div className={styles.mathLivePreviewBox}>
-                    <span className={styles.previewTag}>CANDIDATE VIEW PREVIEW:</span>
-                    <p className={styles.previewFormulaText}>
-                      {editingItem.questions[editingQuestionIdx].statement}
-                    </p>
+                    <span className={styles.previewTag}>CANDIDATE VIEW PREVIEW (MATHJAX / KATEX):</span>
+                    <div className={styles.previewFormulaText}>
+                      <MathText text={editingItem.questions[editingQuestionIdx].statement || '(Empty statement)'} />
+                    </div>
                   </div>
                 </div>
 
@@ -3405,25 +3490,34 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                           className={`${styles.optEditorRow} ${
                             isCorrect ? styles.optEditorCorrect : ''
                           }`}
+                          style={{ flexDirection: 'column', alignItems: 'stretch', gap: '6px' }}
                         >
-                          <label className={styles.optRadioWrap}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+                            <label className={styles.optRadioWrap}>
+                              <input
+                                type="radio"
+                                name={`correct-key-${editingQuestionIdx}`}
+                                checked={isCorrect}
+                                onChange={() => handleUpdateActiveQuestion({ correctKey: opt.key })}
+                              />
+                              <span className={styles.optLetterKey}>{opt.key}</span>
+                            </label>
                             <input
-                              type="radio"
-                              name={`correct-key-${editingQuestionIdx}`}
-                              checked={isCorrect}
-                              onChange={() => handleUpdateActiveQuestion({ correctKey: opt.key })}
+                              type="text"
+                              className={styles.optInputText}
+                              value={opt.text}
+                              onChange={(e) => handleUpdateOptionText(opt.key, e.target.value)}
+                              placeholder={`Enter Option ${opt.key} value or LaTeX equation ($...$)...`}
                             />
-                            <span className={styles.optLetterKey}>{opt.key}</span>
-                          </label>
-                          <input
-                            type="text"
-                            className={styles.optInputText}
-                            value={opt.text}
-                            onChange={(e) => handleUpdateOptionText(opt.key, e.target.value)}
-                            placeholder={`Enter Option ${opt.key} value / equation...`}
-                          />
-                          {isCorrect && (
-                            <span className={styles.answerKeyTag}>✓ Correct Key</span>
+                            {isCorrect && (
+                              <span className={styles.answerKeyTag}>✓ Correct Key</span>
+                            )}
+                          </div>
+                          {opt.text && (
+                            <div style={{ marginLeft: '32px', padding: '4px 10px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '6px', fontSize: '13px', color: '#0f172a' }}>
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginRight: '6px' }}>Option {opt.key} Math:</span>
+                              <MathText text={opt.text} />
+                            </div>
                           )}
                         </div>
                       );
@@ -3444,6 +3538,12 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                     onChange={(e) => handleUpdateActiveQuestion({ dkSirShortcut: e.target.value })}
                     placeholder="Provide quick inspection trick, dimensional elimination, or King's property shortcut..."
                   />
+                  {editingItem.questions[editingQuestionIdx].dkSirShortcut && (
+                    <div style={{ marginTop: '6px', padding: '6px 10px', background: '#fefce8', borderRadius: '6px', border: '1px dashed #fde047', fontSize: '12.5px', color: '#854d0e' }}>
+                      <span style={{ fontWeight: 800, fontSize: '10.5px', display: 'block', marginBottom: '2px' }}>TRICK MATH PREVIEW:</span>
+                      <MathText text={editingItem.questions[editingQuestionIdx].dkSirShortcut || ''} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Detailed Step-by-Step Mathematical Derivation Solution */}
@@ -3453,12 +3553,18 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                     <strong>Comprehensive Step-by-Step Mathematical Derivation:</strong>
                   </div>
                   <textarea
-                    rows={3}
+                    rows={4}
                     className={styles.solutionTextarea}
                     value={editingItem.questions[editingQuestionIdx].stepSolution || ''}
                     onChange={(e) => handleUpdateActiveQuestion({ stepSolution: e.target.value })}
-                    placeholder="Provide detailed algebraic steps, integral limits, or physics force equations..."
+                    placeholder="Provide full Kota classroom derivation with LaTeX equations..."
                   />
+                  {editingItem.questions[editingQuestionIdx].stepSolution && (
+                    <div style={{ marginTop: '6px', padding: '6px 10px', background: '#f0fdf4', borderRadius: '6px', border: '1px dashed #86efac', fontSize: '12.5px', color: '#166534' }}>
+                      <span style={{ fontWeight: 800, fontSize: '10.5px', display: 'block', marginBottom: '2px' }}>SOLUTION MATH PREVIEW:</span>
+                      <MathText text={editingItem.questions[editingQuestionIdx].stepSolution || ''} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Question-Level YouTube Solution URL & Solution PDF URL */}
@@ -3619,7 +3725,7 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                 </div>
 
                 <div className={styles.cbtStatementArea}>
-                  {previewingStudentItem.questions[previewCurrentQIndex]?.statement}
+                  <MathText text={previewingStudentItem.questions[previewCurrentQIndex]?.statement} />
                 </div>
 
                 {/* Candidate Option Choices */}
@@ -3645,7 +3751,9 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                         }}
                       >
                         <span className={styles.cbtOptKey}>{opt.key}</span>
-                        <span className={styles.optContentText}>{opt.text}</span>
+                        <span className={styles.optContentText}>
+                          <MathText text={opt.text} />
+                        </span>
                         {previewShowSolution && isCorrect && (
                           <span className={styles.correctKeyTag}>✓ Correct Key</span>
                         )}
@@ -3662,13 +3770,13 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                         <Flame size={16} className={styles.flameIcon} />
                         <div>
                           <strong>DK Sir Kota 20-30s Inspection Trick:</strong>{' '}
-                          {previewingStudentItem.questions[previewCurrentQIndex].dkSirShortcut}
+                          <MathText text={previewingStudentItem.questions[previewCurrentQIndex].dkSirShortcut} />
                         </div>
                       </div>
                     )}
                     <div className={styles.studentDerivationBox}>
                       <strong>Detailed Step Solution:</strong>{' '}
-                      {previewingStudentItem.questions[previewCurrentQIndex]?.stepSolution}
+                      <MathText text={previewingStudentItem.questions[previewCurrentQIndex]?.stepSolution} />
                     </div>
                   </div>
                 )}
@@ -3903,6 +4011,26 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                 <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
                   <button
                     type="button"
+                    onClick={() => setBulkInputMode('doc')}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: bulkInputMode === 'doc' ? '#ffffff' : 'transparent',
+                      color: bulkInputMode === 'doc' ? '#2563eb' : '#64748b',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      boxShadow: bulkInputMode === 'doc' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Upload size={15} /> 📄 Word (.docx) &amp; PDF (.pdf)
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setBulkInputMode('csv')}
                     style={{
                       padding: '8px 16px',
@@ -3939,7 +4067,7 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                       gap: '6px'
                     }}
                   >
-                    <FileText size={15} /> Paste Text / JSON / CSV
+                    <FileText size={15} /> Paste Text / Numbered Qs
                   </button>
                 </div>
 
@@ -3964,6 +4092,78 @@ export const DppPyqManagementWorkspace: React.FC = () => {
                   <Download size={14} /> Download Sample CSV Template
                 </button>
               </div>
+
+              {/* Mode 0: Word & PDF Document Upload */}
+              {bulkInputMode === 'doc' && (
+                <div
+                  style={{
+                    border: '2px dashed #3b82f6',
+                    background: '#eff6ff',
+                    borderRadius: '14px',
+                    padding: '36px 20px',
+                    textAlign: 'center',
+                    cursor: isDocUploading ? 'wait' : 'pointer',
+                    position: 'relative',
+                    transition: 'border-color 0.2s'
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept=".docx,.doc,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUploadDocument(file);
+                    }}
+                    disabled={isDocUploading}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      opacity: 0,
+                      cursor: isDocUploading ? 'wait' : 'pointer',
+                      width: '100%',
+                      height: '100%'
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: '54px',
+                      height: '54px',
+                      borderRadius: '14px',
+                      background: '#dbeafe',
+                      color: '#1d4ed8',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: '12px'
+                    }}
+                  >
+                    {isDocUploading ? <Loader2 size={26} className="animate-spin" /> : <Upload size={26} />}
+                  </div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                    {isDocUploading ? 'Extracting & Parsing Document...' : 'Click to Upload Word (.docx) or PDF (.pdf) or Drag & Drop'}
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '6px', maxWidth: '560px', margin: '6px auto 0' }}>
+                    AI-powered extraction parses Question Statements, 4 Options, Answer Keys, Step Solutions &amp; DK Sir Shortcuts with KaTeX Math support.
+                  </div>
+                  {isDocUploading && (
+                    <div style={{ marginTop: '16px', maxWidth: '360px', margin: '16px auto 0' }}>
+                      <div style={{ height: '8px', background: '#bfdbfe', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            background: '#2563eb',
+                            width: `${docUploadProgress}%`,
+                            transition: 'width 0.3s ease'
+                          }}
+                        />
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#1e40af', marginTop: '4px', fontWeight: 700 }}>
+                        {docUploadProgress}% Complete
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Mode 1: File Upload */}
               {bulkInputMode === 'csv' && (

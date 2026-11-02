@@ -1,8 +1,8 @@
 import React from 'react';
-import { PyqManagementStudio } from '../../../components/admin/PYQStudio/PyqManagementStudio';
+import { DppPyqManagementWorkspace } from '../../../components/admin/DppPyq/DppPyqManagementWorkspace';
 
 export const AdminPYQPage: React.FC = () => {
-  return <PyqManagementStudio />;
+  return <DppPyqManagementWorkspace initialFilter="PYQ" />;
 };
 
 export default AdminPYQPage;
