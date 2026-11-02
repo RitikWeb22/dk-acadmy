@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileText,
@@ -56,7 +56,8 @@ import {
   Maximize,
   Shield,
   Sliders,
-  Globe
+  Globe,
+  Hash
 } from 'lucide-react';
 import styles from './TestSeriesBuilderWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
@@ -1728,10 +1729,123 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         return;
       }
     }
+    if (currentStep === 2) {
+      syncQuestionsWithSections();
+    }
     if (currentStep < 4) {
       goToStep((currentStep + 1) as StepId);
     }
   };
+
+  // Helper to check if question statement & content has been filled in by teacher
+  const isQuestionFilled = useCallback((q: QuestionItem): boolean => {
+    if (!q || !q.questionText) return false;
+    const txt = q.questionText.trim();
+    if (!txt) return false;
+    if (txt === 'Enter your new problem statement here (LaTeX syntax supported)...') return false;
+    if (txt.startsWith('Enter problem') || txt.startsWith('Enter your new')) return false;
+
+    // For Section B (Numerical):
+    if (q.section === 'B' || q.type === 'NUMERICAL') {
+      const numAns = (q.numericalAnswer || q.correctKey || '').trim();
+      return txt.length > 3 && numAns.length > 0;
+    }
+
+    // For Section A (MCQ):
+    const hasOptions = q.options && q.options.some((o) => o.text && o.text.trim().length > 0 && o.text !== 'Option A' && o.text !== 'Option B');
+    return txt.length > 3 && Boolean(hasOptions && q.correctKey);
+  }, []);
+
+  // Synchronize question slots with configured Section A & Section B counts from Step 2
+  const syncQuestionsWithSections = useCallback(() => {
+    setQuestions((prevQuestions) => {
+      const result: QuestionItem[] = [];
+      let overallIdx = 1;
+
+      selectedSubjects.forEach((subj) => {
+        const rule = subjectRules[subj] || { secATotal: 20, secBTotal: 10 };
+        const targetSecA = Math.max(1, Number(rule.secATotal) || 20);
+        const targetSecB = Math.max(0, Number(rule.secBTotal) || 10);
+
+        // Keep existing Section A questions for this subject
+        const existingA = prevQuestions.filter((q) => q.subject === subj && q.section === 'A');
+        // Keep existing Section B questions for this subject
+        const existingB = prevQuestions.filter((q) => q.subject === subj && q.section === 'B');
+
+        // Populate Section A slots
+        for (let i = 0; i < targetSecA; i++) {
+          if (i < existingA.length) {
+            result.push({
+              ...existingA[i],
+              index: overallIdx++,
+              subject: subj,
+              section: 'A',
+              type: 'SINGLE_CORRECT'
+            });
+          } else {
+            result.push({
+              id: `q-${subj.toLowerCase()}-secA-${i + 1}-${Date.now()}`,
+              subject: subj,
+              section: 'A',
+              index: overallIdx++,
+              type: 'SINGLE_CORRECT',
+              difficulty: 'MEDIUM',
+              topicTag: '',
+              questionText: '',
+              options: [
+                { key: 'A', text: '' },
+                { key: 'B', text: '' },
+                { key: 'C', text: '' },
+                { key: 'D', text: '' }
+              ],
+              correctKey: 'A',
+              solutionDerivation: '',
+              shortcutTrick: ''
+            });
+          }
+        }
+
+        // Populate Section B slots
+        for (let j = 0; j < targetSecB; j++) {
+          if (j < existingB.length) {
+            result.push({
+              ...existingB[j],
+              index: overallIdx++,
+              subject: subj,
+              section: 'B',
+              type: 'NUMERICAL'
+            });
+          } else {
+            result.push({
+              id: `q-${subj.toLowerCase()}-secB-${j + 1}-${Date.now()}`,
+              subject: subj,
+              section: 'B',
+              index: overallIdx++,
+              type: 'NUMERICAL',
+              difficulty: 'HARD',
+              topicTag: '',
+              questionText: '',
+              options: [],
+              correctKey: '',
+              numericalAnswer: '',
+              solutionDerivation: '',
+              shortcutTrick: ''
+            });
+          }
+        }
+      });
+
+      if (result.length > 0) {
+        const exists = result.some((q) => q.id === selectedQuestionId);
+        if (!exists) {
+          setSelectedQuestionId(result[0].id);
+        }
+        return result;
+      }
+      return prevQuestions;
+    });
+    showToast('✓ Synchronized question slots with Section A and Section B counts.');
+  }, [selectedSubjects, subjectRules, selectedQuestionId]);
 
   const handlePrevStep = () => {
     if (currentStep > 1) {
@@ -1748,6 +1862,31 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       questions[0]
     );
   }, [questions, selectedQuestionId, activeSubjectTab]);
+
+  // Active questions categorized by subject & section
+  const activeSubjectQuestions = useMemo(() => {
+    return questions.filter((q) => q.subject === activeSubjectTab);
+  }, [questions, activeSubjectTab]);
+
+  const secAQuestions = useMemo(() => {
+    return activeSubjectQuestions.filter((q) => q.section === 'A');
+  }, [activeSubjectQuestions]);
+
+  const secBQuestions = useMemo(() => {
+    return activeSubjectQuestions.filter((q) => q.section === 'B');
+  }, [activeSubjectQuestions]);
+
+  const totalPaperFilled = useMemo(() => {
+    return questions.filter(isQuestionFilled).length;
+  }, [questions, isQuestionFilled]);
+
+  const secAFilledCount = useMemo(() => {
+    return secAQuestions.filter(isQuestionFilled).length;
+  }, [secAQuestions, isQuestionFilled]);
+
+  const secBFilledCount = useMemo(() => {
+    return secBQuestions.filter(isQuestionFilled).length;
+  }, [secBQuestions, isQuestionFilled]);
 
   const updateCurrentQuestion = (partial: Partial<QuestionItem>) => {
     if (!currentEditingQuestion) return;
@@ -3439,25 +3578,57 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Question Switcher Tabs & + Add Question Action */}
-                  <div className={styles.qTabsHeaderRow}>
-                    <div className={styles.qTabsList}>
-                      {questions.map((q, idx) => (
-                        <button
-                          key={q.id}
-                          type="button"
-                          className={`${styles.qTabPill} ${
-                            currentEditingQuestion?.id === q.id ? styles.qTabPillActive : ''
-                          }`}
-                          onClick={() => setSelectedQuestionId(q.id)}
-                          title={`Question ${idx + 1}: ${q.topicTag || 'Problem'}`}
-                        >
-                          <span>Q{idx + 1}</span>
-                        </button>
-                      ))}
+                  {/* Subject Switcher Row (If multiple subjects active) */}
+                  {selectedSubjects.length > 1 && (
+                    <div className={styles.subjectSwitcherRow}>
+                      {selectedSubjects.map((subj) => {
+                        const subjQs = questions.filter((q) => q.subject === subj);
+                        const filled = subjQs.filter(isQuestionFilled).length;
+                        return (
+                          <button
+                            key={subj}
+                            type="button"
+                            className={`${styles.subjectSwitchBtn} ${activeSubjectTab === subj ? styles.active : ''}`}
+                            onClick={() => {
+                              setActiveSubjectTab(subj);
+                              const firstSubjQ = questions.find((q) => q.subject === subj);
+                              if (firstSubjQ) setSelectedQuestionId(firstSubjQ.id);
+                            }}
+                          >
+                            <span>{subj}</span>
+                            <span style={{ fontSize: '11px', opacity: 0.9 }}>
+                              ({filled}/{subjQs.length} Filled)
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Overall Paper Blueprint Progress Strip */}
+                  <div className={styles.overallProgressStrip}>
+                    <div className={styles.progressStripText}>
+                      <span style={{ fontSize: '15px' }}>📊</span>
+                      <span>
+                        Paper Content Progress: <strong>{totalPaperFilled}</strong> of <strong>{questions.length}</strong> Questions Filled
+                        {questions.length - totalPaperFilled > 0 ? (
+                          <span style={{ color: '#dc2626', marginLeft: '6px' }}>({questions.length - totalPaperFilled} Pending)</span>
+                        ) : (
+                          <span style={{ color: '#16a34a', marginLeft: '6px' }}>(All Questions Authored! 🎉)</span>
+                        )}
+                      </span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={syncQuestionsWithSections}
+                        className={styles.syncBlueprintBtn}
+                        title="Re-sync slots to match Section A and Section B counts configured in Step 2"
+                      >
+                        <span>🔄 Sync Blueprint ({selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} Qs)</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => setIsSmartPasteModalOpen(true)}
@@ -3486,8 +3657,89 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         onClick={handleAddQuestion}
                       >
                         <Plus size={14} />
-                        <span>Add Question</span>
+                        <span>Add Slot</span>
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Section A & Section B Real-Time Palettes (Green for filled, Red for pending) */}
+                  <div className={styles.sectionsSplitTrackerGrid}>
+                    {/* Section A: Single Correct MCQs */}
+                    <div className={styles.sectionPaletteCard}>
+                      <div className={styles.secPaletteHeader}>
+                        <div className={styles.secTitleGroup}>
+                          <span className={styles.secBadgeA}>Section A</span>
+                          <h3 className={styles.secHeaderTitle}>Single Correct MCQs</h3>
+                        </div>
+                        <div className={styles.secStatsGroup}>
+                          <span className={styles.pillFilledBadge}>✓ {secAFilledCount}/{secAQuestions.length} Filled</span>
+                          {secAQuestions.length - secAFilledCount > 0 && (
+                            <span className={styles.pillPendingBadge}>{secAQuestions.length - secAFilledCount} Pending</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className={styles.secSubtextNote}>
+                        Compulsory Questions • +{positiveMarks} / -{negativeMarks} Marking • 4 Options (A, B, C, D)
+                      </p>
+
+                      <div className={styles.qButtonsGrid}>
+                        {secAQuestions.map((q) => {
+                          const filled = isQuestionFilled(q);
+                          const isSelected = currentEditingQuestion?.id === q.id;
+                          return (
+                            <button
+                              key={q.id}
+                              type="button"
+                              onClick={() => setSelectedQuestionId(q.id)}
+                              className={`${styles.qButtonTile} ${filled ? styles.qTileFilled : styles.qTilePending} ${isSelected ? styles.qTileActive : ''}`}
+                              title={`Question ${q.index} (${q.subject} - Section A): ${filled ? 'Filled' : 'Empty / Pending'}`}
+                            >
+                              <span>Q{q.index}</span>
+                              <span className={styles.statusIcon}>{filled ? '✓' : '!'}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Section B: Numerical Value Type */}
+                    <div className={styles.sectionPaletteCard}>
+                      <div className={styles.secPaletteHeader}>
+                        <div className={styles.secTitleGroup}>
+                          <span className={styles.secBadgeB}>Section B</span>
+                          <h3 className={styles.secHeaderTitle}>Numerical Value Type</h3>
+                        </div>
+                        <div className={styles.secStatsGroup}>
+                          <span className={styles.pillFilledBadge}>✓ {secBFilledCount}/{secBQuestions.length} Filled</span>
+                          {secBQuestions.length - secBFilledCount > 0 && (
+                            <span className={styles.pillPendingBadge}>{secBQuestions.length - secBFilledCount} Pending</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className={styles.secSubtextNote}>
+                        {subjectRules[activeSubjectTab]?.secBEnforceOptional ? 'NTA 5 of 10 Optional: Attempt any 5' : 'Direct Numerical: All compulsory'} • Integer or Decimal Key
+                      </p>
+
+                      <div className={styles.qButtonsGrid}>
+                        {secBQuestions.map((q) => {
+                          const filled = isQuestionFilled(q);
+                          const isSelected = currentEditingQuestion?.id === q.id;
+                          return (
+                            <button
+                              key={q.id}
+                              type="button"
+                              onClick={() => setSelectedQuestionId(q.id)}
+                              className={`${styles.qButtonTile} ${filled ? styles.qTileFilled : styles.qTilePending} ${isSelected ? styles.qTileActive : ''}`}
+                              title={`Question ${q.index} (${q.subject} - Section B): ${filled ? 'Filled' : 'Empty / Pending'}`}
+                            >
+                              <span>Q{q.index}</span>
+                              <span className={styles.statusIcon}>{filled ? '✓' : '!'}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
@@ -3497,9 +3749,25 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       {/* 1. Header Toolbar (Actions & Identification) */}
                       <div className={styles.qEditorHeader}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                          <span className={styles.qIndexPill}>
-                            Q{currentEditingQuestion.index} • Section A
+                          <span
+                            className={styles.qIndexPill}
+                            style={{
+                              background: currentEditingQuestion.section === 'A' ? '#DBEAFE' : '#FEF3C7',
+                              color: currentEditingQuestion.section === 'A' ? '#1E40AF' : '#92400E',
+                              border: `1px solid ${currentEditingQuestion.section === 'A' ? '#BFDBFE' : '#FDE68A'}`
+                            }}
+                          >
+                            Q{currentEditingQuestion.index} • Section {currentEditingQuestion.section} ({currentEditingQuestion.section === 'A' ? 'Single Correct MCQ' : 'Numerical Value Type'})
                           </span>
+                          {isQuestionFilled(currentEditingQuestion) ? (
+                            <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0' }}>
+                              ✓ Content Filled &amp; Ready
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#FEE2E2', color: '#B91C1C', border: '1px solid #FECACA' }}>
+                              ⚠️ Pending - Empty Statement or Answer
+                            </span>
+                          )}
                           <span className={styles.topicBadgePill}>
                             {currentEditingQuestion.topicTag || 'General Problem'}
                           </span>
@@ -3624,43 +3892,71 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         />
                       </div>
 
-                      {/* Options Grid */}
-                      <div className={styles.optionsList}>
-                        {currentEditingQuestion.options.map((opt) => {
-                          return (
-                            <div key={opt.key} className={styles.optionRowItem} style={{ alignItems: 'flex-start', marginBottom: '14px' }}>
-                              <label className={styles.radioKeyWrap} style={{ marginTop: '10px' }}>
-                                <input
-                                  type="radio"
-                                  name="correctKey"
-                                  checked={currentEditingQuestion.correctKey === opt.key}
-                                  onChange={() => updateCurrentQuestion({ correctKey: opt.key })}
-                                />
-                                <span className={styles.optionKeyCircle}>{opt.key}</span>
-                              </label>
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <MathInput
-                                  value={opt.text}
-                                  onChange={(val) => {
-                                    const newOpts = currentEditingQuestion.options.map((o) =>
-                                      o.key === opt.key ? { ...o, text: val } : o
-                                    );
-                                    updateCurrentQuestion({ options: newOpts });
-                                  }}
-                                  placeholder={`Option ${opt.key} text or formula ($...$, \\frac{a}{b}, \\sqrt{x}, 1/16)... Or paste from Word`}
-                                  rows={2}
-                                  label={`Option ${opt.key}`}
-                                  compact={true}
-                                  defaultViewMode="edit"
-                                />
+                      {/* Options Grid for Section A OR Numerical Value Input for Section B */}
+                      {currentEditingQuestion.section === 'B' || currentEditingQuestion.type === 'NUMERICAL' ? (
+                        <div className={styles.numericalAnswerCard}>
+                          <div className={styles.numericalHeader}>
+                            <Hash size={16} color="#2563EB" />
+                            <h4>Section B: Correct Numerical Key (Integer or Decimal)</h4>
+                          </div>
+                          <p className={styles.numericalSubtext}>
+                            Students will enter their calculated numerical answer using the on-screen CBT keypad (e.g. 4, 12, -7, 0.25).
+                          </p>
+                          <div className={styles.numericalInputRow}>
+                            <label>Exact Correct Value:</label>
+                            <input
+                              type="text"
+                              value={currentEditingQuestion.numericalAnswer || currentEditingQuestion.correctKey || ''}
+                              onChange={(e) => updateCurrentQuestion({
+                                numericalAnswer: e.target.value,
+                                correctKey: e.target.value
+                              })}
+                              placeholder="Enter correct numerical answer (e.g. 4 or 12.5)"
+                              className={styles.numericalInputField}
+                            />
+                            {Boolean(currentEditingQuestion.numericalAnswer || currentEditingQuestion.correctKey) && (
+                              <span className={styles.correctKeyTag}>✓ Answer Key Saved</span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={styles.optionsList}>
+                          {currentEditingQuestion.options.map((opt) => {
+                            return (
+                              <div key={opt.key} className={styles.optionRowItem} style={{ alignItems: 'flex-start', marginBottom: '14px' }}>
+                                <label className={styles.radioKeyWrap} style={{ marginTop: '10px' }}>
+                                  <input
+                                    type="radio"
+                                    name="correctKey"
+                                    checked={currentEditingQuestion.correctKey === opt.key}
+                                    onChange={() => updateCurrentQuestion({ correctKey: opt.key })}
+                                  />
+                                  <span className={styles.optionKeyCircle}>{opt.key}</span>
+                                </label>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  <MathInput
+                                    value={opt.text}
+                                    onChange={(val) => {
+                                      const newOpts = currentEditingQuestion.options.map((o) =>
+                                        o.key === opt.key ? { ...o, text: val } : o
+                                      );
+                                      updateCurrentQuestion({ options: newOpts });
+                                    }}
+                                    placeholder={`Option ${opt.key} text or formula ($...$, \\frac{a}{b}, \\sqrt{x}, 1/16)... Or paste from Word`}
+                                    rows={2}
+                                    label={`Option ${opt.key}`}
+                                    compact={true}
+                                    defaultViewMode="edit"
+                                  />
+                                </div>
+                                {currentEditingQuestion.correctKey === opt.key && (
+                                  <span className={styles.correctKeyTag} style={{ marginTop: '10px' }}>✓ Answer Key</span>
+                                )}
                               </div>
-                              {currentEditingQuestion.correctKey === opt.key && (
-                                <span className={styles.correctKeyTag} style={{ marginTop: '10px' }}>✓ Answer Key</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {/* Supplementary Solutions & Tricks Group */}
                       <div className={styles.solutionsGroupingSection}>

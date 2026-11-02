@@ -168,19 +168,19 @@ export function autoWrapMathDelimiters(text: string): string {
 
   // If the whole text is predominantly a math formula without prose words
   if (!isProse) {
-    return `$$${trimmed}$$`;
+    return `$${trimmed}$`;
   }
 
   // Smart wrap math formulas within prose
   let res = text;
   // 1. Integrals: \int_{...}^{...} ... \,dx
-  res = res.replace(/(\\int(?:_\{[^}]+\}\^\{[^}]+\}|_[0-9a-zA-Z]+\^[0-9a-zA-Z]+)?[\s\S]*?\\,dx)/g, '$$ $1 $$');
+  res = res.replace(/(\\int(?:_\{[^}]+\}\^\{[^}]+\}|_[0-9a-zA-Z]+\^[0-9a-zA-Z]+)?[\s\S]*?\\,dx)/g, '$ $1 $');
   // 2. Limits: \lim_{...} ...
-  res = res.replace(/(\\lim_\{[^}]+\}\s*[^,;.\n]+)/g, '$$ $1 $$');
+  res = res.replace(/(\\lim_\{[^}]+\}\s*[^,;.\n]+)/g, '$ $1 $');
   // 3. Fractions: \frac{...}{...}
-  res = res.replace(/(?<!\$)(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?!\$)/g, '$$ $1 $$');
+  res = res.replace(/(?<!\$)(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?!\$)/g, '$ $1 $');
   // 4. Function mappings: f:[0,2] \to R
-  res = res.replace(/([a-zA-Z]\s*:\s*\[[^\]]+\]\s*\\to\s*[A-Z])/g, '$$$1$$');
+  res = res.replace(/([a-zA-Z]\s*:\s*\[[^\]]+\]\s*\\to\s*[A-Z])/g, '$1');
 
   // Fallback if not wrapped yet
   if (!res.includes('$')) {
@@ -206,31 +206,88 @@ export function normalizeMathText(raw: string): string {
 
   let text = raw;
 
-  // 0. Pre-pass for multi-line Word stacked fractions: e.g. \log_e\left(\n27\n64\n\right) or \left(\n32\n27\n\right)
-  text = text.replace(/(\\log_e|\\ln)?\s*(\\left)?\s*\(\s*([0-9a-zA-Z\+\-\^\\\{\}]+)\s*\r?\n+\s*([0-9a-zA-Z\+\-\^\\\{\}]+)\s*(\\right)?\s*\)/g,
+  // 0. Global pre-pass for Word/PDF copy-paste artifacts across multi-line blocks
+  // 0a. Strip invisible characters, hair spaces, zero-width spaces, and placeholders
+  text = text.replace(/[\u200B\u200C\u200D\u200E\u200F\uFEFF\u200A\u2009\u202F\u2060\u2061\u2062\u2063\u2064\uFFF9-\uFFFD\u00A0]/g, ' ')
+             .replace(/[▒□┤├│〖〗]/g, '')
+             .replace(/[\u201C\u201D]/g, '"')
+             .replace(/[\u2018\u2019]/g, "'")
+             .replace(/[\u2212\u2013\u2014]/g, '-');
+
+  // 0b. Clean duplicated \left\left( and \right\right)
+  text = text.replace(/\\left\s*\\left\s*\(/g, '\\left(')
+             .replace(/\\right\s*\\right\s*\)/g, '\\right)');
+
+  // 0c. Word decomposed vertical characters for ( 1 + e ( ( 2 - 4 x ) ) ) dx (1+e ... dx
+  text = text.replace(/\(\s*\r?\n*1\s*\r?\n*\+\s*\r?\n*e[\s\S]*?\)\s*\r?\n*\s*d\s*\r?\n*x\s*\r?\n*(?=\(1\+e)/g, '');
+  text = text.replace(/\(1\+e[\s\S]*?\(\s*\(?\s*([0-9a-zA-Z\s−-]+)\s*\)?[\s\S]*?\)\s*\)\s*dx/g, '(1+e^{$1})\\,dx');
+
+  // 0d. Collapse Word multiline math tokens like α \n + \n 1 or 2 \n - \n 4 \n x
+  text = text.replace(/([0-9a-zA-Zα-ωΑ-Ω])\s*\r?\n+\s*([\+\-])\s*\r?\n+\s*([0-9a-zA-Zα-ωΑ-Ω])/g, '$1 $2 $3');
+  text = text.replace(/([0-9a-zA-Zα-ωΑ-Ω])\s*\r?\n+\s*([\+\-])\s*\r?\n+\s*([0-9a-zA-Zα-ωΑ-Ω])\s*\r?\n+\s*([0-9a-zA-Zα-ωΑ-Ω])/g, '$1 $2 $3$4');
+
+  // 0e. Word duplicated integrals: ∫\n0\n1\n∫\n0\n1 or ∫\n0\n1
+  text = text.replace(/∫\s*\r?\n*\s*([0-9a-zA-Z]+)\s*\r?\n*\s*([0-9a-zA-Z]+)(?:\s*\r?\n*\s*∫\s*\r?\n*\s*\1\s*\r?\n*\s*\2)?/g, '\\int_{$1}^{$2} ');
+
+  // 0f. Word shadow fraction: NUM \n DEN \n DEN \n NUM
+  text = text.replace(/([0-9a-zA-Z\+\-\^\\\{\}α-ωΑ-Ω\s]+?)\r?\n+([0-9a-zA-Z\+\-\^\\\{\}α-ωΑ-Ω\s]+?)\r?\n+\s*\2\s*\r?\n+\s*([0-9a-zA-Z\+\-\^\\\{\}α-ωΑ-Ω\s]+?)(?=\r?\n|\\right|\)|$)/g, (match, num, den, shadowNum) => {
+    const n1 = num.replace(/\s+/g, '');
+    const n2 = shadowNum.replace(/\s+/g, '');
+    if (n1 === n2 || n1.includes(n2) || n2.includes(n1)) {
+      return `\\frac{${num.trim()}}{${den.trim()}}`;
+    }
+    return match;
+  });
+
+  // 0g. Multi-line Word stacked fractions: e.g. \log_e\left(\n27\n64\n\right) or (\n32\n27\n)
+  text = text.replace(/(\\log_e|\\ln)?\s*(\\left)?\s*\(\s*([0-9a-zA-Zα-ωΑ-Ω\+\-\^\\\{\}]+)\s*\r?\n+\s*([0-9a-zA-Zα-ωΑ-Ω\+\-\^\\\{\}]+)\s*(\\right)?\s*\)/g,
     (_, logCmd, leftBracket, num, den) => {
       const logPrefix = logCmd ? `${logCmd} ` : '';
       return `${logPrefix}\\left(\\frac{${num.trim()}}{${den.trim()}}\\right)`;
     }
   );
 
-  // Collapse newlines inside any \left( ... \right)
+  // 0h. Collapse newlines inside any \left( ... \right)
   text = text.replace(/\\left\s*([(\[{])\s*([\s\S]*?)\s*\\right\s*([)\]}])/g, (_, openB, inner, closeB) => {
     const singleLine = inner.replace(/\r?\n+/g, ' ').trim();
     return `\\left${openB}${singleLine}\\right${closeB}`;
   });
 
+  // 0i. If fraction in integral is followed by factor in denominator: \frac{1}{5+2x-2x^2} (1+e^{2-4x})\,dx
+  text = text.replace(/\\frac\{1\}\{([^}]+)\}\s*\((1\+e\^\{[^}]+\}\\,dx)/g, '\\frac{1}{($1)$2}');
+
   const lines = text.split(/\r?\n/);
   const processedLines = lines.map((line) => {
     let res = line;
 
-    // 1. Clean Word brackets and placeholders (preserve ▒ temporarily for integral step)
+    // 1. Clean residual Word brackets and placeholders
     res = res.replace(/[〖〗]/g, '');
     res = res.replace(/[\uFFF9-\uFFFD\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
-             .replace(/[□┤├│]/g, '')
+             .replace(/[▒□┤├│]/g, '')
              .replace(/[\u201C\u201D]/g, '"')
              .replace(/[\u2018\u2019]/g, "'")
              .replace(/[\u2212\u2013\u2014]/g, '-');
+
+    // 1b. MS Word derivative prime: ϕ^' (t) or ∅^' (π/4) -> \phi'(t)
+    res = res.replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ");
+    res = res.replace(/∅/g, '\\phi ');
+
+    // 1c. MS Word combining vector arrows: a ⃗ or (OA) ⃗ or a\u20D7
+    res = res.replace(/\(([A-Za-z]{1,3})\)\s*[\u20D7\u2192⃗]/g, '\\vec{$1}');
+    res = res.replace(/([a-zA-Z])\s*[\u20D7\u2192⃗]/g, '\\vec{$1}');
+    // Unit vectors: i ˆ or j ˆ or k ˆ or \u0302
+    res = res.replace(/([ijk])\s*[\u0302\u02C6ˆ]/g, '\\hat{$1}');
+
+    // 1d. Universal quantifiers and symbols
+    res = res.replace(/∀\s*([a-zA-Z]+)\s*∈\s*R\b/g, '\\forall $1 \\in \\mathbb{R}');
+    res = res.replace(/∀\s*([a-zA-Z]+)\s*([><=])/g, '\\forall $1 $2 ');
+    res = res.replace(/∀\s*([a-zA-Z]+)/g, '\\forall $1 ');
+    res = res.replace(/∀/g, '\\forall ');
+
+    // 1e. Word equation quote artifacts: (length" of " arcAB)/(" length of " arcBC)=1/5
+    res = res.replace(/\(?\s*length"\s*of\s*"\s*arc([A-Za-z]+)\s*\)?\s*\/\s*\(?\s*"?\s*length\s*of\s*"?\s*arc([A-Za-z]+)\s*\)?/gi, '\\frac{\\text{length of arc } $1}{\\text{length of arc } $2}');
+    res = res.replace(/length"\s*of\s*"\s*arc([A-Za-z]+)/gi, '\\text{length of arc } $1');
+    res = res.replace(/"\s*length\s*of\s*"\s*arc([A-Za-z]+)/gi, '\\text{length of arc } $1');
 
     // 2. Clean leading punctuation artifact like ".Let" -> "Let" or "1,If" -> "1. If"
     res = res.replace(/^\s*\.\s*(?=[A-Za-z])/g, '');
@@ -321,6 +378,9 @@ export function normalizeMathText(raw: string): string {
 
     // Differentials: xdx -> x\,dx, )dx -> )\,dx
     res = res.replace(/([0-9a-zA-Z\)\]\}])\s*dx\b/g, '$1\\,dx');
+    res = res.replace(/sint\b/gi, '\\sin t');
+    res = res.replace(/sinxdx\b/gi, '\\sin x\\,dx');
+    res = res.replace(/cos2([ABC])\b/g, '\\cos 2$1');
 
     // 9. Square roots: √( ... ) with balanced parens to \sqrt{ ... }
     res = res.replace(/√\s*\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g, (_, g1) => `\\sqrt{${g1.trim()}}`);
@@ -329,6 +389,11 @@ export function normalizeMathText(raw: string): string {
 
     // 10. Universal Fractions: converts all quotients A/B into \frac{A}{B}
     res = convertAllFractions(res);
+
+    // 10b. Normalize powers with unbraced fractions: x^\frac{{2}}{2} -> x^{\frac{2}{2}}
+    res = res.replace(/\^\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}');
+    res = res.replace(/\^\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}');
+    res = res.replace(/\^(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '^{$1}');
 
     // 11. Multi-digit exponents without braces: 1^15 -> 1^{15}, n^16 -> n^{16} (run after fractions!)
     res = res.replace(/([a-zA-Z0-9_\)\]\}])\^([0-9]{2,})\b/g, '$1^{$2}');
@@ -346,6 +411,10 @@ export function normalizeMathText(raw: string): string {
              .replace(/ϕ/g, '\\phi ')
              .replace(/∅/g, '\\phi ')
              .replace(/Δ/g, '\\Delta ');
+
+    // 12b. Greek subscripts: α_1 -> \alpha_1, etc.
+    res = res.replace(/\\(alpha|beta|gamma|theta|lambda|pi|sigma|phi|omega)_([0-9a-zA-Z]+)/g, '\\$1_{$2}');
+    res = res.replace(/\(\\alpha_\{?([0-9])\}?\s*,\s*\\beta_\{?([0-9])\}?\s*\)/g, '(\\alpha_{$1}, \\beta_{$2})');
 
     // 13. Arrows, dots, and symbols
     res = res.replace(/→/g, ' \\to ')
@@ -388,7 +457,7 @@ export function normalizeMathText(raw: string): string {
     // 17. Normalize double backslashes
     res = res.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
-    // 18. Smart Delimiters: NEVER wrap pure prose lines in math!
+    // 18. Smart Delimiters: Wrap formulas cleanly without breaking prose sentences into clunky block cards
     if (!res.includes('$') && !res.startsWith('\\begin{')) {
       let prefix = '';
       let body = res;
@@ -399,39 +468,39 @@ export function normalizeMathText(raw: string): string {
         body = prefixMatch[2];
       }
 
-      const hasMathSyntax = /\\(?:frac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log_e|log|ln|dots|to|infty|left|right)\b|\^\{|\^[0-9a-zA-Z]|\\[\(\)]/.test(body);
+      // Automatically scale tall brackets for fractions in options and expressions
+      body = body.replace(/\\left\(\s*\\frac/g, '\\left(\\dfrac');
 
-      const englishProseWords = body.match(/\b(?:which|statement|following|correct|incorrect|true|false|both|neither|only|where|then|when|let|given|value|find|such|that|because|since|if)\b/gi);
-      const isProse = englishProseWords && englishProseWords.length >= 2;
+      const hasMathSyntax = /\\(?:frac|dfrac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log_e|log|ln|dots|to|infty|left|right|vec|hat|in|ge|le|times|cdot|forall)\b|\^\{|\^[0-9a-zA-Z]|\\[\(\)]/.test(body);
 
-      if (hasMathSyntax && !isProse) {
-        // Case B: "The value of [formula] is"
-        const valMatch = body.match(/^((?:The value of|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
-        if (valMatch) {
-          res = `${prefix}${valMatch[1]}$$ ${valMatch[2].trim()} $$${valMatch[3]}`;
-        }
-        // Case C: "If [formula] then [formula] is equal to." or "If [formula], then [formula] is equal to."
-        else if (/^If\s+/i.test(body)) {
-          const ifMatch = body.match(/^(If\s+)([\s\S]+?)(,\s*(?:\\text\{then\}|then)\s+|\s+then\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
-          if (ifMatch) {
-            res = `${prefix}${ifMatch[1]}$$ ${ifMatch[2].trim()} $$${ifMatch[3]}$$ ${ifMatch[4].trim()} $$${ifMatch[5]}`;
-          } else {
-            res = `${prefix}$$ ${body.trim()} $$`;
-          }
-        }
-        // Case D: Pure math equation / expression (like (e-1)(e^2 + \frac{1}{2}) or \log_e\left(\frac{32}{27}\right))
-        else {
-          const tailMatch = body.match(/^([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
-          if (tailMatch && tailMatch[2] && tailMatch[2].trim().length > 0 && !tailMatch[1].includes('=')) {
-            res = `${prefix}$$ ${tailMatch[1].trim()} $$${tailMatch[2]}`;
-          } else {
-            res = `${prefix}$$ ${body.trim()} $$`;
-          }
-        }
+      // Case C: Explicit check for "If [formula] then [formula] is equal to."
+      const ifMatch = body.match(/^(If\s+)([\s\S]+?)(,\s*(?:\\text\{then\}|then)\s+|\s+(?:\\text\{then\}|then)\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+      if (ifMatch) {
+        res = `${prefix}${ifMatch[1]}$ ${ifMatch[2].trim()} $ then $ ${ifMatch[4].trim()} $${ifMatch[5]}`;
       } else {
-        // If it's a standalone fraction like "\frac{1}{16}" without surrounding text, wrap in display math
-        if (/^\s*\\frac\{[^{}]+\}\{[^{}]+\}\s*$/.test(res)) {
-          res = `$$ ${res.trim()} $$`;
+        const englishProseWords = body.match(/\b(?:which|statement|following|correct|incorrect|true|false|both|neither|only|where|when|let|given|value|find|such|that|because|since)\b/gi);
+        const isProse = englishProseWords && englishProseWords.length >= 2;
+
+        if (hasMathSyntax && !isProse) {
+          // Case B: "The value of [formula] is"
+          const valMatch = body.match(/^((?:The value of|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+          if (valMatch) {
+            res = `${prefix}${valMatch[1]}$ ${valMatch[2].trim()} $${valMatch[3]}`;
+          }
+          // Case D: Pure math equation / expression (like (e-1)(e^2 + \frac{1}{2}) or \log_e\left(\frac{32}{27}\right))
+          else {
+            const tailMatch = body.match(/^([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+            if (tailMatch && tailMatch[2] && tailMatch[2].trim().length > 0 && !tailMatch[1].includes('=')) {
+              res = `${prefix}$ ${tailMatch[1].trim()} $${tailMatch[2]}`;
+            } else {
+              res = `${prefix}$ ${body.trim()} $`;
+            }
+          }
+        } else {
+          // If it's a standalone fraction like "\frac{1}{16}" without surrounding text, wrap in math
+          if (/^\s*\\(?:frac|dfrac)\{[^{}]+\}\{[^{}]+\}\s*$/.test(res)) {
+            res = `$ ${res.trim()} $`;
+          }
         }
       }
     }

@@ -30,19 +30,29 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const trimmed = message.trim();
     if (!trimmed) return;
 
-    // Suppress student broadcast notifications if currently viewing admin portal
-    const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
-    if (isAdminPath && (
+    // Suppress deletion broadcast popups platform-wide (administrative events should not flood toast popups)
+    if (
       trimmed.includes('permanently removed by Academic Administration') ||
       trimmed.includes('Academic Administration') ||
+      trimmed.includes('was permanently deleted') ||
       trimmed.includes('was removed from the system')
-    )) {
+    ) {
       return;
+    }
+
+    const now = Date.now();
+
+    // Throttle deletion toasts to at most 1 every 3 seconds
+    if (trimmed.toLowerCase().includes('deleted')) {
+      const lastDelete = recentToastsRef.current.get('global_last_delete') || 0;
+      if (now - lastDelete < 3000) {
+        return;
+      }
+      recentToastsRef.current.set('global_last_delete', now);
     }
 
     // Deduplicate: ignore identical messages within 4 seconds
     const normalizedKey = `${type}_${trimmed.toLowerCase().replace(/\s+/g, ' ').slice(0, 120)}`;
-    const now = Date.now();
     const lastSeen = recentToastsRef.current.get(normalizedKey) || 0;
     if (now - lastSeen < 4000) {
       return;
@@ -58,12 +68,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const id = `toast_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-    // Cap active toasts to at most 2 items to prevent screen flooding
-    setToasts((prev) => {
-      const filtered = prev.filter((t) => t.message.trim() !== trimmed);
-      const capped = filtered.slice(-1); // Keep at most 1 previous toast so total is <= 2
-      return [...capped, { id, message: trimmed, type }];
-    });
+    // Strictly keep at most 1 toast on screen to completely prevent toast spam and stacking
+    setToasts([{ id, message: trimmed, type }]);
 
     setTimeout(() => {
       removeToast(id);
