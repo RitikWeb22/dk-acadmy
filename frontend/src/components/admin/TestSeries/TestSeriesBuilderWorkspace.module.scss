@@ -5186,26 +5186,25 @@ select.primaryTextInput {
 }
 
 .qButtonsGrid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
   gap: 8px;
 }
 
 .qButtonTile {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  min-width: 46px;
-  height: 36px;
-  padding: 0 10px;
+  width: 100%;
+  height: 38px;
+  min-width: 0;
+  padding: 0;
   border-radius: 8px;
-  font-size: 12.5px;
-  font-weight: 700;
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
+  box-sizing: border-box;
 
   // Empty / Pending state: Soft rose background with crisp boundary
   &.qTilePending {
@@ -5242,13 +5241,22 @@ select.primaryTextInput {
   }
 
   .qNumberLabel {
+    display: block;
+    text-align: center;
     line-height: 1;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   .statusIndicatorDot {
-    font-size: 10px;
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    font-size: 9px;
     font-weight: 900;
     color: #059669;
+    line-height: 1;
   }
 }
 
