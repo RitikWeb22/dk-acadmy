@@ -255,7 +255,8 @@ export function autoWrapMathDelimiters(text: string): string {
 export function normalizeMathText(raw: string): string {
   if (!raw) return '';
 
-  let text = raw;
+  // Convert all double dollar display delimiters to single dollar inline delimiters
+  let text = raw.split('$$').join('$');
 
   // 0. Global pre-pass for Word/PDF copy-paste artifacts across multi-line blocks
   // 0a. Strip invisible characters, hair spaces, zero-width spaces, and placeholders
@@ -314,6 +315,12 @@ export function normalizeMathText(raw: string): string {
   const processedLines = lines.map((line) => {
     let res = line;
 
+    // If an entire line containing prose was mistakenly wrapped in $...$ or $$...$$:
+    // e.g. "$ The value of the integral ... is equal to : $" -> "The value of the integral ... is equal to :"
+    if (/^\$\s*(?:The value of|Let|If|Find|Evaluate|Among|Between|Statement)\b[\s\S]*?\$$/i.test(res)) {
+      res = res.replace(/^\$\s*/, '').replace(/\s*\$$/, '').trim();
+    }
+
     // 1. Clean residual Word brackets and placeholders
     res = res.replace(/[〖〗]/g, '');
     res = res.replace(/[\uFFF9-\uFFFD\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
@@ -364,11 +371,11 @@ export function normalizeMathText(raw: string): string {
         return row;
       });
       const prefix = lhs ? lhs.trim() + ' ' : '';
-      return `$$${prefix}\\begin{cases} ${rows.join(' \\\\ ')} \\end{cases}$$`;
+      return `$${prefix}\\begin{cases} ${rows.join(' \\\\ ')} \\end{cases}$`;
     });
 
-    // Normalize alternate LaTeX delimiters safely with callbacks
-    res = res.replace(/\\\[([\s\S]*?)\\\]/g, (_, p1) => `$$${p1}$$`)
+    // Normalize alternate LaTeX delimiters safely with callbacks to single $
+    res = res.replace(/\\\[([\s\S]*?)\\\]/g, (_, p1) => `$${p1}$`)
              .replace(/\\\(([\s\S]*?)\\\)/g, (_, p1) => `$${p1}$`);
 
     // 4. Repeated ellipses: ⋯… or …⋯ or ⋯ or … -> \dots
@@ -566,7 +573,7 @@ export function normalizeMathText(raw: string): string {
       }
     }
 
-    return res;
+    return res.split('$$').join('$');
   });
 
   return processedLines.join('\n');
