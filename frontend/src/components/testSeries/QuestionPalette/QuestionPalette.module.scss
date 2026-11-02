@@ -25,6 +25,85 @@
   letter-spacing: 0.04em;
 }
 
+.paletteSubjectTabs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: $space-3;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.paletteSubBtn {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+  }
+
+  &.paletteSubBtnActive {
+    background: #2563EB;
+    color: #FFFFFF;
+    border-color: #1D4ED8;
+    font-weight: 700;
+  }
+}
+
+.secPaletteBlock {
+  margin-bottom: $space-4;
+}
+
+.secPaletteHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+
+.secPaletteBadgeA {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #1E40AF;
+  background: #DBEAFE;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.secPaletteBadgeB {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #92400E;
+  background: #FEF3C7;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.secPaletteTitleText {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.secPaletteCount {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #64748B;
+}
+
 .currentPosition {
   font-size: 0.75rem;
   font-weight: 600;

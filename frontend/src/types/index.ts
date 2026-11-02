@@ -242,6 +242,9 @@ export interface TestQuestion {
   id: string;
   questionNumber: number;
   subject: Subject;
+  section?: 'A' | 'B';
+  type?: 'SINGLE_CORRECT' | 'NUMERICAL';
+  numericalAnswer?: string;
   chapter: string;
   statement: string;
   options: TestOption[];
@@ -251,6 +254,7 @@ export interface TestQuestion {
   explanation: string;
   formulaKey?: string;
   shortcutTrick?: string;
+  videoSolutionUrl?: string;
 }
 
 export interface TestMarkingScheme {
@@ -301,6 +305,7 @@ export interface TestSeriesItem {
 
 export interface TestQuestionResponse {
   selectedOption?: string;
+  numericalValue?: string;
   isMarkedForReview: boolean;
   isVisited: boolean;
 }

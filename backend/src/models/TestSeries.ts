@@ -10,6 +10,9 @@ export interface ITestQuestion {
   id: string;
   questionNumber: number;
   subject: string;
+  section?: 'A' | 'B';
+  type?: 'SINGLE_CORRECT' | 'NUMERICAL';
+  numericalAnswer?: string;
   chapter?: string;
   statement: string;
   statementBlocks?: any[];
@@ -91,6 +94,9 @@ const questionSchema = new Schema<ITestQuestion>(
     id: { type: String, default: () => `q-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` },
     questionNumber: { type: Number, default: 1 },
     subject: { type: String, default: 'General' },
+    section: { type: String, enum: ['A', 'B'], default: 'A' },
+    type: { type: String, default: 'SINGLE_CORRECT' },
+    numericalAnswer: { type: String },
     chapter: { type: String, default: 'General' },
     statement: { type: String, default: '' },
     statementBlocks: { type: [Schema.Types.Mixed], default: undefined },

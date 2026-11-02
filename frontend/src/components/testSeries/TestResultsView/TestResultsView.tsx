@@ -78,19 +78,39 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
 
     const qId = q?.id || (q as any)?._id;
     const resp = qId ? attempt?.responses?.[qId] : undefined;
-    if (!resp || !resp.selectedOption) {
+    const isAnswered = Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
+
+    if (!resp || !isAnswered) {
       unattemptedCount += 1;
       sStat.unattempted += 1;
-    } else if (resp.selectedOption === q.correctAnswer) {
-      correctCount += 1;
-      sStat.correct += 1;
-      totalScore += markingCorrect;
-      sStat.score += markingCorrect;
     } else {
-      incorrectCount += 1;
-      sStat.incorrect += 1;
-      totalScore -= markingIncorrect;
-      sStat.score -= markingIncorrect;
+      let isCorrect = false;
+      const isNumerical = q.type === 'NUMERICAL' || q.section === 'B' || (!q.options || q.options.length === 0);
+
+      if (isNumerical) {
+        const studentVal = (resp.numericalValue ?? resp.selectedOption ?? '').trim();
+        const correctVal = String(q.numericalAnswer ?? q.correctAnswer ?? '').trim();
+        if (studentVal && correctVal && !isNaN(Number(studentVal)) && !isNaN(Number(correctVal))) {
+          isCorrect = Math.abs(Number(studentVal) - Number(correctVal)) < 0.001;
+        } else {
+          isCorrect = studentVal.toLowerCase() === correctVal.toLowerCase();
+        }
+      } else {
+        isCorrect = resp.selectedOption === q.correctAnswer;
+      }
+
+      if (isCorrect) {
+        correctCount += 1;
+        sStat.correct += 1;
+        totalScore += markingCorrect;
+        sStat.score += markingCorrect;
+      } else {
+        incorrectCount += 1;
+        sStat.incorrect += 1;
+        const penalty = isNumerical && q.negativeMarks === 0 ? 0 : markingIncorrect;
+        totalScore -= penalty;
+        sStat.score -= penalty;
+      }
     }
   });
 

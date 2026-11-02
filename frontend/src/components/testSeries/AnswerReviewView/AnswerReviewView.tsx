@@ -47,15 +47,35 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
   }
 
   // Filter questions based on student's performance
+  const checkIsCorrect = (q: any, r: any) => {
+    if (!r) return false;
+    const isAnswered = Boolean(r?.numericalValue?.trim() || r?.selectedOption);
+    if (!isAnswered) return false;
+
+    const isNum = q.type === 'NUMERICAL' || q.section === 'B' || (!q.options || q.options.length === 0);
+    if (isNum) {
+      const studentVal = (r.numericalValue ?? r.selectedOption ?? '').trim();
+      const correctVal = String(q.numericalAnswer ?? q.correctAnswer ?? '').trim();
+      if (studentVal && correctVal && !isNaN(Number(studentVal)) && !isNaN(Number(correctVal))) {
+        return Math.abs(Number(studentVal) - Number(correctVal)) < 0.001;
+      }
+      return studentVal.toLowerCase() === correctVal.toLowerCase();
+    }
+    return r.selectedOption === q.correctAnswer;
+  };
+
   const filteredQuestions = (test.questions || []).filter((q) => {
     if (!q) return false;
     const qId = q.id || (q as any)?._id;
     const resp = attempt?.responses?.[qId];
+    const isAnswered = Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
+    const isCorrect = checkIsCorrect(q, resp);
+
     if (filter === 'Incorrect') {
-      return resp?.selectedOption && resp.selectedOption !== q.correctAnswer;
+      return isAnswered && !isCorrect;
     }
     if (filter === 'Unattempted') {
-      return !resp || !resp.selectedOption;
+      return !isAnswered;
     }
     if (filter === 'Marked') {
       return resp?.isMarkedForReview;
@@ -66,8 +86,11 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
   const activeQuestion = filteredQuestions[currentIndex] || test.questions[0];
   const activeQId = activeQuestion?.id || (activeQuestion as any)?._id || 'q-0';
   const resp = attempt?.responses?.[activeQId];
-  const isSelected = Boolean(resp?.selectedOption);
-  const isCorrect = resp?.selectedOption === activeQuestion?.correctAnswer;
+  const isSelected = Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
+  const isCorrect = checkIsCorrect(activeQuestion, resp);
+  const isNumerical = activeQuestion?.type === 'NUMERICAL' || activeQuestion?.section === 'B' || (!activeQuestion?.options || activeQuestion?.options.length === 0);
+  const studentVal = (resp?.numericalValue ?? resp?.selectedOption ?? '').trim();
+  const correctVal = String(activeQuestion?.numericalAnswer ?? activeQuestion?.correctAnswer ?? '').trim();
 
   const handlePrev = () => {
     if (currentIndex > 0) setCurrentIndex((p) => p - 1);
@@ -172,41 +195,86 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
                 </div>
               </div>
 
-              {/* Options with Answer Highlight */}
-              <div className={styles.optionsList}>
-                {activeQuestion.options.map((opt) => {
-                  const isUserChoice = resp?.selectedOption === opt.id;
-                  const isCorrectAnswer = opt.id === activeQuestion.correctAnswer;
+              {/* Options or Numerical Answer Card */}
+              {!isNumerical ? (
+                <div className={styles.optionsList}>
+                  {activeQuestion.options.map((opt) => {
+                    const isUserChoice = resp?.selectedOption === opt.id;
+                    const isCorrectAnswer = opt.id === activeQuestion.correctAnswer;
 
-                  let optClass = '';
-                  if (isCorrectAnswer) {
-                    optClass = styles.correctOption;
-                  } else if (isUserChoice && !isCorrectAnswer) {
-                    optClass = styles.incorrectOption;
-                  }
+                    let optClass = '';
+                    if (isCorrectAnswer) {
+                      optClass = styles.correctOption;
+                    } else if (isUserChoice && !isCorrectAnswer) {
+                      optClass = styles.incorrectOption;
+                    }
 
-                  return (
-                    <div key={opt.id} className={`${styles.optionItem} ${optClass}`}>
-                      <div className={styles.radioLetter}>{opt.id}</div>
-                      <div className={styles.optionText}>
-                        <MathText text={opt.text} />
+                    return (
+                      <div key={opt.id} className={`${styles.optionItem} ${optClass}`}>
+                        <div className={styles.radioLetter}>{opt.id}</div>
+                        <div className={styles.optionText}>
+                          <MathText text={opt.text} />
+                        </div>
+                        {isCorrectAnswer && (
+                          <div className={styles.correctIndicator}>
+                            <Check size={16} />
+                            <span>Correct Answer</span>
+                          </div>
+                        )}
+                        {isUserChoice && !isCorrectAnswer && (
+                          <div className={styles.incorrectIndicator}>
+                            <X size={16} />
+                            <span>Your Choice</span>
+                          </div>
+                        )}
                       </div>
-                      {isCorrectAnswer && (
-                        <div className={styles.correctIndicator}>
-                          <Check size={16} />
-                          <span>Correct Answer</span>
-                        </div>
-                      )}
-                      {isUserChoice && !isCorrectAnswer && (
-                        <div className={styles.incorrectIndicator}>
-                          <X size={16} />
-                          <span>Your Choice</span>
-                        </div>
-                      )}
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ background: '#F8FAFC', border: '1.5px solid #CBD5E1', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '800', background: '#FEF3C7', color: '#92400E', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                      Section B • Numerical Value Question
+                    </span>
+                    {studentVal ? (
+                      isCorrect ? (
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#15803D', background: '#DCFCE7', padding: '3px 10px', borderRadius: '6px' }}>
+                          ✓ Correct (+{activeQuestion.marks || 4})
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#B91C1C', background: '#FEE2E2', padding: '3px 10px', borderRadius: '6px' }}>
+                          ✗ Incorrect (-{activeQuestion.negativeMarks ?? 1})
+                        </span>
+                      )
+                    ) : (
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', background: '#F1F5F9', padding: '3px 10px', borderRadius: '6px' }}>
+                        Unattempted (0 Marks)
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                    <div style={{ background: studentVal ? (isCorrect ? '#F0FDF4' : '#FEF2F2') : '#FFFFFF', border: `1.5px solid ${studentVal ? (isCorrect ? '#86EFAC' : '#FECACA') : '#E2E8F0'}`, borderRadius: '8px', padding: '10px 14px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>
+                        Your Entered Answer
+                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '800', fontFamily: 'monospace', color: studentVal ? (isCorrect ? '#15803D' : '#B91C1C') : '#94A3B8' }}>
+                        {studentVal || 'None (Unattempted)'}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div style={{ background: '#F0FDF4', border: '1.5px solid #86EFAC', borderRadius: '8px', padding: '10px 14px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#15803D', textTransform: 'uppercase', marginBottom: '4px' }}>
+                        Official Correct Answer
+                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '800', fontFamily: 'monospace', color: '#15803D' }}>
+                        {correctVal || 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Solution Box */}
               <div className={styles.solutionBox}>
@@ -292,8 +360,8 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
               <div className={styles.paletteGrid}>
                 {filteredQuestions.map((q, idx) => {
                   const qResp = attempt.responses[q.id];
-                  const qSelected = Boolean(qResp?.selectedOption);
-                  const qCorrect = qResp?.selectedOption === q.correctAnswer;
+                  const qSelected = Boolean(qResp?.numericalValue?.trim() || qResp?.selectedOption);
+                  const qCorrect = checkIsCorrect(q, qResp);
                   const isCurrent = idx === currentIndex;
 
                   let colorClass = styles.pUnattempted;
