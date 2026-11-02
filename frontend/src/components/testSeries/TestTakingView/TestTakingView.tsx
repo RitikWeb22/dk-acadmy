@@ -21,6 +21,7 @@ import { SubmitConfirmationModal } from '../SubmitConfirmationModal/SubmitConfir
 import styles from './TestTakingView.module.scss';
 import { MathText } from '../../ui/MathText/MathText';
 import { requestFullScreen, exitFullScreen, isFullScreenActive } from '../../../utils/fullscreen';
+import { evaluateArithmeticExpression } from '../../../utils/mathEvaluator';
 
 interface TestTakingViewProps {
   test: TestSeriesItem;
@@ -62,6 +63,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
   const [calcMode, setCalcMode] = useState<'keypad' | 'calculator'>('keypad');
   const [calcExpr, setCalcExpr] = useState<string>('');
   const [calcResult, setCalcResult] = useState<string>('');
+  const [isCalcPopupOpen, setIsCalcPopupOpen] = useState<boolean>(false);
 
   // ─────────────────────────────────────────────────────────────
   // Active Automated Proctoring & Anti-Cheating Engine
@@ -376,52 +378,25 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     onSaveProgress(updated);
   };
 
-  // Safe arithmetic evaluator for Quick Scratch Calculator
-  const evaluateCalcExprSafe = (expr: string): string => {
-    if (!expr || !expr.trim()) return '';
-    try {
-      const sanitized = expr
-        .replace(/×/g, '*')
-        .replace(/÷/g, '/')
-        .replace(/−/g, '-')
-        .replace(/\s+/g, '');
-
-      if (!/^[0-9+\-*/().]+$/.test(sanitized)) {
-        return '';
-      }
-      if (/[+\-*/.]$/.test(sanitized)) {
-        return '';
-      }
-      const fn = new Function(`'use strict'; return (${sanitized});`);
-      const val = fn();
-      if (typeof val === 'number' && !isNaN(val) && isFinite(val)) {
-        return String(Math.round(val * 1000000) / 1000000);
-      }
-      return '';
-    } catch {
-      return '';
+  // CSP-compliant calculator handlers (Pure arithmetic evaluation without eval/new Function)
+  const handleCalcInput = (token: string) => {
+    const next = calcExpr + token;
+    setCalcExpr(next);
+    const evalRes = evaluateArithmeticExpression(next);
+    if (evalRes.success && evalRes.formatted) {
+      setCalcResult(evalRes.formatted);
     }
   };
 
-  const handleCalcInput = (token: string) => {
-    setCalcExpr((prev) => {
-      const next = prev + token;
-      const preview = evaluateCalcExprSafe(next);
-      if (preview) {
-        setCalcResult(preview);
-      }
-      return next;
-    });
-  };
-
   const handleCalcBackspace = () => {
-    setCalcExpr((prev) => {
-      const next = prev.trimEnd();
-      const sliced = next.length > 0 ? next.slice(0, -1).trimEnd() : '';
-      const preview = evaluateCalcExprSafe(sliced);
-      setCalcResult(preview);
-      return sliced;
-    });
+    const next = calcExpr.trimEnd().slice(0, -1).trimEnd();
+    setCalcExpr(next);
+    if (next) {
+      const evalRes = evaluateArithmeticExpression(next);
+      setCalcResult(evalRes.success && evalRes.formatted ? evalRes.formatted : '');
+    } else {
+      setCalcResult('');
+    }
   };
 
   const handleCalcClear = () => {
@@ -432,9 +407,10 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
   // Evaluate Quick Scratch Calculator expression on demand (e.g. on '=' press)
   const handleEvaluateCalc = () => {
     if (!calcExpr.trim()) return;
-    const res = evaluateCalcExprSafe(calcExpr);
-    if (res) {
-      setCalcResult(res);
+    const evalRes = evaluateArithmeticExpression(calcExpr);
+    if (evalRes.success && evalRes.formatted) {
+      setCalcResult(evalRes.formatted);
+      setCalcExpr(evalRes.formatted);
     } else {
       setCalcResult('Error');
     }
@@ -442,8 +418,9 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   // Apply result from Scratch Calculator directly as Section B answer
   const handleApplyCalcResult = () => {
-    if (calcResult && calcResult !== 'Error') {
-      handleNumericalChange(calcResult);
+    const valToApply = calcResult && calcResult !== 'Error' ? calcResult : calcExpr;
+    if (valToApply && valToApply !== 'Error') {
+      handleNumericalChange(valToApply);
     }
   };
 
@@ -563,6 +540,16 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
             durationMinutes={test.durationMinutes}
             onTimeExpire={handleTimerExpire}
           />
+
+          <button
+            type="button"
+            className={`${styles.headerCalcBtn} ${isCalcPopupOpen ? styles.headerCalcBtnActive : ''}`}
+            onClick={() => setIsCalcPopupOpen((prev) => !prev)}
+            title="Open Virtual Scientific / Scratchpad Calculator"
+          >
+            <Calculator size={15} />
+            <span>Calculator</span>
+          </button>
 
           <button
             type="button"
@@ -1173,6 +1160,75 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Floating Quick Virtual Calculator Modal / Window */}
+      {isCalcPopupOpen && (
+        <div className={styles.floatingCalcCard} role="region" aria-label="Virtual Scratchpad Calculator">
+          <div className={styles.floatingCalcHeader}>
+            <div className={styles.floatingCalcTitle}>
+              <Calculator size={16} />
+              <span>Virtual Calculator</span>
+            </div>
+            <button
+              type="button"
+              className={styles.floatingCalcCloseBtn}
+              onClick={() => setIsCalcPopupOpen(false)}
+              title="Close calculator"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className={styles.floatingCalcBody}>
+            <div className={styles.calcDisplayScreen}>
+              <div className={styles.calcExpressionDisplay}>{calcExpr || '0'}</div>
+              <div className={styles.calcResultDisplay}>
+                {calcResult ? `= ${calcResult}` : '\u00A0'}
+              </div>
+            </div>
+
+            <div className={styles.calcKeysGrid}>
+              <button type="button" className={styles.calcClearKey} onClick={handleCalcClear} title="Clear">C</button>
+              <button type="button" className={styles.calcFnKey} onClick={handleCalcBackspace} title="Backspace"><Delete size={15} /></button>
+              <button type="button" className={styles.calcFnKey} onClick={() => handleCalcInput('(')}>(</button>
+              <button type="button" className={styles.calcFnKey} onClick={() => handleCalcInput(')')}>)</button>
+
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('7')}>7</button>
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('8')}>8</button>
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('9')}>9</button>
+              <button type="button" className={styles.calcOpKey} onClick={() => handleCalcInput(' ÷ ')}>÷</button>
+
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('4')}>4</button>
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('5')}>5</button>
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('6')}>6</button>
+              <button type="button" className={styles.calcOpKey} onClick={() => handleCalcInput(' × ')}>×</button>
+
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('1')}>1</button>
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('2')}>2</button>
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('3')}>3</button>
+              <button type="button" className={styles.calcOpKey} onClick={() => handleCalcInput(' - ')}>−</button>
+
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('0')}>0</button>
+              <button type="button" className={styles.calcNumKey} onClick={() => handleCalcInput('.')}>.</button>
+              <button type="button" className={styles.calcEqualKey} onClick={handleEvaluateCalc}>=</button>
+              <button type="button" className={styles.calcOpKey} onClick={() => handleCalcInput(' + ')}>+</button>
+            </div>
+
+            {isCurrentSectionB && calcResult && calcResult !== 'Error' && (
+              <div className={styles.calcApplyWrap}>
+                <button
+                  type="button"
+                  className={styles.applyResultBtn}
+                  onClick={handleApplyCalcResult}
+                >
+                  <Check size={16} />
+                  <span>Set Result ({calcResult}) as Answer</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
