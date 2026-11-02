@@ -401,6 +401,16 @@ export function normalizeMathText(raw: string): string {
       }
     );
 
+    // Fix integral where Word wrapped fraction around integral and lower limit:
+    // e.g. \frac{\int_{\pi }{4}^{x}} -> \int_{\frac{\pi}{4}}^{x}
+    // e.g. \frac{\int_{-\pi}{4}}^{x} -> \int_{-\frac{\pi}{4}}^{x}
+    res = res.replace(/\\frac\{\s*(?:∫|\\int)_\{?\s*(-?\\[a-zA-Z]+|-?[0-9a-zA-Z]+)\s*\}?\s*\{?\s*([0-9a-zA-Z]+)\s*\}?\s*\^\{?\s*([^{}\s]+)\s*\}?\s*\}?/g,
+      (_, lowNum, lowDen, up) => `\\int_{\\frac{${lowNum.trim()}}{${lowDen.trim()}}}^{${up.trim()}}`
+    );
+
+    // Normalize Scandinavian slashed-O or \O to \phi if used as a function e.g. Ø'(\frac{\pi}{4}) or \O'(t)
+    res = res.replace(/(?:\\O\b|Ø)(?='|\s*\(|\s*\\left\()/g, '\\phi');
+
     // Absorb LHS math expression immediately preceding $ before parenthesized or left bracket:
     // e.g. "Let 5f(x)+4f $\left(\dfrac{1}{x}\right)=\frac{1}{x}$" -> "Let $ 5f(x)+4f\left(\dfrac{1}{x}\right)=\frac{1}{x} $"
     res = res.replace(/((?:[0-9]*\s*[a-zA-Z]\s*\([^)]*\)\s*[+\-−*\/]\s*)*[0-9]*\s*[a-zA-Z])\s*\$\s*(\\(?:left\s*)?[\(\[][\s\S]+?)\$/g,
