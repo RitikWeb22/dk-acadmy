@@ -299,6 +299,9 @@ export function normalizeMathText(raw: string): string {
   // 0i. If fraction in integral is followed by factor in denominator: \frac{1}{5+2x-2x^2} (1+e^{2-4x})\,dx
   text = text.replace(/\\frac\{1\}\{([^}]+)\}\s*\((1\+e\^\{[^}]+\}\\,dx)/g, '\\frac{1}{($1)$2}');
 
+  // 0j. Powers with single or multiple parentheses: e^((2-4x)) -> e^{2-4x}, x^(2) -> x^{2}
+  text = text.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, '$1^{$2}');
+
   const lines = text.split(/\r?\n/);
   const processedLines = lines.map((line) => {
     let res = line;
@@ -397,16 +400,17 @@ export function normalizeMathText(raw: string): string {
              .replace(/∫_\{?([0-9a-zA-Z]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\int_{$1}^{$2} ')
              .replace(/∫/g, '\\int ');
 
-    // 6. Exponential powers: e^(-π/4) -> e^{-\frac{\pi}{4}}, e^(2-4x) -> e^{2-4x}, e^(-x) -> e^{-x}
-    res = res.replace(/e\^\(([^()]+)\)/g, (_, p) => {
+    // 6. Exponential powers and arbitrary base powers with single or double parentheses:
+    // e.g. e^((2-4x)) -> e^{2-4x}, e^(2-4x) -> e^{2-4x}, e^(-x) -> e^{-x}, x^(n+1) -> x^{n+1}, t^(50) -> t^{50}
+    res = res.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, (_, base, p) => {
       let cleanP = p.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
                     .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
                     .replace(/π/, '\\pi');
-      return `e^{${cleanP.trim()}}`;
+      return `${base}^{${cleanP.trim()}}`;
     });
     res = res.replace(/e\^([0-9a-zA-Z]+)/g, 'e^{$1}');
     // Also any base^digit without braces: x^2 -> x^{2}, a^2 -> a^{2}
-    res = res.replace(/([a-zA-Z0-9_\)\]\}])\^([0-9a-zA-Z])(?![0-9a-zA-Z\{])/g, '$1^{$2}');
+    res = res.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^([0-9a-zA-Z])(?![0-9a-zA-Z\{])/g, '$1^{$2}');
 
     // 7. Limits: lim_(n→∞) or lim_(x→0)
     res = res.replace(/lim_?\s*\(([^)]+)\)\s*/g, (_, inner) => {
