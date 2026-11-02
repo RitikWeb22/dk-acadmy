@@ -1970,12 +1970,19 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     const solMatch = smartPasteText.match(/(?:^|\n)\s*(?:Sol(?:ution)?|Expl(?:anation)?)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Shortcut|Trick|DK\s*Sir|Video|PDF|Topic)|$))/i);
     const trickMatch = smartPasteText.match(/(?:^|\n)\s*(?:Shortcut|Trick|DK\s*Sir)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Video|PDF|Topic)|$))/i);
 
+    // Extract numerical answer for Section B questions (e.g. "Ans: 14", "Answer = -2.5")
+    const numAnsMatch = smartPasteText.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Answer|Value))?|Value)\s*[:=\-]\s*(-?[0-9]+(?:\.[0-9]+)?)/i);
+    const isSectionB = currentEditingQuestion?.section === 'B';
+
     const cleanStmt = normalizeMathText(extracted.statement);
     updateCurrentQuestion({
       questionText: cleanStmt,
       statementBlocks: parseContentToBlocks(cleanStmt),
-      options: extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) })),
+      options: isSectionB && (!extracted.options || extracted.options.every(o => o.text.startsWith('Option ')))
+        ? (currentEditingQuestion?.options || extracted.options)
+        : extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) })),
       correctKey: (extracted.correctKey || correctKey) as any,
+      numericalAnswer: numAnsMatch ? numAnsMatch[1] : currentEditingQuestion?.numericalAnswer,
       solutionDerivation: solMatch ? normalizeMathText(solMatch[1]) : currentEditingQuestion?.solutionDerivation,
       shortcutTrick: trickMatch ? normalizeMathText(trickMatch[1]) : currentEditingQuestion?.shortcutTrick
     });
@@ -2013,11 +2020,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
         const solMatch = pasted.match(/(?:^|\n)\s*(?:Sol(?:ution)?|Expl(?:anation)?)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Shortcut|Trick|DK\s*Sir|Video|PDF|Topic)|$))/i);
         const trickMatch = pasted.match(/(?:^|\n)\s*(?:Shortcut|Trick|DK\s*Sir)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Video|PDF|Topic)|$))/i);
+        const numAnsMatch = pasted.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Answer|Value))?|Value)\s*[:=\-]\s*(-?[0-9]+(?:\.[0-9]+)?)/i);
 
         updateCurrentQuestion({
           questionText: normalizeMathText(extracted.statement),
           options: extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) })),
           correctKey: correctKey as any,
+          numericalAnswer: numAnsMatch ? numAnsMatch[1] : currentEditingQuestion?.numericalAnswer,
           solutionDerivation: solMatch ? normalizeMathText(solMatch[1]) : currentEditingQuestion?.solutionDerivation,
           shortcutTrick: trickMatch ? normalizeMathText(trickMatch[1]) : currentEditingQuestion?.shortcutTrick
         });
@@ -3665,7 +3674,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   {/* Section A & Section B Real-Time Palettes (Green for filled, Red for pending) */}
                   <div className={styles.sectionsSplitTrackerGrid}>
                     {/* Section A: Single Correct MCQs */}
-                    <div className={styles.sectionPaletteCard}>
+                    <div className={`${styles.sectionPaletteCard} ${styles.paletteCardA}`}>
                       <div className={styles.secPaletteHeader}>
                         <div className={styles.secTitleGroup}>
                           <span className={styles.secBadgeA}>Section A</span>
@@ -3677,6 +3686,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             <span className={styles.pillPendingBadge}>{secAQuestions.length - secAFilledCount} Pending</span>
                           )}
                         </div>
+                      </div>
+
+                      <div className={styles.secProgressBar}>
+                        <div
+                          className={styles.secProgressFillA}
+                          style={{ width: `${secAQuestions.length > 0 ? Math.round((secAFilledCount / secAQuestions.length) * 100) : 0}%` }}
+                        />
                       </div>
 
                       <p className={styles.secSubtextNote}>
@@ -3695,8 +3711,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               className={`${styles.qButtonTile} ${filled ? styles.qTileFilled : styles.qTilePending} ${isSelected ? styles.qTileActive : ''}`}
                               title={`Question ${q.index} (${q.subject} - Section A): ${filled ? 'Filled' : 'Empty / Pending'}`}
                             >
-                              <span>Q{q.index}</span>
-                              <span className={styles.statusIcon}>{filled ? '✓' : '!'}</span>
+                              <span className={styles.qNumberLabel}>Q{q.index}</span>
+                              {filled && <span className={styles.statusIndicatorDot}>✓</span>}
                             </button>
                           );
                         })}
@@ -3704,7 +3720,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
 
                     {/* Section B: Numerical Value Type */}
-                    <div className={styles.sectionPaletteCard}>
+                    <div className={`${styles.sectionPaletteCard} ${styles.paletteCardB}`}>
                       <div className={styles.secPaletteHeader}>
                         <div className={styles.secTitleGroup}>
                           <span className={styles.secBadgeB}>Section B</span>
@@ -3716,6 +3732,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             <span className={styles.pillPendingBadge}>{secBQuestions.length - secBFilledCount} Pending</span>
                           )}
                         </div>
+                      </div>
+
+                      <div className={styles.secProgressBar}>
+                        <div
+                          className={styles.secProgressFillB}
+                          style={{ width: `${secBQuestions.length > 0 ? Math.round((secBFilledCount / secBQuestions.length) * 100) : 0}%` }}
+                        />
                       </div>
 
                       <p className={styles.secSubtextNote}>
@@ -3734,8 +3757,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               className={`${styles.qButtonTile} ${filled ? styles.qTileFilled : styles.qTilePending} ${isSelected ? styles.qTileActive : ''}`}
                               title={`Question ${q.index} (${q.subject} - Section B): ${filled ? 'Filled' : 'Empty / Pending'}`}
                             >
-                              <span>Q{q.index}</span>
-                              <span className={styles.statusIcon}>{filled ? '✓' : '!'}</span>
+                              <span className={styles.qNumberLabel}>Q{q.index}</span>
+                              {filled && <span className={styles.statusIndicatorDot}>✓</span>}
                             </button>
                           );
                         })}

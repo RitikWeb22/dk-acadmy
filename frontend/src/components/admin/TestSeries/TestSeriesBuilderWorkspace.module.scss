@@ -5066,12 +5066,44 @@ select.primaryTextInput {
 .sectionPaletteCard {
   background: #FFFFFF;
   border: 1.5px solid #E2E8F0;
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 14px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+
+  &.paletteCardA {
+    border-top: 3.5px solid #2563EB;
+  }
+
+  &.paletteCardB {
+    border-top: 3.5px solid #D97706;
+  }
+}
+
+.secProgressBar {
+  width: 100%;
+  height: 6px;
+  background: #F1F5F9;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: -4px;
+}
+
+.secProgressFillA {
+  height: 100%;
+  background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+  border-radius: 999px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.secProgressFillB {
+  height: 100%;
+  background: linear-gradient(90deg, #F59E0B, #D97706);
+  border-radius: 999px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .secPaletteHeader {
@@ -5091,29 +5123,31 @@ select.primaryTextInput {
 }
 
 .secBadgeA {
-  background: #DBEAFE;
-  color: #1E40AF;
+  background: #EFF6FF;
+  color: #1D4ED8;
   font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
+  font-weight: 800;
+  padding: 3px 10px;
   border-radius: 6px;
   border: 1px solid #BFDBFE;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .secBadgeB {
-  background: #FEF3C7;
-  color: #92400E;
+  background: #FFFBEB;
+  color: #B45309;
   font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
+  font-weight: 800;
+  padding: 3px 10px;
   border-radius: 6px;
   border: 1px solid #FDE68A;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .secHeaderTitle {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   color: #0F172A;
   margin: 0;
@@ -5126,21 +5160,21 @@ select.primaryTextInput {
 }
 
 .pillFilledBadge {
-  background: #DCFCE7;
-  color: #15803D;
+  background: #ECFDF5;
+  color: #047857;
   font-size: 11.5px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 2.5px 9px;
   border-radius: 6px;
-  border: 1px solid #BBF7D0;
+  border: 1px solid #A7F3D0;
 }
 
 .pillPendingBadge {
-  background: #FEE2E2;
+  background: #FEF2F2;
   color: #B91C1C;
   font-size: 11.5px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 2.5px 9px;
   border-radius: 6px;
   border: 1px solid #FECACA;
 }
@@ -5148,13 +5182,13 @@ select.primaryTextInput {
 .secSubtextNote {
   font-size: 11.5px;
   color: #64748B;
-  margin: -6px 0 0 0;
+  margin: -4px 0 0 0;
 }
 
 .qButtonsGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
 }
 
 .qButtonTile {
@@ -5162,50 +5196,59 @@ select.primaryTextInput {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
+  gap: 4px;
+  min-width: 46px;
   height: 36px;
   padding: 0 10px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1.5px solid transparent;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
 
-  // Empty / Pending state: RED
+  // Empty / Pending state: Soft rose background with crisp boundary
   &.qTilePending {
-    background: #EF4444;
-    color: #FFFFFF;
-    border-color: #DC2626;
+    background: #FFF1F2;
+    color: #BE123C;
+    border: 1.5px solid #FECDD3;
 
     &:hover {
-      background: #DC2626;
+      background: #FFE4E6;
+      border-color: #FDA4AF;
       transform: translateY(-1px);
     }
   }
 
-  // Filled state: GREEN
+  // Filled state: Soft crisp mint/emerald
   &.qTileFilled {
-    background: #10B981;
-    color: #FFFFFF;
-    border-color: #059669;
+    background: #ECFDF5;
+    color: #047857;
+    border: 1.5px solid #A7F3D0;
 
     &:hover {
-      background: #059669;
+      background: #D1FAE5;
+      border-color: #6EE7B7;
       transform: translateY(-1px);
     }
   }
 
-  // Active / Selected state: Blue focus ring + elevate
+  // Active / Selected state: Elevated with crisp ring
   &.qTileActive {
-    box-shadow: 0 0 0 3px #2563EB, 0 4px 10px rgba(37, 99, 235, 0.35);
-    transform: scale(1.08);
+    box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #2563EB, 0 4px 12px rgba(37, 99, 235, 0.25);
+    transform: translateY(-2px);
+    font-weight: 800;
     z-index: 2;
   }
 
-  .statusIcon {
-    margin-left: 4px;
+  .qNumberLabel {
+    line-height: 1;
+  }
+
+  .statusIndicatorDot {
     font-size: 10px;
+    font-weight: 900;
+    color: #059669;
   }
 }
 
