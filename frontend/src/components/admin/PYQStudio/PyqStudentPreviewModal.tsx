@@ -40,8 +40,8 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
         {/* CBT Simulated Header */}
         <div
           style={{
-            background: '#0d1117',
-            borderBottom: '1px solid #30363d',
+            background: '#ffffff',
+            borderBottom: '1px solid #e2e8f0',
             padding: '1rem 1.5rem',
             display: 'flex',
             alignItems: 'center',
@@ -54,7 +54,7 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span
                 style={{
-                  background: '#238636',
+                  background: '#16a34a',
                   color: '#fff',
                   fontSize: '0.75rem',
                   fontWeight: 700,
@@ -64,11 +64,11 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
               >
                 STUDENT PRACTICE SIMULATION
               </span>
-              <span style={{ fontSize: '0.8rem', color: '#8b949e' }}>
+              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
                 {paper.targetExam || 'JEE Main'} • {paper.year || 2024}
               </span>
             </div>
-            <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.1rem', color: '#f0f6fc' }}>
+            <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.1rem', color: '#0f172a' }}>
               {paper.title}
             </h3>
           </div>
@@ -80,11 +80,11 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                background: '#161b22',
-                border: '1px solid #30363d',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
                 borderRadius: 6,
                 padding: '0.4rem 0.75rem',
-                color: '#58a6ff',
+                color: '#2563eb',
                 fontWeight: 700,
                 fontSize: '0.9rem'
               }}
@@ -93,15 +93,15 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
               <span>{paper.durationMinutes || 60}:00 Left</span>
             </div>
 
-            <X size={22} style={{ cursor: 'pointer', color: '#8b949e' }} onClick={onClose} />
+            <X size={22} style={{ cursor: 'pointer', color: '#64748b' }} onClick={onClose} />
           </div>
         </div>
 
         {/* Question Palette Strip */}
         <div
           style={{
-            background: '#161b22',
-            borderBottom: '1px solid #21262d',
+            background: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
             padding: '0.65rem 1.5rem',
             display: 'flex',
             alignItems: 'center',
@@ -121,13 +121,13 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                   minWidth: 32,
                   height: 32,
                   borderRadius: 6,
-                  border: isCurrent ? '2px solid #58a6ff' : '1px solid #30363d',
+                  border: isCurrent ? '2px solid #2563eb' : '1px solid #cbd5e1',
                   background: isCurrent
-                    ? '#1f6feb'
+                    ? '#2563eb'
                     : isAnswered
-                    ? 'rgba(46,160,67,0.2)'
-                    : '#0d1117',
-                  color: isCurrent || isAnswered ? '#ffffff' : '#8b949e',
+                    ? '#dcfce7'
+                    : '#ffffff',
+                  color: isCurrent ? '#ffffff' : isAnswered ? '#166534' : '#475569',
                   fontSize: '0.8rem',
                   fontWeight: 600,
                   cursor: 'pointer'
@@ -140,7 +140,7 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
         </div>
 
         {/* CBT Main Question Area */}
-        <div className={styles.modalBody} style={{ padding: '1.75rem 2rem', gap: '1.5rem' }}>
+        <div className={styles.modalBody} style={{ padding: '1.75rem 2rem', gap: '1.5rem', background: '#ffffff' }}>
           {currentQ ? (
             <>
               {/* Question Metadata Bar */}
@@ -150,30 +150,31 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   paddingBottom: '0.75rem',
-                  borderBottom: '1px solid #21262d'
+                  borderBottom: '1px solid #f1f5f9'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <span style={{ fontSize: '1rem', fontWeight: 700, color: '#f0f6fc' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
                     Question {activeQIndex + 1} of {questions.length}
                   </span>
                   <span
                     style={{
-                      background: '#21262d',
-                      color: '#c9d1d9',
+                      background: '#f1f5f9',
+                      color: '#475569',
                       padding: '0.15rem 0.5rem',
                       borderRadius: 4,
-                      fontSize: '0.75rem'
+                      fontSize: '0.75rem',
+                      border: '1px solid #e2e8f0'
                     }}
                   >
                     {currentQ.questionType || 'Single Choice MCQ'}
                   </span>
-                  <span style={{ color: '#8b949e', fontSize: '0.75rem' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
                     • Chapter: {currentQ.chapter || paper.chapter}
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.8rem', color: '#3fb950', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 600 }}>
                   Marking Scheme: +{paper.positiveMarks || 4} / -{paper.negativeMarks || 1}
                 </div>
               </div>
@@ -182,7 +183,7 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
               <div
                 style={{
                   fontSize: '1.05rem',
-                  color: '#f0f6fc',
+                  color: '#0f172a',
                   lineHeight: 1.8,
                   padding: '0.5rem 0'
                 }}
@@ -196,7 +197,7 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                   <img
                     src={currentQ.diagramUrl}
                     alt="Question Diagram"
-                    style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 6, border: '1px solid #30363d' }}
+                    style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 6, border: '1px solid #e2e8f0' }}
                   />
                 </div>
               )}
@@ -211,8 +212,8 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                         key={opt.key}
                         onClick={() => handleSelectOption(opt.key)}
                         style={{
-                          background: isSelected ? 'rgba(31,111,235,0.15)' : '#0d1117',
-                          border: isSelected ? '1px solid #58a6ff' : '1px solid #30363d',
+                          background: isSelected ? '#eff6ff' : '#f8fafc',
+                          border: isSelected ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
                           borderRadius: 8,
                           padding: '0.85rem 1rem',
                           display: 'flex',
@@ -227,8 +228,8 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                             width: 28,
                             height: 28,
                             borderRadius: '50%',
-                            background: isSelected ? '#1f6feb' : '#21262d',
-                            color: isSelected ? '#ffffff' : '#8b949e',
+                            background: isSelected ? '#2563eb' : '#e2e8f0',
+                            color: isSelected ? '#ffffff' : '#475569',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -238,7 +239,7 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                         >
                           {opt.key}
                         </div>
-                        <div style={{ fontSize: '0.95rem', color: '#f0f6fc', flex: 1 }}>
+                        <div style={{ fontSize: '0.95rem', color: '#0f172a', flex: 1 }}>
                           <MathText text={opt.text} />
                         </div>
                       </div>
@@ -248,14 +249,14 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
               )}
 
               {/* Solution Inspector Toggle */}
-              <div style={{ marginTop: '1rem', borderTop: '1px solid #21262d', paddingTop: '1rem' }}>
+              <div style={{ marginTop: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
                 <button
                   type="button"
                   className={styles.btnSecondary}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                   onClick={() => setShowSolution(!showSolution)}
                 >
-                  <Sparkles size={15} color="#e3b341" />
+                  <Sparkles size={15} color="#d97706" />
                   {showSolution ? 'Hide Solution Derivation' : 'Inspect Mathematical Derivation & Shortcuts'}
                 </button>
 
@@ -263,8 +264,8 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                   <div
                     style={{
                       marginTop: '1rem',
-                      background: '#0d1117',
-                      border: '1px solid #30363d',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
                       borderRadius: 8,
                       padding: '1.25rem',
                       display: 'flex',
@@ -272,16 +273,16 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                       gap: '1rem'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3fb950', fontWeight: 700 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontWeight: 700 }}>
                       <CheckCircle2 size={16} /> Verified Correct Option: ({currentQ.correctKey})
                     </div>
 
                     {currentQ.stepSolution && (
                       <div>
-                        <div style={{ fontWeight: 600, color: '#79c0ff', fontSize: '0.85rem', marginBottom: 4 }}>
+                        <div style={{ fontWeight: 600, color: '#1d4ed8', fontSize: '0.85rem', marginBottom: 4 }}>
                           Step-by-Step Mathematical Derivation:
                         </div>
-                        <div style={{ fontSize: '0.95rem', color: '#c9d1d9', lineHeight: 1.6 }}>
+                        <div style={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.6 }}>
                           <MathText text={currentQ.stepSolution} />
                         </div>
                       </div>
@@ -290,11 +291,11 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                     {currentQ.dkSirShortcut && (
                       <div
                         style={{
-                          background: 'rgba(227,179,65,0.08)',
-                          border: '1px solid rgba(227,179,65,0.25)',
+                          background: '#fffbeb',
+                          border: '1px solid #fde68a',
                           borderRadius: 6,
                           padding: '0.75rem',
-                          color: '#e3b341',
+                          color: '#b45309',
                           fontSize: '0.85rem'
                         }}
                       >
@@ -303,13 +304,13 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                     )}
 
                     {(currentQ.videoUrl || paper.videoWalkthroughUrl) && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#58a6ff' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#2563eb' }}>
                         <Video size={16} /> Video Explanation: {currentQ.videoUrl || paper.videoWalkthroughUrl}
                       </div>
                     )}
 
                     {(currentQ.pdfUrl || paper.solutionPdfUrl) && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#79c0ff' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#2563eb' }}>
                         <FileText size={16} /> Solution PDF: {currentQ.pdfUrl || paper.solutionPdfUrl}
                       </div>
                     )}
@@ -318,14 +319,14 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
               </div>
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#8b949e' }}>
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
               No questions in this paper.
             </div>
           )}
         </div>
 
         {/* CBT Navigation Footer */}
-        <div className={styles.modalFooter} style={{ justifyContent: 'space-between' }}>
+        <div className={styles.modalFooter} style={{ justifyContent: 'space-between', background: '#f8fafc' }}>
           <button
             type="button"
             className={styles.btnSecondary}
@@ -335,7 +336,7 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
             <ChevronLeft size={16} /> Previous Question
           </button>
 
-          <span style={{ fontSize: '0.85rem', color: '#8b949e' }}>
+          <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
             Question {activeQIndex + 1} / {questions.length}
           </span>
 
