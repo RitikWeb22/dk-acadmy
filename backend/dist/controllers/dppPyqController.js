@@ -449,23 +449,29 @@ export const importPdfQuestions = async (req, res) => {
         const summary = await extractQuestionsFromPdfBuffer(file.buffer, String(subject), String(exam));
         const importId = `pdf-imp-${Date.now()}-${uuidv4().slice(0, 6)}`;
         const status = summary.needsReviewCount > 0 ? 'REVIEW_REQUIRED' : 'COMPLETED';
-        const historyRecord = new PdfImportHistory({
-            id: importId,
-            fileName: file.originalname,
-            fileSize: file.size,
-            status,
-            totalDetected: summary.totalDetected,
-            successfulCount: summary.successfulCount,
-            needsReviewCount: summary.needsReviewCount,
-            errorCount: summary.errorCount,
-            targetExam: exam,
-            subject,
-            year,
-            paperId: paperTitle ? `pending-${importId}` : '',
-            extractedQuestions: summary.questions,
-            errorLog: summary.errorLog
-        });
-        const savedHistory = await historyRecord.save();
+        let savedHistory = null;
+        try {
+            const historyRecord = new PdfImportHistory({
+                id: importId,
+                fileName: file.originalname || 'uploaded-paper.pdf',
+                fileSize: file.size || 0,
+                status,
+                totalDetected: summary.totalDetected,
+                successfulCount: summary.successfulCount,
+                needsReviewCount: summary.needsReviewCount,
+                errorCount: summary.errorCount,
+                targetExam: exam,
+                subject,
+                year,
+                paperId: paperTitle ? `pending-${importId}` : '',
+                extractedQuestions: summary.questions,
+                errorLog: summary.errorLog
+            });
+            savedHistory = await historyRecord.save();
+        }
+        catch (saveErr) {
+            console.warn('Notice: Could not persist PdfImportHistory record:', saveErr.message);
+        }
         res.status(200).json({
             success: true,
             importId,
