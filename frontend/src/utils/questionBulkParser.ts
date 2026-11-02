@@ -179,8 +179,12 @@ export function autoWrapMathDelimiters(text: string): string {
   // 1. Protect existing $...$ and $$...$$
   const protectedMath: string[] = [];
   const protect = (match: string) => {
+    let trimmed = match.trim();
+    if (trimmed.startsWith('$') && trimmed.endsWith('$')) {
+      trimmed = trimmed.slice(1, -1).trim();
+    }
     const key = `___PROT_MATH_${protectedMath.length}___`;
-    protectedMath.push(`$${match.trim()}$`);
+    protectedMath.push(`$${trimmed}$`);
     return ` ${key} `;
   };
 
@@ -223,8 +227,12 @@ export function autoWrapMathDelimiters(text: string): string {
   const isolatedMath = /(?<![a-zA-Z0-9_\$\\])(\\(?:vec\{[a-zA-Z0-9]+\}|hat\{[ijk]\}|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)(?:\{[^}]*\}|_[0-9a-zA-Z\{\}]+|\^[0-9a-zA-Z\{\}]+)*)(?![a-zA-Z0-9_\{])/g;
   s = s.replace(isolatedMath, (_, m) => protect(m));
 
-  // 9. Restore all protected math expressions
-  s = s.replace(/___PROT_MATH_(\d+)___/g, (_, idx) => protectedMath[Number(idx)]);
+  // 9. Restore all protected math expressions recursively
+  let passes = 0;
+  while (s.includes('___PROT_MATH_') && passes < 10) {
+    s = s.replace(/___PROT_MATH_(\d+)___/g, (_, idx) => protectedMath[Number(idx)] || '');
+    passes++;
+  }
 
   // Clean spacing around punctuation and adjacent delimiters
   s = s.replace(/\$\s*\$/g, ' ');
@@ -529,11 +537,15 @@ export function normalizeMathText(raw: string): string {
       const ifMatch = body.match(/^(If\s+)([\s\S]+?)(,\s*(?:\\text\{then\}|then)\s+|\s+(?:\\text\{then\}|then)\s+)([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
       // Case S: Explicit check for "Let [prose] satisfying [formula]. Then [formula] is equal to:"
       const satMatch = body.match(/^(Let\s+[\s\S]+?\s+satisfying\s+)([\s\S]+?)(?:[.,]\s*|\s+)(?:Then|then)\s+([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
+      // Case V: Explicit check for "The value of [formula] is [equal to]" / "Find [formula] is equal to"
+      const valMatch = body.match(/^((?:The value of the integral|The value of|Find the value of the integral|Find the value of|Evaluate the integral|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
 
       if (ifMatch) {
         res = `${prefix}${ifMatch[1]}$ ${ifMatch[2].trim()} $ then $ ${ifMatch[4].trim()} $${ifMatch[5]}`;
       } else if (satMatch) {
         res = `${prefix}${satMatch[1]}$ ${satMatch[2].trim()} $. Then $ ${satMatch[3].trim()} $${satMatch[4]}`;
+      } else if (valMatch) {
+        res = `${prefix}${valMatch[1]}$ ${valMatch[2].trim()} $${valMatch[3]}`;
       } else {
         const mathProseKeywords = /\b(?:let|if|then|find|given|suppose|consider|assume|where|when|what|which|whether|statement|following|function|continuous|satisfying|satisfies|value|values|equal|points?|line|lines|plane|planes|circle|circles|arc|arcs|triangle|matrix|matrices|vector|vectors|unit|angle|angles|between|perpendicular|parallel|number|numbers|area|parallelogram|diagonals?|integers?|ordered|pair|ratio|internally|externally|origin|magnitude|length|centre|center|subtend|divides?|roots?|equation|equations|system|set|subset|true|false|correct|incorrect|both|neither|only|because|since|such|that|with|respect|satisfy|defined|at|is|are|was|were|be|been|has|have|had|for|all|any|every|each|to|from|by|on|in|of|and|or|two|three|four)\b/gi;
         const englishProseWords = body.match(mathProseKeywords) || [];
@@ -541,15 +553,8 @@ export function normalizeMathText(raw: string): string {
         const isProse = englishProseWords.length >= 2 || generalWords.length >= 3;
 
         if (hasMathSyntax && !isProse) {
-          // Case B: "The value of [formula] is"
-          const valMatch = body.match(/^((?:The value of|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
-          if (valMatch) {
-            res = `${prefix}${valMatch[1]}$ ${valMatch[2].trim()} $${valMatch[3]}`;
-          }
-          // Case D: Pure math equation / expression (like (e-1)(e^2 + \frac{1}{2}) or \log_e\left(\frac{32}{27}\right))
-          else {
-            res = `${prefix}$ ${body.trim()} $`;
-          }
+          // Pure math equation / expression (like (e-1)(e^2 + \frac{1}{2}) or \log_e\left(\frac{32}{27}\right))
+          res = `${prefix}$ ${body.trim()} $`;
         } else if (hasMathSyntax && isProse) {
           res = `${prefix}${autoWrapMathDelimiters(body)}`;
         } else {
