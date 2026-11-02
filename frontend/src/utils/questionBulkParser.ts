@@ -241,13 +241,17 @@ export function autoWrapMathDelimiters(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])((?:[0-9]+\s*)?\\(?:int|iint|iiint)\s*\\frac\{(?:\\,)?\s*d[txyz]\}\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
   // 2b. Protect standalone integrals with limits, differentials and optional equation:
-  s = s.replace(/(?<![a-zA-Z_\$])((?:-?\s*[0-9]+(?:\.[0-9]+)?\s*)?\\(?:int|iint|iiint)(?!\s*\\frac)\s*(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?(?:\\,)?\s*(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  s = s.replace(/(?<![a-zA-Z_\$])((?:[a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*)?(?:-?\s*[0-9]+(?:\.[0-9]+)?\s*)?\\(?:int|iint|iiint)(?!\s*\\frac)\s*(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?(?:\\,)?\s*(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
-  // 2b. Protect functions with inverse trig: f(1) = \frac{1}{\alpha\beta} \tan^{-1}\left(\frac{\alpha}{\beta}\right)
-  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=\s*\\frac\{[^{}]+\}\{(?:[^{}]|\{[^{}]*\})*\}\s*\\tan\s*\^\s*\{?-1\}?\s*\\left\([^\)]*\\right\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
-
-  // 2c. Protect function values like f(0) = 0 or f(1) = 2
-  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=\s*[0-9a-zA-Z\\]+)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  // 2c. Protect function equations and evaluations:
+  // e.g. 5f(x) + 4f\left(\frac{1}{x}\right) = \frac{1}{x} + 3
+  // e.g. I(9) = 12 + 7\log_e 7, f(0) = 0, f(1) = 1/\alpha\beta \tan^{-1}(\alpha/\beta)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])((?:[0-9]*\s*[a-zA-Z]\s*(?:\([^\)]+\)|\\left\([^\)]+\\right\))\s*[+\-−*\/]\s*)*[0-9]*\s*[a-zA-Z]\s*(?:\([^\)]+\)|\\left\([^\)]+\\right\))\s*=\s*[^,;.\n]+?)(?=\s*[,;.]|\s+(?:and|if|then|where|when|for)\b|$)/g, (fullMatch, eq) => {
+    if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where|satisfying|between|perpendicular)\b/i.test(eq)) {
+      return fullMatch;
+    }
+    return protect(eq);
+  });
 
   // 2d. Protect absolute value inequalities: |x| < 2/\sqrt{3}
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\|\s*[a-zA-Z0-9_]+\s*\|\s*(?:<|>|<=|>=|=|\\le\b|\\ge\b)\s*\\frac\{[^{}]+\}\{(?:[^{}]|\{[^{}]*\})*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
@@ -402,10 +406,29 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/((?:[0-9]*\s*[a-zA-Z]\s*\([^)]*\)\s*[+\-−*\/]\s*)*[0-9]*\s*[a-zA-Z])\s*\$\s*(\\(?:left\s*)?[\(\[][\s\S]+?)\$/g,
       (_, lhs, rest) => `$ ${lhs}${rest} $`);
 
+    // Strip rogue $ inside function parentheses e.g. \log_e ( $1 + 2$ \sqrt{2}) or \log_e ( $1 - \alpha$ )
+    res = res.replace(/(\\(?:log_e|ln|log|sqrt|sin|cos|tan)\s*\([^)]*?)\$([^\$\n]+?)\$([^)]*?\))/g, '$1$2$3');
+
     // Absorb trailing arithmetic expression immediately following $ before punctuation, next formula, or prose conjunction:
     // e.g. "=\frac{1}{x}$ + 3, $x > 0$" -> "=\frac{1}{x} + 3$, $x > 0$"
     res = res.replace(/\$\s*([^$]+?)\s*\$\s*([+\-−*\/]\s*[0-9a-zA-Z\.\-]+(?:\s*[+\-−*\/]\s*[0-9a-zA-Z\.\-]+)*)(?=\s*[,;.]|\s+\$|\s+where\b|\s+when\b|\s+for\b|\s+then\b)/g,
       (_, expr, trailing) => `$ ${expr} ${trailing} $`);
+
+    // Absorb trailing logarithmic / function terms immediately following $:
+    // e.g. $I(9)=12$ + 7\log_e 7 -> $I(9) = 12 + 7\log_e 7$
+    // e.g. $I(1)=\alpha$ + 7\log_e(1 + 2\sqrt{2}) -> $I(1) = \alpha + 7\log_e(1 + 2\sqrt{2})$
+    res = res.replace(/\$\s*([^$]+?)\s*\$\s*([+\-−*\/]\s*(?:[0-9]+\s*)?\\(?:log_e|ln|log|sqrt|sin|cos|tan)\b[\s\S]*?)(?=\s*[,;.]|\s+\$|\s+where\b|\s+when\b|\s+for\b|\s+then\b|\s+and\b)/g,
+      (_, expr, trailing) => {
+        const cleanTrailing = trailing.replace(/\s+/g, ' ').trim();
+        return `$ ${expr} ${cleanTrailing} $`;
+      }
+    );
+
+    // Dynamic parens spacing for functions: e.g. \log_e ( 1 + 2 \sqrt{2}) -> \log_e(1 + 2 \sqrt{2})
+    res = res.replace(/(\\(?:log_e|ln|log|sqrt|sin|cos|tan))\s*\(\s*([^()]+?)\s*\)/g, (_, fn, inner) => {
+      const cleanInner = inner.replace(/\s+/g, ' ').replace(/\s*\+\s*/g, ' + ').trim();
+      return `${fn}(${cleanInner})`;
+    });
 
     // Word real-to-real function corruption: e.g. f:\vec{R}R -> $ f : \mathbb{R} \to \mathbb{R} $
     res = res.replace(/\b([a-zA-Z])\s*:\s*(?:\\vec\{R\}R|\\vec\{R\}\s*R|RR|R\s*R)\b/g, '$ $1 : \\mathbb{R} \\to \\mathbb{R} $');
