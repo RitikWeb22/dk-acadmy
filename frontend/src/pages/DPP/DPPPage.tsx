@@ -10,6 +10,7 @@ import { DPPPracticeView } from '../../components/dpp/DPPPracticeView/DPPPractic
 import { DPPResults } from '../../components/dpp/DPPResults/DPPResults';
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { apiClient } from '../../services/apiClient';
+import { useStudentAuth } from '../../context/AuthContext';
 import type { DPPSet } from '../../types';
 import styles from './DPPPage.module.scss';
 
@@ -110,24 +111,34 @@ export const DPPPage: React.FC = () => {
     };
   }, []);
 
+  const { student } = useStudentAuth();
+
   // Session attempts state: persisted in localStorage so student progress is remembered during practice sessions
   const [attempts, setAttempts] = useState<Record<string, DPPAttempt>>(() => {
     try {
-      const stored = localStorage.getItem(DPP_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : {};
+      const globalStored = localStorage.getItem(DPP_STORAGE_KEY);
+      const studentKey = student?.id ? `dk_dpp_${student.id}` : null;
+      const studentStored = studentKey ? localStorage.getItem(studentKey) : null;
+      const globalObj = globalStored ? JSON.parse(globalStored) : {};
+      const studentObj = studentStored ? JSON.parse(studentStored) : {};
+      return { ...globalObj, ...studentObj };
     } catch {
       return {};
     }
   });
 
-  // Save attempts to localStorage
+  // Save attempts to localStorage and broadcast real-time update
   useEffect(() => {
     try {
       localStorage.setItem(DPP_STORAGE_KEY, JSON.stringify(attempts));
+      if (student?.id) {
+        localStorage.setItem(`dk_dpp_${student.id}`, JSON.stringify(attempts));
+      }
+      window.dispatchEvent(new CustomEvent('dk_dpp_attempts_updated', { detail: { attempts } }));
     } catch {
       // Ignore storage write issues
     }
-  }, [attempts]);
+  }, [attempts, student?.id]);
 
   // Filtering state
   const [selectedSubject, setSelectedSubject] = useState<SubjectFilterValue>('All');

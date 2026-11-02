@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useStudentAuth } from '../../context/AuthContext';
 import { Container } from '../../components/ui/Container/Container';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader/DashboardHeader';
@@ -14,11 +14,11 @@ import { DashboardEmptyState } from '../../components/dashboard/DashboardEmptySt
 import { CallbackModal } from '../../components/leads/CallbackModal/CallbackModal';
 import { Headphones, PhoneCall, MessageCircle } from 'lucide-react';
 import { getStudentWhatsAppUrl } from '../../utils/whatsapp';
-import { cmsService } from '../../services/cmsService';
+import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { COURSES_CATALOG } from '../../data/coursesData';
 import { DPP_SETS } from '../../data/dppData';
 import { TEST_SERIES_DATA } from '../../data/testSeriesData';
-import type { Course, DPPAttempt, TestAttempt, LearningActivityEvent } from '../../types';
+import type { Course, DPPAttempt, TestAttempt, LearningActivityEvent, TestSeriesItem } from '../../types';
 
 import styles from './DashboardPage.module.scss';
 
@@ -30,27 +30,114 @@ export const DashboardPage: React.FC = () => {
   const { student, isAuthenticated, isLoading } = useStudentAuth();
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false);
 
-  // 1. Student-scoped keys (Ensures new accounts start 100% clean with 0 past tests/DPPs)
   const isDemo = student?.id === 'std_demo_2026';
-  const dppKey = isDemo ? DPP_STORAGE_KEY : `dk_dpp_${student?.id || 'guest'}`;
-  const testKey = isDemo ? TEST_STORAGE_KEY : `dk_tests_${student?.id || 'guest'}`;
 
-  // 2. Load persisted DPP & Test attempts for this specific student
-  const [dppAttempts, setDppAttempts] = useState<Record<string, DPPAttempt>>({});
-  const [testAttempts, setTestAttempts] = useState<Record<string, TestAttempt>>({});
+  // 1. Live test series catalog from MongoDB + local CMS + static fallback
+  const [allTestSeries, setAllTestSeries] = useState<TestSeriesItem[]>(() => {
+    const cmsTests = cmsService.getTestSeries();
+    return cmsTests && cmsTests.length > 0 ? cmsTests : TEST_SERIES_DATA;
+  });
 
   useEffect(() => {
-    if (!student) return;
+    const refreshTests = async () => {
+      try {
+        const live = await cmsService.fetchTestSeriesFromAPI();
+        if (live && live.length > 0) {
+          setAllTestSeries(live);
+        }
+      } catch {
+        const cached = cmsService.getTestSeries();
+        if (cached && cached.length > 0) {
+          setAllTestSeries(cached);
+        }
+      }
+    };
+    refreshTests();
+
+    const handleCmsEvent = (e: any) => {
+      if (e?.detail?.type === 'test_series' || !e?.detail?.type) {
+        const updated = cmsService.getTestSeries();
+        if (updated && updated.length > 0) {
+          setAllTestSeries(updated);
+        }
+      }
+    };
+
+    window.addEventListener(CMS_EVENT_KEY, handleCmsEvent);
+    window.addEventListener('dk_test_series_created', refreshTests);
+    window.addEventListener('dk_test_series_updated', refreshTests);
+    window.addEventListener('dk_test_series_deleted', refreshTests);
+
+    return () => {
+      window.removeEventListener(CMS_EVENT_KEY, handleCmsEvent);
+      window.removeEventListener('dk_test_series_created', refreshTests);
+      window.removeEventListener('dk_test_series_updated', refreshTests);
+      window.removeEventListener('dk_test_series_deleted', refreshTests);
+    };
+  }, []);
+
+  // Universal finder: matches by id, _id, or slug
+  const findTest = useCallback((testId: string): TestSeriesItem | undefined => {
+    return (
+      allTestSeries.find((t) => t.id === testId || (t as any)._id === testId || t.slug === testId) ||
+      TEST_SERIES_DATA.find((t) => t.id === testId || (t as any)._id === testId || t.slug === testId)
+    );
+  }, [allTestSeries]);
+
+  // 2. Storage helper to merge global and student-scoped attempts seamlessly
+  const getMergedTestAttempts = useCallback((): Record<string, TestAttempt> => {
     try {
-      const storedDpp = localStorage.getItem(dppKey);
-      setDppAttempts(storedDpp ? JSON.parse(storedDpp) : {});
-      const storedTest = localStorage.getItem(testKey);
-      setTestAttempts(storedTest ? JSON.parse(storedTest) : {});
+      const globalRaw = localStorage.getItem(TEST_STORAGE_KEY);
+      const studentRaw = student?.id ? localStorage.getItem(`dk_tests_${student.id}`) : null;
+      const globalObj: Record<string, TestAttempt> = globalRaw ? JSON.parse(globalRaw) : {};
+      const studentObj: Record<string, TestAttempt> = studentRaw ? JSON.parse(studentRaw) : {};
+      return { ...globalObj, ...studentObj };
     } catch {
-      setDppAttempts({});
-      setTestAttempts({});
+      return {};
     }
-  }, [student?.id, dppKey, testKey]);
+  }, [student?.id]);
+
+  const getMergedDppAttempts = useCallback((): Record<string, DPPAttempt> => {
+    try {
+      const globalRaw = localStorage.getItem(DPP_STORAGE_KEY);
+      const studentRaw = student?.id ? localStorage.getItem(`dk_dpp_${student.id}`) : null;
+      const globalObj: Record<string, DPPAttempt> = globalRaw ? JSON.parse(globalRaw) : {};
+      const studentObj: Record<string, DPPAttempt> = studentRaw ? JSON.parse(studentRaw) : {};
+      return { ...globalObj, ...studentObj };
+    } catch {
+      return {};
+    }
+  }, [student?.id]);
+
+  // 3. Reactive attempts state
+  const [dppAttempts, setDppAttempts] = useState<Record<string, DPPAttempt>>(getMergedDppAttempts);
+  const [testAttempts, setTestAttempts] = useState<Record<string, TestAttempt>>(getMergedTestAttempts);
+
+  // 4. Real-time synchronizer (cross-tab storage, window focus, tab visibility, custom events)
+  useEffect(() => {
+    const syncAttempts = () => {
+      setDppAttempts(getMergedDppAttempts());
+      setTestAttempts(getMergedTestAttempts());
+    };
+
+    syncAttempts();
+
+    window.addEventListener('storage', syncAttempts);
+    window.addEventListener('focus', syncAttempts);
+    window.addEventListener('visibilitychange', syncAttempts);
+    window.addEventListener('dk_test_attempts_updated', syncAttempts);
+    window.addEventListener('dk_test_submitted', syncAttempts);
+    window.addEventListener('dk_dpp_attempts_updated', syncAttempts);
+
+    return () => {
+      window.removeEventListener('storage', syncAttempts);
+      window.removeEventListener('focus', syncAttempts);
+      window.removeEventListener('visibilitychange', syncAttempts);
+      window.removeEventListener('dk_test_attempts_updated', syncAttempts);
+      window.removeEventListener('dk_test_submitted', syncAttempts);
+      window.removeEventListener('dk_dpp_attempts_updated', syncAttempts);
+    };
+  }, [getMergedDppAttempts, getMergedTestAttempts]);
 
   // 3. Resolve genuine enrolled courses from database & live CMS catalog
   const [coursesCatalog, setCoursesCatalog] = useState<Course[]>(() => cmsService.getCourses());
@@ -95,10 +182,12 @@ export const DashboardPage: React.FC = () => {
     let totalAnswered = 0;
 
     attemptedList.forEach(([testId, att]) => {
-      const test = TEST_SERIES_DATA.find((t) => t.id === testId);
+      const test = findTest(testId);
       if (test && att.responses) {
-        test.questions.forEach((q) => {
-          const resp = att.responses[q.id];
+        const questions = test.questions || [];
+        questions.forEach((q) => {
+          const qId = q.id || (q as any)?._id;
+          const resp = qId ? (att.responses[qId] || (q.id && att.responses[q.id])) : undefined;
           if (resp && resp.selectedOption) {
             totalAnswered++;
             if (resp.selectedOption === q.correctAnswer) {
@@ -113,9 +202,9 @@ export const DashboardPage: React.FC = () => {
 
     return {
       testsCompletedCount: completedList.length > 0 ? completedList.length : (isDemo ? 1 : 0),
-      testAccuracyPercent: accuracy
+      testAccuracyPercent: accuracy !== null ? accuracy : (isDemo ? 85 : null)
     };
-  }, [testAttempts, isDemo]);
+  }, [testAttempts, isDemo, findTest]);
 
   // 6. Find most recent active learning item for "Resume Learning" Spotlight in Hero
   const continueLearningItem: ContinueLearningItem = useMemo(() => {
@@ -125,18 +214,18 @@ export const DashboardPage: React.FC = () => {
     );
     if (inProgressTest) {
       const [testId, att] = inProgressTest;
-      const test = TEST_SERIES_DATA.find((t) => t.id === testId);
+      const test = findTest(testId);
       const answered = Object.values(att.responses || {}).filter((r) => r.selectedOption).length;
-      const total = test ? test.totalQuestions : 4;
+      const total = test ? (test.totalQuestions || test.questions?.length || 4) : 4;
       return {
         id: testId,
         title: test ? test.title : 'JEE Main Part Test: Mechanics & Physical Chemistry',
         contextTitle: `${test?.examType || 'JEE Main'} • Test Series`,
         type: 'test',
-        route: '/test-series',
+        route: `/test-series?testId=${testId}&view=test`,
         timestampText: 'Mock Test In Progress',
-        progressPercent: Math.round((answered / total) * 100),
-        statusText: `${answered} of ${total} answered • ${Math.round((answered / total) * 100)}% completed`
+        progressPercent: Math.min(100, Math.round((answered / Math.max(1, total)) * 100)),
+        statusText: `${answered} of ${total} answered • ${Math.round((answered / Math.max(1, total)) * 100)}% completed`
       };
     }
 
@@ -151,7 +240,7 @@ export const DashboardPage: React.FC = () => {
       progressPercent: 0,
       statusText: '0 of 4 answered • 0% completed'
     };
-  }, [testAttempts]);
+  }, [testAttempts, findTest]);
 
   // Extract hero title for deduplication
   const heroTitle = continueLearningItem.title;
@@ -163,21 +252,39 @@ export const DashboardPage: React.FC = () => {
     // Tests
     Object.entries(testAttempts).forEach(([testId, att]) => {
       if (att.status !== 'Not Started') {
-        const test = TEST_SERIES_DATA.find((t) => t.id === testId);
+        const test = findTest(testId);
         const answeredCount = Object.values(att.responses || {}).filter(
           (r) => r.selectedOption
         ).length;
         const ts = att.submittedAt || att.startTime || Date.now() - 1000 * 60 * 120;
 
         let score = undefined;
-        if (att.isSubmitted && test) {
+        let badgeText = att.isSubmitted ? 'Evaluated' : `${answeredCount} Attempted`;
+
+        if (test) {
+          const questions = test.questions || [];
+          const scheme = test.markingScheme || { correct: 4, incorrect: 1, unattempted: 0 };
           let s = 0;
-          test.questions.forEach((q) => {
-            const resp = att.responses[q.id];
-            if (resp && resp.selectedOption === q.correctAnswer) s += test.markingScheme.correct;
-            else if (resp && resp.selectedOption) s -= test.markingScheme.incorrect;
+          let attemptedCount = 0;
+          questions.forEach((q) => {
+            const qId = q.id || (q as any)?._id;
+            const resp = qId ? (att.responses?.[qId] || (q.id && att.responses?.[q.id])) : undefined;
+            if (resp && resp.selectedOption) {
+              attemptedCount++;
+              if (resp.selectedOption === q.correctAnswer) s += scheme.correct;
+              else s -= scheme.incorrect;
+            }
           });
-          score = `Score: ${Math.max(0, s)}/${test.totalMarks}`;
+          const totalMarks = test.totalMarks || (questions.length * scheme.correct) || 24;
+          if (att.isSubmitted || att.status === 'Completed') {
+            score = `Score: ${Math.max(0, s)}/${totalMarks}`;
+            badgeText = `Score: ${Math.max(0, s)}/${totalMarks}`;
+          } else {
+            score = `${attemptedCount}/${questions.length || test.totalQuestions || 24} Attempted`;
+            badgeText = `${attemptedCount} Solved`;
+          }
+        } else if (att.isSubmitted) {
+          score = 'Evaluated';
         }
 
         list.push({
@@ -188,9 +295,9 @@ export const DashboardPage: React.FC = () => {
             : `Attempted ${test?.title || 'Mock Test'}`,
           subtitle: `${test?.examType || 'JEE Main'} • ${answeredCount} questions attempted`,
           timestamp: ts,
-          route: '/test-series',
-          score: score || '0/24 Attempted',
-          badgeText: att.isSubmitted ? 'Evaluated' : '0/24 Attempted'
+          route: `/test-series?testId=${testId}`,
+          score: score || `${answeredCount} Attempted`,
+          badgeText
         });
       }
     });
@@ -307,7 +414,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* 4. Bottom Section — CBT Mock Test Performance */}
-          <TestPerformance attempts={testAttempts} allTests={TEST_SERIES_DATA} />
+          <TestPerformance attempts={testAttempts} allTests={allTestSeries} />
 
           {/* 5. Global Academic Support Strip (Dark Navy #070D1E with Headphone icon) */}
           <section className={styles.supportBanner} aria-label="Academic Mentor Support">

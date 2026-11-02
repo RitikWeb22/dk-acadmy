@@ -23,6 +23,7 @@ import { AnswerReviewView } from '../../components/testSeries/AnswerReviewView/A
 import { TestEmptyState } from '../../components/testSeries/TestEmptyState/TestEmptyState';
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { requestFullScreen, exitFullScreen } from '../../utils/fullscreen';
+import { useStudentAuth } from '../../context/AuthContext';
 import type { TestSeriesItem } from '../../types';
 import styles from './TestSeriesPage.module.scss';
 
@@ -64,33 +65,60 @@ export const TestSeriesPage: React.FC = () => {
     return 'All';
   }, [urlSubject, urlFilter]);
 
+  const { student } = useStudentAuth();
+
   // Session attempts state: persisted in localStorage so student progress and scores are retained
   const [attempts, setAttempts] = useState<Record<string, TestAttempt>>(() => {
     try {
-      const stored = localStorage.getItem(TEST_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : {};
+      const globalStored = localStorage.getItem(TEST_STORAGE_KEY);
+      const studentKey = student?.id ? `dk_tests_${student.id}` : null;
+      const studentStored = studentKey ? localStorage.getItem(studentKey) : null;
+      const globalObj = globalStored ? JSON.parse(globalStored) : {};
+      const studentObj = studentStored ? JSON.parse(studentStored) : {};
+      return { ...globalObj, ...studentObj };
     } catch {
       return {};
     }
   });
 
-  // Save attempts to localStorage
+  // Save attempts to localStorage and dispatch real-time events
   useEffect(() => {
     try {
       localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(attempts));
+      if (student?.id) {
+        localStorage.setItem(`dk_tests_${student.id}`, JSON.stringify(attempts));
+      }
+      window.dispatchEvent(new CustomEvent('dk_test_attempts_updated', { detail: { attempts } }));
     } catch {
       // Ignore storage write issues
     }
-  }, [attempts]);
+  }, [attempts, student?.id]);
 
   // Additional Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyFilterValue>('All');
   const [selectedStatus, setSelectedStatus] = useState<StatusFilterValue>('All');
 
+  // URL Query Sync for Direct Links (from dashboard or notification)
+  const urlParamTestId = searchParams.get('testId');
+  const urlParamView = searchParams.get('view');
+
   // Active view states: 'catalog' | 'test' | 'results' | 'review'
   const [viewState, setViewState] = useState<'catalog' | 'test' | 'results' | 'review'>('catalog');
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (urlParamTestId) {
+      setActiveTestId(urlParamTestId);
+      if (urlParamView === 'results') {
+        setViewState('results');
+      } else if (urlParamView === 'test') {
+        setViewState('test');
+      } else if (urlParamView === 'review') {
+        setViewState('review');
+      }
+    }
+  }, [urlParamTestId, urlParamView]);
 
   // Instructions modal state
   const [instructionsModalTestId, setInstructionsModalTestId] = useState<string | null>(null);
@@ -143,13 +171,13 @@ export const TestSeriesPage: React.FC = () => {
   // Find active test object
   const activeTest = useMemo(() => {
     if (!activeTestId) return null;
-    return testSeriesList.find((t) => t.id === activeTestId) || null;
+    return testSeriesList.find((t) => t.id === activeTestId || (t as any)._id === activeTestId || t.slug === activeTestId) || null;
   }, [activeTestId, testSeriesList]);
 
   // Test selected for instructions modal
   const instructionTest = useMemo(() => {
     if (!instructionsModalTestId) return null;
-    return testSeriesList.find((t) => t.id === instructionsModalTestId) || null;
+    return testSeriesList.find((t) => t.id === instructionsModalTestId || (t as any)._id === instructionsModalTestId || t.slug === instructionsModalTestId) || null;
   }, [instructionsModalTestId, testSeriesList]);
 
   // Derive counts per exam from actual test data
@@ -397,17 +425,29 @@ export const TestSeriesPage: React.FC = () => {
       const startTime = existing?.startTime || Date.now();
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
 
-      return {
-        ...prev,
-        [activeTestId]: {
-          testId: activeTestId,
-          status: existing?.status === 'Completed' ? 'Completed' : 'In Progress',
-          startTime,
-          timeSpentSeconds: elapsed,
-          responses,
-          isSubmitted: Boolean(existing?.isSubmitted),
-        },
+      const updatedAttempt: TestAttempt = {
+        testId: activeTestId,
+        status: existing?.status === 'Completed' ? 'Completed' : 'In Progress',
+        startTime,
+        timeSpentSeconds: elapsed,
+        responses,
+        isSubmitted: Boolean(existing?.isSubmitted),
       };
+
+      const next = {
+        ...prev,
+        [activeTestId]: updatedAttempt,
+      };
+
+      try {
+        localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(next));
+        if (student?.id) {
+          localStorage.setItem(`dk_tests_${student.id}`, JSON.stringify(next));
+        }
+        window.dispatchEvent(new CustomEvent('dk_test_attempts_updated', { detail: { attempts: next } }));
+      } catch {}
+
+      return next;
     });
   };
 
@@ -421,18 +461,33 @@ export const TestSeriesPage: React.FC = () => {
       const startTime = existing?.startTime || Date.now();
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
 
-      return {
-        ...prev,
-        [activeTestId]: {
-          testId: activeTestId,
-          status: 'Completed',
-          startTime,
-          timeSpentSeconds: elapsed,
-          responses,
-          isSubmitted: true,
-          submittedAt: Date.now(),
-        },
+      const updatedAttempt: TestAttempt = {
+        testId: activeTestId,
+        status: 'Completed',
+        startTime,
+        timeSpentSeconds: elapsed,
+        responses,
+        isSubmitted: true,
+        submittedAt: Date.now(),
       };
+
+      const next = {
+        ...prev,
+        [activeTestId]: updatedAttempt,
+      };
+
+      try {
+        localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(next));
+        if (student?.id) {
+          localStorage.setItem(`dk_tests_${student.id}`, JSON.stringify(next));
+        }
+        window.dispatchEvent(new CustomEvent('dk_test_submitted', { detail: { testId: activeTestId, attempt: updatedAttempt } }));
+        window.dispatchEvent(new CustomEvent('dk_test_attempts_updated', { detail: { attempts: next } }));
+      } catch (err) {
+        console.warn('Storage sync error:', err);
+      }
+
+      return next;
     });
 
     setViewState('results');
