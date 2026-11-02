@@ -270,9 +270,18 @@ export function autoWrapMathDelimiters(text: string): string {
   // 3b. Protect tall bracket expressions with \left( ... \right)
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\left\s*\([^\(\)\n]+\\right\s*\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
+  // 3c. Protect trigonometric equations and linear combinations:
+  // e.g. \cos 2A + \cos 2B + \cos 2C \ge -\frac{3}{2}
+  s = s.replace(/(?<![a-zA-Z0-9_\$])((?:-?\s*(?:[0-9]*\s*)?\\(?:sin|cos|tan|cot|sec|csc)\s*(?:[0-9]*[a-zA-Z]|\([^\)]+\))\s*[+\-−*\/]\s*)*-?\s*(?:[0-9]*\s*)?\\(?:sin|cos|tan|cot|sec|csc)\s*(?:[0-9]*[a-zA-Z]|\([^\)]+\))\s*(?:[=<>≤≥]|\\le\b|\\ge\b|\\neq\b)\s*[^,;.\n]+?)(?=\s*[,;.]|\s+(?:and|if|then|where|when|for)\b|$)/g, (fullMatch, eq) => {
+    if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where|satisfying|between|perpendicular)\b/i.test(eq)) {
+      return fullMatch;
+    }
+    return protect(eq);
+  });
+
   // 4. Wrap compound math expressions, equations, vector linear combinations, and polynomials:
   // Uses safe non-backtracking atoms (no nested + quantifiers)
-  const singleAtom = '(?:-?\\s*(?:[0-9]+(?:\\.[0-9]+)?|\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*|(?<![a-zA-Z])[a-zA-Z](?![a-zA-Z])(?:_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*|\\([^()\\n]{1,80}\\)|\\[[^\\[\\]\\n]{1,80}\\]|\\|[^|\\n]{1,80}\\|(?:\\^[0-9a-zA-Z]+|\\^\\{[^}]+\\})?))';
+  const singleAtom = '(?:-?\\s*(?:[0-9]*\\s*\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*(?:\\s*[0-9a-zA-Z])?|(?<![a-zA-Z])[0-9]*\\s*[a-zA-Z](?![a-zA-Z])(?:_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*|\\([^()\\n]{1,80}\\)|\\[[^\\[\\]\\n]{1,80}\\]|\\|[^|\\n]{1,80}\\|(?:\\^[0-9a-zA-Z]+|\\^\\{[^}]+\\})?|[0-9]+(?:\\.[0-9]+)?))';
   const mathOp = '(?:[=+\\-−*/×⋅<>]|\\\\in\\b|\\\\ge\\b|\\\\le\\b|\\\\neq\\b|\\\\pm\\b|\\\\cdot|\\\\times)';
   const compoundMath = new RegExp(`(?<![a-zA-Z0-9_\\$])(${singleAtom}\\s*${mathOp}\\s*${singleAtom}(?:\\s*${mathOp}\\s*${singleAtom}){0,6})(?![a-zA-Z0-9_\\$])`, 'g');
   s = s.replace(compoundMath, (_, m) => {
@@ -293,8 +302,8 @@ export function autoWrapMathDelimiters(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\(\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*(?:,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?))?\s*\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
   // 8. Wrap remaining standalone LaTeX commands / variables outside $:
-  // e.g. \vec{a}, \vec{b}, \lambda, \alpha, \beta, \hat{i}
-  const isolatedMath = /(?<![a-zA-Z0-9_\$\\])(\\(?:vec\{[a-zA-Z0-9]+\}|hat\{[ijk]\}|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)(?:\{[^}]*\}|_[0-9a-zA-Z\{\}]+|\^[0-9a-zA-Z\{\}]+)*)(?![a-zA-Z0-9_\{])/g;
+  // e.g. \vec{a}, \vec{b}, \lambda, \alpha, \beta, \hat{i}, \sqrt{10}
+  const isolatedMath = /(?<![a-zA-Z0-9_\$\\])(\\(?:vec\{[a-zA-Z0-9]+\}|hat\{[ijk]\}|sqrt\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)(?:\{[^}]*\}|_[0-9a-zA-Z\{\}]+|\^[0-9a-zA-Z\{\}]+)*)(?![a-zA-Z0-9_\{])/g;
   s = s.replace(isolatedMath, (_, m) => protect(m));
 
   // 9. Restore all protected math expressions recursively
@@ -421,13 +430,13 @@ export function normalizeMathText(raw: string): string {
 
     // Absorb trailing arithmetic expression immediately following $ before punctuation, next formula, or prose conjunction:
     // e.g. "=\frac{1}{x}$ + 3, $x > 0$" -> "=\frac{1}{x} + 3$, $x > 0$"
-    res = res.replace(/\$\s*([^$]+?)\s*\$\s*([+\-−*\/]\s*[0-9a-zA-Z\.\-]+(?:\s*[+\-−*\/]\s*[0-9a-zA-Z\.\-]+)*)(?=\s*[,;.]|\s+\$|\s+where\b|\s+when\b|\s+for\b|\s+then\b)/g,
+    res = res.replace(/\$\s*([^$,;.\s][^$]*?)\s*\$\s*([+\-−*\/]\s*[0-9a-zA-Z\.\-]+(?:\s*[+\-−*\/]\s*[0-9a-zA-Z\.\-]+)*)(?=\s*[,;.]|\s+\$|\s+where\b|\s+when\b|\s+for\b|\s+then\b)/g,
       (_, expr, trailing) => `$ ${expr} ${trailing} $`);
 
     // Absorb trailing logarithmic / function terms immediately following $:
     // e.g. $I(9)=12$ + 7\log_e 7 -> $I(9) = 12 + 7\log_e 7$
     // e.g. $I(1)=\alpha$ + 7\log_e(1 + 2\sqrt{2}) -> $I(1) = \alpha + 7\log_e(1 + 2\sqrt{2})$
-    res = res.replace(/\$\s*([^$]+?)\s*\$\s*([+\-−*\/]\s*(?:[0-9]+\s*)?\\(?:log_e|ln|log|sqrt|sin|cos|tan)\b[\s\S]*?)(?=\s*[,;.]|\s+\$|\s+where\b|\s+when\b|\s+for\b|\s+then\b|\s+and\b)/g,
+    res = res.replace(/\$\s*([^$,;.\s][^$]*?)\s*\$\s*([+\-−*\/]\s*(?:[0-9]+\s*)?\\(?:log_e|ln|log|sqrt|sin|cos|tan)\b[\s\S]*?)(?=\s*[,;.]|\s+\$|\s+where\b|\s+when\b|\s+for\b|\s+then\b|\s+and\b)/g,
       (_, expr, trailing) => {
         const cleanTrailing = trailing.replace(/\s+/g, ' ').trim();
         return `$ ${expr} ${cleanTrailing} $`;
@@ -458,6 +467,9 @@ export function normalizeMathText(raw: string): string {
     // Heal function ending with $ followed by ( $arg$ ): e.g. $\beta = \log_e$ ( $1 - \alpha$ )
     res = res.replace(/\$\s*((?:\\[a-zA-Z]+|[a-zA-Z])\s*=\s*\\?(?:log_e|ln|log|sqrt|sin|cos|tan))\s*\$\s*\(\s*\$?\s*([^$]+?)\s*\$?\s*\)/g,
       (_, fn, arg) => `$ ${fn}(${arg.trim()}) $`);
+
+    // Triangle or polygon vertices in prose: e.g. "triangle ABC" -> "triangle $ABC$"
+    res = res.replace(/\b(triangle|polygon)\s+([A-Z]{3,4})\b/g, '$1 $ $2 $');
 
     // Separate polynomial series from domain condition:
     // e.g. \dots + x^{\frac{n}{n}}, x \in $(0, 1)$ -> \dots + x^{\frac{n}{n}}$, $ x \in (0, 1) $
@@ -517,7 +529,7 @@ export function normalizeMathText(raw: string): string {
     // 0f. Absorb math functions or trailing terms immediately following closing $:
     // e.g. $12 + 7$ \log_e 7 -> $12 + 7 \log_e 7$
     // e.g. $\alpha + 7$ \log_e -> $\alpha + 7 \log_e$
-    res = res.replace(/\$\s*([^$]+?)\s*\$\s*(\\(?:log_e|ln|log|sqrt|sin|cos|tan)\b\s*(?:[0-9a-zA-Z\\]+|\([^)]+\))?)/g, (_, p1, p2) => `$ ${p1} ${p2} $`);
+    res = res.replace(/\$\s*([^$,;.\s][^$]*?)\s*\$\s*(?!\$|[,;.]\s*\$)(\\(?:log_e|ln|log|sqrt|sin|cos|tan)\b\s*(?:[0-9a-zA-Z\\]+|\([^)]+\))?)/g, (_, p1, p2) => `$ ${p1} ${p2} $`);
 
     // 0g. Absorb LHS variable assignment before $: e.g. I(x)= $\int...$ or I(9)= $12...$
     res = res.replace(/\b([a-zA-Z]\s*\([^)]*\))\s*=\s*\$\s*([^$]+)\s*\$/g, (_, p1, p2) => `$ ${p1} = ${p2} $`);
