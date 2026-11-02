@@ -337,13 +337,46 @@ body.cbt-exam-active {
   }
 }
 
-// Question Statement overflow scrolling & left alignment
+// Question Statement & Options: full print typesetting with ZERO ugly scrollbars
 [class*="statementArea"],
 [class*="statementText"],
 [class*="qBodySection"],
-[class*="liveMathPreview"] {
+[class*="liveMathPreview"],
+[class*="questionCard"],
+[class*="optionsList"],
+[class*="optionBtn"],
+[class*="optionText"],
+[class*="optContentText"],
+[class*="optText"],
+[class*="optionCard"],
+[class*="mathRoot"],
+[class*="displayMathBlock"],
+.katex,
+.katex-display,
+.katex-html {
   text-align: left !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+// Ensure KaTeX formulas render at full natural dimensions without cutting off fractions or superscripts
+.katex-display {
   overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
 }
 
