@@ -479,12 +479,16 @@ export const mapBackendQuestionsToBuilder = (rawQuestions: any[]): QuestionItem[
       ? (rawCorrect as 'A' | 'B' | 'C' | 'D')
       : 'A';
 
+    const isSectionB = q.section === 'B' || q.type === 'NUMERICAL' || (Array.isArray(q.options) && q.options.length === 0) || Boolean(q.numericalAnswer) || idx >= 20;
+    const section: 'A' | 'B' = isSectionB ? 'B' : 'A';
+    const type = q.type || (isSectionB ? 'NUMERICAL' : 'SINGLE_CORRECT');
+
     return {
       id: String(q.id || `q-${idx + 1}-${Date.now()}`),
       subject,
-      section: q.section === 'B' ? 'B' : 'A',
+      section,
       index: Number(q.questionNumber || q.index || idx + 1),
-      type: q.type || 'SINGLE_CORRECT',
+      type,
       difficulty: q.difficulty ? (String(q.difficulty).toUpperCase() as any) : 'MEDIUM',
       topicTag: q.chapter || q.topicTag || q.formulaKey || 'General',
       questionText: q.statement || q.questionText || '',
