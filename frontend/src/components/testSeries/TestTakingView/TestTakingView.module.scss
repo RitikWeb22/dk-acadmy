@@ -134,6 +134,346 @@
   overflow-x: auto;
 }
 
+.subSectionsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background-color: #FAFCFF;
+  border: 1px solid #E2E8F0;
+  border-radius: $radius-lg;
+  margin-bottom: $space-4;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.subSectionTabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.subSecTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  background: #F8FAFC;
+  border: 1.5px solid #CBD5E1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+
+  &:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+  }
+
+  &.subSecTabActiveA {
+    background: #EFF6FF;
+    border-color: #3B82F6;
+    color: #1D4ED8;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.15);
+  }
+
+  &.subSecTabActiveB {
+    background: #FFFBEB;
+    border-color: #F59E0B;
+    color: #B45309;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
+  }
+}
+
+.secLetterBadgeA {
+  background: #DBEAFE;
+  color: #1E40AF;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.secLetterBadgeB {
+  background: #FEF3C7;
+  color: #92400E;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.secTitleLabel {
+  font-size: 0.8125rem;
+}
+
+.secBadgeCount {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.ntaLimit {
+  font-size: 0.6875rem;
+  color: #D97706;
+  font-weight: 700;
+}
+
+.secStatusInfo {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.secInfoText {
+  color: #2563EB;
+}
+
+.secInfoTextAmber {
+  color: #D97706;
+}
+
+.sectionTagBadgeA {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #1E40AF;
+  background-color: #DBEAFE;
+  border: 1px solid #BFDBFE;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.sectionTagBadgeB {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #92400E;
+  background-color: #FEF3C7;
+  border: 1px solid #FDE68A;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.numericalEntryCard {
+  background: #F8FAFC;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.numericalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #E2E8F0;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.secBBadge {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: #B45309;
+  background: #FEF3C7;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #FDE68A;
+  text-transform: uppercase;
+}
+
+.secBAttemptCounter {
+  font-size: 0.8125rem;
+  color: #0F172A;
+  strong {
+    color: #2563EB;
+    font-size: 0.9375rem;
+  }
+}
+
+.numericalInstructions {
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0 0 1rem 0;
+
+  code {
+    background: #E2E8F0;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-weight: 700;
+    color: #0F172A;
+  }
+}
+
+.ntaLimitAlertBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: #FEF2F2;
+  border: 1.5px solid #FECACA;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #991B1B;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  margin-bottom: 1rem;
+}
+
+.numericalInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.numericalInputLabel {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.inputWithStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.numericalInput {
+  width: 220px;
+  height: 48px;
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #0F172A;
+  background: #FFFFFF;
+  border: 2px solid #94A3B8;
+  border-radius: 8px;
+  padding: 0 0.85rem;
+  text-align: left;
+  outline: none;
+  transition: all 0.15s ease;
+
+  &:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  }
+
+  &:disabled {
+    background: #F1F5F9;
+    color: #94A3B8;
+    cursor: not-allowed;
+  }
+}
+
+.inputSavedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #059669;
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+}
+
+.virtualKeypad {
+  max-width: 280px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.keypadRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.keypadBtn {
+  height: 40px;
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0F172A;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: #E2E8F0;
+    border-color: #94A3B8;
+  }
+
+  &:active:not(:disabled) {
+    background: #CBD5E1;
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.keypadActionRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.keypadBackspaceBtn {
+  height: 38px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #B45309;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+
+  &:hover {
+    background: #FDE68A;
+  }
+}
+
+.keypadClearBtn {
+  height: 38px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #B91C1C;
+  background: #FEE2E2;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+
+  &:hover {
+    background: #FECACA;
+  }
+}
+
 .subjectTabsLabel {
   font-size: 0.75rem;
   font-weight: 700;

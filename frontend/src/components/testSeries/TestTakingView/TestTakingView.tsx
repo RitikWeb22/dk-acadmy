@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import type { TestSeriesItem, TestQuestionResponse } from '../../../types';
 import { CountdownTimer } from '../CountdownTimer/CountdownTimer';
-import { QuestionPalette } from '../QuestionPalette/QuestionPalette';
+import { QuestionPalette, isSectionBQuestion } from '../QuestionPalette/QuestionPalette';
 import { SubmitConfirmationModal } from '../SubmitConfirmationModal/SubmitConfirmationModal';
 import styles from './TestTakingView.module.scss';
 import { MathText } from '../../ui/MathText/MathText';
@@ -265,14 +265,39 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   // Derived counts
   const answeredCount = Object.keys(responses).filter(
-    (id) => Boolean(responses[id]?.selectedOption)
+    (id) => Boolean(responses[id]?.numericalValue?.trim() || responses[id]?.selectedOption)
   ).length;
 
   const markedCount = Object.keys(responses).filter(
     (id) => Boolean(responses[id]?.isMarkedForReview)
   ).length;
 
-  // Handle option selection
+  // Current Subject & Section calculations
+  const currentSubject = currentQuestion.subject || 'General';
+  const currentSubjectQuestions = test.questions.filter((q) => q.subject === currentSubject);
+  const currentSubjectIndex = currentSubjectQuestions.indexOf(currentQuestion);
+  const isCurrentSectionB = isSectionBQuestion(currentQuestion, currentSubjectIndex);
+  const currentSection: 'A' | 'B' = isCurrentSectionB ? 'B' : 'A';
+
+  const currentSubjectSecA = currentSubjectQuestions.filter((q, idx) => !isSectionBQuestion(q, idx));
+  const currentSubjectSecB = currentSubjectQuestions.filter((q, idx) => isSectionBQuestion(q, idx));
+
+  const secAAnsweredCount = currentSubjectSecA.filter((q) => {
+    const qId = q.id || (q as any)?._id;
+    const resp = qId ? responses[qId] : undefined;
+    return Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
+  }).length;
+
+  const secBAnsweredCount = currentSubjectSecB.filter((q) => {
+    const qId = q.id || (q as any)?._id;
+    const resp = qId ? responses[qId] : undefined;
+    return Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
+  }).length;
+
+  // NTA Rule: Maximum 5 questions in Section B
+  const isSectionBLimitReached = isCurrentSectionB && secBAnsweredCount >= 5 && !Boolean(currentResponse.numericalValue?.trim() || currentResponse.selectedOption);
+
+  // Handle option selection for Section A (MCQs)
   const handleSelectOption = (optionId: string) => {
     if (!currentQuestionId) return;
     const updated = {
@@ -287,11 +312,51 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     onSaveProgress(updated);
   };
 
-  // Clear current response
+  // Handle Numerical Input for Section B
+  const handleNumericalChange = (val: string) => {
+    if (!currentQuestionId) return;
+    const sanitized = val.replace(/[^0-9.-]/g, '');
+    const updated = {
+      ...responses,
+      [currentQuestionId]: {
+        ...currentResponse,
+        selectedOption: sanitized,
+        numericalValue: sanitized,
+        isVisited: true,
+      },
+    };
+    setResponses(updated);
+    onSaveProgress(updated);
+  };
+
+  const handleKeypadPress = (char: string) => {
+    if (isSectionBLimitReached) return;
+    const currentVal = currentResponse.numericalValue ?? currentResponse.selectedOption ?? '';
+    if (char === '.' && currentVal.includes('.')) return;
+    if (char === '-') {
+      if (currentVal.startsWith('-')) {
+        handleNumericalChange(currentVal.substring(1));
+      } else {
+        handleNumericalChange('-' + currentVal);
+      }
+      return;
+    }
+    handleNumericalChange(currentVal + char);
+  };
+
+  const handleKeypadBackspace = () => {
+    const currentVal = currentResponse.numericalValue ?? currentResponse.selectedOption ?? '';
+    if (currentVal.length > 0) {
+      handleNumericalChange(currentVal.slice(0, -1));
+    }
+  };
+
+  // Clear current response (both MCQ and Numerical)
   const handleClearResponse = () => {
     if (!currentQuestionId) return;
     const nextResponse = { ...currentResponse };
     delete nextResponse.selectedOption;
+    delete nextResponse.numericalValue;
 
     const updated = {
       ...responses,
@@ -299,6 +364,23 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     };
     setResponses(updated);
     onSaveProgress(updated);
+  };
+
+  // Switch between Section A and Section B
+  const handleSectionTabClick = (targetSection: 'A' | 'B') => {
+    if (targetSection === 'A') {
+      const firstSecAQ = currentSubjectSecA[0];
+      if (firstSecAQ) {
+        const globalIdx = test.questions.findIndex((q) => (q.id || (q as any)?._id) === (firstSecAQ.id || (firstSecAQ as any)?._id));
+        if (globalIdx !== -1) navigateToQuestion(globalIdx);
+      }
+    } else {
+      const firstSecBQ = currentSubjectSecB[0];
+      if (firstSecBQ) {
+        const globalIdx = test.questions.findIndex((q) => (q.id || (q as any)?._id) === (firstSecBQ.id || (firstSecBQ as any)?._id));
+        if (globalIdx !== -1) navigateToQuestion(globalIdx);
+      }
+    }
   };
 
   // Toggle Mark for Review
@@ -344,7 +426,6 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
   };
 
   // Subject sections filter tabs (e.g. Physics, Chemistry, Math)
-  const currentSubject = currentQuestion.subject;
   const handleSubjectTabClick = (sub: string) => {
     const firstQIndex = test.questions.findIndex((q) => q.subject === sub);
     if (firstQIndex !== -1) {
@@ -416,11 +497,15 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
       {/* Subject Section Tabs (for multi-subject full mocks) */}
       {test.subjects.length > 1 && (
         <nav className={styles.subjectTabsBar} aria-label="Subject Sections">
-          <span className={styles.subjectTabsLabel}>Sections:</span>
+          <span className={styles.subjectTabsLabel}>Subjects:</span>
           {test.subjects.map((sub) => {
             const isActive = sub === currentSubject;
             const subQuestions = test.questions.filter((q) => q.subject === sub);
-            const subAnswered = subQuestions.filter((q) => Boolean(responses[q.id || (q as any)?._id]?.selectedOption)).length;
+            const subAnswered = subQuestions.filter((q) => {
+              const qId = q.id || (q as any)?._id;
+              const resp = qId ? responses[qId] : undefined;
+              return Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
+            }).length;
 
             return (
               <button
@@ -439,6 +524,49 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
         </nav>
       )}
 
+      {/* Section A & Section B Sub-sections Bar */}
+      <div className={styles.subSectionsBar}>
+        <div className={styles.subSectionTabs}>
+          <button
+            type="button"
+            className={`${styles.subSecTab} ${currentSection === 'A' ? styles.subSecTabActiveA : ''}`}
+            onClick={() => handleSectionTabClick('A')}
+          >
+            <span className={styles.secLetterBadgeA}>Section A</span>
+            <span className={styles.secTitleLabel}>MCQs</span>
+            <span className={styles.secBadgeCount}>
+              {secAAnsweredCount}/{currentSubjectSecA.length}
+            </span>
+          </button>
+
+          {currentSubjectSecB.length > 0 && (
+            <button
+              type="button"
+              className={`${styles.subSecTab} ${currentSection === 'B' ? styles.subSecTabActiveB : ''}`}
+              onClick={() => handleSectionTabClick('B')}
+            >
+              <span className={styles.secLetterBadgeB}>Section B</span>
+              <span className={styles.secTitleLabel}>Numerical</span>
+              <span className={styles.secBadgeCount}>
+                {secBAnsweredCount}/{currentSubjectSecB.length} {currentSubjectSecB.length >= 10 && <span className={styles.ntaLimit}>(NTA Max 5)</span>}
+              </span>
+            </button>
+          )}
+        </div>
+
+        <div className={styles.secStatusInfo}>
+          {currentSection === 'A' ? (
+            <span className={styles.secInfoText}>
+              Compulsory Questions • +{test.markingScheme?.correct ?? 4} / -{test.markingScheme?.incorrect ?? 1} Marks
+            </span>
+          ) : (
+            <span className={styles.secInfoTextAmber}>
+              NTA Rule: Attempt any 5 of {currentSubjectSecB.length} • Integer or Decimal
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Main Examination Layout */}
       <div className={styles.workspaceGrid}>
         {/* Left Column: Question Area */}
@@ -450,11 +578,14 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
                 <span className={styles.qNumber}>Question {currentIndex + 1}</span>
                 <span className={styles.qTotal}>of {totalQuestions}</span>
                 <span className={styles.subjectBadge}>{currentQuestion.subject}</span>
+                <span className={isCurrentSectionB ? styles.sectionTagBadgeB : styles.sectionTagBadgeA}>
+                  {isCurrentSectionB ? 'Section B • Numerical' : 'Section A • MCQ'}
+                </span>
                 <span className={styles.chapterBadge}>{currentQuestion.chapter}</span>
               </div>
 
               <div className={styles.marksBadge}>
-                +{test.markingScheme?.correct ?? 4} / -{test.markingScheme?.incorrect ?? 1} Marks
+                +{test.markingScheme?.correct ?? 4} / -{isCurrentSectionB && currentQuestion.negativeMarks === 0 ? 0 : (test.markingScheme?.incorrect ?? 1)} Marks
               </div>
             </div>
 
@@ -465,38 +596,172 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               </div>
             </div>
 
-            {/* MCQ Options List */}
-            <div
-              className={styles.optionsList}
-              role="radiogroup"
-              aria-label={`Options for Question ${currentIndex + 1}`}
-            >
-              {(currentQuestion.options || []).map((opt, oIdx) => {
-                const optId = opt.id || ['A', 'B', 'C', 'D'][oIdx] || 'A';
-                const isSelected = currentResponse.selectedOption === optId;
+            {/* Section A: MCQ Options List */}
+            {!isCurrentSectionB ? (
+              <div
+                className={styles.optionsList}
+                role="radiogroup"
+                aria-label={`Options for Question ${currentIndex + 1}`}
+              >
+                {(currentQuestion.options || []).map((opt, oIdx) => {
+                  const optId = opt.id || ['A', 'B', 'C', 'D'][oIdx] || 'A';
+                  const isSelected = currentResponse.selectedOption === optId;
 
-                return (
-                  <button
-                    key={optId}
-                    type="button"
-                    role="radio"
-                    aria-checked={isSelected}
-                    className={`${styles.optionBtn} ${isSelected ? styles.selectedOption : ''}`}
-                    onClick={() => handleSelectOption(optId)}
-                  >
-                    <div className={styles.radioLetter}>{optId}</div>
-                    <div className={styles.optionText}>
-                      <MathText text={opt.text} />
-                    </div>
-                    {isSelected && (
-                      <div className={styles.selectedCheckWrap}>
-                        <Check size={18} />
+                  return (
+                    <button
+                      key={optId}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      className={`${styles.optionBtn} ${isSelected ? styles.selectedOption : ''}`}
+                      onClick={() => handleSelectOption(optId)}
+                    >
+                      <div className={styles.radioLetter}>{optId}</div>
+                      <div className={styles.optionText}>
+                        <MathText text={opt.text} />
                       </div>
+                      {isSelected && (
+                        <div className={styles.selectedCheckWrap}>
+                          <Check size={18} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              /* Section B: Numerical Value Input & NTA Virtual Keypad */
+              <div className={styles.numericalEntryCard}>
+                <div className={styles.numericalHeader}>
+                  <span className={styles.secBBadge}>Section B • Numerical Value Type</span>
+                  <span className={styles.secBAttemptCounter}>
+                    Attempted: <strong>{secBAnsweredCount}</strong> / 5 Allowed (Max 5)
+                  </span>
+                </div>
+
+                <p className={styles.numericalInstructions}>
+                  Enter the correct numerical value in the box below using the on-screen keypad or your physical keyboard. Can be an integer (e.g. <code>14</code>) or a decimal (e.g. <code>3.5</code> or <code>-2</code>).
+                </p>
+
+                {isSectionBLimitReached && (
+                  <div className={styles.ntaLimitAlertBanner}>
+                    <ShieldAlert size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <strong>NTA Limit Reached:</strong> You have already attempted 5 questions in Section B for {currentSubject}.
+                      To attempt this question, please clear the response on one of your previously attempted Section B questions.
+                    </div>
+                  </div>
+                )}
+
+                <div className={styles.numericalInputWrapper}>
+                  <label htmlFor="numerical-answer-input" className={styles.numericalInputLabel}>
+                    Your Answer:
+                  </label>
+                  <div className={styles.inputWithStatus}>
+                    <input
+                      id="numerical-answer-input"
+                      type="text"
+                      inputMode="decimal"
+                      className={styles.numericalInput}
+                      placeholder="Enter value..."
+                      value={currentResponse.numericalValue ?? currentResponse.selectedOption ?? ''}
+                      onChange={(e) => handleNumericalChange(e.target.value)}
+                      disabled={isSectionBLimitReached}
+                    />
+                    {(currentResponse.numericalValue || currentResponse.selectedOption) && (
+                      <span className={styles.inputSavedBadge}>
+                        <Check size={14} /> Saved
+                      </span>
                     )}
-                  </button>
-                );
-              })}
-            </div>
+                  </div>
+                </div>
+
+                {/* Virtual NTA Numeric Keypad */}
+                <div className={styles.virtualKeypad}>
+                  <div className={styles.keypadRow}>
+                    {['1', '2', '3'].map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={styles.keypadBtn}
+                        onClick={() => handleKeypadPress(key)}
+                        disabled={isSectionBLimitReached}
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.keypadRow}>
+                    {['4', '5', '6'].map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={styles.keypadBtn}
+                        onClick={() => handleKeypadPress(key)}
+                        disabled={isSectionBLimitReached}
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.keypadRow}>
+                    {['7', '8', '9'].map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={styles.keypadBtn}
+                        onClick={() => handleKeypadPress(key)}
+                        disabled={isSectionBLimitReached}
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.keypadRow}>
+                    <button
+                      type="button"
+                      className={styles.keypadBtn}
+                      onClick={() => handleKeypadPress('.')}
+                      disabled={isSectionBLimitReached}
+                    >
+                      .
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.keypadBtn}
+                      onClick={() => handleKeypadPress('0')}
+                      disabled={isSectionBLimitReached}
+                    >
+                      0
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.keypadBtn}
+                      onClick={() => handleKeypadPress('-')}
+                      disabled={isSectionBLimitReached}
+                    >
+                      -
+                    </button>
+                  </div>
+                  <div className={styles.keypadActionRow}>
+                    <button
+                      type="button"
+                      className={styles.keypadBackspaceBtn}
+                      onClick={handleKeypadBackspace}
+                    >
+                      ⌫ Backspace
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.keypadClearBtn}
+                      onClick={handleClearResponse}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Bottom Actions Row */}
             <div className={styles.actionRow}>
@@ -513,7 +778,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
                   </span>
                 </button>
 
-                {currentResponse.selectedOption && (
+                {(currentResponse.selectedOption || currentResponse.numericalValue) && (
                   <button
                     type="button"
                     className={styles.clearBtn}
@@ -586,6 +851,9 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
             currentIndex={currentIndex}
             onSelectIndex={(idx) => navigateToQuestion(idx)}
             responses={responses}
+            activeSubject={currentSubject}
+            onSelectSubject={handleSubjectTabClick}
+            subjects={test.subjects}
           />
 
           {/* Primary Submit Button in Sidebar */}
