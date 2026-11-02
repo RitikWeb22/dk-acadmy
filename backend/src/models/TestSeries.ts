@@ -34,6 +34,15 @@ export interface IMarkingScheme {
   unattempted: number;
 }
 
+export interface ITestSeriesSolutionRelease {
+  enabled: boolean;
+  pdfUrl?: string;
+  videoUrl?: string;
+  releaseDelayHours: number; // 12, 24, 48, 72 (default 24)
+  hasPdf?: boolean;
+  hasVideo?: boolean;
+}
+
 export interface ITestSeriesSchedule {
   startWindow?: Date;
   endWindow?: Date;
@@ -75,6 +84,7 @@ export interface ITestSeries extends Document {
   accessLevel?: 'BATCH_INCLUDED' | 'FREE_LEAD_MAGNET';
   status: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
   schedule?: ITestSeriesSchedule;
+  solutionRelease?: ITestSeriesSolutionRelease;
   attemptsCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -191,6 +201,12 @@ const testSeriesSchema = new Schema<ITestSeries>(
       default: 'Published'
     },
     schedule: { type: scheduleSchema, default: () => ({}) },
+    solutionRelease: {
+      enabled: { type: Boolean, default: false },
+      pdfUrl: { type: String, default: '' },
+      videoUrl: { type: String, default: '' },
+      releaseDelayHours: { type: Number, default: 24 }
+    },
     attemptsCount: { type: Number, default: 0 }
   },
   {

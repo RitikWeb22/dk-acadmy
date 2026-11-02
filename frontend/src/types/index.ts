@@ -281,6 +281,15 @@ export interface TestScheduleConfig {
   cutoffTierPredictor?: boolean;
 }
 
+export interface TestSolutionReleaseConfig {
+  enabled: boolean;
+  pdfUrl?: string;
+  videoUrl?: string;
+  releaseDelayHours: number; // 12, 24, 48, 72 (default 24)
+  hasPdf?: boolean;
+  hasVideo?: boolean;
+}
+
 export interface TestSeriesItem {
   id: string;
   title: string;
@@ -299,6 +308,7 @@ export interface TestSeriesItem {
   questions: TestQuestion[];
   status?: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
   schedule?: TestScheduleConfig;
+  solutionRelease?: TestSolutionReleaseConfig;
   attemptsCount?: number;
   createdAt?: string;
 }
@@ -318,6 +328,16 @@ export interface TestAttempt {
   responses: Record<string, TestQuestionResponse>;
   isSubmitted: boolean;
   submittedAt?: number;
+  submissionId?: string;
+  solutionUnlockAt?: number;
+  solutionSchedule?: {
+    enabled: boolean;
+    releaseDelayHours: number;
+    solutionUnlockAt: string | number;
+    isUnlocked: boolean;
+    hasPdf?: boolean;
+    hasVideo?: boolean;
+  };
 }
 
 export interface TestSubjectResult {

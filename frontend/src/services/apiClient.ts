@@ -181,6 +181,23 @@ export const apiClient = {
     }
   },
 
+  async patch<T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
+    try {
+      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: body ? JSON.stringify(body) : undefined,
+        ...options
+      });
+      return await safeJsonParse<T>(res);
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.warn(`[API PATCH ${endpoint} Error]:`, error?.message || error);
+      }
+      return { success: false, message: error?.name === 'AbortError' ? 'Request timed out' : error?.message || 'Network error' };
+    }
+  },
+
   async delete<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
       const res = await fetchWithTimeout(formatEndpoint(endpoint), {

@@ -24,6 +24,7 @@ import { TestEmptyState } from '../../components/testSeries/TestEmptyState/TestE
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { requestFullScreen, exitFullScreen } from '../../utils/fullscreen';
 import { useStudentAuth } from '../../context/AuthContext';
+import { apiClient } from '../../services/apiClient';
 import type { TestSeriesItem } from '../../types';
 import styles from './TestSeriesPage.module.scss';
 
@@ -453,29 +454,44 @@ export const TestSeriesPage: React.FC = () => {
     });
   };
 
-  // Submit test
+  // Submit test with individual automated solution scheduling
   const handleSubmitTest = (responses: Record<string, TestQuestionResponse>) => {
     exitFullScreen().catch(() => {});
     if (!activeTestId) return;
 
+    const existing = attempts[activeTestId];
+    const startTime = existing?.startTime || Date.now();
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const clientSubmissionId = `sub_${activeTestId}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const nowTs = Date.now();
+    const activeTestObj = testSeriesList.find((t) => t.id === activeTestId);
+    const releaseDelayHours = activeTestObj?.solutionRelease?.releaseDelayHours || 24;
+    const defaultUnlockAt = nowTs + (releaseDelayHours * 60 * 60 * 1000);
+
+    const initialAttempt: TestAttempt = {
+      testId: activeTestId,
+      status: 'Completed',
+      startTime,
+      timeSpentSeconds: elapsed,
+      responses,
+      isSubmitted: true,
+      submittedAt: nowTs,
+      submissionId: clientSubmissionId,
+      solutionUnlockAt: defaultUnlockAt,
+      solutionSchedule: {
+        enabled: activeTestObj?.solutionRelease?.enabled ?? true,
+        releaseDelayHours,
+        solutionUnlockAt: defaultUnlockAt,
+        isUnlocked: false,
+        hasPdf: activeTestObj?.solutionRelease?.hasPdf,
+        hasVideo: activeTestObj?.solutionRelease?.hasVideo
+      }
+    };
+
     setAttempts((prev) => {
-      const existing = prev[activeTestId];
-      const startTime = existing?.startTime || Date.now();
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-
-      const updatedAttempt: TestAttempt = {
-        testId: activeTestId,
-        status: 'Completed',
-        startTime,
-        timeSpentSeconds: elapsed,
-        responses,
-        isSubmitted: true,
-        submittedAt: Date.now(),
-      };
-
       const next = {
         ...prev,
-        [activeTestId]: updatedAttempt,
+        [activeTestId]: initialAttempt,
       };
 
       try {
@@ -483,13 +499,47 @@ export const TestSeriesPage: React.FC = () => {
         if (student?.id) {
           localStorage.setItem(`dk_tests_${student.id}`, JSON.stringify(next));
         }
-        window.dispatchEvent(new CustomEvent('dk_test_submitted', { detail: { testId: activeTestId, attempt: updatedAttempt } }));
+        window.dispatchEvent(new CustomEvent('dk_test_submitted', { detail: { testId: activeTestId, attempt: initialAttempt } }));
         window.dispatchEvent(new CustomEvent('dk_test_attempts_updated', { detail: { attempts: next } }));
       } catch (err) {
         console.warn('Storage sync error:', err);
       }
 
       return next;
+    });
+
+    // Asynchronously submit to backend server to record persistent server timestamp and schedule
+    apiClient.post<any>(`/test-series/${activeTestId}/submit`, {
+      responses,
+      timeSpentSeconds: elapsed,
+      clientSubmissionId,
+      studentId: student?.id,
+      studentEmail: student?.email,
+      studentName: student?.name
+    }).then((res) => {
+      if (res && res.success && res.data) {
+        const sData = res.data;
+        setAttempts((prev) => {
+          const cur = prev[activeTestId];
+          if (!cur) return prev;
+          const updated: TestAttempt = {
+            ...cur,
+            submissionId: sData.submissionId,
+            submittedAt: new Date(sData.submittedAt).getTime(),
+            solutionUnlockAt: new Date(sData.solutionSchedule.solutionUnlockAt).getTime(),
+            solutionSchedule: sData.solutionSchedule
+          };
+          const next = { ...prev, [activeTestId]: updated };
+          try {
+            localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(next));
+            if (student?.id) localStorage.setItem(`dk_tests_${student.id}`, JSON.stringify(next));
+            window.dispatchEvent(new CustomEvent('dk_test_attempts_updated', { detail: { attempts: next } }));
+          } catch {}
+          return next;
+        });
+      }
+    }).catch((err) => {
+      console.warn('[handleSubmitTest backend sync]:', err);
     });
 
     setViewState('results');

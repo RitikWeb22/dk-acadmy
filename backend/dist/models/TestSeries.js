@@ -93,6 +93,12 @@ const testSeriesSchema = new Schema({
         default: 'Published'
     },
     schedule: { type: scheduleSchema, default: () => ({}) },
+    solutionRelease: {
+        enabled: { type: Boolean, default: false },
+        pdfUrl: { type: String, default: '' },
+        videoUrl: { type: String, default: '' },
+        releaseDelayHours: { type: Number, default: 24 }
+    },
     attemptsCount: { type: Number, default: 0 }
 }, {
     timestamps: true
