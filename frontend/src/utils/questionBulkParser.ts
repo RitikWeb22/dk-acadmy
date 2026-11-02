@@ -94,7 +94,30 @@ export function convertAllFractions(input: string): string {
         if (rightStart >= str.length) continue;
 
         let rightEnd = -1;
-        if (str[rightStart] === '(' || str[rightStart] === '{') {
+        if (str[rightStart] === '√') {
+          let p = rightStart + 1;
+          if (p < str.length && (str[p] === '(' || str[p] === '{')) {
+            const openChar = str[p];
+            const closeChar = openChar === '(' ? ')' : '}';
+            let depth = 0;
+            while (p < str.length) {
+              if (str[p] === openChar) depth++;
+              else if (str[p] === closeChar) {
+                depth--;
+                if (depth === 0) {
+                  rightEnd = p;
+                  break;
+                }
+              }
+              p++;
+            }
+          } else {
+            while (p < str.length && /[a-zA-Z0-9_\^\\\{\}α-ωΑ-Ω]/.test(str[p])) {
+              p++;
+            }
+            rightEnd = p - 1;
+          }
+        } else if (str[rightStart] === '(' || str[rightStart] === '{') {
           let p = rightStart;
           while (p < str.length && (str[p] === '(' || str[p] === '{')) {
             const openChar = str[p];
@@ -114,8 +137,17 @@ export function convertAllFractions(input: string): string {
             }
             // Skip spaces
             while (p < str.length && /\s/.test(str[p])) p++;
-            // If the next character is '(' and followed by factors, continue consuming adjacent factors in denominator
-            if (p < str.length && (str[p] === '(' || str[p] === '{')) {
+            // If the next character is '(' or '√' and followed by factors, continue consuming adjacent factors in denominator
+            if (p < str.length && (str[p] === '(' || str[p] === '{' || str[p] === '√')) {
+              if (str[p] === '√') {
+                p++;
+                if (p < str.length && (str[p] === '(' || str[p] === '{')) {
+                  continue;
+                }
+                while (p < str.length && /[a-zA-Z0-9_\^\\\{\}α-ωΑ-Ω]/.test(str[p])) p++;
+                rightEnd = p - 1;
+                break;
+              }
               continue;
             } else {
               break;
@@ -177,7 +209,7 @@ export function autoWrapMathDelimiters(text: string): string {
   let s = text;
 
   // Pre-normalize differentials after integrals if missing \,
-  s = s.replace(/(\\(?:int|iint|iiint)[^,\n]+?)\s*d([txyz]|\\theta)\b/g, '$1\\,d$2');
+  s = s.replace(/(\\(?:int|iint|iiint)(?!\s*\\frac)[^,\n]+?)\s*d([txyz]|\\theta)\b/g, '$1\\,d$2');
   // Spacing for Greek letters before vectors: \lambda\vec{a} -> \lambda \vec{a}
   s = s.replace(/\\(lambda|alpha|beta|gamma|theta|mu|nu|pi|sigma|phi|omega)\s*(\\vec\{[a-zA-Z0-9]+\})/g, '\\$1 $2');
 
@@ -189,7 +221,7 @@ export function autoWrapMathDelimiters(text: string): string {
       trimmed = trimmed.slice(1, -1).trim();
     }
     // Clean binary operators inside math expression for authentic spacing
-    trimmed = trimmed.replace(/([0-9a-zA-Z\\\}])\s*([=+\-−*/×⋅<>]|\\le|\\ge|\\in|\\neq|\\pm|\\cdot|\\times)\s*([0-9a-zA-Z\\\{])/g, '$1 $2 $3');
+    trimmed = trimmed.replace(/([0-9a-zA-Z\\\}])\s*([=+\-−*/×⋅<>]|\\le\b|\\ge\b|\\in\b|\\neq\b|\\pm\b|\\cdot\b|\\times\b)\s*([0-9a-zA-Z\\\{])/g, '$1 $2 $3');
     trimmed = trimmed.replace(/\s*([_\^])\s*/g, '$1');
     trimmed = trimmed.replace(/\s*,\s*/g, ', ');
     trimmed = trimmed.replace(/\s+/g, ' ').trim();
@@ -205,7 +237,21 @@ export function autoWrapMathDelimiters(text: string): string {
   });
 
   // 2. Protect standalone integrals with limits, differentials and optional equation:
-  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)\s*(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?\\,(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)\s*(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?\\,\s*(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*\\int\s*\\frac\{(?:\\,)?\s*d[txyz]\}\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)\s*\\frac\{(?:\\,)?\s*d[txyz]\}\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 2b. Protect functions with inverse trig: f(1) = \frac{1}{\alpha\beta} \tan^{-1}\left(\frac{\alpha}{\beta}\right)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=\s*\\frac\{[^{}]+\}\{(?:[^{}]|\{[^{}]*\})*\}\s*\\tan\s*\^\s*\{?-1\}?\s*\\left\([^\)]*\\right\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 2c. Protect function values like f(0) = 0 or f(1) = 2
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=\s*[0-9a-zA-Z\\]+)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 2d. Protect absolute value inequalities: |x| < 2/\sqrt{3}
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\|\s*[a-zA-Z0-9_]+\s*\|\s*(?:<|>|<=|>=|=|\\le\b|\\ge\b)\s*\\frac\{[^{}]+\}\{(?:[^{}]|\{[^{}]*\})*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 2e. Protect comma-separated bounds like \alpha, \beta > 0 or x, y \ge 0
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\[a-zA-Z]+\s*,\s*\\[a-zA-Z]+\s*(?:>|<|>=|<=|=|\\le\b|\\ge\b)\s*[0-9]+)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
   // 3. Protect function evaluations with fraction arguments like \phi'(\frac{\pi}{4}) or f(\frac{\pi^2}{4})
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\[a-zA-Z]+'?(?:\s*\(|\s*\\left\()[\s\S]*?(?:\)|\s*\\right\)|(?=[,;.\s]|$))|[a-zA-Z]['′]?(?:\s*\(|\s*\\left\()[\s\S]*?(?:\)|\s*\\right\)))(?=[,;.\s]|$)/g, (m) => {
@@ -215,9 +261,12 @@ export function autoWrapMathDelimiters(text: string): string {
     return m;
   });
 
+  // 3b. Protect tall bracket expressions with \left( ... \right)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\left\s*\([^\(\)\n]+\\right\s*\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
   // 4. Wrap compound math expressions, equations, vector linear combinations, and polynomials:
   // Uses safe non-backtracking atoms (no nested + quantifiers)
-  const singleAtom = '(?:-?\\s*(?:[0-9]+(?:\\.[0-9]+)?|\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_[0-9a-zA-Z]+|\\^[0-9a-zA-Z]+)*|(?<![a-zA-Z])[a-zA-Z](?![a-zA-Z])(?:_[0-9a-zA-Z]+|\\^[0-9a-zA-Z]+)*|\\([^()\\n]{1,80}\\)|\\[[^\\[\\]\\n]{1,80}\\]|\\|[^|\\n]{1,80}\\|))';
+  const singleAtom = '(?:-?\\s*(?:[0-9]+(?:\\.[0-9]+)?|\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*|(?<![a-zA-Z])[a-zA-Z](?![a-zA-Z])(?:_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*|\\([^()\\n]{1,80}\\)|\\[[^\\[\\]\\n]{1,80}\\]|\\|[^|\\n]{1,80}\\|(?:\\^[0-9a-zA-Z]+|\\^\\{[^}]+\\})?))';
   const mathOp = '(?:[=+\\-−*/×⋅<>]|\\\\in\\b|\\\\ge\\b|\\\\le\\b|\\\\neq\\b|\\\\pm\\b|\\\\cdot|\\\\times)';
   const compoundMath = new RegExp(`(?<![a-zA-Z0-9_\\$])(${singleAtom}\\s*${mathOp}\\s*${singleAtom}(?:\\s*${mathOp}\\s*${singleAtom}){0,6})(?![a-zA-Z0-9_\\$])`, 'g');
   s = s.replace(compoundMath, (_, m) => {
@@ -294,7 +343,7 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/([0-9a-zA-Zα-ωΑ-Ω])\s*\r?\n+\s*([\+\-])\s*\r?\n+\s*([0-9a-zA-Zα-ωΑ-Ω])\s*\r?\n+\s*([0-9a-zA-Zα-ωΑ-Ω])/g, '$1 $2 $3$4');
 
   // 0e. Word duplicated integrals: ∫\n0\n1\n∫\n0\n1 or ∫\n0\n1
-  text = text.replace(/∫\s*\r?\n*\s*([0-9a-zA-Z]+)\s*\r?\n*\s*([0-9a-zA-Z]+)(?:\s*\r?\n*\s*∫\s*\r?\n*\s*\1\s*\r?\n*\s*\2)?/g, '\\int_{$1}^{$2} ');
+  text = text.replace(/∫\s*\r?\n+\s*([0-9a-zA-Z]+)\s*\r?\n+\s*([0-9a-zA-Z]+)(?:\s*\r?\n+\s*∫\s*\r?\n+\s*\1\s*\r?\n+\s*\2)?/g, '\\int_{$1}^{$2} ');
 
   // 0f. Word shadow fraction: NUM \n DEN \n DEN \n NUM
   text = text.replace(/([0-9a-zA-Z\+\-\^\\\{\}α-ωΑ-Ω\s]+?)\r?\n+([0-9a-zA-Z\+\-\^\\\{\}α-ωΑ-Ω\s]+?)\r?\n+\s*\2\s*\r?\n+\s*([0-9a-zA-Z\+\-\^\\\{\}α-ωΑ-Ω\s]+?)(?=\r?\n|\\right|\)|$)/g, (match, num, den, shadowNum) => {
@@ -329,6 +378,71 @@ export function normalizeMathText(raw: string): string {
   const lines = text.split(/\r?\n/);
   const processedLines = lines.map((line) => {
     let res = line;
+
+    // 0a. Unwrap any $...$ block that mistakenly encloses English prose
+    // e.g. "If $ the foot of the perpendicular drawn from the point (1,0,3) ... $ then $ \alpha $ is equal to"
+    res = res.replace(/\$([^\$\n]+)\$/g, (wholeMatch, inner) => {
+      const proseWords = inner.match(/\b(?:the|foot|of|perpendicular|drawn|from|point|points|line|lines|plane|planes|internally|externally|origin|angle|angles|triangle|circle|ratio|distance|coordinates?|satisfying|continuous|function|integral|value|values|equal|then|where|when|such|that|with|respect|to|let|find|evaluate|between|among|number|numbers|statement|correct|incorrect|true|false)\b/gi) || [];
+      const regularSpacedWords = (inner.replace(/\\[a-zA-Z]+/g, ' ').match(/\b[a-zA-Z]{3,}\b/g) || []).filter(
+        (w: string) => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w)
+      );
+      if (proseWords.length >= 2 || regularSpacedWords.length >= 3) {
+        return ` ${inner.trim()} `;
+      }
+      return wholeMatch;
+    });
+
+    // 0b. Remove broken internal dollar signs inside integrals: e.g. \int _0^ $\alpha$ -> \int_{0}^{\alpha}
+    res = res.replace(/(?:∫|\\int)\s*_([0-9a-zA-Z\\{}]+)\s*\^\s*\$\s*([^$]+)\s*\$/g, '\\int_{$1}^{$2} ');
+    res = res.replace(/(?:∫|\\int)\s*_\$\s*([^$]+)\s*\$\s*\^\s*([0-9a-zA-Z\\{}]+)/g, '\\int_{$1}^{$2} ');
+    res = res.replace(/(?:∫|\\int)\s*_\$\s*([^$]+)\s*\$\s*\^\s*\$\s*([^$]+)\s*\$/g, '\\int_{$1}^{$2} ');
+    res = res.replace(/(?:∫|\\int)\s*_([0-9a-zA-Z]+)\s*\^\s*(\\[a-zA-Z]+)\b/g, '\\int_{$1}^{$2} ');
+
+    // 0c. Remove broken internal dollar signs inside fractions: e.g. \frac{t^{50}}{ $1 - t$ }
+    res = res.replace(/\\frac\{\s*\$([^\$\n]+?)\$\s*\}\{/g, '\\frac{$1}{');
+    res = res.replace(/\\frac\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{\s*\$([^\$\n]+?)\$\s*\}/g, '\\frac{$1}{$2}');
+
+    // 0c2. Strip rogue dollar signs inside function parentheses: e.g. \log_e ( $1 - \alpha$ ) or \log_e ( $1 + 2$ \sqrt{2})
+    res = res.replace(/(\\(?:log_e|ln|log|sqrt|sin|cos|tan)\s*\([^)]*?)\$([^\$\n]+?)\$([^)]*?\))/g, '$1$2$3');
+    // Normalize parenthesized math condition: ( $r > 0$ ) -> ($r > 0$)
+    res = res.replace(/\(\s*\$([^\$\n]+?)\$\s*\)/g, (_, m) => `($${m.trim()}$)`);
+
+    // 0d. Quotes in math: e.g. " "\,dx or "" -> \,
+    res = res.replace(/["']\s*["']/g, '\\,');
+    res = res.replace(/\\,\s*\\,/g, '\\,');
+
+    // 0e. Absorb vector norm exponent: | $\vec{OP} \times \vec{OA}$ |^ $2 -> |\vec{OP} \times \vec{OA}|^2
+    res = res.replace(/\|\s*\$?\s*([^$]+?)\s*\$?\s*\|\s*\^\s*\$?\s*([0-9a-zA-Z]+|\{[^}]+\})\s*\$?/g, (_, p1, p2) => `|${p1.trim()}|^{${p2.trim()}}`);
+    // If a math block ends right before norm expression or equation factor:
+    res = res.replace(/\$\s*([^$]+?)\s*\$\s*([+\-−*\/])\s*(\|\s*[^|\n]+\s*\|\s*(?:\^\{[^}]+\}|\^[0-9a-zA-Z]+)?\s*=\s*[0-9a-zA-Z\.\-]+(?:\s*\$)?)/g, (_, m1, op, m2) => {
+      const cleanM2 = m2.replace(/\s*\$$/, '').trim();
+      return `$ ${m1} ${op} ${cleanM2} $`;
+    });
+    res = res.replace(/\$\s*([^$]+?)\s*\$\s*(\|\s*[^|\n]+\s*\|\s*(?:\^\{[^}]+\}|\^[0-9a-zA-Z]+)?\s*=\s*[0-9a-zA-Z\.\-]+(?:\s*\$)?)/g, (_, m1, m2) => {
+      const cleanM2 = m2.replace(/\s*\$$/, '').trim();
+      return `$ ${m1} ${cleanM2} $`;
+    });
+    // Absorb exponent immediately following closing $: e.g. $x$ ^{\frac{2}{2}} -> $x^{\frac{2}{2}}$
+    res = res.replace(/\$\s*([^$]+?)\s*\$\s*(\^(?:\{(?:[^{}]|\{[^{}]*\})*\}|[0-9a-zA-Z]+|\\frac\{[^{}]+\}\{[^{}]+\}))/g, (_, p1, p2) => `$ ${p1}${p2} $`);
+
+    // 0f. Absorb math functions or trailing terms immediately following closing $:
+    // e.g. $12 + 7$ \log_e 7 -> $12 + 7 \log_e 7$
+    // e.g. $\alpha + 7$ \log_e -> $\alpha + 7 \log_e$
+    res = res.replace(/\$\s*([^$]+?)\s*\$\s*(\\(?:log_e|ln|log|sqrt|sin|cos|tan)\b\s*(?:[0-9a-zA-Z\\]+|\([^)]+\))?)/g, (_, p1, p2) => `$ ${p1} ${p2} $`);
+
+    // 0g. Absorb LHS variable assignment before $: e.g. I(x)= $\int...$ or I(9)= $12...$
+    res = res.replace(/\b([a-zA-Z]\s*\([^)]*\))\s*=\s*\$\s*([^$]+)\s*\$/g, (_, p1, p2) => `$ ${p1} = ${p2} $`);
+    // Absorb polynomial/function prefix before $(x)= e.g. P_n $(x)=
+    res = res.replace(/\b([a-zA-Z](?:_[0-9a-zA-Z]+)?)\s*\$\s*(\([^)]*\)\s*=)/g, (_, fn, rest) => `$ ${fn}${rest}`);
+
+    // 0h. Merge adjacent math blocks separated by operators:
+    // e.g. $\alpha$ \in $(0, 1)$ -> $\alpha \in (0, 1)$
+    for (let pass = 0; pass < 4; pass++) {
+      const prev = res;
+      res = res.replace(/\$\s*([^$]+?)\s*\$\s*([+\-−=*/×⋅·]|\\in\b|\\ge\b|\\le\b|\\neq\b)\s*\$\s*([^$]+?)\s*\$/g, (_, p1, op, p2) => `$ ${p1} ${op} ${p2} $`);
+      res = res.replace(/\$\s*([^$]+?)\s*\$\s*([+\-−=])\s*([0-9a-zA-Z\^\\\{\}]+)\s*([+\-−=])\s*\$\s*([^$]+?)\s*\$/g, (_, p1, op1, term, op2, p2) => `$ ${p1} ${op1} ${term} ${op2} ${p2} $`);
+      if (res === prev) break;
+    }
 
     // If an entire line containing prose was mistakenly wrapped in $...$ or $$...$$:
     // e.g. "$ The value of the integral ... is equal to : $" -> "The value of the integral ... is equal to :"
@@ -431,6 +545,15 @@ export function normalizeMathText(raw: string): string {
              .replace(/∫_\{?([0-9a-zA-Z]+)\}?\^\{?([0-9a-zA-Z]+)\}?/g, '\\int_{$1}^{$2} ')
              .replace(/∫/g, '\\int ');
 
+    // 5b. Integral with differential in numerator: ∫dx/(...) or \int dx/(...)
+    res = res.replace(/(?:∫|\\int)\s*d([txyz])\s*\/\s*(\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)|[a-zA-Z0-9_√\\\{\}\^]+)/g, (_, v, denWithParens, bareDen) => {
+      let den = (denWithParens || bareDen).trim();
+      if (den.startsWith('(') && den.endsWith(')')) {
+        den = den.slice(1, -1).trim();
+      }
+      return `\\int \\frac{d${v}}{${den}} `;
+    });
+
     // 6. Exponential powers and arbitrary base powers with single or double parentheses:
     // e.g. e^((2-4x)) -> e^{2-4x}, e^(2-4x) -> e^{2-4x}, e^(-x) -> e^{-x}, x^(n+1) -> x^{n+1}, t^(50) -> t^{50}
     res = res.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, (_, base, p) => {
@@ -454,6 +577,8 @@ export function normalizeMathText(raw: string): string {
     // 8. Trig functions: tan^50 x -> \tan^{50} x
     res = res.replace(/(cot|tan|sin|cos|sec|csc)\^([0-9]+)\s*x/gi, (_, fn, p) => `\\${fn.toLowerCase()}^{${p}} x`);
     res = res.replace(/(?<!\\)(cot|tan|sin|cos|sec|csc)\b/gi, (match) => `\\${match.toLowerCase()} `);
+    res = res.replace(/\\?\b(tan|cot|sin|cos|sec|csc)\s*[\^⁻]\s*\(?\s*(-1|1|¹)\s*\)?\s*\(([^)]+)\)/gi, (_, fn, _p, arg) => `\\${fn.toLowerCase()}^{-1}\\left(${arg.trim()}\\right)`);
+    res = res.replace(/\\?\b(tan|cot|sin|cos|sec|csc)\s*[\^⁻]\s*\(?\s*(-1|1|¹)\s*\)?/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
     res = res.replace(/\\?\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
     res = res.replace(/\\?\b(cot|tan|sin|cos|sec|csc)⁻¹/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
 
@@ -550,7 +675,7 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
     // 18. Smart Delimiters: Wrap formulas cleanly without breaking prose sentences into clunky block cards
-    if (!res.includes('$') && !res.startsWith('\\begin{')) {
+    if (!res.startsWith('\\begin{')) {
       let prefix = '';
       let body = res;
       // Match question and option prefixes: e.g. "(S1): ", "1. ", "A. ", "B) ", "C ", "(D) ", "D "
@@ -563,7 +688,7 @@ export function normalizeMathText(raw: string): string {
       // Automatically scale tall brackets for fractions in options and expressions
       body = body.replace(/\\left\(\s*\\frac/g, '\\left(\\dfrac');
 
-      const hasMathSyntax = /\\(?:frac|dfrac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log_e|log|ln|dots|to|infty|left|right|vec|hat|in|ge|le|times|cdot|forall)\b|\^\{|\^[0-9a-zA-Z]|\\[\(\)]/.test(body);
+      const hasMathSyntax = /\\(?:frac|dfrac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log_e|log|ln|dots|to|infty|left|right|vec|hat|in|ge|le|times|cdot|forall)(?![a-zA-Z])|\^\{|\^[0-9a-zA-Z]|\\[\(\)]/.test(body);
 
       // Case C: Explicit check for "If [formula] then [formula] is equal to."
       const ifMatch = body.match(/^(If\s+)([\s\S]+?)(,\s*(?:\\text\{then\}|then)\s+|\s+(?:\\text\{then\}|then)\s+)([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
@@ -571,29 +696,47 @@ export function normalizeMathText(raw: string): string {
       const satMatch = body.match(/^(Let\s+[\s\S]+?\s+satisfying\s+)([\s\S]+?)(?:[.,]\s*|\s+)(?:Then|then)\s+([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
       // Case V: Explicit check for "The value of [formula] is [equal to]" / "Find [formula] is equal to"
       const valMatch = body.match(/^((?:The value of the integral|The value of|Find the value of the integral|Find the value of|Evaluate the integral|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
+      // Case E: Explicit check for formula ending with "is :" or "is equal to :" / "is equal to."
+      const endingIsMatch = body.match(/^([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?))\s*$/i);
+      const isPureMathEnding = endingIsMatch &&
+        !/^\s*(?:let|if|where|given|suppose|consider|assume)\b/i.test(endingIsMatch[1]) &&
+        (endingIsMatch[1].match(/\b(?:let|if|then|where|given|suppose|consider|assume|and|with|that|satisfying|find|evaluate)\b/gi) || []).length === 0 &&
+        (/\\(?:int|frac|dfrac|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log_e|ln|dots|to|vec|hat)(?![a-zA-Z])|[+\-=*]/.test(endingIsMatch[1]) || /\^[0-9a-zA-Z{]/.test(endingIsMatch[1]));
 
-      if (ifMatch) {
-        res = `${prefix}${ifMatch[1]}$ ${ifMatch[2].trim()} $ then $ ${ifMatch[4].trim()} $${ifMatch[5]}`;
-      } else if (satMatch) {
-        res = `${prefix}${satMatch[1]}$ ${satMatch[2].trim()} $. Then $ ${satMatch[3].trim()} $${satMatch[4]}`;
-      } else if (valMatch) {
-        res = `${prefix}${valMatch[1]}$ ${valMatch[2].trim()} $${valMatch[3]}`;
-      } else {
-        const mathProseKeywords = /\b(?:let|if|then|find|given|suppose|consider|assume|where|when|what|which|whether|statement|following|function|continuous|satisfying|satisfies|value|values|equal|points?|line|lines|plane|planes|circle|circles|arc|arcs|triangle|matrix|matrices|vector|vectors|unit|angle|angles|between|perpendicular|parallel|number|numbers|area|parallelogram|diagonals?|integers?|ordered|pair|ratio|internally|externally|origin|magnitude|length|centre|center|subtend|divides?|roots?|equation|equations|system|set|subset|true|false|correct|incorrect|both|neither|only|because|since|such|that|with|respect|satisfy|defined|at|is|are|was|were|be|been|has|have|had|for|all|any|every|each|to|from|by|on|in|of|and|or|two|three|four)\b/gi;
-        const englishProseWords = body.match(mathProseKeywords) || [];
-        const generalWords = (body.replace(/\\[a-zA-Z]+/g, ' ').match(/\b[a-zA-Z]{3,}\b/g) || []).filter(w => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w));
-        const isProse = englishProseWords.length >= 2 || generalWords.length >= 3;
-
-        if (hasMathSyntax && !isProse) {
-          // Pure math equation / expression (like (e-1)(e^2 + \frac{1}{2}) or \log_e\left(\frac{32}{27}\right))
-          res = `${prefix}$ ${body.trim()} $`;
-        } else if (hasMathSyntax && isProse) {
-          res = `${prefix}${autoWrapMathDelimiters(body)}`;
+      if (!res.includes('$')) {
+        if (ifMatch && !/\b(?:let|where|given|satisfying|passing|point|plane|line|foot|perpendicular)\b/i.test(ifMatch[2])) {
+          res = `${prefix}${ifMatch[1]}$ ${ifMatch[2].trim()} $ then $ ${ifMatch[4].trim()} $${ifMatch[5]}`;
+        } else if (satMatch) {
+          res = `${prefix}${satMatch[1]}$ ${satMatch[2].trim()} $. Then $ ${satMatch[3].trim()} $${satMatch[4]}`;
+        } else if (valMatch) {
+          res = `${prefix}${valMatch[1]}$ ${valMatch[2].trim()} $${valMatch[3]}`;
+        } else if (isPureMathEnding) {
+          res = `${prefix}$ ${endingIsMatch[1].trim()} $ ${endingIsMatch[2].trim()}`;
         } else {
-          // If it's a standalone fraction like "\frac{1}{16}" without surrounding text, wrap in math
-          if (/^\s*\\(?:frac|dfrac)\{[^{}]+\}\{[^{}]+\}\s*$/.test(res)) {
-            res = `$ ${res.trim()} $`;
+          const mathProseKeywords = /\b(?:let|if|then|find|given|suppose|consider|assume|where|when|what|which|whether|statement|following|function|continuous|satisfying|satisfies|value|values|equal|points?|line|lines|plane|planes|circle|circles|arc|arcs|triangle|matrix|matrices|vector|vectors|unit|angle|angles|between|perpendicular|parallel|number|numbers|area|parallelogram|diagonals?|integers?|ordered|pair|ratio|internally|externally|origin|magnitude|length|centre|center|subtend|divides?|roots?|equation|equations|system|set|subset|true|false|correct|incorrect|both|neither|only|because|since|such|that|with|respect|satisfy|defined|at|is|are|was|were|be|been|has|have|had|for|all|any|every|each|to|from|by|on|in|of|and|or|two|three|four)\b/gi;
+          const englishProseWords = body.match(mathProseKeywords) || [];
+          const generalWords = (body.replace(/\\[a-zA-Z]+/g, ' ').match(/\b[a-zA-Z]{3,}\b/g) || []).filter(w => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w));
+          const isProse = englishProseWords.length >= 2 || generalWords.length >= 3;
+
+          if (hasMathSyntax && !isProse) {
+            // Pure math equation / expression (like (e-1)(e^2 + \frac{1}{2}) or \log_e\left(\frac{32}{27}\right))
+            res = `${prefix}$ ${body.trim()} $`;
+          } else if (hasMathSyntax && isProse) {
+            res = `${prefix}${autoWrapMathDelimiters(body)}`;
+          } else {
+            // If it's a standalone fraction like "\frac{1}{16}" without surrounding text, wrap in math
+            if (/^\s*\\(?:frac|dfrac)\{[^{}]+\}\{[^{}]+\}\s*$/.test(res)) {
+              res = `$ ${res.trim()} $`;
+            }
           }
+        }
+      } else {
+        // Line already contains some '$' delimiters.
+        // Check if there is still un-delimited math outside '$' that needs wrapping:
+        const textOutsideDollars = res.replace(/\$[^\$\n]*\$/g, ' ');
+        const hasUnwrappedMath = /\\(?:frac|dfrac|int|sqrt|alpha|beta|gamma|theta|lambda|pi|sigma|phi|omega|vec|hat|left)\b|\b[a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=|\|\s*[^|]+\s*\|\s*(?:\^|[=<>])|\([0-9a-zA-Z\\]+\s*,\s*[0-9a-zA-Z\\]+/.test(textOutsideDollars);
+        if (hasUnwrappedMath) {
+          res = autoWrapMathDelimiters(res);
         }
       }
     }
