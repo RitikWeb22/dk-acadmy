@@ -385,6 +385,18 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/^\s*(?:Q(?:uestion)?\s*#?\s*\d+[\.\:\,\)]+|\bProblem\s*\d+[\.\:\,\)]+|\bQ\d+[\.\:\,\)]+|\d{1,3}[\.\,\)]+)\s*/i, '');
     res = res.replace(/^\s*[\.\,]+\s*(?=[A-Za-z])/g, '');
 
+    // Fix integral where upper limit was accidentally nested inside subscript braces:
+    // e.g. \int_{-\frac{\pi}{4}^{\frac{\pi}{4}}} -> \int_{-\frac{\pi}{4}}^{\frac{\pi}{4}}
+    // e.g. \int_{0^1} -> \int_{0}^{1}
+    res = res.replace(/(?:∫|\\int)_\{\s*(-?(?:\\frac\{[^{}]*\}\{[^{}]*\}|\\[a-zA-Z_]+(?:\s*[0-9a-zA-Z]+)?|[a-zA-Z0-9_\-\.\s]+?))\s*\^\s*(\{?(?:\\frac\{[^{}]*\}\{[^{}]*\}|\\[a-zA-Z_]+(?:\s*[0-9a-zA-Z]+)?|[a-zA-Z0-9_\-\.\s]+?)\}?)\s*\}/g,
+      (_, low, high) => {
+        const cleanLow = low.trim();
+        const trimmedHigh = high.trim();
+        const cleanHigh = trimmedHigh.startsWith('{') && trimmedHigh.endsWith('}') ? trimmedHigh : `{${trimmedHigh}}`;
+        return `\\int_{${cleanLow}}^${cleanHigh}`;
+      }
+    );
+
     // Absorb LHS math expression immediately preceding $ before parenthesized or left bracket:
     // e.g. "Let 5f(x)+4f $\left(\dfrac{1}{x}\right)=\frac{1}{x}$" -> "Let $ 5f(x)+4f\left(\dfrac{1}{x}\right)=\frac{1}{x} $"
     res = res.replace(/((?:[0-9]*\s*[a-zA-Z]\s*\([^)]*\)\s*[+\-−*\/]\s*)*[0-9]*\s*[a-zA-Z])\s*\$\s*(\\(?:left\s*)?[\(\[][\s\S]+?)\$/g,
