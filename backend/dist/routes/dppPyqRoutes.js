@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getAllDppPyq, getDppPyqByIdOrSlug, createDppPyq, updateDppPyq, deleteDppPyq } from '../controllers/dppPyqController.js';
+import { getAllDppPyq, getDppPyqByIdOrSlug, createDppPyq, updateDppPyq, deleteDppPyq, importPdfQuestions, getPdfImportHistory, getPdfImportById, updateExtractedQuestionInStaging, getQuestionBank, createOrUpdateQuestionBankItem, batchAddToQuestionBank, deleteQuestionBankItem } from '../controllers/dppPyqController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
+import { uploadPdfMiddleware } from '../middlewares/uploadMiddleware.js';
 const router = Router();
 const createDppPyqSchema = z
     .object({
@@ -30,10 +31,20 @@ const createDppPyqSchema = z
     questions: z.array(z.any()).optional()
 })
     .passthrough();
-// Public routes for student catalog & practice view
+// 1. PDF Studio Import & Extraction Routes
+router.post('/import-pdf', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), uploadPdfMiddleware.single('file'), importPdfQuestions);
+router.get('/pdf-history', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getPdfImportHistory);
+router.get('/pdf-history/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getPdfImportById);
+router.patch('/pdf-history/:importId/questions/:tempId', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateExtractedQuestionInStaging);
+// 2. Question Bank Routes
+router.get('/question-bank', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getQuestionBank);
+router.post('/question-bank', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), createOrUpdateQuestionBankItem);
+router.post('/question-bank/batch', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), batchAddToQuestionBank);
+router.delete('/question-bank/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), deleteQuestionBankItem);
+// 3. Public catalog & practice view
 router.get('/', getAllDppPyq);
 router.get('/:id', getDppPyqByIdOrSlug);
-// Admin & Faculty creation/management routes
+// 4. Admin & Faculty creation/management routes
 router.post('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ body: createDppPyqSchema }), createDppPyq);
 router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ params: idOrSlugParamSchema }), updateDppPyq);
 router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), validate({ params: idOrSlugParamSchema }), deleteDppPyq);

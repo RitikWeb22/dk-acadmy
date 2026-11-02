@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 import { DppPyq } from '../models/DppPyq.js';
+import { QuestionBank } from '../models/QuestionBank.js';
+import { PdfImportHistory } from '../models/PdfImportHistory.js';
+import { extractQuestionsFromPdfBuffer } from '../utils/pdfQuestionExtractor.js';
 import { broadcastDppPyqCreated, broadcastDppPyqUpdated, broadcastDppPyqDeleted } from '../sockets/socket.js';
 const SEED_QUESTIONS = [
     {
@@ -429,5 +433,185 @@ export const deleteDppPyq = async (req, res) => {
     catch (error) {
         console.error('Error deleting DPP/PYQ item:', error);
         res.status(500).json({ error: 'Failed to delete DPP/PYQ item', details: error.message });
+    }
+};
+/* =========================================================================
+   PYQ STUDIO: PDF IMPORT WORKFLOW & STAGING REVIEW
+   ========================================================================= */
+export const importPdfQuestions = async (req, res) => {
+    try {
+        const file = req.file;
+        const { subject = 'Mathematics', exam = 'JEE Main', year = 2024, paperTitle = '' } = req.body;
+        if (!file) {
+            res.status(400).json({ error: 'No PDF file was uploaded' });
+            return;
+        }
+        const summary = await extractQuestionsFromPdfBuffer(file.buffer, String(subject), String(exam));
+        const importId = `pdf-imp-${Date.now()}-${uuidv4().slice(0, 6)}`;
+        const status = summary.needsReviewCount > 0 ? 'REVIEW_REQUIRED' : 'COMPLETED';
+        const historyRecord = new PdfImportHistory({
+            id: importId,
+            fileName: file.originalname,
+            fileSize: file.size,
+            status,
+            totalDetected: summary.totalDetected,
+            successfulCount: summary.successfulCount,
+            needsReviewCount: summary.needsReviewCount,
+            errorCount: summary.errorCount,
+            targetExam: exam,
+            subject,
+            year,
+            paperId: paperTitle ? `pending-${importId}` : '',
+            extractedQuestions: summary.questions,
+            errorLog: summary.errorLog
+        });
+        const savedHistory = await historyRecord.save();
+        res.status(200).json({
+            success: true,
+            importId,
+            summary,
+            record: savedHistory
+        });
+    }
+    catch (err) {
+        console.error('Error importing PDF questions:', err);
+        res.status(500).json({ error: 'Failed to process PDF', details: err.message });
+    }
+};
+export const getPdfImportHistory = async (_req, res) => {
+    try {
+        const history = await PdfImportHistory.find().sort({ createdAt: -1 }).limit(50);
+        res.status(200).json(history);
+    }
+    catch (err) {
+        res.status(500).json({ error: 'Failed to fetch PDF history', details: err.message });
+    }
+};
+export const getPdfImportById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const record = await PdfImportHistory.findOne({ id });
+        if (!record) {
+            res.status(404).json({ error: 'PDF import record not found' });
+            return;
+        }
+        res.status(200).json(record);
+    }
+    catch (err) {
+        res.status(500).json({ error: 'Failed to fetch import record', details: err.message });
+    }
+};
+export const updateExtractedQuestionInStaging = async (req, res) => {
+    try {
+        const { importId, tempId } = req.params;
+        const updates = req.body;
+        const record = await PdfImportHistory.findOne({ id: importId });
+        if (!record) {
+            res.status(404).json({ error: 'PDF import record not found' });
+            return;
+        }
+        const qIndex = record.extractedQuestions.findIndex((q) => q.tempId === tempId);
+        if (qIndex === -1) {
+            res.status(404).json({ error: 'Question not found in staging' });
+            return;
+        }
+        Object.assign(record.extractedQuestions[qIndex], updates);
+        record.needsReviewCount = record.extractedQuestions.filter((q) => q.status === 'NEEDS_REVIEW').length;
+        record.successfulCount = record.extractedQuestions.filter((q) => q.status === 'EXTRACTED' || q.status === 'VERIFIED').length;
+        record.status = record.needsReviewCount > 0 ? 'REVIEW_REQUIRED' : 'COMPLETED';
+        await record.save();
+        res.status(200).json({ success: true, updatedQuestion: record.extractedQuestions[qIndex] });
+    }
+    catch (err) {
+        res.status(500).json({ error: 'Failed to update staged question', details: err.message });
+    }
+};
+/* =========================================================================
+   PYQ STUDIO: CENTRALIZED QUESTION BANK
+   ========================================================================= */
+export const getQuestionBank = async (req, res) => {
+    try {
+        const { search, subject, exam, year, chapter, difficulty, questionType, page = 1, limit = 50 } = req.query;
+        const filter = {};
+        if (search) {
+            filter.$or = [
+                { statement: { $regex: String(search), $options: 'i' } },
+                { chapter: { $regex: String(search), $options: 'i' } },
+                { topic: { $regex: String(search), $options: 'i' } }
+            ];
+        }
+        if (subject && subject !== 'All')
+            filter.subject = subject;
+        if (exam && exam !== 'All')
+            filter.exam = exam;
+        if (year && year !== 'All')
+            filter.year = isNaN(Number(year)) ? year : Number(year);
+        if (chapter && chapter !== 'All')
+            filter.chapter = chapter;
+        if (difficulty && difficulty !== 'All')
+            filter.difficulty = difficulty;
+        if (questionType && questionType !== 'All')
+            filter.questionType = questionType;
+        const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+        const limitNum = Math.max(1, Math.min(100, parseInt(String(limit), 10) || 50));
+        const skip = (pageNum - 1) * limitNum;
+        const [items, total] = await Promise.all([
+            QuestionBank.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+            QuestionBank.countDocuments(filter)
+        ]);
+        res.status(200).json({
+            items,
+            total,
+            page: pageNum,
+            totalPages: Math.ceil(total / limitNum)
+        });
+    }
+    catch (err) {
+        res.status(500).json({ error: 'Failed to fetch question bank', details: err.message });
+    }
+};
+export const createOrUpdateQuestionBankItem = async (req, res) => {
+    try {
+        const data = req.body;
+        const id = data.id || `qb-${Date.now()}-${uuidv4().slice(0, 6)}`;
+        const saved = await QuestionBank.findOneAndUpdate({ id }, { $set: { ...data, id } }, { upsert: true, new: true, setDefaultsOnInsert: true });
+        res.status(200).json(saved);
+    }
+    catch (err) {
+        res.status(500).json({ error: 'Failed to save question bank item', details: err.message });
+    }
+};
+export const batchAddToQuestionBank = async (req, res) => {
+    try {
+        const { questions } = req.body;
+        if (!Array.isArray(questions) || questions.length === 0) {
+            res.status(400).json({ error: 'Array of questions required' });
+            return;
+        }
+        const operations = questions.map((q) => {
+            const id = q.id || `qb-${Date.now()}-${uuidv4().slice(0, 6)}`;
+            return {
+                updateOne: {
+                    filter: { id },
+                    update: { $set: { ...q, id } },
+                    upsert: true
+                }
+            };
+        });
+        const result = await QuestionBank.bulkWrite(operations);
+        res.status(200).json({ success: true, count: result.upsertedCount + result.modifiedCount });
+    }
+    catch (err) {
+        res.status(500).json({ error: 'Failed to batch add questions', details: err.message });
+    }
+};
+export const deleteQuestionBankItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await QuestionBank.findOneAndDelete({ id });
+        res.status(200).json({ success: true, message: 'Question removed from question bank' });
+    }
+    catch (err) {
+        res.status(500).json({ error: 'Failed to delete question', details: err.message });
     }
 };

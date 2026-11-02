@@ -243,7 +243,11 @@ export const App: React.FC = () => {
                 />
                 <Route
                   path="/admin/pyq"
-                  element={<Navigate to="/admin/dpp-pyq" replace />}
+                  element={
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                      <AdminDashboardPage initialMenu="pyq-studio" />
+                    </AdminProtectedRoute>
+                  }
                 />
                 <Route
                   path="/admin/free-lectures"

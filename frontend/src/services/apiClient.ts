@@ -287,5 +287,51 @@ export const apiClient = {
       formData.append('folder', folder);
       xhr.send(formData);
     });
+  },
+
+  async uploadPdfForExtraction(
+    file: File,
+    meta: { subject?: string; exam?: string; year?: number | string; paperTitle?: string } = {},
+    onProgress?: (percent: number) => void
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', formatEndpoint('/dpp-pyqs/import-pdf'));
+
+      const headers = getAuthHeaders();
+      if (headers.Authorization) {
+        xhr.setRequestHeader('Authorization', headers.Authorization);
+      }
+
+      if (onProgress && xhr.upload) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            onProgress(percent);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          resolve(res);
+        } catch {
+          reject(new Error('Invalid response from server'));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network upload failed'));
+      };
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (meta.subject) formData.append('subject', meta.subject);
+      if (meta.exam) formData.append('exam', meta.exam);
+      if (meta.year) formData.append('year', String(meta.year));
+      if (meta.paperTitle) formData.append('paperTitle', meta.paperTitle);
+      xhr.send(formData);
+    });
   }
 };

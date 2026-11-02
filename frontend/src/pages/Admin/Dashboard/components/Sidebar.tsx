@@ -17,7 +17,8 @@ import {
   MoreVertical,
   UserCog,
   Video,
-  Tag
+  Tag,
+  Layers
 } from 'lucide-react';
 import { useAdminAuth } from '../../../../context/AdminAuthContext';
 import { AdminProfileModal } from '../../../../components/admin/AdminProfileModal/AdminProfileModal';
@@ -131,9 +132,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           route: '/admin/test-series'
         },
         {
+          key: 'pyq-studio',
+          label: 'PYQ Management Studio',
+          sublabel: 'Paper wizard, PDF OCR & QB',
+          icon: Layers,
+          route: '/admin/pyq'
+        },
+        {
           key: 'dpp-pyq',
-          label: 'DPP & PYQ Practice',
-          sublabel: 'Practice sets & archives',
+          label: 'DPP & BITSAT Drills',
+          sublabel: 'Daily practice sheets',
           icon: Crosshair,
           route: '/admin/dpp-pyq'
         },
