@@ -230,3 +230,4 @@ export const ScheduledSolutionCard: React.FC<ScheduledSolutionCardProps> = ({
     </section>
   );
 };
+
