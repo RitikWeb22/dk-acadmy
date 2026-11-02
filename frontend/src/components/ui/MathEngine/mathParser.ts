@@ -17,11 +17,13 @@ export interface MathContentBlock {
 export function parseContentToBlocks(rawText: string): MathContentBlock[] {
   if (!rawText) return [];
 
+  // Convert any double dollar display delimiters to single dollar inline delimiters
+  const singleDollarText = rawText.split('$$').join('$');
   // Normalize Word equations, unicode math, powers, and fractions
-  const normalized = normalizeMathText(rawText);
+  const normalized = normalizeMathText(singleDollarText);
 
   // Automatically wrap un-delimited LaTeX if delimiters are absent
-  const text = autoWrapMathDelimiters(normalized);
+  const text = autoWrapMathDelimiters(normalized).split('$$').join('$');
 
   // Delimiters supported:
   // 1. Display math: $$ ... $$ and \[ ... \]

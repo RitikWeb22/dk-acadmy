@@ -210,7 +210,7 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
  */
 function sanitizeFormula(str: string): string {
   if (!str) return '';
-  let res = str
+  let res = str.split('$$').join('$')
     // Clean invisible Word formatting characters & hair spaces
     .replace(/[\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
     // Remove argument placeholders
