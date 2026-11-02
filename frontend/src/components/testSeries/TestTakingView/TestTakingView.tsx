@@ -294,8 +294,8 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     return Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
   }).length;
 
-  // NTA Rule: Maximum 5 questions in Section B
-  const isSectionBLimitReached = isCurrentSectionB && secBAnsweredCount >= 5 && !Boolean(currentResponse.numericalValue?.trim() || currentResponse.selectedOption);
+  // NTA Rule: Maximum 5 questions in Section B if more than 5 questions exist
+  const isSectionBLimitReached = isCurrentSectionB && currentSubjectSecB.length > 5 && secBAnsweredCount >= 5 && !Boolean(currentResponse.numericalValue?.trim() || currentResponse.selectedOption);
 
   // Handle option selection for Section A (MCQs)
   const handleSelectOption = (optionId: string) => {
@@ -635,7 +635,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
                 <div className={styles.numericalHeader}>
                   <span className={styles.secBBadge}>Section B • Numerical Value Type</span>
                   <span className={styles.secBAttemptCounter}>
-                    Attempted: <strong>{secBAnsweredCount}</strong> / 5 Allowed (Max 5)
+                    Attempted: <strong>{secBAnsweredCount}</strong> / {currentSubjectSecB.length > 5 ? '5 Allowed (Max 5)' : `${currentSubjectSecB.length} Compulsory`}
                   </span>
                 </div>
 

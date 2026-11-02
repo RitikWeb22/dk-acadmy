@@ -4,15 +4,28 @@ import type { TestQuestion, TestQuestionResponse } from '../../../types';
 import styles from './QuestionPalette.module.scss';
 
 export const isSectionBQuestion = (q: TestQuestion, subjectIndex?: number): boolean => {
-  if (q.section === 'B') return true;
-  if (q.section === 'A') return false;
-  if (q.type === 'NUMERICAL') return true;
-  if (q.options && q.options.length > 0 && q.options.some((o) => o.text && o.text.trim().length > 0)) {
-    if (typeof subjectIndex === 'number' && subjectIndex >= 20) return true;
+  if (!q) return false;
+  // 1. Explicit Section B or Numerical type
+  if (q.section === 'B' || q.type === 'NUMERICAL' || (q as any)?.questionType === 'NUMERICAL') {
+    return true;
+  }
+
+  // 2. If it has no options or empty options, it MUST be numerical / Section B (since an MCQ requires options)
+  const hasOptions = Array.isArray(q.options) && q.options.length > 0 && q.options.some((o) => o.text && o.text.trim().length > 0);
+  if (!hasOptions) {
+    return true;
+  }
+
+  // 3. JEE standard: questions at index >= 20 within a subject (e.g. Q21–Q30) are Section B
+  if (typeof subjectIndex === 'number' && subjectIndex >= 20) {
+    return true;
+  }
+
+  // 4. If explicit Section A and has options
+  if (q.section === 'A') {
     return false;
   }
-  if (!q.options || q.options.length === 0) return true;
-  if (typeof subjectIndex === 'number' && subjectIndex >= 20) return true;
+
   return false;
 };
 
