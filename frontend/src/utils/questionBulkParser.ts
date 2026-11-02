@@ -216,11 +216,10 @@ export function autoWrapMathDelimiters(text: string): string {
   });
 
   // 4. Wrap compound math expressions, equations, vector linear combinations, and polynomials:
-  // Uses atomic singleTerm so it NEVER matches multi-letter English words like "vectors", "perpendicular", etc.
-  const singleAtom = '(?:-?\\s*(?:[0-9]+(?:\\.[0-9]+)?|\\\\[a-zA-Z]+(?:\\{[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\}|_[0-9a-zA-Z\\{\\}]+|\\^[0-9a-zA-Z\\{\\}]+)*|(?<![a-zA-Z])[a-zA-Z](?![a-zA-Z])(?:_[0-9a-zA-Z\\{\\}]+|\\^[0-9a-zA-Z\\{\\}]+)*|\\((?:[^()]+|\\([^()]*\\))*\\)|\\[(?:[^\\[\\]]+|\\[[^\\[\\]]*\\])*\\]|\\|(?:[^|]+)*\\|))';
-  const term = `(?:${singleAtom}\\s*)+`;
-  const mathOp = '(?:[=+\\-−*/×⋅<>]|\\in|\\ge|\\le|\\neq|\\pm|\\cdot|\\times)';
-  const compoundMath = new RegExp(`(?<![a-zA-Z0-9_\\$])(${term}\\s*${mathOp}\\s*${term}(?:\\s*${mathOp}\\s*${term})*)(?![a-zA-Z0-9_\\$])`, 'g');
+  // Uses safe non-backtracking atoms (no nested + quantifiers)
+  const singleAtom = '(?:-?\\s*(?:[0-9]+(?:\\.[0-9]+)?|\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_[0-9a-zA-Z]+|\\^[0-9a-zA-Z]+)*|(?<![a-zA-Z])[a-zA-Z](?![a-zA-Z])(?:_[0-9a-zA-Z]+|\\^[0-9a-zA-Z]+)*|\\([^()\\n]{1,80}\\)|\\[[^\\[\\]\\n]{1,80}\\]|\\|[^|\\n]{1,80}\\|))';
+  const mathOp = '(?:[=+\\-−*/×⋅<>]|\\\\in\\b|\\\\ge\\b|\\\\le\\b|\\\\neq\\b|\\\\pm\\b|\\\\cdot|\\\\times)';
+  const compoundMath = new RegExp(`(?<![a-zA-Z0-9_\\$])(${singleAtom}\\s*${mathOp}\\s*${singleAtom}(?:\\s*${mathOp}\\s*${singleAtom}){0,6})(?![a-zA-Z0-9_\\$])`, 'g');
   s = s.replace(compoundMath, (_, m) => {
     // If it contains English prose words like "is", "then", "and", "between", don't wrap entire thing
     if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where|satisfying|between|perpendicular)\b/i.test(m)) {
@@ -540,7 +539,7 @@ export function normalizeMathText(raw: string): string {
       if (left.endsWith('^') || left.endsWith('_')) return match;
       return `${left} ${op} ${right}`;
     });
-    res = res.replace(/([0-9a-zA-Z\\\}])\s*(>=|<=|≥|≤|>|<|≠|\\neq|\\ge|\\le|\\in)\s*([0-9a-zA-Z\\\{])/g, '$1 $2 $3');
+    res = res.replace(/([0-9a-zA-Z\}])\s*(>=|<=|≥|≤|>|<|≠|\\neq\b|\\ge\b|\\le\b|\\in\b)\s*([0-9a-zA-Z\\\{])/g, '$1 $2 $3');
 
     // 16. Vectors in 3D: i+2j+k -> \hat{i} + 2\hat{j} + \hat{k}
     res = res.replace(/\b([0-9]*)\s*i\s*([+-])\s*([0-9]*)\s*j\s*([+-])\s*([0-9]*)\s*k\b/g, (_, c1, s1, c2, s2, c3) => {
