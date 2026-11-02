@@ -7,12 +7,55 @@ import styles from './FloatingLeadWidget.module.scss';
 export const FloatingLeadWidget: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCallbackOrFooterVisible, setIsCallbackOrFooterVisible] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isCbtActive, setIsCbtActive] = useState(false);
   const location = useLocation();
 
   // Hide on admin routes, auth pages, or student authenticated areas to maintain clean flow
   const isHidden = ['/admin', '/login', '/signup', '/forgot-password', '/reset-password', '/profile', '/classroom'].some((p) =>
     location.pathname.startsWith(p)
   );
+
+  // Monitor fullscreen mode and active CBT test exam mode so Request Callback NEVER shows in fullscreen or exams
+  useEffect(() => {
+    const checkFullscreenAndExam = () => {
+      const fs = Boolean(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(fs);
+
+      const cbt = Boolean(
+        document.body.classList.contains('cbt-exam-active') ||
+        document.documentElement.classList.contains('cbt-exam-active') ||
+        document.querySelector('[class*="fullscreenCbtWrapper"]') ||
+        document.querySelector('[class*="TestTakingView"]')
+      );
+      setIsCbtActive(cbt);
+    };
+
+    checkFullscreenAndExam();
+
+    document.addEventListener('fullscreenchange', checkFullscreenAndExam);
+    document.addEventListener('webkitfullscreenchange', checkFullscreenAndExam);
+    document.addEventListener('mozfullscreenchange', checkFullscreenAndExam);
+    document.addEventListener('MSFullscreenChange', checkFullscreenAndExam);
+    window.addEventListener('resize', checkFullscreenAndExam);
+
+    const observer = new MutationObserver(checkFullscreenAndExam);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    return () => {
+      document.removeEventListener('fullscreenchange', checkFullscreenAndExam);
+      document.removeEventListener('webkitfullscreenchange', checkFullscreenAndExam);
+      document.removeEventListener('mozfullscreenchange', checkFullscreenAndExam);
+      document.removeEventListener('MSFullscreenChange', checkFullscreenAndExam);
+      window.removeEventListener('resize', checkFullscreenAndExam);
+      observer.disconnect();
+    };
+  }, []);
 
   // IntersectionObserver to detect when callback form, hero CTAs, or footer are in viewport (Requirement 2)
   useEffect(() => {
@@ -63,7 +106,7 @@ export const FloatingLeadWidget: React.FC = () => {
     };
   }, [isHidden, location.pathname]);
 
-  if (isHidden) return null;
+  if (isHidden || isFullscreen || isCbtActive) return null;
 
   return (
     <>

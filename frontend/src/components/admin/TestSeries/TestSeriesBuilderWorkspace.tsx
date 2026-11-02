@@ -6010,21 +6010,22 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               )}
             </div>
 
-            <div className={styles.modalFooterActions} style={{ padding: '16px 20px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div className={styles.smartPasteFooter}>
               <button
                 type="button"
-                className={styles.cancelBtn}
+                className={styles.smartPasteCancelBtn}
                 onClick={() => setIsSmartPasteModalOpen(false)}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className={styles.submitCreateBtn}
+                className={styles.smartPasteApplyBtn}
                 disabled={!smartPasteText.trim()}
                 onClick={handleApplySmartPaste}
               >
-                ✓ Apply &amp; Auto-Fill Question
+                <CheckCircle2 size={16} />
+                <span>Apply &amp; Auto-Fill Question</span>
               </button>
             </div>
           </div>

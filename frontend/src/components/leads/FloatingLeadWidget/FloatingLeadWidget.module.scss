@@ -17,6 +17,17 @@
     pointer-events: none;
     transform: translateY(24px);
   }
+
+  // Never display in fullscreen mode or during CBT exams / test taking
+  :global(:fullscreen) &,
+  :global(:-webkit-full-screen) &,
+  :global(body.cbt-exam-active) &,
+  :global(.cbt-exam-active) & {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
 }
 
 .fabButton {
