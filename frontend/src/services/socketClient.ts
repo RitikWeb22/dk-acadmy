@@ -42,13 +42,18 @@ export const initSocketClient = (): Socket => {
     return window.location.pathname.startsWith('/admin');
   };
 
+  let lastSocketConnectSyncTime = 0;
   socket.on('connect', () => {
-    // Fetch latest courses & CMS configs from MongoDB upon connection
-    cmsService.fetchCoursesFromAPI().catch(() => {});
-    cmsService.fetchTestSeriesFromAPI().catch(() => {});
-    cmsService.fetchNavbarFromAPI().catch(() => {});
-    cmsService.fetchFooterFromAPI().catch(() => {});
-    cmsService.fetchPagesFromAPI().catch(() => {});
+    const now = Date.now();
+    // Only fetch upon first connection or if at least 15 seconds have passed
+    if (now - lastSocketConnectSyncTime > 15000) {
+      lastSocketConnectSyncTime = now;
+      cmsService.fetchCoursesFromAPI().catch(() => {});
+      cmsService.fetchTestSeriesFromAPI().catch(() => {});
+      cmsService.fetchNavbarFromAPI().catch(() => {});
+      cmsService.fetchFooterFromAPI().catch(() => {});
+      cmsService.fetchPagesFromAPI().catch(() => {});
+    }
 
     // Sync initial notifications from MongoDB ONLY when currently inside Admin portal
     if (isCurrentClientAdmin()) {

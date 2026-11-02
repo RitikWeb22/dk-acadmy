@@ -1064,6 +1064,24 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
 };
 
 // ----------------------------------------------------
+// IN-FLIGHT DEDUPLICATION & RATE-LIMIT GUARDS
+// ----------------------------------------------------
+let inFlightCourses: Promise<Course[]> | null = null;
+let lastCoursesFetchTime = 0;
+
+let inFlightTestSeries: Promise<TestSeriesItem[]> | null = null;
+let lastTestSeriesFetchTime = 0;
+
+let inFlightNavbar: Promise<NavbarMenuItem[]> | null = null;
+let lastNavbarFetchTime = 0;
+
+let inFlightFooter: Promise<FooterConfig> | null = null;
+let lastFooterFetchTime = 0;
+
+let inFlightPages: Promise<Record<string, PageContentConfig>> | null = null;
+let lastPagesFetchTime = 0;
+
+// ----------------------------------------------------
 // CMS SERVICE IMPLEMENTATION
 // ----------------------------------------------------
 
@@ -1071,10 +1089,10 @@ export const cmsService = {
   /**
    * Broadcast an event to trigger live component updates across the app
    */
-  notifyUpdate(type: 'navbar' | 'footer' | 'courses' | 'pages' | 'test_series' | 'pyqs' | 'dpp' | 'results' | 'classroom' | string, id?: string): void {
+  notifyUpdate(type: 'navbar' | 'footer' | 'courses' | 'pages' | 'test_series' | 'pyqs' | 'dpp' | 'results' | 'classroom' | string, id?: string, extra?: Record<string, any>): void {
     window.dispatchEvent(
       new CustomEvent(CMS_EVENT_KEY, {
-        detail: { type, id, timestamp: Date.now() }
+        detail: { type, id, timestamp: Date.now(), ...(extra || {}) }
       })
     );
   },
@@ -1108,64 +1126,97 @@ export const cmsService = {
   },
 
   async fetchNavbarFromAPI(): Promise<NavbarMenuItem[]> {
-    try {
-      const res = await apiClient.get<any>('/cms/navbar');
-      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-        localStorage.setItem(NAVBAR_STORAGE_KEY, JSON.stringify(res.data));
-        this.notifyUpdate('navbar');
-        return res.data;
+    if (inFlightNavbar) return inFlightNavbar;
+    const now = Date.now();
+    if (now - lastNavbarFetchTime < 3000) return this.getNavbarItems();
+    lastNavbarFetchTime = now;
+
+    inFlightNavbar = (async () => {
+      try {
+        const res = await apiClient.get<any>('/cms/navbar');
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          localStorage.setItem(NAVBAR_STORAGE_KEY, JSON.stringify(res.data));
+          this.notifyUpdate('navbar', undefined, { source: 'cache_sync' });
+          return res.data;
+        }
+      } catch (err) {
+        console.warn('[cmsService] fetchNavbarFromAPI fallback:', err);
+      } finally {
+        inFlightNavbar = null;
       }
-    } catch (err) {
-      console.warn('[cmsService] fetchNavbarFromAPI fallback:', err);
-    }
-    return this.getNavbarItems();
+      return this.getNavbarItems();
+    })();
+
+    return inFlightNavbar;
   },
 
   async fetchFooterFromAPI(): Promise<FooterConfig> {
-    try {
-      const res = await apiClient.get<any>('/cms/footer');
-      if (res && res.success && res.data && typeof res.data === 'object') {
-        localStorage.setItem(FOOTER_STORAGE_KEY, JSON.stringify(res.data));
-        this.notifyUpdate('footer');
-        return res.data;
+    if (inFlightFooter) return inFlightFooter;
+    const now = Date.now();
+    if (now - lastFooterFetchTime < 3000) return this.getFooterConfig();
+    lastFooterFetchTime = now;
+
+    inFlightFooter = (async () => {
+      try {
+        const res = await apiClient.get<any>('/cms/footer');
+        if (res && res.success && res.data && typeof res.data === 'object') {
+          localStorage.setItem(FOOTER_STORAGE_KEY, JSON.stringify(res.data));
+          this.notifyUpdate('footer', undefined, { source: 'cache_sync' });
+          return res.data;
+        }
+      } catch (err) {
+        console.warn('[cmsService] fetchFooterFromAPI fallback:', err);
+      } finally {
+        inFlightFooter = null;
       }
-    } catch (err) {
-      console.warn('[cmsService] fetchFooterFromAPI fallback:', err);
-    }
-    return this.getFooterConfig();
+      return this.getFooterConfig();
+    })();
+
+    return inFlightFooter;
   },
 
   async fetchPagesFromAPI(): Promise<Record<string, PageContentConfig>> {
-    try {
-      const res = await apiClient.get<any>('/cms/pages');
-      if (res && res.success && res.data && typeof res.data === 'object') {
-        const data = res.data;
-        const defHome = DEFAULT_PAGE_CONFIGS['home'];
-        // Ensure home has all 8 sections
-        if (!data.home || !data.home.customSections || data.home.customSections.length < 6 || !data.home.customSections.some((s: any) => s.id === 'sec_home_why_us')) {
-          data.home = {
-            ...defHome,
-            ...(data.home || {}),
-            customSections: defHome.customSections
-          };
+    if (inFlightPages) return inFlightPages;
+    const now = Date.now();
+    if (now - lastPagesFetchTime < 3000) return this.getAllPageConfigs();
+    lastPagesFetchTime = now;
+
+    inFlightPages = (async () => {
+      try {
+        const res = await apiClient.get<any>('/cms/pages');
+        if (res && res.success && res.data && typeof res.data === 'object') {
+          const data = res.data;
+          const defHome = DEFAULT_PAGE_CONFIGS['home'];
+          // Ensure home has all 8 sections
+          if (!data.home || !data.home.customSections || data.home.customSections.length < 6 || !data.home.customSections.some((s: any) => s.id === 'sec_home_why_us')) {
+            data.home = {
+              ...defHome,
+              ...(data.home || {}),
+              customSections: defHome.customSections
+            };
+          }
+          // Ensure about has all 5 sections
+          const defAbout = DEFAULT_PAGE_CONFIGS['about'];
+          if (!data.about || !data.about.customSections || data.about.customSections.length < 4 || !data.about.customSections.some((s: any) => s.id === 'sec_about_methodology')) {
+            data.about = {
+              ...defAbout,
+              ...(data.about || {}),
+              customSections: defAbout.customSections
+            };
+          }
+          localStorage.setItem(PAGES_STORAGE_KEY, JSON.stringify(data));
+          this.notifyUpdate('pages', undefined, { source: 'cache_sync' });
+          return data;
         }
-        // Ensure about has all 5 sections
-        const defAbout = DEFAULT_PAGE_CONFIGS['about'];
-        if (!data.about || !data.about.customSections || data.about.customSections.length < 4 || !data.about.customSections.some((s: any) => s.id === 'sec_about_methodology')) {
-          data.about = {
-            ...defAbout,
-            ...(data.about || {}),
-            customSections: defAbout.customSections
-          };
-        }
-        localStorage.setItem(PAGES_STORAGE_KEY, JSON.stringify(data));
-        this.notifyUpdate('pages');
-        return data;
+      } catch (err) {
+        console.warn('[cmsService] fetchPagesFromAPI fallback:', err);
+      } finally {
+        inFlightPages = null;
       }
-    } catch (err) {
-      console.warn('[cmsService] fetchPagesFromAPI fallback:', err);
-    }
-    return this.getAllPageConfigs();
+      return this.getAllPageConfigs();
+    })();
+
+    return inFlightPages;
   },
 
   addNavbarItem(item: Omit<NavbarMenuItem, 'id'>): NavbarMenuItem {
@@ -1326,87 +1377,98 @@ export const cmsService = {
   },
 
   async fetchCoursesFromAPI(): Promise<Course[]> {
-    try {
-      const res = await apiClient.get('/courses');
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const mongoCourses: Course[] = res.data.map((c: any) => {
-          const numPrice = typeof c.price === 'number' ? c.price : parseInt(String(c.price || '').replace(/\D/g, '') || '0', 10);
-          const origPrice = typeof c.originalPrice === 'number' ? c.originalPrice : (numPrice > 0 ? numPrice + 15000 : 0);
-          
-          return {
-            id: c.slug || c._id,
-            slug: c.slug || c.id,
-            _id: c._id,
-            title: c.title,
-            description: c.description || 'Comprehensive JEE coaching program with DK Sir 20s speed techniques.',
-            targetExam: (c.targetExam || c.category || 'JEE Main & Advanced') as any,
-            category: (c.category || 'JEE Main') as any,
-            targetClass: (c.targetClass || 'Class 11th') as any,
-            targetYear: c.targetYear || 'Target JEE 2028',
-            price: numPrice === 0 ? '₹0 Free' : `₹${numPrice.toLocaleString('en-IN')}`,
-            numericPrice: numPrice,
-            originalPrice: origPrice > 0 ? `₹${origPrice.toLocaleString('en-IN')}` : undefined,
-            mode: (c.deliveryMode || c.mode || 'Live') as any,
-            courseType: c.courseType || (c.deliveryMode === 'Online Live' ? 'live' : c.mode === 'Online Test Series' ? 'test-series' : 'dlp'),
-            duration: c.duration || '2-Year Full Program',
-            language: c.language || 'Hinglish (Hindi + Eng)',
-            subjects: Array.isArray(c.subjects) && c.subjects.length > 0
-              ? c.subjects
-              : c.title?.toLowerCase().includes('math')
-              ? ['Mathematics']
-              : c.title?.toLowerCase().includes('physics')
-              ? ['Physics']
-              : c.title?.toLowerCase().includes('chemistry')
-              ? ['Chemistry']
-              : ['Physics', 'Chemistry', 'Mathematics'],
-            level: c.level || c.targetClass,
-            features: Array.isArray(c.features)
-              ? c.features
-              : typeof c.features === 'string'
-              ? (c.features as string).split(/(?=[A-Z][a-z]+)/).filter(Boolean)
-              : [
-                  'DK Sir 20-30s Speed Solving Algorithms',
-                  'Live Audio Doubt Counter 6 Days/Week',
-                  'Printed Theory Modules & Daily DPPs'
-                ],
-            coverImage: c.coverImage || '/img/dk-results-banner.jpeg',
-            demoVideoUrl: c.demoVideoUrl || '',
-            tags: Array.isArray(c.tags) ? c.tags : [],
-            badge: c.badge || (numPrice === 0 ? '100% Free Demo Access' : 'Flagship Batch'),
-            badgeUrgency: (numPrice === 0 ? 'instant' : 'popular') as any,
-            tier: c.tier || (numPrice === 0 ? 'Free' : 'Paid'),
-            curriculumSections: Array.isArray(c.curriculumSections) ? c.curriculumSections : [],
-            enrolledCount: c.enrolmentCount || c.enrolledCount || 34,
-            rating: c.rating || 4.9,
-            isPublished: c.isPublished !== false,
-            status: (c.status === 'draft' ? 'Draft' : 'Published') as any,
-            instructor: c.instructor || 'Prof. R.K. Verma & DK Sir'
-          };
-        });
+    if (inFlightCourses) return inFlightCourses;
+    const now = Date.now();
+    if (now - lastCoursesFetchTime < 3000) return this.getCourses();
+    lastCoursesFetchTime = now;
 
-        // Merge MongoDB courses with local/catalog courses so free demo items are retained
-        const localCourses = this.getCourses();
-        const mergedMap = new Map<string, Course>();
+    inFlightCourses = (async () => {
+      try {
+        const res = await apiClient.get('/courses');
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const mongoCourses: Course[] = res.data.map((c: any) => {
+            const numPrice = typeof c.price === 'number' ? c.price : parseInt(String(c.price || '').replace(/\D/g, '') || '0', 10);
+            const origPrice = typeof c.originalPrice === 'number' ? c.originalPrice : (numPrice > 0 ? numPrice + 15000 : 0);
+            
+            return {
+              id: c.slug || c._id,
+              slug: c.slug || c.id,
+              _id: c._id,
+              title: c.title,
+              description: c.description || 'Comprehensive JEE coaching program with DK Sir 20s speed techniques.',
+              targetExam: (c.targetExam || c.category || 'JEE Main & Advanced') as any,
+              category: (c.category || 'JEE Main') as any,
+              targetClass: (c.targetClass || 'Class 11th') as any,
+              targetYear: c.targetYear || 'Target JEE 2028',
+              price: numPrice === 0 ? '₹0 Free' : `₹${numPrice.toLocaleString('en-IN')}`,
+              numericPrice: numPrice,
+              originalPrice: origPrice > 0 ? `₹${origPrice.toLocaleString('en-IN')}` : undefined,
+              mode: (c.deliveryMode || c.mode || 'Live') as any,
+              courseType: c.courseType || (c.deliveryMode === 'Online Live' ? 'live' : c.mode === 'Online Test Series' ? 'test-series' : 'dlp'),
+              duration: c.duration || '2-Year Full Program',
+              language: c.language || 'Hinglish (Hindi + Eng)',
+              subjects: Array.isArray(c.subjects) && c.subjects.length > 0
+                ? c.subjects
+                : c.title?.toLowerCase().includes('math')
+                ? ['Mathematics']
+                : c.title?.toLowerCase().includes('physics')
+                ? ['Physics']
+                : c.title?.toLowerCase().includes('chemistry')
+                ? ['Chemistry']
+                : ['Physics', 'Chemistry', 'Mathematics'],
+              level: c.level || c.targetClass,
+              features: Array.isArray(c.features)
+                ? c.features
+                : typeof c.features === 'string'
+                ? (c.features as string).split(/(?=[A-Z][a-z]+)/).filter(Boolean)
+                : [
+                    'DK Sir 20-30s Speed Solving Algorithms',
+                    'Live Audio Doubt Counter 6 Days/Week',
+                    'Printed Theory Modules & Daily DPPs'
+                  ],
+              coverImage: c.coverImage || '/img/dk-results-banner.jpeg',
+              demoVideoUrl: c.demoVideoUrl || '',
+              tags: Array.isArray(c.tags) ? c.tags : [],
+              badge: c.badge || (numPrice === 0 ? '100% Free Demo Access' : 'Flagship Batch'),
+              badgeUrgency: (numPrice === 0 ? 'instant' : 'popular') as any,
+              tier: c.tier || (numPrice === 0 ? 'Free' : 'Paid'),
+              curriculumSections: Array.isArray(c.curriculumSections) ? c.curriculumSections : [],
+              enrolledCount: c.enrolmentCount || c.enrolledCount || 34,
+              rating: c.rating || 4.9,
+              isPublished: c.isPublished !== false,
+              status: (c.status === 'draft' ? 'Draft' : 'Published') as any,
+              instructor: c.instructor || 'Prof. R.K. Verma & DK Sir'
+            };
+          });
 
-        // 1. Add MongoDB courses (primary source of truth)
-        mongoCourses.forEach((c) => mergedMap.set(c.id, c));
+          // Merge MongoDB courses with local/catalog courses so free demo items are retained
+          const localCourses = this.getCourses();
+          const mergedMap = new Map<string, Course>();
 
-        // 2. Add local or catalog courses not yet in MongoDB
-        localCourses.forEach((c) => {
-          if (!mergedMap.has(c.id)) {
-            mergedMap.set(c.id, c);
-          }
-        });
+          // 1. Add MongoDB courses (primary source of truth)
+          mongoCourses.forEach((c) => mergedMap.set(c.id, c));
 
-        const mergedList = Array.from(mergedMap.values());
-        localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(mergedList));
-        this.notifyUpdate('courses');
-        return mergedList;
+          // 2. Add local or catalog courses not yet in MongoDB
+          localCourses.forEach((c) => {
+            if (!mergedMap.has(c.id)) {
+              mergedMap.set(c.id, c);
+            }
+          });
+
+          const mergedList = Array.from(mergedMap.values());
+          localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(mergedList));
+          this.notifyUpdate('courses', undefined, { source: 'cache_sync' });
+          return mergedList;
+        }
+      } catch (err) {
+        console.warn('[cmsService] Failed to sync courses from MongoDB API:', err);
+      } finally {
+        inFlightCourses = null;
       }
-    } catch (err) {
-      console.warn('[cmsService] Failed to sync courses from MongoDB API:', err);
-    }
-    return this.getCourses();
+      return this.getCourses();
+    })();
+
+    return inFlightCourses;
   },
 
   getCourseById(id: string): Course | undefined {
@@ -1743,29 +1805,40 @@ export const cmsService = {
   },
 
   async fetchTestSeriesFromAPI(): Promise<TestSeriesItem[]> {
-    try {
-      const response = await apiClient.get<TestSeriesItem[]>('/test-series');
-      const items = Array.isArray(response) ? response : (response as any)?.data || [];
-      if (Array.isArray(items)) {
-        const deletedIds = this.getDeletedIds();
-        const activeItems = items.filter(
-          (t: any) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
-        );
-        const sanitized = activeItems.map((t: any) => ({
-          ...t,
-          markingScheme: t.markingScheme && typeof t.markingScheme.correct === 'number'
-            ? t.markingScheme
-            : { correct: 4, incorrect: 1, unattempted: 0 },
-          questions: Array.isArray(t.questions) ? t.questions : []
-        }));
-        localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(sanitized));
-        this.notifyUpdate('test_series');
-        return sanitized;
+    if (inFlightTestSeries) return inFlightTestSeries;
+    const now = Date.now();
+    if (now - lastTestSeriesFetchTime < 3000) return this.getTestSeries();
+    lastTestSeriesFetchTime = now;
+
+    inFlightTestSeries = (async () => {
+      try {
+        const response = await apiClient.get<TestSeriesItem[]>('/test-series');
+        const items = Array.isArray(response) ? response : (response as any)?.data || [];
+        if (Array.isArray(items)) {
+          const deletedIds = this.getDeletedIds();
+          const activeItems = items.filter(
+            (t: any) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
+          );
+          const sanitized = activeItems.map((t: any) => ({
+            ...t,
+            markingScheme: t.markingScheme && typeof t.markingScheme.correct === 'number'
+              ? t.markingScheme
+              : { correct: 4, incorrect: 1, unattempted: 0 },
+            questions: Array.isArray(t.questions) ? t.questions : []
+          }));
+          localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(sanitized));
+          this.notifyUpdate('test_series', undefined, { source: 'cache_sync' });
+          return sanitized;
+        }
+      } catch (err) {
+        console.warn('[cmsService] Failed to fetch test series from API, using cached data:', err);
+      } finally {
+        inFlightTestSeries = null;
       }
-    } catch (err) {
-      console.warn('[cmsService] Failed to fetch test series from API, using cached data:', err);
-    }
-    return this.getTestSeries();
+      return this.getTestSeries();
+    })();
+
+    return inFlightTestSeries;
   },
 
   getTestSeries(): TestSeriesItem[] {

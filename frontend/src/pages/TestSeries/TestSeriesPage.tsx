@@ -143,16 +143,18 @@ export const TestSeriesPage: React.FC = () => {
 
     syncTestSeries();
 
-    const handleUpdate = () => {
-      syncTestSeries();
+    const handleUpdate = (e: any) => {
+      if (e?.detail?.type && e.detail.type !== 'test_series') return;
+      setTestSeriesList(cmsService.getTestSeries());
     };
 
     const handleDeleteEvent = (e: any) => {
       const deletedId = e.detail?.id;
       if (deletedId) {
         setTestSeriesList((prev) => prev.filter((t) => t.id !== deletedId && t.slug !== deletedId));
+      } else {
+        setTestSeriesList(cmsService.getTestSeries());
       }
-      syncTestSeries();
     };
 
     window.addEventListener(CMS_EVENT_KEY, handleUpdate);

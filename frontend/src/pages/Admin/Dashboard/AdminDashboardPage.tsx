@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -212,7 +212,14 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
     totalPaidLectures: 0
   });
 
+  const isSyncingRef = useRef(false);
+  const lastSyncTimeRef = useRef(0);
+
   const fetchAnalytics = async () => {
+    const now = Date.now();
+    if (isSyncingRef.current || now - lastSyncTimeRef.current < 2500) return;
+    isSyncingRef.current = true;
+    lastSyncTimeRef.current = now;
     setIsSyncing(true);
     try {
       const res = await apiClient.get('/analytics');
@@ -235,6 +242,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
       console.warn('[AdminDashboard] Analytics load fallback:', err);
     } finally {
       setIsSyncing(false);
+      isSyncingRef.current = false;
     }
   };
 

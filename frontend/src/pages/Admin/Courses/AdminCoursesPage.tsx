@@ -155,7 +155,7 @@ export const AdminCoursesPage: React.FC = () => {
 
   useEffect(() => {
     refreshCourses();
-    const handleCmsUpdate = () => refreshCourses();
+    const handleCmsUpdate = () => setCourses(cmsService.getCourses());
     window.addEventListener(CMS_EVENT_KEY, handleCmsUpdate);
     window.addEventListener('dk_course_created', handleCmsUpdate);
     window.addEventListener('dk_course_updated', handleCmsUpdate);

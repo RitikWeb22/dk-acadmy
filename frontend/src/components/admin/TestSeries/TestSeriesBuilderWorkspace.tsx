@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileText,
@@ -665,7 +665,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [cbtSubmitted, setCbtSubmitted] = useState<boolean>(false);
 
   // Fetch live test series from MongoDB
+  const isFetchingLiveRef = useRef(false);
+  const lastLiveFetchTimeRef = useRef(0);
+
   const fetchLiveTestSeries = async () => {
+    const now = Date.now();
+    if (isFetchingLiveRef.current || now - lastLiveFetchTimeRef.current < 2500) return;
+    isFetchingLiveRef.current = true;
+    lastLiveFetchTimeRef.current = now;
     setIsLoadingList(true);
     try {
       const res = await apiClient.get<any>('/test-series');
@@ -711,6 +718,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       console.warn('[TestSeries] Could not fetch live test series, using cached:', err);
     } finally {
       setIsLoadingList(false);
+      isFetchingLiveRef.current = false;
     }
   };
 
