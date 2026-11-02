@@ -549,7 +549,8 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
         formulaKey: q.formulaKey || q.topicTag,
         explanation: q.explanation || q.stepSolution || q.solutionDerivation || '',
         shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
-        videoSolutionUrl: q.videoSolutionUrl
+        videoSolutionUrl: q.videoSolutionUrl || '',
+        pdfSolutionUrl: q.pdfSolutionUrl || ''
       }));
       payload.totalQuestions = payload.questions.length;
       if (!payload.totalMarks || payload.totalMarks === 0) {
@@ -642,7 +643,8 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
         formulaKey: q.formulaKey || q.topicTag,
         explanation: q.explanation || q.stepSolution || q.solutionDerivation || '',
         shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
-        videoSolutionUrl: q.videoSolutionUrl
+        videoSolutionUrl: q.videoSolutionUrl || '',
+        pdfSolutionUrl: q.pdfSolutionUrl || ''
       }));
       updates.totalQuestions = updates.questions.length;
     }
@@ -933,6 +935,16 @@ export const getTestSeriesSubmissionSolution = async (req: AuthRequest, res: Res
       await submission.save().catch(() => {});
     }
 
+    // Collect question-level solutions for difficult questions
+    const questionSolutions = (test?.questions || [])
+      .map((q: any) => ({
+        questionId: q.id || q._id,
+        questionNumber: q.questionNumber,
+        videoSolutionUrl: q.videoSolutionUrl || undefined,
+        pdfSolutionUrl: q.pdfSolutionUrl || undefined
+      }))
+      .filter((q: any) => q.videoSolutionUrl || q.pdfSolutionUrl);
+
     res.status(200).json({
       success: true,
       isUnlocked: true,
@@ -942,7 +954,8 @@ export const getTestSeriesSubmissionSolution = async (req: AuthRequest, res: Res
         submittedAt: submission.submittedAt,
         solutionUnlockAt: submission.solutionSchedule.solutionUnlockAt,
         pdfSolutionUrl: pdfUrl || undefined,
-        videoSolutionUrl: videoUrl || undefined
+        videoSolutionUrl: videoUrl || undefined,
+        questionSolutions: questionSolutions.length > 0 ? questionSolutions : undefined
       }
     });
   } catch (error: any) {
@@ -1078,17 +1091,21 @@ export const updateTestSeriesSolutionConfig = async (req: AuthRequest, res: Resp
       if (!trimmedPdf && !trimmedVideo) {
         res.status(400).json({
           success: false,
-          message: 'At least one valid solution URL (PDF or Google Drive Video) must be provided to enable Scheduled Solution Release.'
+          message: 'At least one valid solution URL (PDF, Google Drive Video, or YouTube Video) must be provided to enable Scheduled Solution Release.'
         });
         return;
       }
     }
 
-    // Validate Google Drive URL format
-    if (trimmedVideo && !trimmedVideo.includes('drive.google.com')) {
+    // Validate Video URL format (supports Google Drive and YouTube)
+    const isDrive = trimmedVideo.includes('drive.google.com');
+    const isYouTube = trimmedVideo.includes('youtube.com') || trimmedVideo.includes('youtu.be');
+    const isValidHttp = trimmedVideo.startsWith('http://') || trimmedVideo.startsWith('https://');
+
+    if (trimmedVideo && (!isValidHttp || (!isDrive && !isYouTube))) {
       res.status(400).json({
         success: false,
-        message: 'Video Solution URL must be a valid Google Drive sharing link (drive.google.com).'
+        message: 'Video Solution URL must be a valid Google Drive (drive.google.com) or YouTube (youtube.com / youtu.be) link.'
       });
       return;
     }

@@ -57,7 +57,8 @@ import {
   Shield,
   Sliders,
   Globe,
-  Hash
+  Hash,
+  Video
 } from 'lucide-react';
 import styles from './TestSeriesBuilderWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
@@ -109,6 +110,7 @@ export interface QuestionItem {
   solutionDerivation: string;
   shortcutTrick: string;
   videoSolutionUrl?: string;
+  pdfSolutionUrl?: string;
 }
 
 export interface TestSeriesTableItem {
@@ -519,7 +521,8 @@ export const mapBackendQuestionsToBuilder = (rawQuestions: any[]): QuestionItem[
       numericalAnswer: q.numericalAnswer ? String(q.numericalAnswer) : undefined,
       solutionDerivation: q.explanation || q.stepSolution || q.solutionDerivation ? normalizeMathText(q.explanation || q.stepSolution || q.solutionDerivation) : '',
       shortcutTrick: q.shortcutTrick || q.dkSirShortcut ? normalizeMathText(q.shortcutTrick || q.dkSirShortcut) : '',
-      videoSolutionUrl: q.videoSolutionUrl
+      videoSolutionUrl: q.videoSolutionUrl || '',
+      pdfSolutionUrl: q.pdfSolutionUrl || ''
     };
   });
 };
@@ -691,13 +694,17 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     const trimmedVideo = solutionVideoUrl.trim();
 
     if (solutionReleaseEnabled && !trimmedPdf && !trimmedVideo) {
-      setToastMessage('At least one valid solution URL (PDF or Google Drive Video) is required to enable scheduled release.');
+      setToastMessage('At least one valid solution URL (PDF, Google Drive, or YouTube) is required to enable scheduled release.');
       setTimeout(() => setToastMessage(null), 4000);
       return;
     }
 
-    if (trimmedVideo && !trimmedVideo.includes('drive.google.com')) {
-      setToastMessage('Video URL must be a valid Google Drive sharing link (drive.google.com).');
+    const isDrive = trimmedVideo.includes('drive.google.com');
+    const isYouTube = trimmedVideo.includes('youtube.com') || trimmedVideo.includes('youtu.be');
+    const isValidHttp = trimmedVideo.startsWith('http://') || trimmedVideo.startsWith('https://');
+
+    if (trimmedVideo && (!isValidHttp || (!isDrive && !isYouTube))) {
+      setToastMessage('Video URL must be a valid Google Drive (drive.google.com) or YouTube (youtube.com / youtu.be) link.');
       setTimeout(() => setToastMessage(null), 4000);
       return;
     }
@@ -2284,7 +2291,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         formulaKey: q.topicTag,
         explanation: q.solutionDerivation,
         shortcutTrick: q.shortcutTrick,
-        videoSolutionUrl: q.videoSolutionUrl
+        videoSolutionUrl: q.videoSolutionUrl || '',
+        pdfSolutionUrl: q.pdfSolutionUrl || ''
       })),
       batch: wizardBatch,
       accessLevel: accessLevel,
@@ -4124,6 +4132,72 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Question-Specific Scheduled Solution Attachments (Video & PDF) */}
+                  <div
+                    style={{
+                      marginTop: '20px',
+                      padding: '16px 18px',
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '10px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Video size={16} color="#2563EB" />
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B' }}>
+                          Question Solution &amp; Video Walkthrough (Scheduled Release Protected)
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#64748B', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '2px 8px', borderRadius: '12px' }}>
+                        Optional • For Difficult Questions
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#64748B', margin: '0 0 14px 0' }}>
+                      Attach dedicated video explanations (YouTube or Google Drive) and PDF derivations for this question. These solutions remain locked until the student's scheduled release timer.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                          Video Solution URL (YouTube / Google Drive):
+                        </label>
+                        <input
+                          type="url"
+                          value={currentEditingQuestion.videoSolutionUrl || ''}
+                          onChange={(e) => updateCurrentQuestion({ videoSolutionUrl: e.target.value })}
+                          placeholder="https://www.youtube.com/watch?v=... or Drive link"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            fontSize: '12.5px'
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                          PDF Solution URL:
+                        </label>
+                        <input
+                          type="url"
+                          value={currentEditingQuestion.pdfSolutionUrl || ''}
+                          onChange={(e) => updateCurrentQuestion({ pdfSolutionUrl: e.target.value })}
+                          placeholder="https://.../question-solution.pdf"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            fontSize: '12.5px'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className={styles.stepActionBarBetween}>
                     <button type="button" className={styles.prevStepBtn} onClick={handlePrevStep}>
                       <span>← Prev: Section Rules</span>
@@ -4659,29 +4733,38 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Video Solution URL (Google Drive) */}
+                      {/* Video Solution URL (Google Drive or YouTube) */}
                       <div>
                         <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                          Video Solution URL (Google Drive Sharing Link):
+                          Video Solution URL (YouTube or Google Drive Link):
                         </label>
                         <input
                           type="url"
                           value={solutionVideoUrl}
                           onChange={(e) => setSolutionVideoUrl(e.target.value)}
-                          placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                          placeholder="https://www.youtube.com/watch?v=... or https://drive.google.com/..."
                           style={{
                             width: '100%',
                             padding: '9px 12px',
                             borderRadius: '8px',
-                            border: solutionVideoUrl && !solutionVideoUrl.includes('drive.google.com') ? '1px solid #EF4444' : '1px solid #CBD5E1',
+                            border:
+                              solutionVideoUrl &&
+                              !solutionVideoUrl.includes('drive.google.com') &&
+                              !solutionVideoUrl.includes('youtube.com') &&
+                              !solutionVideoUrl.includes('youtu.be')
+                                ? '1px solid #EF4444'
+                                : '1px solid #CBD5E1',
                             fontSize: '13px'
                           }}
                         />
-                        {solutionVideoUrl && !solutionVideoUrl.includes('drive.google.com') && (
-                          <span style={{ fontSize: '11px', color: '#DC2626', marginTop: '4px', display: 'block' }}>
-                            Must be a valid Google Drive sharing link (drive.google.com)
-                          </span>
-                        )}
+                        {solutionVideoUrl &&
+                          !solutionVideoUrl.includes('drive.google.com') &&
+                          !solutionVideoUrl.includes('youtube.com') &&
+                          !solutionVideoUrl.includes('youtu.be') && (
+                            <span style={{ fontSize: '11px', color: '#DC2626', marginTop: '4px', display: 'block' }}>
+                              Must be a valid YouTube (youtube.com / youtu.be) or Google Drive (drive.google.com) link
+                            </span>
+                          )}
                       </div>
 
                       {/* Release Delay Dropdown */}
