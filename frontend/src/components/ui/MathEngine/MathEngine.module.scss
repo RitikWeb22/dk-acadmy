@@ -14,8 +14,16 @@ $font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, 
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: break-word;
   text-align: left;
   overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
 }
@@ -25,9 +33,9 @@ $font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, 
   min-height: 1.6em;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: break-word;
   text-align: left;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
   margin-bottom: 0.25rem;
 
   &:last-child {
@@ -42,36 +50,43 @@ $font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, 
   text-align: left;
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
   padding: 0.5rem 0.6rem;
   background: rgba(248, 250, 252, 0.75);
   border-radius: 8px;
   border: 1px solid rgba(226, 232, 240, 0.8);
   -webkit-overflow-scrolling: touch;
 
-  // Custom sleek scrollbar for equations
-  &::-webkit-scrollbar {
-    height: 5px;
-  }
-  &::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-    &:hover {
-      background: #94a3b8;
-    }
-  }
-
   // KaTeX override inside display
   :global(.katex-display) {
     margin: 0 !important;
     padding: 0 !important;
     text-align: left !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    &::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
   }
   :global(.katex-display > .katex) {
     text-align: left !important;
+  }
+  :global(.katex-html) {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    &::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
   }
 }
 
