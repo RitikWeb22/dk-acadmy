@@ -3,19 +3,19 @@
 .card {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 22px;
+  border-radius: 16px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 10px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.02);
   position: relative;
 
   &:hover {
-    border-color: #bfdbfe;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px -4px rgba(37, 99, 235, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+    border-color: #93c5fd;
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px -8px rgba(37, 99, 235, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
   }
 }
 
@@ -303,26 +303,30 @@
 // "Start Test" (Solid Primary Blue)
 .startTestBtn {
   width: 100%;
-  height: 42px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  background-color: #2563eb;
+  gap: 8px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #ffffff;
-  border: 1.5px solid #2563eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
-  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background-color: #1d4ed8;
-    border-color: #1d4ed8;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.42);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
   }
 
   &:focus-visible {
@@ -393,26 +397,30 @@
 // "Resume Test" (Solid Amber/Warning)
 .resumeTestBtn {
   width: 100%;
-  height: 42px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  background-color: #d97706;
+  gap: 8px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: #ffffff;
-  border: 1.5px solid #d97706;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25);
-  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.32);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background-color: #b45309;
-    border-color: #b45309;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.42);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
   }
 
   &:focus-visible {
@@ -425,32 +433,36 @@
 .completedActionsGroup {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
 }
 
 .viewAnalysisBtn {
   flex: 1;
-  height: 42px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  background-color: #ffffff;
-  color: #2563eb;
-  border: 1.5px solid #2563eb;
-  border-radius: 8px;
+  gap: 8px;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 10px;
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
-  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background-color: #eff6ff;
-    border-color: #1d4ed8;
-    color: #1d4ed8;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+    background-color: #dbeafe;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.16);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   &:focus-visible {

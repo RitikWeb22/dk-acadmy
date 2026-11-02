@@ -379,6 +379,34 @@ export function normalizeMathText(raw: string): string {
   const processedLines = lines.map((line) => {
     let res = line;
 
+    // Word real-to-real function corruption: e.g. f:\vec{R}R -> $ f : \mathbb{R} \to \mathbb{R} $
+    res = res.replace(/\b([a-zA-Z])\s*:\s*(?:\\vec\{R\}R|\\vec\{R\}\s*R|RR|R\s*R)\b/g, '$ $1 : \\mathbb{R} \\to \\mathbb{R} $');
+
+    // Broken fraction powers where $ landed between numerator and denominator:
+    // e.g. x^{\frac{2}$ {2}} or x^{\frac{n}$ {n}}
+    res = res.replace(/\\frac\{([^{}]+)\}\s*\$\s*\{([^{}]+)\}\}/g, '\\frac{$1}{$2}}');
+    res = res.replace(/\\frac\{([^{}]+)\$\s*\{([^{}]+)\}\}/g, '\\frac{$1}{$2}}');
+    res = res.replace(/\\frac\{([^{}]+)\}\s*\$\s*\{([^{}]+)\}/g, '\\frac{$1}{$2}');
+    res = res.replace(/\\frac\{([^{}]+)\$\s*\{([^{}]+)\}/g, '\\frac{$1}{$2}');
+    res = res.replace(/\+\s*\$\s*\\dots\s*\+/g, '+ \\dots +');
+
+    // Stray $ in fraction: \frac{ $\pi$ }{4} or \frac{4}{ $\pi$ }
+    res = res.replace(/\\frac\{\s*\$([^\$\n]+?)\$\s*\}\{([^{}]+)\}/g, '\\frac{$1}{$2}');
+    res = res.replace(/\\frac\{([^{}]+)\}\{\s*\$([^\$\n]+?)\$\s*\}/g, '\\frac{$1}{$2}');
+
+    // Heal function ending with $ followed by ( $arg$ ): e.g. $\beta = \log_e$ ( $1 - \alpha$ )
+    res = res.replace(/\$\s*((?:\\[a-zA-Z]+|[a-zA-Z])\s*=\s*\\?(?:log_e|ln|log|sqrt|sin|cos|tan))\s*\$\s*\(\s*\$?\s*([^$]+?)\s*\$?\s*\)/g,
+      (_, fn, arg) => `$ ${fn}(${arg.trim()}) $`);
+
+    // Separate polynomial series from domain condition:
+    // e.g. \dots + x^{\frac{n}{n}}, x \in $(0, 1)$ -> \dots + x^{\frac{n}{n}}$, $ x \in (0, 1) $
+    res = res.replace(/(\+\s*\\dots\s*\+\s*[0-9a-zA-Z\^\\\{\}]+),\s*([a-zA-Z]\s*\\in)\s*\$?\s*([(\[][^$]+?[)\]])\s*\$?/g,
+      '$1$, $ $2 $3 $');
+
+    // Merge equation continuation after + $\alpha$ \int ... = 0
+    res = res.replace(/\$\s*([^$]+?\s*[+\-−*\/]\s*[a-zA-Z\\]+)\s*\$\s*(\\(?:int|iint|iiint)\s*[\s\S]+?=\s*[0-9a-zA-Z\.\-]+)/g,
+      (_, m1, m2) => `$ ${m1} ${m2} $`);
+
     // 0a. Unwrap any $...$ block that mistakenly encloses English prose
     // e.g. "If $ the foot of the perpendicular drawn from the point (1,0,3) ... $ then $ \alpha $ is equal to"
     res = res.replace(/\$([^\$\n]+)\$/g, (wholeMatch, inner) => {
@@ -619,7 +647,7 @@ export function normalizeMathText(raw: string): string {
              .replace(/Δ/g, '\\Delta ');
 
     // 12b. Greek subscripts: α_1 -> \alpha_1, etc.
-    res = res.replace(/\\(alpha|beta|gamma|theta|lambda|pi|sigma|phi|omega)\s*(?=[_^\\]|[0-9])/g, '\\$1');
+    res = res.replace(/\\(alpha|beta|gamma|theta|lambda|pi|sigma|phi|omega)\s*(?=[_^]|[0-9])/g, '\\$1');
     res = res.replace(/\\(alpha|beta|gamma|theta|lambda|pi|sigma|phi|omega)_([0-9a-zA-Z]+)/g, '\\$1_{$2}');
     res = res.replace(/\(\\alpha_\{?([0-9])\}?\s*,\s*\\beta_\{?([0-9])\}?\s*\)/g, '(\\alpha_{$1}, \\beta_{$2})');
     res = res.replace(/,([\\a-zA-Z])/g, ', $1');
