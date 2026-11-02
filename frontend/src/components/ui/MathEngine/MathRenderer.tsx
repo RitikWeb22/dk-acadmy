@@ -244,8 +244,9 @@ function sanitizeFormula(str: string): string {
     .replace(/sint\b/g, '\\sin t')
     .replace(/sinxdx\b/g, '\\sin x\\,dx')
     .replace(/cos2([ABC])\b/g, '\\cos 2$1')
-    // Exponential powers: e^(2-4x) -> e^{2-4x}, e^2 -> e^{2}
-    .replace(/e\^\(([^()]+)\)/g, 'e^{$1}')
+    // Exponential powers and arbitrary base powers with single or double parentheses:
+    // e.g. e^((2-4x)) -> e^{2-4x}, e^(2-4x) -> e^{2-4x}, e^(-x) -> e^{-x}, x^(n+1) -> x^{n+1}
+    .replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, '$1^{$2}')
     .replace(/e\^([0-9a-zA-Z]+)/g, 'e^{$1}')
     // Greek powers and unbraced variable exponents: \alpha^4 -> \alpha^{4}, \beta^4 -> \beta^{4}, x^2 -> x^{2}
     .replace(/\\(alpha|beta|gamma|theta|lambda|pi|phi|omega)\^([0-9a-zA-Z])(?![0-9a-zA-Z\{])/g, '\\$1^{$2}')
