@@ -230,14 +230,30 @@
 
 .statementArea {
   margin-bottom: $space-6;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 .statementText {
   font-size: 1.0625rem;
-  line-height: 1.6;
+  line-height: 1.7;
   color: $color-text-primary;
   margin: 0;
   font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 .optionsList {
@@ -245,18 +261,33 @@
   flex-direction: column;
   gap: $space-3;
   margin-bottom: $space-6;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 .optionItem {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: $space-4;
   width: 100%;
+  min-height: 52px;
   padding: $space-3 $space-4;
   background-color: #FAFCFF;
   border: 1px solid $color-border;
   border-radius: $radius-lg;
   position: relative;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 
   &.correctOption {
     background-color: #DCFCE7;
@@ -304,13 +335,24 @@
   font-size: 0.8125rem;
   font-weight: 700;
   flex-shrink: 0;
+  margin-top: 2px;
+  transition: all $transition-fast;
 }
 
 .optionText {
   flex: 1;
+  min-width: 0;
   font-size: 0.9375rem;
-  color: $color-text-primary;
-  line-height: 1.5;
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 .correctIndicator {

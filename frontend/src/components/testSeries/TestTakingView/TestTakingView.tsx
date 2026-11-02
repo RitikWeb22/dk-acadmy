@@ -8,6 +8,11 @@ import {
   Send,
   Check,
   ShieldAlert,
+  Calculator,
+  Keyboard,
+  Delete,
+  Hash,
+  X,
 } from 'lucide-react';
 import type { TestSeriesItem, TestQuestionResponse } from '../../../types';
 import { CountdownTimer } from '../CountdownTimer/CountdownTimer';
@@ -52,6 +57,11 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isExitWarningOpen, setIsExitWarningOpen] = useState(false);
+
+  // Section B Keypad vs Calculator Console state
+  const [calcMode, setCalcMode] = useState<'keypad' | 'calculator'>('keypad');
+  const [calcExpr, setCalcExpr] = useState<string>('');
+  const [calcResult, setCalcResult] = useState<string>('');
 
   // ─────────────────────────────────────────────────────────────
   // Active Automated Proctoring & Anti-Cheating Engine
@@ -366,6 +376,34 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     onSaveProgress(updated);
   };
 
+  // Evaluate Quick Scratch Calculator expression
+  const handleEvaluateCalc = () => {
+    try {
+      if (!calcExpr.trim()) return;
+      const clean = calcExpr.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+      if (!/^[0-9+\-*/().\s]+$/.test(clean)) {
+        setCalcResult('Error');
+        return;
+      }
+      const res = Function(`'use strict'; return (${clean})`)();
+      if (typeof res === 'number' && !isNaN(res) && isFinite(res)) {
+        const rounded = Math.round(res * 1e8) / 1e8;
+        setCalcResult(String(rounded));
+      } else {
+        setCalcResult('Error');
+      }
+    } catch {
+      setCalcResult('Error');
+    }
+  };
+
+  // Apply result from Scratch Calculator directly as Section B answer
+  const handleApplyCalcResult = () => {
+    if (calcResult && calcResult !== 'Error') {
+      handleNumericalChange(calcResult);
+    }
+  };
+
   // Switch between Section A and Section B
   const handleSectionTabClick = (targetSection: 'A' | 'B') => {
     if (targetSection === 'A') {
@@ -633,15 +671,14 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
               /* Section B: Numerical Value Input & NTA Virtual Keypad */
               <div className={styles.numericalEntryCard}>
                 <div className={styles.numericalHeader}>
-                  <span className={styles.secBBadge}>Section B • Numerical Value Type</span>
-                  <span className={styles.secBAttemptCounter}>
+                  <div className={styles.secBBadgeGroup}>
+                    <span className={styles.secBBadge}>Section B • Numerical Value</span>
+                    <span className={styles.secBFormatHint}>Integer or Decimal</span>
+                  </div>
+                  <div className={styles.secBAttemptCounter}>
                     Attempted: <strong>{secBAnsweredCount}</strong> / {currentSubjectSecB.length > 5 ? '5 Allowed (Max 5)' : `${currentSubjectSecB.length} Compulsory`}
-                  </span>
+                  </div>
                 </div>
-
-                <p className={styles.numericalInstructions}>
-                  Enter the correct numerical value in the box below using the on-screen keypad or your physical keyboard. Can be an integer (e.g. <code>14</code>) or a decimal (e.g. <code>3.5</code> or <code>-2</code>).
-                </p>
 
                 {isSectionBLimitReached && (
                   <div className={styles.ntaLimitAlertBanner}>
@@ -653,111 +690,220 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
                   </div>
                 )}
 
-                <div className={styles.numericalInputWrapper}>
-                  <label htmlFor="numerical-answer-input" className={styles.numericalInputLabel}>
-                    Your Answer:
-                  </label>
-                  <div className={styles.inputWithStatus}>
-                    <input
-                      id="numerical-answer-input"
-                      type="text"
-                      inputMode="decimal"
-                      className={styles.numericalInput}
-                      placeholder="Enter value..."
-                      value={currentResponse.numericalValue ?? currentResponse.selectedOption ?? ''}
-                      onChange={(e) => handleNumericalChange(e.target.value)}
-                      disabled={isSectionBLimitReached}
-                    />
-                    {(currentResponse.numericalValue || currentResponse.selectedOption) && (
-                      <span className={styles.inputSavedBadge}>
-                        <Check size={14} /> Saved
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <div className={styles.secBLayout}>
+                  {/* Left Column: Direct Answer Input & Guide */}
+                  <div className={styles.answerInputSection}>
+                    <div className={styles.answerBoxCard}>
+                      <div className={styles.answerBoxHeader}>
+                        <div className={styles.answerBoxLabelWrap}>
+                          <Hash size={16} className={styles.answerBoxIcon} />
+                          <label htmlFor="numerical-answer-input" className={styles.numericalInputLabel}>
+                            Your Answer
+                          </label>
+                        </div>
+                        {(currentResponse.numericalValue || currentResponse.selectedOption) ? (
+                          <span className={styles.inputSavedBadge}>
+                            <Check size={13} /> Saved
+                          </span>
+                        ) : (
+                          <span className={styles.inputWaitingBadge}>
+                            Enter value
+                          </span>
+                        )}
+                      </div>
 
-                {/* Virtual NTA Numeric Keypad */}
-                <div className={styles.virtualKeypad}>
-                  <div className={styles.keypadRow}>
-                    {['1', '2', '3'].map((key) => (
+                      <div className={styles.inputDisplayWrapper}>
+                        <input
+                          id="numerical-answer-input"
+                          type="text"
+                          inputMode="decimal"
+                          className={styles.numericalInput}
+                          placeholder="0.00"
+                          value={currentResponse.numericalValue ?? currentResponse.selectedOption ?? ''}
+                          onChange={(e) => handleNumericalChange(e.target.value)}
+                          disabled={isSectionBLimitReached}
+                          autoComplete="off"
+                        />
+                        {(currentResponse.numericalValue || currentResponse.selectedOption) && (
+                          <button
+                            type="button"
+                            className={styles.inputClearBtn}
+                            onClick={handleClearResponse}
+                            title="Clear answer"
+                            aria-label="Clear answer"
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className={styles.answerInstructions}>
+                        <span>Enter numeric value using physical keyboard or the on-screen keypad/calculator. Supports integers (e.g. <code>14</code>) & decimals (e.g. <code>3.5</code>, <code>-2</code>).</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Virtual Keypad & Scratch Calculator Console */}
+                  <div className={styles.consoleContainer}>
+                    <div className={styles.consoleTabNav}>
                       <button
-                        key={key}
                         type="button"
-                        className={styles.keypadBtn}
-                        onClick={() => handleKeypadPress(key)}
-                        disabled={isSectionBLimitReached}
+                        className={`${styles.consoleTabItem} ${calcMode === 'keypad' ? styles.consoleTabItemActive : ''}`}
+                        onClick={() => setCalcMode('keypad')}
                       >
-                        {key}
+                        <Keyboard size={14} />
+                        <span>Keypad</span>
                       </button>
-                    ))}
-                  </div>
-                  <div className={styles.keypadRow}>
-                    {['4', '5', '6'].map((key) => (
                       <button
-                        key={key}
                         type="button"
-                        className={styles.keypadBtn}
-                        onClick={() => handleKeypadPress(key)}
-                        disabled={isSectionBLimitReached}
+                        className={`${styles.consoleTabItem} ${calcMode === 'calculator' ? styles.consoleTabItemActive : ''}`}
+                        onClick={() => setCalcMode('calculator')}
                       >
-                        {key}
+                        <Calculator size={14} />
+                        <span>Calculator</span>
                       </button>
-                    ))}
-                  </div>
-                  <div className={styles.keypadRow}>
-                    {['7', '8', '9'].map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        className={styles.keypadBtn}
-                        onClick={() => handleKeypadPress(key)}
-                        disabled={isSectionBLimitReached}
-                      >
-                        {key}
-                      </button>
-                    ))}
-                  </div>
-                  <div className={styles.keypadRow}>
-                    <button
-                      type="button"
-                      className={styles.keypadBtn}
-                      onClick={() => handleKeypadPress('.')}
-                      disabled={isSectionBLimitReached}
-                    >
-                      .
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.keypadBtn}
-                      onClick={() => handleKeypadPress('0')}
-                      disabled={isSectionBLimitReached}
-                    >
-                      0
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.keypadBtn}
-                      onClick={() => handleKeypadPress('-')}
-                      disabled={isSectionBLimitReached}
-                    >
-                      -
-                    </button>
-                  </div>
-                  <div className={styles.keypadActionRow}>
-                    <button
-                      type="button"
-                      className={styles.keypadBackspaceBtn}
-                      onClick={handleKeypadBackspace}
-                    >
-                      ⌫ Backspace
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.keypadClearBtn}
-                      onClick={handleClearResponse}
-                    >
-                      Clear
-                    </button>
+                    </div>
+
+                    {calcMode === 'keypad' ? (
+                      <div className={styles.virtualKeypad}>
+                        <div className={styles.keypadRow}>
+                          {['7', '8', '9'].map((key) => (
+                            <button
+                              key={key}
+                              type="button"
+                              className={styles.keypadBtn}
+                              onClick={() => handleKeypadPress(key)}
+                              disabled={isSectionBLimitReached}
+                            >
+                              {key}
+                            </button>
+                          ))}
+                        </div>
+                        <div className={styles.keypadRow}>
+                          {['4', '5', '6'].map((key) => (
+                            <button
+                              key={key}
+                              type="button"
+                              className={styles.keypadBtn}
+                              onClick={() => handleKeypadPress(key)}
+                              disabled={isSectionBLimitReached}
+                            >
+                              {key}
+                            </button>
+                          ))}
+                        </div>
+                        <div className={styles.keypadRow}>
+                          {['1', '2', '3'].map((key) => (
+                            <button
+                              key={key}
+                              type="button"
+                              className={styles.keypadBtn}
+                              onClick={() => handleKeypadPress(key)}
+                              disabled={isSectionBLimitReached}
+                            >
+                              {key}
+                            </button>
+                          ))}
+                        </div>
+                        <div className={styles.keypadRow}>
+                          <button
+                            type="button"
+                            className={`${styles.keypadBtn} ${styles.keypadSpecialBtn}`}
+                            onClick={() => handleKeypadPress('-')}
+                            disabled={isSectionBLimitReached}
+                            title="Negative Sign"
+                          >
+                            ±
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.keypadBtn}
+                            onClick={() => handleKeypadPress('0')}
+                            disabled={isSectionBLimitReached}
+                          >
+                            0
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.keypadBtn} ${styles.keypadSpecialBtn}`}
+                            onClick={() => handleKeypadPress('.')}
+                            disabled={isSectionBLimitReached}
+                          >
+                            .
+                          </button>
+                        </div>
+                        <div className={styles.keypadActionRow}>
+                          <button
+                            type="button"
+                            className={styles.keypadBackspaceBtn}
+                            onClick={handleKeypadBackspace}
+                            disabled={isSectionBLimitReached || !(currentResponse.numericalValue || currentResponse.selectedOption)}
+                          >
+                            <Delete size={15} />
+                            <span>Backspace</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.keypadClearBtn}
+                            onClick={handleClearResponse}
+                            disabled={isSectionBLimitReached || !(currentResponse.numericalValue || currentResponse.selectedOption)}
+                          >
+                            <RotateCcw size={14} />
+                            <span>Clear</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Scratch Calculator Console */
+                      <div className={styles.scratchCalc}>
+                        <div className={styles.calcDisplayScreen}>
+                          <div className={styles.calcExpressionDisplay}>{calcExpr || '0'}</div>
+                          <div className={styles.calcResultDisplay}>
+                            {calcResult ? `= ${calcResult}` : '\u00A0'}
+                          </div>
+                        </div>
+
+                        <div className={styles.calcKeysGrid}>
+                          <button type="button" className={styles.calcClearKey} onClick={() => { setCalcExpr(''); setCalcResult(''); }}>C</button>
+                          <button type="button" className={styles.calcFnKey} onClick={() => setCalcExpr((prev) => prev.slice(0, -1))}><Delete size={14} /></button>
+                          <button type="button" className={styles.calcFnKey} onClick={() => setCalcExpr((prev) => prev + '(')}>(</button>
+                          <button type="button" className={styles.calcFnKey} onClick={() => setCalcExpr((prev) => prev + ')')}>)</button>
+
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '7')}>7</button>
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '8')}>8</button>
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '9')}>9</button>
+                          <button type="button" className={styles.calcOpKey} onClick={() => setCalcExpr((prev) => prev + ' ÷ ')}>÷</button>
+
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '4')}>4</button>
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '5')}>5</button>
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '6')}>6</button>
+                          <button type="button" className={styles.calcOpKey} onClick={() => setCalcExpr((prev) => prev + ' × ')}>×</button>
+
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '1')}>1</button>
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '2')}>2</button>
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '3')}>3</button>
+                          <button type="button" className={styles.calcOpKey} onClick={() => setCalcExpr((prev) => prev + ' - ')}>−</button>
+
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '0')}>0</button>
+                          <button type="button" className={styles.calcNumKey} onClick={() => setCalcExpr((prev) => prev + '.')}>.</button>
+                          <button type="button" className={styles.calcEqualKey} onClick={handleEvaluateCalc}>=</button>
+                          <button type="button" className={styles.calcOpKey} onClick={() => setCalcExpr((prev) => prev + ' + ')}>+</button>
+                        </div>
+
+                        {calcResult && calcResult !== 'Error' && (
+                          <div className={styles.calcApplyWrap}>
+                            <button
+                              type="button"
+                              className={styles.applyResultBtn}
+                              onClick={handleApplyCalcResult}
+                            >
+                              <Check size={15} />
+                              <span>Set Result ({calcResult}) as Answer</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
