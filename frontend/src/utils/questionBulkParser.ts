@@ -162,8 +162,11 @@ export function autoWrapMathDelimiters(text: string): string {
 
   if (!hasLaTeX) return text;
 
-  const englishWords = trimmed.match(/\b(?:which|statement|following|correct|incorrect|true|false|both|neither|only|where|then|when|let|given|value|find|such|that)\b/gi);
-  const isProse = englishWords && englishWords.length >= 2;
+  // Comprehensive mathematical English prose detection
+  const mathProseKeywords = /\b(?:let|if|then|find|given|suppose|consider|assume|where|when|what|which|whether|statement|following|function|continuous|satisfying|satisfies|value|values|equal|points?|line|lines|plane|planes|circle|circles|arc|arcs|triangle|matrix|matrices|vector|vectors|unit|angle|angles|between|perpendicular|parallel|number|numbers|area|parallelogram|diagonals?|integers?|ordered|pair|ratio|internally|externally|origin|magnitude|length|centre|center|subtend|divides?|roots?|equation|equations|system|set|subset|true|false|correct|incorrect|both|neither|only|because|since|such|that|with|respect|satisfy|defined|at|is|are|was|were|be|been|has|have|had|for|all|any|every|each|to|from|by|on|in|of|and|or|two|three|four)\b/gi;
+  const englishWords = trimmed.match(mathProseKeywords) || [];
+  const generalWords = (trimmed.replace(/\\[a-zA-Z]+/g, ' ').match(/\b[a-zA-Z]{3,}\b/g) || []).filter(w => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w));
+  const isProse = englishWords.length >= 2 || generalWords.length >= 3;
 
   // If the whole text is predominantly a math formula without prose words
   if (!isProse && !text.includes('$')) {
@@ -187,28 +190,40 @@ export function autoWrapMathDelimiters(text: string): string {
     return ` ${key} `;
   });
 
-  // 2. Protect and wrap standalone fractions: \frac{...}{...}
+  // 2. Protect standalone integrals with limits, differentials and optional equation:
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?\\,(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 3. Protect function evaluations with fraction arguments like \phi'(\frac{\pi}{4}) or f(\frac{\pi^2}{4})
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\[a-zA-Z]+'?(?:\s*\(|\s*\\left\()[\s\S]*?(?:\)|\s*\\right\)|(?=[,;.\s]|$))|[a-zA-Z]['′]?(?:\s*\(|\s*\\left\()[\s\S]*?(?:\)|\s*\\right\)))(?=[,;.\s]|$)/g, (m) => {
+    if (m.includes('\\frac') || m.includes('\\pi') || m.includes('^')) {
+      return protect(m);
+    }
+    return m;
+  });
+
+  // 4. Protect standalone fractions: \frac{...}{...}
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
-  // 3. Protect and wrap intervals: e.g. [-1, 3] or [0, 1] or [-1,3]
+  // 5. Protect and wrap intervals: e.g. [-1, 3] or [0, 1] or [-1,3]
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\[\s*-?[0-9]+(?:\.[0-9]+)?\s*,\s*-?[0-9]+(?:\.[0-9]+)?\s*\])(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
-  // 4. Protect and wrap coordinate tuples containing Greek / vectors / subscripts: e.g. (\alpha, \beta) or (\alpha_1, \beta_1)
-  s = s.replace(/(?<![a-zA-Z0-9_\$])(\(\s*\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?\s*,\s*\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?\s*\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+  // 6. Protect and wrap coordinate tuples: e.g. (\alpha, \beta) or (-1, -1, 2)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\(\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*(?:,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?))?\s*\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
-  // 5. Wrap compound math expressions, equations, vector linear combinations, and polynomials:
-  // e.g. \vec{a}=2\hat{i}+\alpha\hat{j}+\hat{k} or \lambda\vec{a}+2\vec{b} or 3\vec{a}-\lambda\vec{b} or \vec{a}+\vec{b}
-  // e.g. \alpha\beta=-6 or \alpha_1^{2}+\beta_1^{2}-\alpha_2\beta_2
-  const term = '(?:-?\\s*(?:[0-9]+|\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_[0-9a-zA-Z\\{\\}]+|\\^[0-9a-zA-Z\\{\\}]+)*)\\s*)+';
-  const compoundMath = new RegExp('(?<![a-zA-Z0-9_\\$])(' + term + '(?:[=+\\-−*/×⋅]|\\in|\\cdot|\\times)\\s*' + term + '(?:(?:[=+\\-−*/×⋅]|\\in|\\cdot|\\times)\\s*' + term + ')*)(?![a-zA-Z0-9_\\$])', 'g');
+  // 7. Wrap compound math expressions, equations, vector linear combinations, and polynomials:
+  // Uses atomic singleTerm so it NEVER matches multi-letter English words like "vectors", "perpendicular", etc.
+  const singleAtom = '(?:-?\\s*(?:[0-9]+(?:\\.[0-9]+)?|\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_[0-9a-zA-Z\\{\\}]+|\\^[0-9a-zA-Z\\{\\}]+)*|(?<![a-zA-Z])[a-zA-Z](?![a-zA-Z])(?:_[0-9a-zA-Z\\{\\}]+|\\^[0-9a-zA-Z\\{\\}]+)*|\\([0-9a-zA-Z_\\+\\-*\\/\\s,\\\\\^\\{\\}]+\\)|\\|[0-9a-zA-Z_\\+\\-*\\/\\s,\\\\\^\\{\\}]+\\|))';
+  const term = `(?:${singleAtom}\\s*)+`;
+  const mathOp = '(?:[=+\\-−*/×⋅<>]|\\in|\\ge|\\le|\\neq|\\cdot|\\times)';
+  const compoundMath = new RegExp(`(?<![a-zA-Z0-9_\\$])(${term}\\s*${mathOp}\\s*${term}(?:\\s*${mathOp}\\s*${term})*)(?![a-zA-Z0-9_\\$])`, 'g');
   s = s.replace(compoundMath, (_, m) => protect(m));
 
-  // 6. Wrap remaining standalone LaTeX commands / variables outside $:
+  // 8. Wrap remaining standalone LaTeX commands / variables outside $:
   // e.g. \vec{a}, \vec{b}, \lambda, \alpha, \beta, \hat{i}
   const isolatedMath = /(?<![a-zA-Z0-9_\$\\])(\\(?:vec\{[a-zA-Z0-9]+\}|hat\{[ijk]\}|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)(?:\{[^}]*\}|_[0-9a-zA-Z\{\}]+|\^[0-9a-zA-Z\{\}]+)*)(?![a-zA-Z0-9_\{])/g;
   s = s.replace(isolatedMath, (_, m) => protect(m));
 
-  // 7. Restore all protected math expressions
+  // 9. Restore all protected math expressions
   s = s.replace(/___PROT_MATH_(\d+)___/g, (_, idx) => protectedMath[Number(idx)]);
 
   // Clean spacing around punctuation and adjacent delimiters
@@ -268,9 +283,9 @@ export function normalizeMathText(raw: string): string {
   });
 
   // 0g. Multi-line Word stacked fractions: e.g. \log_e\left(\n27\n64\n\right) or (\n32\n27\n)
-  text = text.replace(/(\\log_e|\\ln)?\s*(\\left)?\s*\(\s*([0-9a-zA-Zα-ωΑ-Ω\+\-\^\\\{\}]+)\s*\r?\n+\s*([0-9a-zA-Zα-ωΑ-Ω\+\-\^\\\{\}]+)\s*(\\right)?\s*\)/g,
-    (_, logCmd, leftBracket, num, den) => {
-      const logPrefix = logCmd ? `${logCmd} ` : '';
+  text = text.replace(/(\\log_e|\\ln)?\s*(\\left)?\s*\(\s*([0-9a-zA-Zα-ωΑ-Ω\+\-\^\\\{\}]+)\s*\r?\n+\s*([0-9a-zA-Zα-ωΑ-Ω\+\-\^\\\{\}]+)\s*(?:[\r\n\s]|\\right)*\)/g,
+    (_, logCmd, _leftBracket, num, den) => {
+      const logPrefix = logCmd ? `${logCmd.trim()} ` : '';
       return `${logPrefix}\\left(\\frac{${num.trim()}}{${den.trim()}}\\right)`;
     }
   );
@@ -361,7 +376,10 @@ export function normalizeMathText(raw: string): string {
 
     // 5. Integral limits: ∫_0^1▒ or ∫_0^(π/4)▒ or \int_0^(\pi/4) or ∫_0^1
     res = res.replace(/(?:∫|\\int)_([0-9a-zA-Z]+|\{[^}]+\}|\([^)]+\))\s*\^\s*(\([^)]+\)|\{[^}]+\}|[0-9a-zA-Z]+?)(?:▒|\s*(?=[0-9a-zA-Z\/\(\\])|$)\s*/g, (_, low, high) => {
-      const cleanLow = stripOuterParens(low).replace(/[{}]/g, '').trim();
+      let cleanLow = stripOuterParens(low).replace(/[{}]/g, '').trim();
+      cleanLow = cleanLow.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
+                         .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
+                         .replace(/π/, '\\pi');
       let cleanHigh = stripOuterParens(high).replace(/[{}]/g, '').trim();
       cleanHigh = cleanHigh.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
                            .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
@@ -404,8 +422,8 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/\\?\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
     res = res.replace(/\\?\b(cot|tan|sin|cos|sec|csc)⁻¹/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
 
-    // Differentials: xdx -> x\,dx, )dx -> )\,dx
-    res = res.replace(/([0-9a-zA-Z\)\]\}])\s*dx\b/g, '$1\\,dx');
+    // Differentials: xdx -> x\,dx, )dx -> )\,dx, dt, dy, dz, d\theta
+    res = res.replace(/([0-9a-zA-Z\)\]\}])\s*d([txyz]|\\theta)\b/g, '$1\\,d$2');
     res = res.replace(/sint\b/gi, '\\sin t');
     res = res.replace(/sinxdx\b/gi, '\\sin x\\,dx');
     res = res.replace(/cos2([ABC])\b/g, '\\cos 2$1');
@@ -504,27 +522,29 @@ export function normalizeMathText(raw: string): string {
       const hasMathSyntax = /\\(?:frac|dfrac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log_e|log|ln|dots|to|infty|left|right|vec|hat|in|ge|le|times|cdot|forall)\b|\^\{|\^[0-9a-zA-Z]|\\[\(\)]/.test(body);
 
       // Case C: Explicit check for "If [formula] then [formula] is equal to."
-      const ifMatch = body.match(/^(If\s+)([\s\S]+?)(,\s*(?:\\text\{then\}|then)\s+|\s+(?:\\text\{then\}|then)\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+      const ifMatch = body.match(/^(If\s+)([\s\S]+?)(,\s*(?:\\text\{then\}|then)\s+|\s+(?:\\text\{then\}|then)\s+)([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
+      // Case S: Explicit check for "Let [prose] satisfying [formula]. Then [formula] is equal to:"
+      const satMatch = body.match(/^(Let\s+[\s\S]+?\s+satisfying\s+)([\s\S]+?)(?:[.,]\s*|\s+)(?:Then|then)\s+([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
+
       if (ifMatch) {
         res = `${prefix}${ifMatch[1]}$ ${ifMatch[2].trim()} $ then $ ${ifMatch[4].trim()} $${ifMatch[5]}`;
+      } else if (satMatch) {
+        res = `${prefix}${satMatch[1]}$ ${satMatch[2].trim()} $. Then $ ${satMatch[3].trim()} $${satMatch[4]}`;
       } else {
-        const englishProseWords = body.match(/\b(?:which|statement|following|correct|incorrect|true|false|both|neither|only|where|when|let|given|value|find|such|that|because|since)\b/gi);
-        const isProse = englishProseWords && englishProseWords.length >= 2;
+        const mathProseKeywords = /\b(?:let|if|then|find|given|suppose|consider|assume|where|when|what|which|whether|statement|following|function|continuous|satisfying|satisfies|value|values|equal|points?|line|lines|plane|planes|circle|circles|arc|arcs|triangle|matrix|matrices|vector|vectors|unit|angle|angles|between|perpendicular|parallel|number|numbers|area|parallelogram|diagonals?|integers?|ordered|pair|ratio|internally|externally|origin|magnitude|length|centre|center|subtend|divides?|roots?|equation|equations|system|set|subset|true|false|correct|incorrect|both|neither|only|because|since|such|that|with|respect|satisfy|defined|at|is|are|was|were|be|been|has|have|had|for|all|any|every|each|to|from|by|on|in|of|and|or|two|three|four)\b/gi;
+        const englishProseWords = body.match(mathProseKeywords) || [];
+        const generalWords = (body.replace(/\\[a-zA-Z]+/g, ' ').match(/\b[a-zA-Z]{3,}\b/g) || []).filter(w => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w));
+        const isProse = englishProseWords.length >= 2 || generalWords.length >= 3;
 
         if (hasMathSyntax && !isProse) {
           // Case B: "The value of [formula] is"
-          const valMatch = body.match(/^((?:The value of|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
+          const valMatch = body.match(/^((?:The value of|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
           if (valMatch) {
             res = `${prefix}${valMatch[1]}$ ${valMatch[2].trim()} $${valMatch[3]}`;
           }
           // Case D: Pure math equation / expression (like (e-1)(e^2 + \frac{1}{2}) or \log_e\left(\frac{32}{27}\right))
           else {
-            const tailMatch = body.match(/^([\s\S]+?)(\s+(?:is equal to\.?|is\s*:?|\.|$))$/i);
-            if (tailMatch && tailMatch[2] && tailMatch[2].trim().length > 0 && !tailMatch[1].includes('=')) {
-              res = `${prefix}$ ${tailMatch[1].trim()} $${tailMatch[2]}`;
-            } else {
-              res = `${prefix}$ ${body.trim()} $`;
-            }
+            res = `${prefix}$ ${body.trim()} $`;
           }
         } else if (hasMathSyntax && isProse) {
           res = `${prefix}${autoWrapMathDelimiters(body)}`;
@@ -888,7 +908,7 @@ export function extractStatementAndOptions(text: string): {
 
   // Strategy 1: Match genuine options A, B, C, D
   // Exclude false positives where 'A' is part of prose (e.g. "point A divide", "matrix A", "set A", "arc AC")
-  const optPattern = /(?:^|\r?\n|\s{2,}|\t)(?:\(([A-Da-d])\)|\[([A-Da-d])\]|\b([A-Da-d])\s*[\.\)\:\-]\s*|\b([A-Da-d])\s+(?=[0-9\-\+\(\$]|\\(?:frac|sqrt|log|pi|alpha|beta)|[A-Z][a-z]{0,2}\b))/g;
+  const optPattern = /(?:^|\r?\n|\s+|\t)(?:\(([A-Da-d])\)|\[([A-Da-d])\]|\b([A-Da-d])\s*[\.\)\:\-]\s*|\b([A-Da-d])\s+(?=[0-9\-\+\(\$]|\\(?:frac|sqrt|log|pi|alpha|beta)|[A-Z][a-z]{0,2}\b))/g;
   const matches: { index: number; key: string; fullLength: number; matchStart: number }[] = [];
   let m: RegExpExecArray | null;
 

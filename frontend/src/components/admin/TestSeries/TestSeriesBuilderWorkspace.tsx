@@ -3643,28 +3643,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                       <button
                         type="button"
-                        onClick={() => setIsSmartPasteModalOpen(true)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          color: '#2563eb',
-                          background: '#eff6ff',
-                          border: '1px solid #bfdbfe',
-                          borderRadius: '8px',
-                          cursor: 'pointer'
-                        }}
-                        title="Smart paste full question from PDF/Word with automatic math format extraction"
-                      >
-                        <Sparkles size={13} />
-                        <span>Smart Paste (Maths/MCQ)</span>
-                      </button>
-
-                      <button
-                        type="button"
                         className={styles.addNewQuestionBtn}
                         onClick={handleAddQuestion}
                       >
