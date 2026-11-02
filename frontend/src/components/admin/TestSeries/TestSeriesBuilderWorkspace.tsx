@@ -650,6 +650,86 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [cutoffTierPredictor, setCutoffTierPredictor] = useState<boolean>(true);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
+  // Scheduled Solution Release Configuration State
+  const [solutionReleaseEnabled, setSolutionReleaseEnabled] = useState<boolean>(true);
+  const [solutionPdfUrl, setSolutionPdfUrl] = useState<string>('');
+  const [solutionVideoUrl, setSolutionVideoUrl] = useState<string>('');
+  const [solutionReleaseDelay, setSolutionReleaseDelay] = useState<number>(24);
+  const [solutionOverview, setSolutionOverview] = useState<{
+    totalSubmissions: number;
+    scheduledReleases: number;
+    unlockedSubmissions: number;
+    disabledReleases: number;
+    pdfConfigured: boolean;
+    videoConfigured: boolean;
+    releaseDelayHours: number;
+    enabled: boolean;
+  } | null>(null);
+  const [isSavingSolutionConfig, setIsSavingSolutionConfig] = useState<boolean>(false);
+
+  const fetchSolutionOverview = async (testId: string) => {
+    try {
+      const res = await apiClient.get<any>(`/test-series/${testId}/solution-admin-overview`);
+      if (res && res.success && res.data) {
+        setSolutionOverview(res.data.overview);
+        if (res.data.solutionRelease) {
+          setSolutionReleaseEnabled(res.data.solutionRelease.enabled ?? true);
+          setSolutionPdfUrl(res.data.solutionRelease.pdfUrl || '');
+          setSolutionVideoUrl(res.data.solutionRelease.videoUrl || '');
+          setSolutionReleaseDelay(res.data.solutionRelease.releaseDelayHours || 24);
+        }
+      }
+    } catch (err) {
+      console.warn('[fetchSolutionOverview error]:', err);
+    }
+  };
+
+  const handleSaveSolutionConfig = async () => {
+    if (!editingSeriesId) return;
+
+    const trimmedPdf = solutionPdfUrl.trim();
+    const trimmedVideo = solutionVideoUrl.trim();
+
+    if (solutionReleaseEnabled && !trimmedPdf && !trimmedVideo) {
+      setToastMessage('At least one valid solution URL (PDF or Google Drive Video) is required to enable scheduled release.');
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
+
+    if (trimmedVideo && !trimmedVideo.includes('drive.google.com')) {
+      setToastMessage('Video URL must be a valid Google Drive sharing link (drive.google.com).');
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
+
+    if (trimmedPdf && !trimmedPdf.startsWith('http://') && !trimmedPdf.startsWith('https://')) {
+      setToastMessage('PDF URL must start with http:// or https://');
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
+
+    try {
+      setIsSavingSolutionConfig(true);
+      const res = await apiClient.patch<any>(`/test-series/${editingSeriesId}/solution-config`, {
+        enabled: solutionReleaseEnabled,
+        pdfUrl: trimmedPdf,
+        videoUrl: trimmedVideo,
+        releaseDelayHours: solutionReleaseDelay
+      });
+
+      if (res && res.success) {
+        setToastMessage('Scheduled solution release configuration updated successfully!');
+        setTimeout(() => setToastMessage(null), 3000);
+        fetchSolutionOverview(editingSeriesId);
+      }
+    } catch (err: any) {
+      setToastMessage(err.message || 'Failed to update solution release configuration.');
+      setTimeout(() => setToastMessage(null), 4000);
+    } finally {
+      setIsSavingSolutionConfig(false);
+    }
+  };
+
   // Bulk Selection and Multi-Delete State
   const [selectedTestIds, setSelectedTestIds] = useState<string[]>([]);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
@@ -1407,7 +1487,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         if (freshData.accessLevel) {
           setAccessLevel(freshData.accessLevel);
         }
+        if (freshData.solutionRelease) {
+          setSolutionReleaseEnabled(freshData.solutionRelease.enabled ?? true);
+          setSolutionPdfUrl(freshData.solutionRelease.pdfUrl || '');
+          setSolutionVideoUrl(freshData.solutionRelease.videoUrl || '');
+          setSolutionReleaseDelay(freshData.solutionRelease.releaseDelayHours || 24);
+        }
       }
+      fetchSolutionOverview(item.id);
     } catch (fetchErr) {
       console.warn('[TestSeriesBuilder] Could not fetch fresh data from MongoDB:', fetchErr);
     }
@@ -2219,6 +2306,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         bufferEntryMinutes,
         cutoffTierPredictor
       },
+      solutionRelease: {
+        enabled: solutionReleaseEnabled,
+        pdfUrl: solutionPdfUrl.trim(),
+        videoUrl: solutionVideoUrl.trim(),
+        releaseDelayHours: solutionReleaseDelay
+      },
       attemptsCount: 0
     };
 
@@ -2309,7 +2402,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     {
       step: 3,
       title: 'Question Bank Authoring',
-      sub: 'LaTeX math, keys & DK Sir speed shortcuts'
+      sub: 'LaTeX math, statements, options & keys'
     },
     {
       step: 4,
@@ -4028,48 +4121,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           })}
                         </div>
                       )}
-
-                      {/* Supplementary Solutions & Tricks Group */}
-                      <div className={styles.solutionsGroupingSection}>
-                        <div className={styles.solutionsGroupHeader}>
-                          <Sparkles size={15} color="#2563EB" />
-                          <span>Detailed Solutions &amp; Speed Shortcuts (Visible Post-Exam)</span>
-                        </div>
-
-                        {/* Kota Shortcut Card */}
-                        <div className={styles.kotaTrickHighlightCard} style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
-                          <div className={styles.trickHeader} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                            <Zap size={15} color="#D97706" />
-                            <strong style={{ color: '#92400E', fontSize: '13px' }}>DK Sir Kota 20-30s Inspection Trick (LaTeX &amp; Math Supported):</strong>
-                          </div>
-                          <MathInput
-                            value={currentEditingQuestion.shortcutTrick || ''}
-                            onChange={(val) => updateCurrentQuestion({ shortcutTrick: val })}
-                            placeholder="Key speed formula ($...$, \frac{a}{b}, 1/16), visual inspection rule, or option-elimination trick..."
-                            rows={2}
-                            label="DK Sir Speed Shortcut"
-                            compact={true}
-                            defaultViewMode="edit"
-                          />
-                        </div>
-
-                        {/* Detailed Solution Derivation Card */}
-                        <div className={styles.solutionExplanationCard} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px' }}>
-                          <div className={styles.solutionHeader} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                            <FileText size={15} color="#2563EB" />
-                            <strong style={{ color: '#1E3A8A', fontSize: '13px' }}>Detailed Step-by-Step Mathematical Solution Derivation (LaTeX &amp; Math Supported):</strong>
-                          </div>
-                          <MathInput
-                            value={currentEditingQuestion.solutionDerivation || ''}
-                            onChange={(val) => updateCurrentQuestion({ solutionDerivation: val })}
-                            placeholder="Provide the comprehensive step-by-step derivation, formula steps (\int, \frac{a}{b}, \lim)... Or paste directly from Word!"
-                            rows={4}
-                            label="Step-by-Step Derivation"
-                            compact={true}
-                            defaultViewMode="edit"
-                          />
-                        </div>
-                      </div>
                     </div>
                   )}
 
@@ -4551,6 +4602,174 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* 3.5 Automated Scheduled Solution Release Configuration */}
+                  <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '14px', padding: '22px', marginBottom: '22px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4F46E5' }}>
+                          <Sparkles size={20} />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                            Scheduled Solution Release
+                          </h3>
+                          <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>
+                            Students unlock official PDF and video solutions exactly 24 hours after their individual test submission.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: solutionReleaseEnabled ? '#059669' : '#64748B' }}>
+                          <input
+                            type="checkbox"
+                            checked={solutionReleaseEnabled}
+                            onChange={(e) => setSolutionReleaseEnabled(e.target.checked)}
+                            style={{ width: '18px', height: '18px', accentColor: '#059669', cursor: 'pointer' }}
+                          />
+                          <span>{solutionReleaseEnabled ? '✓ Scheduled Release Enabled' : '○ Release Disabled'}</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Inputs & Settings */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                      {/* PDF Solution URL */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                          PDF Solution URL (Public HTTP/HTTPS):
+                        </label>
+                        <input
+                          type="url"
+                          value={solutionPdfUrl}
+                          onChange={(e) => setSolutionPdfUrl(e.target.value)}
+                          placeholder="https://example.com/solutions/jee-paper-derivation.pdf"
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px',
+                            borderRadius: '8px',
+                            border: solutionPdfUrl && !solutionPdfUrl.startsWith('http') ? '1px solid #EF4444' : '1px solid #CBD5E1',
+                            fontSize: '13px'
+                          }}
+                        />
+                        {solutionPdfUrl && !solutionPdfUrl.startsWith('http') && (
+                          <span style={{ fontSize: '11px', color: '#DC2626', marginTop: '4px', display: 'block' }}>
+                            URL must begin with http:// or https://
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Video Solution URL (Google Drive) */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                          Video Solution URL (Google Drive Sharing Link):
+                        </label>
+                        <input
+                          type="url"
+                          value={solutionVideoUrl}
+                          onChange={(e) => setSolutionVideoUrl(e.target.value)}
+                          placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px',
+                            borderRadius: '8px',
+                            border: solutionVideoUrl && !solutionVideoUrl.includes('drive.google.com') ? '1px solid #EF4444' : '1px solid #CBD5E1',
+                            fontSize: '13px'
+                          }}
+                        />
+                        {solutionVideoUrl && !solutionVideoUrl.includes('drive.google.com') && (
+                          <span style={{ fontSize: '11px', color: '#DC2626', marginTop: '4px', display: 'block' }}>
+                            Must be a valid Google Drive sharing link (drive.google.com)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Release Delay Dropdown */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                          Release Delay (Post-Submission):
+                        </label>
+                        <select
+                          value={solutionReleaseDelay}
+                          onChange={(e) => setSolutionReleaseDelay(Number(e.target.value))}
+                          style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF' }}
+                        >
+                          <option value={12}>12 Hours After Submission</option>
+                          <option value={24}>24 Hours (Default NTA Window)</option>
+                          <option value={48}>48 Hours After Submission</option>
+                          <option value={72}>72 Hours After Submission</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Admin Dashboard Overview Panel */}
+                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px', marginTop: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                        <strong style={{ fontSize: '12px', color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Admin Dashboard — Solution Release Overview
+                        </strong>
+                        {editingSeriesId && (
+                          <button
+                            type="button"
+                            onClick={handleSaveSolutionConfig}
+                            disabled={isSavingSolutionConfig}
+                            style={{
+                              background: '#2563EB',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '6px 14px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {isSavingSolutionConfig ? 'Updating...' : 'Update Solution Configuration'}
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+                        <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                          <div style={{ fontSize: '11px', color: '#64748B' }}>Total Submissions</div>
+                          <div style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>
+                            {solutionOverview?.totalSubmissions ?? 0}
+                          </div>
+                        </div>
+                        <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                          <div style={{ fontSize: '11px', color: '#D97706' }}>Scheduled Releases</div>
+                          <div style={{ fontSize: '18px', fontWeight: 800, color: '#D97706' }}>
+                            {solutionOverview?.scheduledReleases ?? 0}
+                          </div>
+                        </div>
+                        <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                          <div style={{ fontSize: '11px', color: '#059669' }}>Unlocked Submissions</div>
+                          <div style={{ fontSize: '18px', fontWeight: 800, color: '#059669' }}>
+                            {solutionOverview?.unlockedSubmissions ?? 0}
+                          </div>
+                        </div>
+                        <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                          <div style={{ fontSize: '11px', color: '#64748B' }}>Disabled Releases</div>
+                          <div style={{ fontSize: '18px', fontWeight: 800, color: '#64748B' }}>
+                            {solutionOverview?.disabledReleases ?? 0}
+                          </div>
+                        </div>
+                        <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                          <div style={{ fontSize: '11px', color: '#64748B' }}>PDF URL Status</div>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: solutionPdfUrl ? '#059669' : '#94A3B8', marginTop: '4px' }}>
+                            {solutionPdfUrl ? '✓ Configured' : '— Not Set'}
+                          </div>
+                        </div>
+                        <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                          <div style={{ fontSize: '11px', color: '#64748B' }}>Video URL Status</div>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: solutionVideoUrl ? '#059669' : '#94A3B8', marginTop: '4px' }}>
+                            {solutionVideoUrl ? '✓ Google Drive' : '— Not Set'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* 4. Live Scheduling Summary Hero */}
                   <div className={styles.liveSummaryHero}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -5025,7 +5244,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
                     <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', margin: 0 }}>
-                      Detailed Problem Solutions &amp; DK Sir Speed Tricks:
+                      Question Paper &amp; Official Answer Keys:
                     </h4>
                     {questions.map((q, idx) => {
                       const userAns = cbtResponses[q.id]?.selectedOption;
@@ -5044,17 +5263,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           <div style={{ fontSize: '12px', color: '#059669', fontWeight: 600, marginTop: '6px' }}>
                             Correct Answer: Option {q.correctKey} (<MathText text={q.options.find(o => o.key === q.correctKey)?.text || ''} />)
                           </div>
-                          {q.shortcutTrick && (
-                            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '8px 12px', marginTop: '8px', fontSize: '12px', color: '#92400E' }}>
-                              <strong>⚡ DK Sir Shortcut: </strong><MathText text={q.shortcutTrick} />
-                            </div>
-                          )}
-                          {q.solutionDerivation && (
-                            <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '10px 14px', marginTop: '8px', fontSize: '12.5px', color: '#1E293B' }}>
-                              <strong style={{ display: 'block', marginBottom: '4px', color: '#2563EB' }}>Detailed Mathematical Solution:</strong>
-                              <MathText text={q.solutionDerivation} />
-                            </div>
-                          )}
                         </div>
                       );
                     })}

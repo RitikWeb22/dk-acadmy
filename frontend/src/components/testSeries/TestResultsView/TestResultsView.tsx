@@ -20,6 +20,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import type { TestSeriesItem, TestAttempt, Subject } from '../../../types';
+import { ScheduledSolutionCard } from '../ScheduledSolutionCard/ScheduledSolutionCard';
 import styles from './TestResultsView.module.scss';
 
 interface TestResultsViewProps {
@@ -360,6 +361,17 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
         </div>
       </div>
 
+      {/* Automated Student-Specific Scheduled Solution Release System */}
+      <ScheduledSolutionCard
+        testId={test.id}
+        submissionId={attempt.submissionId}
+        submittedAt={attempt.submittedAt || attempt.startTime}
+        releaseDelayHours={test.solutionRelease?.releaseDelayHours || 24}
+        initialUnlockAt={attempt.solutionUnlockAt || (attempt.solutionSchedule?.solutionUnlockAt)}
+        hasPdfConfigured={test.solutionRelease?.hasPdf ?? Boolean(test.solutionRelease?.pdfUrl)}
+        hasVideoConfigured={test.solutionRelease?.hasVideo ?? Boolean(test.solutionRelease?.videoUrl)}
+      />
+
       {/* 5. Subject-Wise Score & Accuracy Matrix */}
       {Object.keys(subjectStats).length > 0 && (
         <section className={styles.subjectMatrixSection} aria-labelledby="subject-breakdown-heading">
@@ -432,7 +444,7 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
                     onClick={onReviewAnswers}
                     className={styles.subActionLink}
                   >
-                    <span>View {sub} Solutions</span>
+                    <span>Review {sub} Answers</span>
                     <ChevronRight size={14} className={styles.subChevron} aria-hidden="true" />
                   </button>
                 </article>
@@ -448,9 +460,9 @@ export const TestResultsView: React.FC<TestResultsViewProps> = ({
           type="button"
           className={styles.primaryReviewBtn}
           onClick={onReviewAnswers}
-          title="Inspect step-by-step solutions, Kota shortcut methods, and explanations"
+          title="Review question answers, chosen options, and official answer keys"
         >
-          <span>Review Detailed Step-by-Step Solutions</span>
+          <span>Review Questions &amp; Answers</span>
           <ArrowRight size={16} aria-hidden="true" />
         </button>
 

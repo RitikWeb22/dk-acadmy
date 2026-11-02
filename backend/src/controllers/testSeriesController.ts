@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
+import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import { TestSeries } from '../models/TestSeries.js';
+import { TestSubmission } from '../models/TestSubmission.js';
 import { PART_TESTS_DATA } from '../data/partTestsData.js';
 import {
   broadcastTestSeriesCreated,
@@ -395,6 +397,14 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
       if (!obj.markingScheme || typeof obj.markingScheme.correct !== 'number') {
         obj.markingScheme = { correct: 4, incorrect: 1, unattempted: 0 };
       }
+      if (obj.solutionRelease) {
+        obj.solutionRelease = {
+          enabled: Boolean(obj.solutionRelease.enabled),
+          releaseDelayHours: obj.solutionRelease.releaseDelayHours || 24,
+          hasPdf: Boolean(obj.solutionRelease.pdfUrl),
+          hasVideo: Boolean(obj.solutionRelease.videoUrl)
+        };
+      }
       return obj;
     });
 
@@ -435,7 +445,19 @@ export const getTestSeriesByIdOrSlug = async (req: Request, res: Response): Prom
       return;
     }
 
-    res.status(200).json({ success: true, data: item });
+    const raw = item.toObject ? item.toObject() : { ...item };
+    const requesterRole = (req as any).user?.role;
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER'].includes(requesterRole);
+    if (!isAdmin && raw.solutionRelease) {
+      raw.solutionRelease = {
+        enabled: Boolean(raw.solutionRelease.enabled),
+        releaseDelayHours: raw.solutionRelease.releaseDelayHours || 24,
+        hasPdf: Boolean(raw.solutionRelease.pdfUrl),
+        hasVideo: Boolean(raw.solutionRelease.videoUrl)
+      };
+    }
+
+    res.status(200).json({ success: true, data: raw });
   } catch (error: any) {
     const param = String(req.params.id);
     const fallbackItem = SEED_TEST_SERIES.find((s) => s.id === param || s.slug === param);
@@ -673,6 +695,426 @@ export const deleteTestSeries = async (req: Request, res: Response): Promise<voi
       success: true,
       message: 'Test Series deleted successfully',
       id: deletedId
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Student Test Submission with Individual Automated Solution Scheduling
+ * Formula: solutionUnlockAt = submittedAt (Server Timestamp) + releaseDelayHours
+ */
+export const submitTestSeries = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { responses, timeSpentSeconds, clientSubmissionId } = req.body;
+
+    const test = await TestSeries.findOne({
+      $or: [{ id }, { slug: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }]
+    });
+
+    if (!test) {
+      res.status(404).json({ success: false, message: 'Test Series not found' });
+      return;
+    }
+
+    const studentId = (req.user as any)?.id || (req.user as any)?._id || req.body.studentId || `guest-${Date.now()}`;
+    const studentEmail = req.user?.email || req.body.studentEmail || '';
+    const studentName = req.user?.name || req.body.studentName || 'Student';
+
+    // Prevent duplicate schedules for the same submission
+    if (clientSubmissionId) {
+      const existingSub = await TestSubmission.findOne({ submissionId: clientSubmissionId });
+      if (existingSub) {
+        res.status(200).json({
+          success: true,
+          message: 'Existing submission retrieved',
+          data: {
+            submissionId: existingSub.submissionId,
+            testId: existingSub.testId,
+            score: existingSub.score,
+            totalMarks: existingSub.totalMarks,
+            accuracy: existingSub.accuracy,
+            correctCount: existingSub.correctCount,
+            incorrectCount: existingSub.incorrectCount,
+            unattemptedCount: existingSub.unattemptedCount,
+            submittedAt: existingSub.submittedAt,
+            solutionSchedule: {
+              enabled: existingSub.solutionSchedule.enabled,
+              releaseDelayHours: existingSub.solutionSchedule.releaseDelayHours,
+              solutionUnlockAt: existingSub.solutionSchedule.solutionUnlockAt,
+              isUnlocked: new Date().getTime() >= new Date(existingSub.solutionSchedule.solutionUnlockAt).getTime(),
+              hasPdf: Boolean(existingSub.solutionSchedule.pdfSolutionUrl),
+              hasVideo: Boolean(existingSub.solutionSchedule.videoSolutionUrl)
+            }
+          }
+        });
+        return;
+      }
+    }
+
+    // Evaluate responses against official test questions
+    const markingCorrect = test.markingScheme?.correct ?? 4;
+    const markingIncorrect = test.markingScheme?.incorrect ?? 1;
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let unattemptedCount = 0;
+    let totalScore = 0;
+
+    (test.questions || []).forEach((q: any) => {
+      const qId = q.id || q._id;
+      const resp = responses?.[qId];
+      const isAnswered = Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
+
+      if (!resp || !isAnswered) {
+        unattemptedCount += 1;
+      } else {
+        let isCorrect = false;
+        const isNum = q.type === 'NUMERICAL' || q.section === 'B' || (!q.options || q.options.length === 0);
+        if (isNum) {
+          const studentVal = (resp.numericalValue ?? resp.selectedOption ?? '').trim();
+          const correctVal = String(q.numericalAnswer ?? q.correctAnswer ?? '').trim();
+          if (studentVal && correctVal && !isNaN(Number(studentVal)) && !isNaN(Number(correctVal))) {
+            isCorrect = Math.abs(Number(studentVal) - Number(correctVal)) < 0.001;
+          } else {
+            isCorrect = studentVal.toLowerCase() === correctVal.toLowerCase();
+          }
+        } else {
+          isCorrect = resp.selectedOption === q.correctAnswer;
+        }
+
+        if (isCorrect) {
+          correctCount += 1;
+          totalScore += markingCorrect;
+        } else {
+          incorrectCount += 1;
+          const penalty = isNum && q.negativeMarks === 0 ? 0 : markingIncorrect;
+          totalScore -= penalty;
+        }
+      }
+    });
+
+    const attemptedCount = correctCount + incorrectCount;
+    const accuracy = attemptedCount > 0 ? Math.round((correctCount / attemptedCount) * 100) : 0;
+    const totalMarks = test.totalMarks || (test.questions?.length ? test.questions.length * markingCorrect : 300);
+
+    // Calculate strict server timestamps for student-specific unlock
+    const submittedAt = new Date(); // SERVER TIMESTAMP (Never test start or test creation time)
+    const delayHours = [12, 24, 48, 72].includes(Number(test.solutionRelease?.releaseDelayHours))
+      ? Number(test.solutionRelease?.releaseDelayHours)
+      : 24;
+    const solutionUnlockAt = new Date(submittedAt.getTime() + delayHours * 60 * 60 * 1000);
+    const hasAnySolutionUrl = Boolean(test.solutionRelease?.pdfUrl || test.solutionRelease?.videoUrl);
+    const isReleaseEnabled = Boolean(test.solutionRelease?.enabled && hasAnySolutionUrl);
+
+    const submissionId = clientSubmissionId || `sub-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+
+    const newSubmission = await TestSubmission.create({
+      submissionId,
+      testId: test.id,
+      studentId: String(studentId),
+      studentEmail,
+      studentName,
+      submittedAt,
+      timeSpentSeconds: Number(timeSpentSeconds) || 0,
+      score: totalScore,
+      totalMarks,
+      accuracy,
+      correctCount,
+      incorrectCount,
+      unattemptedCount,
+      responses: responses || {},
+      solutionSchedule: {
+        enabled: isReleaseEnabled,
+        pdfSolutionUrl: test.solutionRelease?.pdfUrl || '',
+        videoSolutionUrl: test.solutionRelease?.videoUrl || '',
+        releaseDelayHours: delayHours,
+        solutionUnlockAt,
+        releaseStatus: isReleaseEnabled ? 'SCHEDULED' : 'DISABLED'
+      }
+    });
+
+    // Increment attempts count on test
+    await TestSeries.updateOne({ id: test.id }, { $inc: { attemptsCount: 1 } }).catch(() => {});
+
+    // Return immediate scoring results & scheduling status (Never leak raw URLs here!)
+    res.status(201).json({
+      success: true,
+      message: 'Test submitted and scheduled successfully',
+      data: {
+        submissionId: newSubmission.submissionId,
+        testId: newSubmission.testId,
+        score: newSubmission.score,
+        totalMarks: newSubmission.totalMarks,
+        accuracy: newSubmission.accuracy,
+        correctCount: newSubmission.correctCount,
+        incorrectCount: newSubmission.incorrectCount,
+        unattemptedCount: newSubmission.unattemptedCount,
+        submittedAt: newSubmission.submittedAt,
+        solutionSchedule: {
+          enabled: isReleaseEnabled,
+          releaseDelayHours: delayHours,
+          solutionUnlockAt: newSubmission.solutionSchedule.solutionUnlockAt,
+          isUnlocked: false,
+          hasPdf: Boolean(test.solutionRelease?.pdfUrl),
+          hasVideo: Boolean(test.solutionRelease?.videoUrl)
+        }
+      }
+    });
+  } catch (error: any) {
+    console.error('[submitTestSeries Error]:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Retrieve unlocked solutions after scheduled release delay.
+ * Strict server validation: Rejects early requests with 403 Forbidden.
+ */
+export const getTestSeriesSubmissionSolution = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { submissionId } = req.params;
+    const submission = await TestSubmission.findOne({ submissionId });
+
+    if (!submission) {
+      res.status(404).json({ success: false, message: 'Submission record not found' });
+      return;
+    }
+
+    // Ownership & Role Verification
+    const requesterId = (req.user as any)?.id || (req.user as any)?._id;
+    const isOwner = requesterId && String(submission.studentId) === String(requesterId);
+    const isAdmin = Boolean(req.user && ['ADMIN', 'SUPER_ADMIN', 'TEACHER'].includes(req.user.role));
+    const isGuest = String(submission.studentId).startsWith('guest-') || !requesterId;
+
+    if (!isOwner && !isAdmin && !isGuest) {
+      res.status(403).json({
+        success: false,
+        message: 'Access Denied: You are not authorized to access this submission’s solutions.'
+      });
+      return;
+    }
+
+    if (!submission.solutionSchedule.enabled) {
+      res.status(400).json({
+        success: false,
+        message: 'Scheduled solution release is disabled for this test.'
+      });
+      return;
+    }
+
+    // Strict Server-Side Time Enforcement
+    const now = new Date();
+    const unlockTime = new Date(submission.solutionSchedule.solutionUnlockAt);
+
+    if (now.getTime() < unlockTime.getTime()) {
+      res.status(403).json({
+        success: false,
+        isUnlocked: false,
+        message: `Solutions are locked. They will automatically unlock on ${unlockTime.toLocaleString('en-IN')}`,
+        solutionUnlockAt: unlockTime,
+        submittedAt: submission.submittedAt,
+        releaseDelayHours: submission.solutionSchedule.releaseDelayHours,
+        hasPdf: Boolean(submission.solutionSchedule.pdfSolutionUrl),
+        hasVideo: Boolean(submission.solutionSchedule.videoSolutionUrl)
+      });
+      return;
+    }
+
+    // Unlocked! Always use configured URLs (fallback to submission snapshot if test changed)
+    const test = await TestSeries.findOne({ id: submission.testId });
+    const pdfUrl = test?.solutionRelease?.pdfUrl || submission.solutionSchedule.pdfSolutionUrl || '';
+    const videoUrl = test?.solutionRelease?.videoUrl || submission.solutionSchedule.videoSolutionUrl || '';
+
+    // Mark as UNLOCKED in DB
+    if (submission.solutionSchedule.releaseStatus !== 'UNLOCKED') {
+      submission.solutionSchedule.releaseStatus = 'UNLOCKED';
+      await submission.save().catch(() => {});
+    }
+
+    res.status(200).json({
+      success: true,
+      isUnlocked: true,
+      message: 'Solutions unlocked successfully',
+      data: {
+        submissionId: submission.submissionId,
+        submittedAt: submission.submittedAt,
+        solutionUnlockAt: submission.solutionSchedule.solutionUnlockAt,
+        pdfSolutionUrl: pdfUrl || undefined,
+        videoSolutionUrl: videoUrl || undefined
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Public/Safe Status Check endpoint for countdown timer
+ * Does NOT return raw solution URLs
+ */
+export const getTestSeriesSubmissionStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { submissionId } = req.params;
+    const submission = await TestSubmission.findOne({ submissionId });
+
+    if (!submission) {
+      res.status(404).json({ success: false, message: 'Submission not found' });
+      return;
+    }
+
+    const now = new Date();
+    const unlockTime = new Date(submission.solutionSchedule.solutionUnlockAt);
+    const isUnlocked = now.getTime() >= unlockTime.getTime();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        submissionId: submission.submissionId,
+        testId: submission.testId,
+        submittedAt: submission.submittedAt,
+        releaseDelayHours: submission.solutionSchedule.releaseDelayHours,
+        solutionUnlockAt: submission.solutionSchedule.solutionUnlockAt,
+        isUnlocked,
+        enabled: submission.solutionSchedule.enabled,
+        hasPdf: Boolean(submission.solutionSchedule.pdfSolutionUrl),
+        hasVideo: Boolean(submission.solutionSchedule.videoSolutionUrl)
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Admin Overview: Total submissions, scheduled, unlocked, disabled, and URL status
+ */
+export const getTestSeriesSolutionAdminOverview = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const test = await TestSeries.findOne({
+      $or: [{ id }, { slug: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }]
+    });
+
+    if (!test) {
+      res.status(404).json({ success: false, message: 'Test Series not found' });
+      return;
+    }
+
+    const testId = test.id;
+    const now = new Date();
+
+    const submissions = await TestSubmission.find({ testId });
+    const totalSubmissions = submissions.length;
+    let scheduledReleases = 0;
+    let unlockedSubmissions = 0;
+    let disabledReleases = 0;
+
+    submissions.forEach((sub) => {
+      if (!sub.solutionSchedule?.enabled) {
+        disabledReleases++;
+      } else if (new Date(sub.solutionSchedule.solutionUnlockAt).getTime() > now.getTime()) {
+        scheduledReleases++;
+      } else {
+        unlockedSubmissions++;
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        testId,
+        title: test.title,
+        solutionRelease: test.solutionRelease || {
+          enabled: false,
+          pdfUrl: '',
+          videoUrl: '',
+          releaseDelayHours: 24
+        },
+        overview: {
+          totalSubmissions,
+          scheduledReleases,
+          unlockedSubmissions,
+          disabledReleases,
+          pdfConfigured: Boolean(test.solutionRelease?.pdfUrl),
+          videoConfigured: Boolean(test.solutionRelease?.videoUrl),
+          releaseDelayHours: test.solutionRelease?.releaseDelayHours || 24,
+          enabled: Boolean(test.solutionRelease?.enabled)
+        }
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Admin Solution Configuration Update
+ * Validates Google Drive URL format, PDF URL, delay dropdown (12, 24, 48, 72)
+ * Enforces at least one URL if enabled.
+ * Does NOT reset existing students' scheduled unlock timers!
+ */
+export const updateTestSeriesSolutionConfig = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { enabled, pdfUrl, videoUrl, releaseDelayHours } = req.body;
+
+    const test = await TestSeries.findOne({
+      $or: [{ id }, { slug: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }]
+    });
+
+    if (!test) {
+      res.status(404).json({ success: false, message: 'Test Series not found' });
+      return;
+    }
+
+    const delay = [12, 24, 48, 72].includes(Number(releaseDelayHours)) ? Number(releaseDelayHours) : 24;
+    const trimmedPdf = typeof pdfUrl === 'string' ? pdfUrl.trim() : '';
+    const trimmedVideo = typeof videoUrl === 'string' ? videoUrl.trim() : '';
+
+    // Validation: If enabling, at least one valid solution URL must be provided
+    if (enabled) {
+      if (!trimmedPdf && !trimmedVideo) {
+        res.status(400).json({
+          success: false,
+          message: 'At least one valid solution URL (PDF or Google Drive Video) must be provided to enable Scheduled Solution Release.'
+        });
+        return;
+      }
+    }
+
+    // Validate Google Drive URL format
+    if (trimmedVideo && !trimmedVideo.includes('drive.google.com')) {
+      res.status(400).json({
+        success: false,
+        message: 'Video Solution URL must be a valid Google Drive sharing link (drive.google.com).'
+      });
+      return;
+    }
+
+    // Validate PDF URL format
+    if (trimmedPdf && !trimmedPdf.startsWith('http://') && !trimmedPdf.startsWith('https://')) {
+      res.status(400).json({
+        success: false,
+        message: 'PDF Solution URL must start with http:// or https://.'
+      });
+      return;
+    }
+
+    test.solutionRelease = {
+      enabled: Boolean(enabled),
+      pdfUrl: trimmedPdf,
+      videoUrl: trimmedVideo,
+      releaseDelayHours: delay
+    };
+
+    await test.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Scheduled solution release configuration updated successfully',
+      data: test.solutionRelease
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

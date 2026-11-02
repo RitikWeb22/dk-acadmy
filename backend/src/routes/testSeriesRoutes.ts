@@ -5,7 +5,12 @@ import {
   getTestSeriesByIdOrSlug,
   createTestSeries,
   updateTestSeries,
-  deleteTestSeries
+  deleteTestSeries,
+  submitTestSeries,
+  getTestSeriesSubmissionSolution,
+  getTestSeriesSubmissionStatus,
+  getTestSeriesSolutionAdminOverview,
+  updateTestSeriesSolutionConfig
 } from '../controllers/testSeriesController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
@@ -49,6 +54,25 @@ const createTestSeriesSchema = z
 // Public routes for catalog & CBT simulator
 router.get('/', getAllTestSeries);
 router.get('/:id', getTestSeriesByIdOrSlug);
+
+// Submission & Student-Specific Solution Scheduling
+router.post('/:id/submit', submitTestSeries);
+router.get('/submissions/:submissionId/status', getTestSeriesSubmissionStatus);
+router.get('/submissions/:submissionId/solution', getTestSeriesSubmissionSolution);
+
+// Admin Solution Management & Overview
+router.get(
+  '/:id/solution-admin-overview',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  getTestSeriesSolutionAdminOverview
+);
+router.patch(
+  '/:id/solution-config',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  updateTestSeriesSolutionConfig
+);
 
 // Admin & Faculty creation/management routes
 router.post(

@@ -110,7 +110,7 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
             <span>Back to Score Analysis</span>
           </button>
           <div className={styles.titleGroup}>
-            <h2 className={styles.reviewTitle}>Detailed Solutions: {test.title}</h2>
+            <h2 className={styles.reviewTitle}>Question &amp; Answer Review: {test.title}</h2>
           </div>
         </div>
 
@@ -276,50 +276,55 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
                 </div>
               )}
 
-              {/* Solution Box */}
+              {/* Official Answer & Concept Summary Box */}
               <div className={styles.solutionBox}>
                 <div className={styles.solutionHeader}>
                   <CheckCircle2 size={16} className={styles.solIcon} />
-                  <span className={styles.solTitle}>Official Step-by-Step Solution</span>
+                  <span className={styles.solTitle}>Official Verified Answer Key</span>
                 </div>
 
                 {activeQuestion.formulaKey && (
                   <div className={styles.formulaRow}>
-                    <span className={styles.formulaLabel}>Core Concept & Formula:</span>
+                    <span className={styles.formulaLabel}>Topic / Core Concept:</span>
                     <div className={styles.formulaCode}>
                       <MathText text={activeQuestion.formulaKey} />
                     </div>
                   </div>
                 )}
 
-                {activeQuestion.shortcutTrick && (
-                  <div
+                <div
+                  style={{
+                    background: '#F0F9FF',
+                    border: '1px solid #BAE6FD',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    flexWrap: 'wrap'
+                  }}
+                >
+                  <div style={{ fontSize: '13px', color: '#0369A1' }}>
+                    <strong>Scheduled Solution Release:</strong> Complete PDF derivations &amp; instructor video walkthroughs unlock automatically on your individual schedule.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onBackToResults}
                     style={{
-                      background: 'rgba(254, 243, 199, 0.65)',
-                      border: '1px solid #FCD34D',
-                      borderRadius: '8px',
-                      padding: '10px 14px',
-                      marginBottom: '14px',
-                      color: '#92400E'
+                      background: '#0284C7',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 14px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontWeight: 800, fontSize: '12.5px', color: '#B45309' }}>
-                      <span>⚡ DK Sir Kota 20-30s Inspection Trick:</span>
-                    </div>
-                    <div style={{ fontSize: '13px', lineHeight: 1.6 }}>
-                      <MathText text={activeQuestion.shortcutTrick} />
-                    </div>
-                  </div>
-                )}
-
-                {activeQuestion.explanation && (
-                  <div className={styles.explanationText}>
-                    <div style={{ fontWeight: 700, fontSize: '12.5px', color: '#1E40AF', marginBottom: '6px' }}>
-                      Detailed Mathematical Derivation:
-                    </div>
-                    <MathText text={activeQuestion.explanation} />
-                  </div>
-                )}
+                    View Unlock Timer →
+                  </button>
+                </div>
               </div>
 
               {/* Navigation Row */}
