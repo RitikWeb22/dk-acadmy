@@ -25,6 +25,8 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'",
+                "'unsafe-inline'",
+                'https://cdn.jsdelivr.net',
                 'https://checkout.razorpay.com',
                 'https://*.razorpay.com',
                 'https://cdn.razorpay.com',

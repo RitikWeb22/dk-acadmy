@@ -11,6 +11,8 @@ paths = [
   '''package-lock\.json$''',
   '''node_modules''',
   '''dist/''',
+  '''backend/public/''',
+  '''frontend/dist/''',
   '''SECURITY_ROTATION\.md'''
 ]
 regexes = [
