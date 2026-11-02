@@ -8,6 +8,10 @@ import {
   Check,
   X,
   Filter,
+  Video,
+  FileText,
+  Lock,
+  ExternalLink
 } from 'lucide-react';
 import type { TestSeriesItem, TestAttempt } from '../../../types';
 import styles from './AnswerReviewView.module.scss';
@@ -292,39 +296,126 @@ export const AnswerReviewView: React.FC<AnswerReviewViewProps> = ({
                   </div>
                 )}
 
-                <div
-                  style={{
-                    background: '#F0F9FF',
-                    border: '1px solid #BAE6FD',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                    flexWrap: 'wrap'
-                  }}
-                >
-                  <div style={{ fontSize: '13px', color: '#0369A1' }}>
-                    <strong>Scheduled Solution Release:</strong> Complete PDF derivations &amp; instructor video walkthroughs unlock automatically on your individual schedule.
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onBackToResults}
-                    style={{
-                      background: '#0284C7',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '6px 14px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    View Unlock Timer →
-                  </button>
-                </div>
+                {/* Scheduled Release & Question Solutions */}
+                {(() => {
+                  const isSolutionsUnlocked = Boolean(
+                    attempt?.solutionSchedule?.isUnlocked ||
+                    (attempt?.solutionUnlockAt && Date.now() >= new Date(attempt.solutionUnlockAt).getTime())
+                  );
+                  const qVideo = activeQuestion.videoSolutionUrl;
+                  const qPdf = activeQuestion.pdfSolutionUrl;
+
+                  if (isSolutionsUnlocked) {
+                    return (
+                      <div
+                        style={{
+                          background: '#F0FDF4',
+                          border: '1px solid #86EFAC',
+                          borderRadius: '8px',
+                          padding: '14px 16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803D', fontWeight: 700, fontSize: '13px' }}>
+                          <CheckCircle2 size={16} />
+                          <span>Question Solutions Released</span>
+                        </div>
+
+                        {(qVideo || qPdf) && (
+                          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                            {qVideo && (
+                              <a
+                                href={qVideo}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '7px 14px',
+                                  background: '#2563EB',
+                                  color: '#FFFFFF',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  textDecoration: 'none'
+                                }}
+                              >
+                                <Video size={14} />
+                                <span>Watch Video Explanation (YouTube / Drive)</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            )}
+                            {qPdf && (
+                              <a
+                                href={qPdf}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '7px 14px',
+                                  background: '#0F766E',
+                                  color: '#FFFFFF',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  textDecoration: 'none'
+                                }}
+                              >
+                                <FileText size={14} />
+                                <span>Download PDF Derivation</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      style={{
+                        background: '#F0F9FF',
+                        border: '1px solid #BAE6FD',
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#0369A1' }}>
+                        <Lock size={15} color="#0284C7" />
+                        <span>
+                          <strong>Scheduled Solution Release Active:</strong> Question video &amp; PDF derivations unlock automatically on your schedule.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={onBackToResults}
+                        style={{
+                          background: '#0284C7',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '6px 14px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        View Unlock Timer →
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Navigation Row */}

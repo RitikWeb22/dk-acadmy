@@ -255,6 +255,7 @@ export interface TestQuestion {
   formulaKey?: string;
   shortcutTrick?: string;
   videoSolutionUrl?: string;
+  pdfSolutionUrl?: string;
 }
 
 export interface TestMarkingScheme {

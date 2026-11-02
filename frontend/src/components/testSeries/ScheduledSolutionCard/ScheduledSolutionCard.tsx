@@ -130,11 +130,11 @@ export const ScheduledSolutionCard: React.FC<ScheduledSolutionCardProps> = ({
             <h3 className={styles.cardTitle}>
               {isUnlocked ? 'Official Solutions Unlocked' : 'Solutions Coming Soon'}
             </h3>
-            <p className={styles.cardSubtitle}>
-              {isUnlocked
-                ? 'Your individual solution unlock schedule is active. Access official PDF derivations & video walkthroughs.'
-                : 'Solutions are scheduled for automated release based on your test submission timestamp.'}
-            </p>
+            {isUnlocked && (
+              <p className={styles.cardSubtitle}>
+                Your solution access is active. Review official derivations and video explanations below.
+              </p>
+            )}
           </div>
         </div>
 
@@ -219,14 +219,6 @@ export const ScheduledSolutionCard: React.FC<ScheduledSolutionCardProps> = ({
           )}
         </div>
       )}
-
-      {/* Security & Reliability Footer Note */}
-      <div className={styles.lockNoticeBanner}>
-        <ShieldCheck size={16} color="#10B981" />
-        <span>
-          Independent Student Schedule • Unlock formula: <code>submittedAt + {releaseDelayHours}h</code> • Enforced securely by server
-        </span>
-      </div>
     </section>
   );
 };
