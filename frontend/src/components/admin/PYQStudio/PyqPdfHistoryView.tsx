@@ -60,11 +60,11 @@ export const PyqPdfHistoryView: React.FC<Props> = ({
             {history.map((rec) => (
               <tr key={rec.id}>
                 <td>
-                  <div style={{ fontWeight: 600, color: '#f0f6fc', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FileText size={16} color="#58a6ff" />
+                  <div style={{ fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FileText size={16} color="#2563eb" />
                     {rec.fileName}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#8b949e', marginTop: 2 }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
                     {(rec.fileSize / 1024).toFixed(1)} KB • {rec.targetExam || 'JEE Main'} • {rec.subject || 'Mathematics'}
                   </div>
                 </td>
@@ -72,7 +72,7 @@ export const PyqPdfHistoryView: React.FC<Props> = ({
                   <div style={{ fontSize: '0.85rem' }}>
                     {new Date(rec.createdAt).toLocaleDateString()}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#8b949e' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     {new Date(rec.createdAt).toLocaleTimeString()}
                   </div>
                 </td>
@@ -80,10 +80,10 @@ export const PyqPdfHistoryView: React.FC<Props> = ({
                   <span style={{ fontWeight: 600 }}>{rec.totalDetected}</span>
                 </td>
                 <td>
-                  <span style={{ color: '#3fb950', fontWeight: 600 }}>{rec.successfulCount}</span>
+                  <span style={{ color: '#16a34a', fontWeight: 600 }}>{rec.successfulCount}</span>
                 </td>
                 <td>
-                  <span style={{ color: rec.needsReviewCount > 0 ? '#d29922' : '#8b949e', fontWeight: 600 }}>
+                  <span style={{ color: rec.needsReviewCount > 0 ? '#d97706' : '#64748b', fontWeight: 600 }}>
                     {rec.needsReviewCount}
                   </span>
                 </td>
@@ -116,7 +116,7 @@ export const PyqPdfHistoryView: React.FC<Props> = ({
 
             {history.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#8b949e' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#64748b' }}>
                   No PDF imports found in history. Upload a PDF paper in "Create New PYQ" to start.
                 </td>
               </tr>
@@ -132,7 +132,7 @@ export const PyqPdfHistoryView: React.FC<Props> = ({
             <div className={styles.modalHeader}>
               <div>
                 <h3>Staged Questions: {selectedRecord.fileName}</h3>
-                <div style={{ fontSize: '0.8rem', color: '#8b949e', marginTop: 3 }}>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 3 }}>
                   Total {selectedRecord.totalDetected} questions • {selectedRecord.needsReviewCount} require review
                 </div>
               </div>
@@ -145,8 +145,9 @@ export const PyqPdfHistoryView: React.FC<Props> = ({
                   <div
                     key={q.tempId || i}
                     style={{
-                      background: '#0d1117',
-                      border: q.status === 'NEEDS_REVIEW' ? '1px solid #d29922' : '1px solid #30363d',
+                      background: '#ffffff',
+                      border: q.status === 'NEEDS_REVIEW' ? '1px solid #f59e0b' : '1px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                       borderRadius: 8,
                       padding: '1rem',
                       display: 'flex',
@@ -155,21 +156,21 @@ export const PyqPdfHistoryView: React.FC<Props> = ({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 700, color: '#f0f6fc', fontSize: '0.9rem' }}>
+                      <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>
                         Question {q.qNum || i + 1}
                       </span>
                       {q.status === 'NEEDS_REVIEW' ? (
-                        <span style={{ background: 'rgba(210,153,34,0.15)', color: '#d29922', padding: '0.15rem 0.5rem', borderRadius: 4, fontSize: '0.75rem' }}>
+                        <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '0.15rem 0.5rem', borderRadius: 4, fontSize: '0.75rem', fontWeight: 600 }}>
                           Needs Review: {q.reviewReason || 'Unverified'}
                         </span>
                       ) : (
-                        <span style={{ background: 'rgba(46,160,67,0.15)', color: '#3fb950', padding: '0.15rem 0.5rem', borderRadius: 4, fontSize: '0.75rem' }}>
+                        <span style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '0.15rem 0.5rem', borderRadius: 4, fontSize: '0.75rem', fontWeight: 600 }}>
                           Verified
                         </span>
                       )}
                     </div>
 
-                    <div style={{ fontSize: '0.9rem', color: '#f0f6fc', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: '0.9rem', color: '#0f172a', lineHeight: 1.6 }}>
                       <MathText text={q.statement} />
                     </div>
 
@@ -179,14 +180,15 @@ export const PyqPdfHistoryView: React.FC<Props> = ({
                           <div
                             key={opt.key}
                             style={{
-                              background: opt.key === q.suggestedAnswer ? 'rgba(46,160,67,0.1)' : '#161b22',
-                              border: opt.key === q.suggestedAnswer ? '1px solid #2ea043' : '1px solid #21262d',
+                              background: opt.key === q.suggestedAnswer ? '#f0fdf4' : '#f8fafc',
+                              border: opt.key === q.suggestedAnswer ? '1px solid #86efac' : '1px solid #e2e8f0',
                               borderRadius: 4,
                               padding: '0.4rem 0.6rem',
-                              fontSize: '0.8rem'
+                              fontSize: '0.8rem',
+                              color: '#1e293b'
                             }}
                           >
-                            <strong>({opt.key})</strong> <MathText text={opt.text} />
+                            <strong style={{ color: opt.key === q.suggestedAnswer ? '#16a34a' : '#2563eb' }}>({opt.key})</strong> <MathText text={opt.text} />
                           </div>
                         ))}
                       </div>

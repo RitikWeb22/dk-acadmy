@@ -70,11 +70,11 @@ export const PyqStudioDashboard: React.FC<Props> = ({
         <div className={styles.kpiCard}>
           <div className={styles.kpiContent}>
             <div className={styles.kpiLabel}>Drafts</div>
-            <div className={styles.kpiValue} style={{ color: '#8b949e' }}>
+            <div className={styles.kpiValue} style={{ color: '#64748b' }}>
               {draftCount}
             </div>
           </div>
-          <div className={styles.kpiIconWrapper} style={{ color: '#8b949e' }}>
+          <div className={styles.kpiIconWrapper} style={{ color: '#64748b', background: '#f1f5f9' }}>
             <Clock size={22} />
           </div>
         </div>
@@ -82,11 +82,11 @@ export const PyqStudioDashboard: React.FC<Props> = ({
         <div className={styles.kpiCard}>
           <div className={styles.kpiContent}>
             <div className={styles.kpiLabel}>Scheduled Release</div>
-            <div className={styles.kpiValue} style={{ color: '#d29922' }}>
+            <div className={styles.kpiValue} style={{ color: '#d97706' }}>
               {scheduledCount}
             </div>
           </div>
-          <div className={styles.kpiIconWrapper} style={{ color: '#d29922', background: 'rgba(210,153,34,0.1)' }}>
+          <div className={styles.kpiIconWrapper} style={{ color: '#d97706', background: '#fef3c7' }}>
             <Clock size={22} />
           </div>
         </div>
@@ -94,11 +94,11 @@ export const PyqStudioDashboard: React.FC<Props> = ({
         <div className={styles.kpiCard}>
           <div className={styles.kpiContent}>
             <div className={styles.kpiLabel}>Question Bank</div>
-            <div className={styles.kpiValue} style={{ color: '#a371f7' }}>
+            <div className={styles.kpiValue} style={{ color: '#7c3aed' }}>
               {questionBankCount}
             </div>
           </div>
-          <div className={styles.kpiIconWrapper} style={{ color: '#a371f7', background: 'rgba(163,113,247,0.1)' }}>
+          <div className={styles.kpiIconWrapper} style={{ color: '#7c3aed', background: '#f5f3ff' }}>
             <Database size={22} />
           </div>
         </div>
@@ -129,8 +129,8 @@ export const PyqStudioDashboard: React.FC<Props> = ({
       {pendingReviewImports.length > 0 && (
         <div
           style={{
-            background: 'rgba(210, 153, 34, 0.1)',
-            border: '1px solid rgba(210, 153, 34, 0.3)',
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
             borderRadius: 8,
             padding: '1rem 1.25rem',
             display: 'flex',
@@ -140,12 +140,12 @@ export const PyqStudioDashboard: React.FC<Props> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <AlertTriangle size={20} color="#d29922" />
+            <AlertTriangle size={20} color="#d97706" />
             <div>
-              <div style={{ fontWeight: 600, color: '#f0f6fc', fontSize: '0.9rem' }}>
+              <div style={{ fontWeight: 600, color: '#92400e', fontSize: '0.9rem' }}>
                 {pendingReviewImports.length} PDF Extraction{pendingReviewImports.length > 1 ? 's' : ''} Awaiting Admin Review
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#8b949e' }}>
+              <div style={{ fontSize: '0.8rem', color: '#b45309' }}>
                 Extracted questions contain suggestions that must be verified before publishing.
               </div>
             </div>
@@ -185,17 +185,17 @@ export const PyqStudioDashboard: React.FC<Props> = ({
               {papers.slice(0, 6).map((paper) => (
                 <tr key={paper.id}>
                   <td>
-                    <div style={{ fontWeight: 600, color: '#f0f6fc' }}>{paper.title}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#8b949e', marginTop: 2 }}>{paper.slug}</div>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{paper.title}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>{paper.slug}</div>
                   </td>
                   <td>
                     <span style={{ fontWeight: 500 }}>{paper.targetExam || 'JEE Main'}</span>
                   </td>
                   <td>{paper.year || 2024}</td>
                   <td>
-                    <span style={{ color: '#79c0ff' }}>{paper.subject}</span>
+                    <span style={{ color: '#2563eb', fontWeight: 600 }}>{paper.subject}</span>
                     {paper.chapter && (
-                      <div style={{ fontSize: '0.75rem', color: '#8b949e' }}>{paper.chapter}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{paper.chapter}</div>
                     )}
                   </td>
                   <td>
@@ -240,7 +240,7 @@ export const PyqStudioDashboard: React.FC<Props> = ({
               ))}
               {papers.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#8b949e' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
                     No PYQ papers found. Click "Create New PYQ" or "Upload PDF Question Paper" to get started!
                   </td>
                 </tr>

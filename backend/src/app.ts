@@ -41,8 +41,8 @@ app.use(
           'https://*.google.com',
           'https://apis.google.com'
         ],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net', 'data:'],
         imgSrc: [
           "'self'",
           'data:',
@@ -70,6 +70,7 @@ app.use(
         ],
         connectSrc: [
           "'self'",
+          'https://cdn.jsdelivr.net',
           'https://api.razorpay.com',
           'https://lumberjack.razorpay.com',
           'https://*.razorpay.com',

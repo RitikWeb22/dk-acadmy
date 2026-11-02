@@ -64,6 +64,7 @@ router.use('/contact', leadRoutes);
 router.use('/courses', courseRoutes);
 router.use('/test-series', testSeriesRoutes);
 router.use('/dpp-pyq', dppPyqRoutes);
+router.use('/dpp-pyqs', dppPyqRoutes);
 router.use('/free-lectures', freeLectureRoutes);
 router.use('/cms', cmsRoutes);
 router.use('/payment', paymentRoutes);

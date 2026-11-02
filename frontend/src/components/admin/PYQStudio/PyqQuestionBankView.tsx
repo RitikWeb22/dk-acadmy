@@ -157,8 +157,9 @@ export const PyqQuestionBankView: React.FC<Props> = ({
           <div
             key={item.id}
             style={{
-              background: '#0d1117',
-              border: '1px solid #30363d',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
               borderRadius: 8,
               padding: '1.25rem',
               display: 'flex',
@@ -170,8 +171,9 @@ export const PyqQuestionBankView: React.FC<Props> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <span
                   style={{
-                    background: '#1f6feb',
-                    color: '#fff',
+                    background: '#eff6ff',
+                    color: '#2563eb',
+                    border: '1px solid #bfdbfe',
                     padding: '0.15rem 0.5rem',
                     borderRadius: 4,
                     fontSize: '0.75rem',
@@ -182,8 +184,9 @@ export const PyqQuestionBankView: React.FC<Props> = ({
                 </span>
                 <span
                   style={{
-                    background: '#21262d',
-                    color: '#c9d1d9',
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
                     padding: '0.15rem 0.5rem',
                     borderRadius: 4,
                     fontSize: '0.75rem'
@@ -191,24 +194,25 @@ export const PyqQuestionBankView: React.FC<Props> = ({
                 >
                   {item.exam} {item.year}
                 </span>
-                <span style={{ fontSize: '0.75rem', color: '#8b949e' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                   {item.chapter}
                 </span>
                 <span
                   style={{
                     fontSize: '0.75rem',
+                    fontWeight: 600,
                     color:
                       item.difficulty === 'Challenging'
-                        ? '#f85149'
+                        ? '#dc2626'
                         : item.difficulty === 'Moderate'
-                        ? '#d29922'
-                        : '#3fb950'
+                        ? '#d97706'
+                        : '#16a34a'
                   }}
                 >
                   • {item.difficulty}
                 </span>
                 {item.usageCount > 0 && (
-                  <span style={{ fontSize: '0.75rem', color: '#a371f7' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#7c3aed' }}>
                     • Used in {item.usageCount} paper{item.usageCount > 1 ? 's' : ''}
                   </span>
                 )}
@@ -255,7 +259,7 @@ export const PyqQuestionBankView: React.FC<Props> = ({
             </div>
 
             {/* Statement */}
-            <div style={{ fontSize: '0.95rem', color: '#f0f6fc', lineHeight: 1.6 }}>
+            <div style={{ fontSize: '0.95rem', color: '#0f172a', lineHeight: 1.6 }}>
               <MathText text={item.statement} />
             </div>
 
@@ -266,17 +270,18 @@ export const PyqQuestionBankView: React.FC<Props> = ({
                   <div
                     key={opt.key}
                     style={{
-                      background: opt.key === item.correctKey ? 'rgba(46,160,67,0.1)' : '#161b22',
-                      border: opt.key === item.correctKey ? '1px solid #2ea043' : '1px solid #21262d',
+                      background: opt.key === item.correctKey ? '#f0fdf4' : '#f8fafc',
+                      border: opt.key === item.correctKey ? '1px solid #86efac' : '1px solid #e2e8f0',
                       borderRadius: 6,
                       padding: '0.5rem 0.75rem',
                       fontSize: '0.825rem',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.5rem'
+                      gap: '0.5rem',
+                      color: '#1e293b'
                     }}
                   >
-                    <span style={{ fontWeight: 700, color: opt.key === item.correctKey ? '#3fb950' : '#58a6ff' }}>
+                    <span style={{ fontWeight: 700, color: opt.key === item.correctKey ? '#16a34a' : '#2563eb' }}>
                       ({opt.key})
                     </span>
                     <MathText text={opt.text} />
@@ -289,15 +294,15 @@ export const PyqQuestionBankView: React.FC<Props> = ({
             {item.stepSolution && (
               <div
                 style={{
-                  background: '#161b22',
+                  background: '#f8fafc',
                   borderRadius: 6,
                   padding: '0.65rem 0.85rem',
                   fontSize: '0.8rem',
-                  color: '#8b949e',
-                  borderLeft: '3px solid #1f6feb'
+                  color: '#475569',
+                  borderLeft: '3px solid #2563eb'
                 }}
               >
-                <strong style={{ color: '#c9d1d9' }}>Derivation: </strong>
+                <strong style={{ color: '#0f172a' }}>Derivation: </strong>
                 <MathText text={item.stepSolution} />
               </div>
             )}
@@ -305,7 +310,7 @@ export const PyqQuestionBankView: React.FC<Props> = ({
         ))}
 
         {filteredItems.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#8b949e' }}>
+          <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#64748b' }}>
             No questions found in question bank matching the filters.
           </div>
         )}
@@ -393,8 +398,8 @@ export const PyqQuestionBankView: React.FC<Props> = ({
                       <div
                         key={key}
                         style={{
-                          background: isCorrect ? 'rgba(46,160,67,0.1)' : '#0d1117',
-                          border: isCorrect ? '1px solid #2ea043' : '1px solid #30363d',
+                          background: isCorrect ? '#f0fdf4' : '#f8fafc',
+                          border: isCorrect ? '1px solid #86efac' : '1px solid #cbd5e1',
                           borderRadius: 6,
                           padding: '0.5rem 0.75rem',
                           display: 'flex',
@@ -409,8 +414,8 @@ export const PyqQuestionBankView: React.FC<Props> = ({
                             width: 24,
                             height: 24,
                             borderRadius: '50%',
-                            background: isCorrect ? '#238636' : '#21262d',
-                            color: isCorrect ? '#fff' : '#8b949e',
+                            background: isCorrect ? '#16a34a' : '#e2e8f0',
+                            color: isCorrect ? '#fff' : '#64748b',
                             border: 'none',
                             fontWeight: 700,
                             cursor: 'pointer'

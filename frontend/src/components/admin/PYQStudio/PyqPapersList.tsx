@@ -163,17 +163,17 @@ export const PyqPapersList: React.FC<Props> = ({
             {filteredPapers.map((paper) => (
               <tr key={paper.id}>
                 <td>
-                  <div style={{ fontWeight: 600, color: '#f0f6fc' }}>{paper.title}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#8b949e', marginTop: 2 }}>{paper.slug}</div>
+                  <div style={{ fontWeight: 600, color: '#0f172a' }}>{paper.title}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>{paper.slug}</div>
                 </td>
                 <td>
                   <span style={{ fontWeight: 500 }}>{paper.targetExam || 'JEE Main'}</span>
                 </td>
                 <td>{paper.year || 2024}</td>
                 <td>
-                  <span style={{ color: '#79c0ff' }}>{paper.subject}</span>
+                  <span style={{ color: '#2563eb', fontWeight: 600 }}>{paper.subject}</span>
                   {paper.chapter && (
-                    <div style={{ fontSize: '0.75rem', color: '#8b949e' }}>{paper.chapter}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{paper.chapter}</div>
                   )}
                 </td>
                 <td>
@@ -242,7 +242,7 @@ export const PyqPapersList: React.FC<Props> = ({
             ))}
             {filteredPapers.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#8b949e' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#64748b' }}>
                   No matching PYQ papers found. Adjust your search or filters.
                 </td>
               </tr>

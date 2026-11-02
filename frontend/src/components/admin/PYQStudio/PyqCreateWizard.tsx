@@ -555,8 +555,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
             {/* Available Chapter Chips from Subject list */}
             <div
               style={{
-                background: '#0d1117',
-                border: '1px solid #30363d',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
                 borderRadius: 8,
                 padding: '0.75rem',
                 maxHeight: 140,
@@ -576,13 +576,14 @@ export const PyqCreateWizard: React.FC<Props> = ({
                       type="button"
                       onClick={() => toggleChapter(ch)}
                       style={{
-                        background: isSel ? 'rgba(31,111,235,0.2)' : '#21262d',
-                        color: isSel ? '#58a6ff' : '#c9d1d9',
-                        border: isSel ? '1px solid #1f6feb' : '1px solid #30363d',
+                        background: isSel ? '#eff6ff' : '#f8fafc',
+                        color: isSel ? '#2563eb' : '#475569',
+                        border: isSel ? '1px solid #2563eb' : '1px solid #cbd5e1',
                         borderRadius: 6,
                         padding: '0.3rem 0.6rem',
                         fontSize: '0.75rem',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        fontWeight: isSel ? 600 : 500
                       }}
                     >
                       {isSel ? '✓ ' : '+ '} {ch}
@@ -634,10 +635,10 @@ export const PyqCreateWizard: React.FC<Props> = ({
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: '1rem',
-              background: '#161b22',
-              padding: '0.75rem',
+              background: '#f1f5f9',
+              padding: '0.5rem',
               borderRadius: 10,
-              border: '1px solid #30363d'
+              border: '1px solid #e2e8f0'
             }}
           >
             <button
@@ -653,9 +654,10 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 fontSize: '0.9rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                background: importMode === 'PDF' ? '#1f6feb' : 'transparent',
-                color: importMode === 'PDF' ? '#ffffff' : '#8b949e',
-                border: 'none'
+                background: importMode === 'PDF' ? '#2563eb' : 'transparent',
+                color: importMode === 'PDF' ? '#ffffff' : '#64748b',
+                border: 'none',
+                boxShadow: importMode === 'PDF' ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
               }}
             >
               <Upload size={18} /> Option A: Upload Question Paper PDF
@@ -673,9 +675,10 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 fontSize: '0.9rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                background: importMode === 'MANUAL' ? '#1f6feb' : 'transparent',
-                color: importMode === 'MANUAL' ? '#ffffff' : '#8b949e',
-                border: 'none'
+                background: importMode === 'MANUAL' ? '#2563eb' : 'transparent',
+                color: importMode === 'MANUAL' ? '#ffffff' : '#64748b',
+                border: 'none',
+                boxShadow: importMode === 'MANUAL' ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
               }}
             >
               <FileText size={18} /> Option B: Add Questions Manually &amp; Question Bank
@@ -728,13 +731,13 @@ export const PyqCreateWizard: React.FC<Props> = ({
 
               {/* Upload Progress Bar */}
               {isPdfUploading && (
-                <div style={{ background: '#0d1117', padding: '1rem', borderRadius: 8, border: '1px solid #30363d' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem', color: '#0f172a' }}>
                     <span>Extracting questions &amp; mathematical symbols from {pdfFile?.name}...</span>
-                    <span>{pdfUploadProgress}%</span>
+                    <span style={{ fontWeight: 600 }}>{pdfUploadProgress}%</span>
                   </div>
-                  <div style={{ width: '100%', height: 6, background: '#21262d', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: `${pdfUploadProgress}%`, height: '100%', background: '#1f6feb', transition: 'width 0.2s' }} />
+                  <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${pdfUploadProgress}%`, height: '100%', background: '#2563eb', transition: 'width 0.2s' }} />
                   </div>
                 </div>
               )}
@@ -743,8 +746,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
               {extractedSummary && (
                 <div
                   style={{
-                    background: 'rgba(31,111,235,0.08)',
-                    border: '1px solid rgba(31,111,235,0.3)',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
                     borderRadius: 8,
                     padding: '1rem 1.25rem',
                     display: 'flex',
@@ -756,20 +759,20 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 >
                   <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#8b949e', textTransform: 'uppercase' }}>Total Detected</div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f0f6fc' }}>{extractedSummary.totalDetected}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total Detected</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a' }}>{extractedSummary.totalDetected}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#8b949e', textTransform: 'uppercase' }}>Extracted OK</div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#3fb950' }}>{extractedSummary.successfulCount}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Extracted OK</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#16a34a' }}>{extractedSummary.successfulCount}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#8b949e', textTransform: 'uppercase' }}>Requires Review</div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#d29922' }}>{extractedSummary.needsReviewCount}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Requires Review</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#d97706' }}>{extractedSummary.needsReviewCount}</div>
                     </div>
                   </div>
 
-                  <div style={{ fontSize: '0.825rem', color: '#8b949e' }}>
+                  <div style={{ fontSize: '0.825rem', color: '#475569' }}>
                     ✓ Suggested answers require admin verification before publication.
                   </div>
                 </div>
@@ -790,13 +793,13 @@ export const PyqCreateWizard: React.FC<Props> = ({
               <div
                 style={{
                   padding: '0.85rem 1rem',
-                  borderBottom: '1px solid #30363d',
+                  borderBottom: '1px solid #e2e8f0',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}
               >
-                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Questions ({questions.length})</span>
+                <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a' }}>Questions ({questions.length})</span>
                 <div style={{ display: 'flex', gap: '0.35rem' }}>
                   <button
                     type="button"
@@ -826,14 +829,14 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     onClick={() => setActiveQuestionIndex(idx)}
                     style={{
                       padding: '0.75rem 1rem',
-                      borderBottom: '1px solid #21262d',
+                      borderBottom: '1px solid #f1f5f9',
                       cursor: 'pointer',
-                      background: activeQuestionIndex === idx ? '#161b22' : 'transparent',
+                      background: activeQuestionIndex === idx ? '#eff6ff' : 'transparent',
                       borderLeft:
                         activeQuestionIndex === idx
-                          ? '3px solid #1f6feb'
+                          ? '3px solid #2563eb'
                           : q.status === 'NEEDS_REVIEW'
-                          ? '3px solid #d29922'
+                          ? '3px solid #d97706'
                           : '3px solid transparent',
                       display: 'flex',
                       alignItems: 'center',
@@ -841,13 +844,13 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: activeQuestionIndex === idx ? '#58a6ff' : '#f0f6fc' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: activeQuestionIndex === idx ? '#2563eb' : '#0f172a' }}>
                         Question {idx + 1}
                       </div>
                       <div
                         style={{
                           fontSize: '0.725rem',
-                          color: '#8b949e',
+                          color: '#64748b',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -895,18 +898,19 @@ export const PyqCreateWizard: React.FC<Props> = ({
               <div className={styles.contentCard} style={{ padding: '1.5rem', gap: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f0f6fc' }}>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
                       Editing Question #{activeQuestionIndex + 1}
                     </span>
                     {activeQ.status === 'NEEDS_REVIEW' && (
                       <span
                         style={{
-                          background: 'rgba(210,153,34,0.15)',
-                          color: '#d29922',
-                          border: '1px solid rgba(210,153,34,0.3)',
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          border: '1px solid #fde68a',
                           padding: '0.15rem 0.5rem',
                           borderRadius: 10,
-                          fontSize: '0.75rem'
+                          fontSize: '0.75rem',
+                          fontWeight: 600
                         }}
                       >
                         Needs Review: {activeQ.reviewReason || 'Verify options & formula'}
@@ -935,8 +939,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 {/* Section A: Question Information */}
                 <div
                   style={{
-                    background: '#0d1117',
-                    border: '1px solid #30363d',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     borderRadius: 8,
                     padding: '1rem',
                     display: 'grid',
@@ -1016,9 +1020,9 @@ export const PyqCreateWizard: React.FC<Props> = ({
                         key={tool.label}
                         type="button"
                         style={{
-                          background: '#21262d',
-                          border: '1px solid #30363d',
-                          color: '#c9d1d9',
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          color: '#334155',
                           borderRadius: 4,
                           padding: '0.15rem 0.45rem',
                           fontSize: '0.75rem',
@@ -1070,8 +1074,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
                           <div
                             key={key}
                             style={{
-                              background: isCorrect ? 'rgba(46,160,67,0.08)' : '#0d1117',
-                              border: isCorrect ? '1px solid #2ea043' : '1px solid #30363d',
+                              background: isCorrect ? '#f0fdf4' : '#f8fafc',
+                              border: isCorrect ? '1.5px solid #86efac' : '1px solid #e2e8f0',
                               borderRadius: 6,
                               padding: '0.6rem 0.75rem',
                               display: 'flex',
@@ -1086,8 +1090,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
                                 width: 24,
                                 height: 24,
                                 borderRadius: '50%',
-                                background: isCorrect ? '#238636' : '#21262d',
-                                color: isCorrect ? '#ffffff' : '#8b949e',
+                                background: isCorrect ? '#16a34a' : '#e2e8f0',
+                                color: isCorrect ? '#ffffff' : '#64748b',
                                 border: 'none',
                                 fontWeight: 700,
                                 fontSize: '0.8rem',
@@ -1117,10 +1121,10 @@ export const PyqCreateWizard: React.FC<Props> = ({
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
                       gap: '1rem',
-                      background: '#0d1117',
+                      background: '#f8fafc',
                       padding: '1rem',
                       borderRadius: 8,
-                      border: '1px solid #30363d'
+                      border: '1px solid #e2e8f0'
                     }}
                   >
                     <div className={styles.formGroup}>
@@ -1150,8 +1154,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 {/* Section D: Solution & Explanation */}
                 <div
                   style={{
-                    background: '#0d1117',
-                    border: '1px solid #30363d',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     borderRadius: 8,
                     padding: '1rem',
                     display: 'flex',
@@ -1160,7 +1164,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontWeight: 600, color: '#f0f6fc', fontSize: '0.9rem' }}>
+                    <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.9rem' }}>
                       Solution &amp; Explanation
                     </div>
                     <button
@@ -1276,11 +1280,11 @@ export const PyqCreateWizard: React.FC<Props> = ({
               <label>Total Questions &amp; Calculated Marks</label>
               <div
                 style={{
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
                   borderRadius: 6,
                   padding: '0.65rem 0.85rem',
-                  color: '#79c0ff',
+                  color: '#1d4ed8',
                   fontWeight: 600
                 }}
               >
@@ -1331,8 +1335,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
             {/* Access Mode */}
             <div
               style={{
-                background: '#0d1117',
-                border: '1px solid #30363d',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
                 borderRadius: 8,
                 padding: '1.25rem',
                 display: 'flex',
@@ -1340,7 +1344,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 gap: '1rem'
               }}
             >
-              <label style={{ fontWeight: 600, color: '#f0f6fc', fontSize: '0.95rem' }}>
+              <label style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem' }}>
                 Student Access Mode
               </label>
 
@@ -1351,8 +1355,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     alignItems: 'center',
                     gap: '0.75rem',
                     cursor: 'pointer',
-                    background: accessMode === 'free' ? 'rgba(46,160,67,0.1)' : 'transparent',
-                    border: accessMode === 'free' ? '1px solid #2ea043' : '1px solid #21262d',
+                    background: accessMode === 'free' ? '#f0fdf4' : '#ffffff',
+                    border: accessMode === 'free' ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
                     padding: '0.75rem',
                     borderRadius: 6
                   }}
@@ -1364,8 +1368,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     onChange={() => setAccessMode('free')}
                   />
                   <div>
-                    <div style={{ fontWeight: 600, color: '#f0f6fc' }}>Free Practice Drill</div>
-                    <div style={{ fontSize: '0.75rem', color: '#8b949e' }}>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>Free Practice Drill</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                       Accessible to all registered students without payment.
                     </div>
                   </div>
@@ -1377,8 +1381,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     alignItems: 'center',
                     gap: '0.75rem',
                     cursor: 'pointer',
-                    background: accessMode === 'paid' ? 'rgba(31,111,235,0.1)' : 'transparent',
-                    border: accessMode === 'paid' ? '1px solid #1f6feb' : '1px solid #21262d',
+                    background: accessMode === 'paid' ? '#eff6ff' : '#ffffff',
+                    border: accessMode === 'paid' ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
                     padding: '0.75rem',
                     borderRadius: 6
                   }}
@@ -1390,8 +1394,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     onChange={() => setAccessMode('paid')}
                   />
                   <div>
-                    <div style={{ fontWeight: 600, color: '#f0f6fc' }}>Paid / Locked Mastery Course</div>
-                    <div style={{ fontSize: '0.75rem', color: '#8b949e' }}>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>Paid / Locked Mastery Course</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                       Requires enrollment in the 10-Year JEE Chapter-Wise PYQ Mastery Course.
                     </div>
                   </div>
@@ -1402,8 +1406,8 @@ export const PyqCreateWizard: React.FC<Props> = ({
             {/* Publication Status */}
             <div
               style={{
-                background: '#0d1117',
-                border: '1px solid #30363d',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
                 borderRadius: 8,
                 padding: '1.25rem',
                 display: 'flex',
@@ -1411,7 +1415,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 gap: '1rem'
               }}
             >
-              <label style={{ fontWeight: 600, color: '#f0f6fc', fontSize: '0.95rem' }}>
+              <label style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem' }}>
                 Publication Status
               </label>
 
@@ -1449,7 +1453,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 </div>
               )}
 
-              <div style={{ fontSize: '0.8rem', color: '#8b949e', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
                 Current system timezone: <strong>Asia/Kolkata (IST)</strong>
               </div>
             </div>
@@ -1541,8 +1545,9 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     <div
                       key={qbItem.id}
                       style={{
-                        background: '#0d1117',
-                        border: '1px solid #30363d',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                         borderRadius: 8,
                         padding: '1rem',
                         display: 'flex',
@@ -1553,11 +1558,11 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     >
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                          <span style={{ fontSize: '0.75rem', color: '#58a6ff', fontWeight: 600 }}>{qbItem.subject}</span>
-                          <span style={{ fontSize: '0.75rem', color: '#8b949e' }}>• {qbItem.chapter}</span>
-                          <span style={{ fontSize: '0.75rem', color: '#d29922' }}>• {qbItem.exam}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600 }}>{qbItem.subject}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>• {qbItem.chapter}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#d97706' }}>• {qbItem.exam}</span>
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#f0f6fc' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#0f172a' }}>
                           <MathText text={qbItem.statement} />
                         </div>
                       </div>
@@ -1598,7 +1603,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     </div>
                   ))}
                 {questionBank.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: '#8b949e' }}>
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                     No questions in question bank. Author questions and save them to bank!
                   </div>
                 )}
