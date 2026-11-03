@@ -522,7 +522,10 @@ export function convertHtmlWithMathToLatex(htmlString: string): string {
 
   let html = htmlString;
 
-  // 1. Remove Word conditional comments <!--[if ...]>...<![endif]-->
+  // 1. Unwrap Word math inside conditional comments instead of deleting it
+  html = html.replace(/<!--\[if[^\]]*\]>([\s\S]*?<m:oMath[\s\S]*?)<!\[endif\]-->/gi, '$1');
+  html = html.replace(/<!--\[if[^\]]*\]>([\s\S]*?<math[\s\S]*?)<!\[endif\]-->/gi, '$1');
+  // Then remove remaining non-math conditional comments
   html = html.replace(/<!--\[if[\s\S]*?<!\[endif\]-->/gi, '');
   // 2. Remove style blocks and script blocks
   html = html.replace(/<style[\s\S]*?<\/style>/gi, '');
@@ -715,6 +718,11 @@ export function normalizePastedQuestion(
     normalizedText = convertHtmlWithMathToLatex(html);
   } else {
     sourceType = 'unicode-plain-text';
+    normalizedText = normalizeUnicodeMathText(plain);
+  }
+
+  // Fallback to plain text if HTML conversion collapsed text or produced empty fraction artifacts
+  if (normalizedText.includes('\\frac{}{}') || (plain.trim().length > 25 && normalizedText.trim().length < plain.trim().length * 0.4)) {
     normalizedText = normalizeUnicodeMathText(plain);
   }
 

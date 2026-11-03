@@ -7063,10 +7063,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   value={smartPasteText}
                   onChange={(e) => setSmartPasteText(e.target.value)}
                   onPaste={(e) => {
+                    const plain = e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text') || '';
                     const res = normalizePastedQuestion(e.clipboardData);
-                    if (res.fullNormalizedText) {
+                    const isCorrupted = !res.fullNormalizedText || res.fullNormalizedText.includes('\\frac{}{}') || (plain.trim().length > 25 && res.fullNormalizedText.trim().length < plain.trim().length * 0.4);
+                    if (!isCorrupted && res.fullNormalizedText) {
                       e.preventDefault();
                       setSmartPasteText(res.fullNormalizedText);
+                    } else if (plain) {
+                      e.preventDefault();
+                      setSmartPasteText(normalizeMathText(plain));
                     }
                   }}
                   placeholder={`Paste full question here, e.g.:\n\nIf f(x) = \\int_0^x \\sqrt{1 + t^3} dt, then find f'(2).\n(A) 3\n(B) 4\n(C) 5\n(D) 9\nAns: A\nShortcut: Apply Leibniz rule f'(x) = \\sqrt{1 + x^3}`}
