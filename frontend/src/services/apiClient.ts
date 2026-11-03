@@ -366,9 +366,18 @@ export const apiClient = {
     success: boolean;
     aiPowered: boolean;
     modelUsed: string;
-    data: {
+    error?: string;
+    message?: string;
+    confidence?: number;
+    changes?: string[];
+    uncertainExpressions?: string[];
+    requiresManualReview?: boolean;
+    reason?: string;
+    data?: {
       statement: string;
+      correctedQuestion?: string;
       options: Array<{ key: string; text: string }>;
+      correctedOptions?: Array<{ key: string; text: string }>;
       stepSolution?: string;
       dkSirShortcut?: string;
     };
@@ -380,7 +389,7 @@ export const apiClient = {
       '';
     const res = await this.post<any>('/dpp-pyqs/ai-format-math', {
       ...payload,
-      model: payload.model || 'gemini-3.8-flash',
+      model: payload.model || 'gemini-2.5-flash',
       geminiApiKey: key
     });
     return res as any;

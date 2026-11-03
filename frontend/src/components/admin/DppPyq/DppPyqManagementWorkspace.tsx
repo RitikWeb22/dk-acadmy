@@ -684,7 +684,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       const res = await apiClient.formatMathWithAi({
         statement: '',
         options: [{ key: optKey, text: targetOpt.text }],
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       const formatted = res?.data?.options?.[0]?.text || normalizeMathText(targetOpt.text);
       handleUpdateOptionText(optKey as any, formatted);
@@ -707,7 +707,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
         options: targetQ.options,
         stepSolution: targetQ.stepSolution,
         dkSirShortcut: targetQ.dkSirShortcut,
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       if (res?.data) {
         handleUpdateBulkQuestion(idx, {
@@ -746,7 +746,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
             options: q.options,
             stepSolution: q.stepSolution,
             dkSirShortcut: q.dkSirShortcut,
-            model: 'gemini-3.8-flash'
+            model: 'gemini-2.5-flash'
           });
           if (res?.data) {
             handleUpdateBulkQuestion(i, {
@@ -1458,7 +1458,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       const res = await apiClient.formatMathWithAi({
         statement: curQ.statement,
         options: [],
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       if (res?.data) {
         handleUpdateActiveQuestion({
@@ -1484,7 +1484,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       const res = await apiClient.formatMathWithAi({
         statement: '',
         options: curQ.options,
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       if (res?.data?.options?.length) {
         handleUpdateActiveQuestion({
@@ -1512,7 +1512,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
         options: curQ.options,
         stepSolution: curQ.stepSolution,
         dkSirShortcut: curQ.dkSirShortcut,
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       if (res?.data) {
         handleUpdateActiveQuestion({

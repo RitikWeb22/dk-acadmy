@@ -154,29 +154,19 @@ export function normalizeMathInText(rawText: string): string {
     return `${intPart} \\frac{${num.trim()}}{${den.replace(/\s*dx\b/i, '').trim()}} \\, dx${trail}`;
   });
 
-  // Only perform glyph substitutions if no structured LaTeX tags or math delimiters exist
+  // Only perform legacy font glyph substitutions if specifically unencoded font artifacts are present and no LaTeX tags exist
   const hasDollarMath = /\$[^\$\n]+\$/.test(text);
-  if (!hasDollarMath && !text.includes('\\frac') && !text.includes('\\int') && !text.includes('\\sqrt')) {
+  const hasStructuredLatex = text.includes('\\frac') || text.includes('\\int') || text.includes('\\sqrt') || text.includes('\\lim');
+  if (!hasDollarMath && !hasStructuredLatex && /[!#'"&]/.test(text)) {
     text = text.replace(/\$"/g, 'x^4');
     text = text.replace(/\$!/g, 'x^2');
     text = text.replace(/\$([!#'"&+\-/*])/g, 'x$1');
     text = text.replace(/([!#'"&+\-/*\(])\$/g, '$1x');
+    text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
+    text = text.replace(/#(?=[a-zA-Z0-9\(\\])/g, '\\sqrt');
+    text = text.replace(/#/g, '^3');
+    text = text.replace(/(^|[\s\+\-\*/\^\=,\(\$x])'(?=[0-9])/g, '$1');
   }
-
-  // Exponents & numbers
-  text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
-  text = text.replace(/!/g, '^2');
-  text = text.replace(/#(?=[a-zA-Z0-9\(\\])/g, '\\sqrt');
-  text = text.replace(/#/g, '^3');
-
-  // Operators
-  text = text.replace(/&/g, ' + ');
-  text = text.replace(/(^|[\s\+\-\*\/\^\=,\(\$x])'/g, '$11');
-  text = text.replace(/'(?=[\s\+\-\*\/\^\=,\)\$x]|$)/g, '1');
-  text = text.replace(/"/g, '0');
-  text = text.replace(/;/g, 'x');
-  text = text.replace(/=(?=[a-zA-Z0-9\\])/g, '[');
-  text = text.replace(/@(?=[\s\+\-\*\/\^\=,\)\$x]|$)/g, ']');
 
   // Normalize common math unicode symbols to LaTeX equivalents
   text = text.replace(/∫/g, '\\int ');
@@ -218,6 +208,43 @@ export function normalizeMathInText(rawText: string): string {
   text = text.replace(/\bsuch that\s+ea\b(?!\^)/gi, 'such that $e^{a}$');
   text = text.replace(/\bthat ea\b(?!\^)/gi, 'that $e^{a}$');
   text = text.replace(/([ ,])ea([ ,.])/g, (_m, pre, post) => `${pre}$e^{a}$${post}`);
+  // Fix vector arrow artifacts in limit subscripts: \vec{r}x -> r \to x
+  text = text.replace(/\\vec\{r\}\s*x\b/g, 'r \\to x');
+  text = text.replace(/\\vec\{([a-zA-Z])\}\s*([a-zA-Z])\b/g, '$1 \\to $2');
+  text = text.replace(/\\vec\{r\}\\to/g, 'r \\to');
+
+  // Strip rogue dollar signs placed inside parentheses or brackets: [( $f(r)) -> [(f(r))
+  text = text.replace(/([\(\[\{])\s*\$\s*([a-zA-Z0-9\\])/g, '$1$2');
+  text = text.replace(/([a-zA-Z0-9\\])\s*\$\s*([\s\)\],])/g, '$1$2');
+
+  // Fix \sqrt(...) with arbitrary nested parens to \sqrt{...}
+  let sqrtIdx = text.indexOf('\\sqrt(');
+  while (sqrtIdx !== -1) {
+    let depth = 1;
+    let i = sqrtIdx + 6;
+    const startInner = i;
+    while (i < text.length && depth > 0) {
+      if (text[i] === '(') depth++;
+      else if (text[i] === ')') depth--;
+      i++;
+    }
+    if (depth === 0) {
+      const inner = text.substring(startInner, i - 1);
+      text = text.substring(0, sqrtIdx) + '\\sqrt{' + inner + '}' + text.substring(i);
+      sqrtIdx = text.indexOf('\\sqrt(', sqrtIdx + 7);
+    } else {
+      break;
+    }
+  }
+
+  // Fix exponents with parens: e^(...) -> e^{...}
+  text = text.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, '$1^{$2}');
+
+  // Fix common OCR equality loss: f(a) 0 -> f(a) = 0
+  text = text.replace(/\b(f\([a-zA-Z0-9]+\))\s+0\b/g, '$1 = 0');
+
+  // Fix interval union corruption e.g. \cup $10, \infty ) -> \cup (10, \infty)
+  text = text.replace(/\\cup\s*\$?([0-9]+)\s*,\s*\\infty\s*\)/g, '\\cup ($1, \\infty)');
 
   // Sanitize unbalanced \left and \right delimiters which crash KaTeX rendering
   const leftMatches = (text.match(/\\left\b/g) || []).length;

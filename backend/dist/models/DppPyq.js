@@ -17,7 +17,10 @@ const questionSchema = new Schema({
     year: { type: Schema.Types.Mixed },
     isFree: { type: Boolean, default: true },
     videoUrl: { type: String, default: '' },
-    pdfUrl: { type: String, default: '' }
+    pdfUrl: { type: String, default: '' },
+    structuredContent: { type: [Schema.Types.Mixed], default: undefined },
+    originalSource: { type: Schema.Types.Mixed, default: undefined },
+    mathValidation: { type: Schema.Types.Mixed, default: undefined }
 }, { _id: false, strict: false });
 const dppPyqSchema = new Schema({
     id: { type: String, required: true, unique: true, index: true },

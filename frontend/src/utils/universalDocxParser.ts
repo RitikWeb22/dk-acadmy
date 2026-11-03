@@ -161,6 +161,11 @@ export function ommlNodeToLatex(node: Node): string {
       const subEl = getChildByLocalName(el, 'sub');
       const baseLatex = baseEl ? ommlNodeToLatex(baseEl) : '';
       const subLatex = subEl ? ommlNodeToLatex(subEl) : '';
+      const cleanBase = baseLatex.replace(/^\{|\}$/g, '').trim();
+      const mathOps = ['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'gcd'];
+      if (mathOps.includes(cleanBase.toLowerCase())) {
+        return `\\${cleanBase.toLowerCase()}_{${subLatex}}`;
+      }
       return `{${baseLatex}}_{${subLatex}}`;
     }
 
@@ -172,6 +177,11 @@ export function ommlNodeToLatex(node: Node): string {
       const baseLatex = baseEl ? ommlNodeToLatex(baseEl) : '';
       const subLatex = subEl ? ommlNodeToLatex(subEl) : '';
       const supLatex = supEl ? ommlNodeToLatex(supEl) : '';
+      const cleanBase = baseLatex.replace(/^\{|\}$/g, '').trim();
+      const mathOps = ['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'int', 'sum', 'prod'];
+      if (mathOps.includes(cleanBase.toLowerCase())) {
+        return `\\${cleanBase.toLowerCase()}_{${subLatex}}^{${supLatex}}`;
+      }
       return `{${baseLatex}}_{${subLatex}}^{${supLatex}}`;
     }
 
@@ -294,7 +304,7 @@ export function ommlNodeToLatex(node: Node): string {
     }
 
     case 'acc': {
-      // Accent: vector arrow, bar, hat
+      // Accent: vector arrow, bar, hat, dot, ddot
       const accPr = getChildByLocalName(el, 'accpr');
       let chr = '⃗';
       if (accPr) {
@@ -306,7 +316,26 @@ export function ommlNodeToLatex(node: Node): string {
       if (chr === '⃗' || chr === '→') return `\\vec{${base}}`;
       if (chr === '̂' || chr === '^') return `\\hat{${base}}`;
       if (chr === '̅' || chr === '-') return `\\bar{${base}}`;
+      if (chr === '̇' || chr === '.') return `\\dot{${base}}`;
+      if (chr === '̈' || chr === '..') return `\\ddot{${base}}`;
       return `\\vec{${base}}`;
+    }
+
+    case 'box': {
+      const eEl = getChildByLocalName(el, 'e');
+      return eEl ? ommlNodeToLatex(eEl) : '';
+    }
+
+    case 'groupchr': {
+      const groupChrPr = getChildByLocalName(el, 'groupchrpr');
+      let pos = 'bot';
+      if (groupChrPr) {
+        const posEl = getChildByLocalName(groupChrPr, 'pos');
+        if (posEl && posEl.getAttribute('m:val')) pos = posEl.getAttribute('m:val') || 'bot';
+      }
+      const eEl = getChildByLocalName(el, 'e');
+      const base = eEl ? ommlNodeToLatex(eEl) : '';
+      return pos === 'top' ? `\\overbrace{${base}}` : `\\underbrace{${base}}`;
     }
 
     case 'r': {
@@ -602,8 +631,10 @@ export function normalizeUnicodeMathText(raw: string): string {
 
   let text = raw;
 
-  // 1. Clean invisible characters, hair spaces, zero-width spaces, and Word placeholders
-  text = text.replace(/[\u{1D451}\u{1D41D}\u{1D485}]/gu, 'd')
+  // 1. Clean invisible characters, zero-width spaces, and Word placeholders
+  text = text.replace(/[\u200B\u200C\u200D\u200E\u200F\uFEFF\u2060\u2061\u2062\u2063\u2064\uFFF9-\uFFFD]/g, '')
+             .replace(/[\u200A\u2009\u202F\u00A0]/g, ' ')
+             .replace(/[\u{1D451}\u{1D41D}\u{1D485}]/gu, 'd')
              .replace(/[\u{1D465}\u{1D431}\u{1D499}]/gu, 'x')
              .replace(/[\u{1D466}\u{1D432}\u{1D49A}]/gu, 'y')
              .replace(/[\u{1D467}\u{1D433}\u{1D49B}]/gu, 'z')
@@ -614,7 +645,6 @@ export function normalizeUnicodeMathText(raw: string): string {
              .replace(/[\u{1D450}\u{1D41C}\u{1D484}]/gu, 'c')
              .replace(/[\u{1D45B}\u{1D427}\u{1D48F}]/gu, 'n')
              .replace(/[\u{1D45F}\u{1D42B}\u{1D493}]/gu, 'r')
-             .replace(/[\u200B\u200C\u200D\u200E\u200F\uFEFF\u200A\u2009\u202F\u2060\u2061\u2062\u2063\u2064\uFFF9-\uFFFD\u00A0]/g, ' ')
              .replace(/[▒□┤├│〖〗]/g, '')
              .replace(/[\u201C\u201D]/g, '"')
              .replace(/[\u2018\u2019]/g, "'")
