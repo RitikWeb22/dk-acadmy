@@ -105,7 +105,6 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
               className={styles.enrollBtn}
               onClick={() => {
                 onEnroll();
-                onClose();
               }}
             >
               <span>Unlock Complete Paper (₹{paperPrice})</span>

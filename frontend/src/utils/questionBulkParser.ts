@@ -338,6 +338,16 @@ export function normalizeMathText(raw: string): string {
   let text = raw.split('$$').join('$');
 
   // 0. Global pre-pass for Word/PDF copy-paste artifacts across multi-line blocks
+  // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2 or \int_0 \n ^2
+  text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');
+  text = text.replace(/\\int_\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
+  text = text.replace(/\\int\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
+
+  // Stitch stacked fractions where numerator is on one line and denominator is on the next line (with dx)
+  text = text.replace(/(\\int[^\n]+?)\s*\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s]+?)\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s]+?\s*dx\b)/g, (_, intPart, num, den) => {
+    return `${intPart} \\frac{${num.trim()}}{${den.replace(/\s*dx\b/, '').trim()}} \\, dx`;
+  });
+
   // Decode Word Quartz / CambriaMath font artifact substitutions in formulas
   text = text.replace(/log[7\-]/g, '\\log_e ');
   text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
@@ -353,20 +363,14 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/3\/!/g, '\\pi - 2');
   text = text.replace(/3\//g, '\\pi - ');
   text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{2}');
-  text = text.replace(/\$([0-9!#'"&+\-/*])/g, 'x$1');
-  text = text.replace(/([0-9!#'"&+\-/*\(])\$/g, '$1x');
-  text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
-  text = text.replace(/([a-zA-Z0-9\)])#/g, '$1^3');
-  text = text.replace(/\$/g, 'x');
-  text = text.replace(/!/g, '^2');
-  text = text.replace(/#/g, '^3');
-  text = text.replace(/&/g, ' + ');
-  text = text.replace(/(^|[\s\+\-\*\/\^\=,\(\$x])'/g, '$11');
-  text = text.replace(/'(?=[\s\+\-\*\/\^\=,\)\$x]|$)/g, '1');
-  text = text.replace(/"/g, '0');
-  text = text.replace(/;/g, 'x');
-  text = text.replace(/=(?=[a-zA-Z0-9\\])/g, '[');
-  text = text.replace(/@(?=[\s\+\-\*\/\^\=,\)\$x]|$)/g, ']');
+
+  // Only decode font garbles if text does not already contain structured LaTeX tags
+  if (!text.includes('\\frac') && !text.includes('\\int') && !text.includes('\\sqrt')) {
+    text = text.replace(/\$([0-9!#'"&+\-/*])/g, 'x$1');
+    text = text.replace(/([0-9!#'"&+\-/*\(])\$/g, '$1x');
+    text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
+    text = text.replace(/([a-zA-Z0-9\)])#/g, '$1^3');
+  }
   // 0a. Strip invisible characters, hair spaces, zero-width spaces, and placeholders
   text = text.replace(/[\u200B\u200C\u200D\u200E\u200F\uFEFF\u200A\u2009\u202F\u2060\u2061\u2062\u2063\u2064\uFFF9-\uFFFD\u00A0]/g, ' ')
              .replace(/[▒□┤├│〖〗]/g, '')
