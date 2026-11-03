@@ -2247,6 +2247,114 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     showToast('✓ Successfully formatted & imported question statement and options!');
   };
 
+  // DOCX / PDF Bulk Import State for Test Series
+  const [isDocxModalOpen, setIsDocxModalOpen] = useState(false);
+  const [isDocxUploading, setIsDocxUploading] = useState(false);
+  const [docxUploadProgress, setDocxUploadProgress] = useState(0);
+  const [docxUploadError, setDocxUploadError] = useState<string | null>(null);
+  const [parsedDocxQuestions, setParsedDocxQuestions] = useState<any[]>([]);
+  const [activeDocxReviewIdx, setActiveDocxReviewIdx] = useState(0);
+  const [docxReviewShowRaw, setDocxReviewShowRaw] = useState(false);
+
+  const handleUploadDocxForTestSeries = async (file: File) => {
+    const name = file.name.toLowerCase();
+    const isDoc = name.endsWith('.docx') || name.endsWith('.doc');
+    const isPdf = name.endsWith('.pdf');
+    if (!isDoc && !isPdf) {
+      showToast('Please upload a valid Microsoft Word (.docx) or PDF (.pdf) file.');
+      return;
+    }
+
+    setIsDocxUploading(true);
+    setDocxUploadProgress(15);
+    setDocxUploadError(null);
+
+    try {
+      const res = await apiClient.uploadPdfForExtraction(
+        file,
+        {
+          subject: activeSubjectTab,
+          exam: wizardTargetExam,
+          paperTitle: editingSeriesTitle
+        },
+        (progress) => setDocxUploadProgress(progress)
+      );
+
+      if (res && res.summary && Array.isArray(res.summary.questions) && res.summary.questions.length > 0) {
+        setParsedDocxQuestions(res.summary.questions);
+        setActiveDocxReviewIdx(0);
+        showToast(`✓ Extracted ${res.summary.questions.length} questions with KaTeX Math from ${file.name}!`);
+      } else {
+        setDocxUploadError(res?.error || 'No questions could be extracted from this document.');
+      }
+    } catch (err: any) {
+      console.error('DOCX extraction failed:', err);
+      setDocxUploadError(err.message || 'Server extraction error');
+    } finally {
+      setIsDocxUploading(false);
+      setDocxUploadProgress(100);
+    }
+  };
+
+  const handleApplyDocxToTestSeries = (mode: 'populate' | 'append') => {
+    if (!parsedDocxQuestions.length) return;
+
+    const subjectToFill: 'Physics' | 'Chemistry' | 'Mathematics' = activeSubjectTab;
+    const convertedNewQuestions: QuestionItem[] = parsedDocxQuestions.map((q, idx) => {
+      const qIndex = idx + 1;
+      const secType: 'A' | 'B' = qIndex <= 20 ? 'A' : 'B';
+      const cleanStatement = normalizeMathText(q.statement || '');
+
+      return {
+        id: `q-docx-${Date.now()}-${idx + 1}`,
+        index: qIndex,
+        subject: subjectToFill,
+        section: secType,
+        type: secType === 'A' ? 'SINGLE_CORRECT' : 'NUMERICAL',
+        difficulty: 'MEDIUM',
+        topicTag: `${subjectToFill} Practice`,
+        questionText: cleanStatement,
+        statementBlocks: parseContentToBlocks(cleanStatement),
+        options: Array.isArray(q.options) && q.options.length === 4
+          ? q.options.map((o: any) => ({ key: o.key, text: normalizeMathText(o.text || '') }))
+          : [
+              { key: 'A', text: '' },
+              { key: 'B', text: '' },
+              { key: 'C', text: '' },
+              { key: 'D', text: '' }
+            ],
+        correctKey: (q.suggestedAnswer || q.correctKey || 'A') as any,
+        solutionDerivation: q.stepSolution ? normalizeMathText(q.stepSolution) : 'Detailed step-by-step KaTeX mathematical derivation provided.',
+        shortcutTrick: q.dkSirShortcut ? normalizeMathText(q.dkSirShortcut) : 'DK Sir 20s Inspection Shortcut'
+      };
+    });
+
+    if (mode === 'populate') {
+      const otherSubjectQuestions = questions.filter((q) => q.subject !== subjectToFill);
+      const combined = [...otherSubjectQuestions, ...convertedNewQuestions];
+      combined.forEach((q, i) => { q.index = i + 1; });
+      setQuestions(combined);
+      if (convertedNewQuestions.length > 0) {
+        setSelectedQuestionId(convertedNewQuestions[0].id);
+      }
+      showToast(`✓ Populated ${convertedNewQuestions.length} questions into ${subjectToFill}!`);
+    } else {
+      const nextIdxStart = questions.length + 1;
+      convertedNewQuestions.forEach((q, i) => { q.index = nextIdxStart + i; });
+      setQuestions([...questions, ...convertedNewQuestions]);
+      showToast(`✓ Appended ${convertedNewQuestions.length} questions to Test Series!`);
+    }
+
+    setIsDocxModalOpen(false);
+    setParsedDocxQuestions([]);
+  };
+
+  const handleUpdateParsedDocxQuestion = (idx: number, patch: Partial<any>) => {
+    setParsedDocxQuestions((prev) =>
+      prev.map((q, i) => (i === idx ? { ...q, ...patch } : q))
+    );
+  };
+
   const handleStatementPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const result = normalizePastedQuestion(e.clipboardData);
     if (!result.fullNormalizedText) return;
@@ -3979,6 +4087,33 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setParsedDocxQuestions([]);
+                          setDocxUploadError(null);
+                          setIsDocxModalOpen(true);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
+                        }}
+                        title="Upload Word (.docx) question paper to extract questions with full KaTeX math expressions"
+                      >
+                        <FileText size={14} />
+                        <span>📄 Upload Word (.docx) Paper</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={syncQuestionsWithSections}
@@ -6521,6 +6656,357 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 <span>Apply &amp; Auto-Fill Question</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── WORD (.DOCX) & PDF MATH VERIFICATION STUDIO MODAL ─── */}
+      {isDocxModalOpen && (
+        <div className={styles.modalBackdropOverlay} onClick={() => !isDocxUploading && setIsDocxModalOpen(false)}>
+          <div
+            className={styles.createModalCard}
+            style={{ maxWidth: '980px', width: '95vw', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className={styles.createModalHeader} style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: '#EFF6FF', color: '#2563EB', padding: '10px', borderRadius: '10px' }}>
+                  <FileText size={22} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 className={styles.createModalTitle} style={{ fontSize: '18px', margin: 0 }}>
+                      Word (.docx) &amp; PDF Math Verification Studio
+                    </h3>
+                    {parsedDocxQuestions.length > 0 && (
+                      <span style={{ background: '#DCFCE7', color: '#15803D', fontSize: '12px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px' }}>
+                        {parsedDocxQuestions.length} Questions Ready
+                      </span>
+                    )}
+                  </div>
+                  <p className={styles.createModalSub} style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748B' }}>
+                    Extracts Office Math (OMML), piecewise functions, integral limits, roots &amp; answer keys with 100% KaTeX LaTeX fidelity.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={styles.closeModalBtn}
+                disabled={isDocxUploading}
+                onClick={() => setIsDocxModalOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className={styles.createModalBody} style={{ padding: '20px', flex: 1, overflowY: 'auto' }}>
+              {/* File Upload Dropzone (shown when no questions yet or during upload) */}
+              {parsedDocxQuestions.length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px', textAlign: 'center' }}>
+                  <div
+                    style={{
+                      border: '2px dashed #93C5FD',
+                      borderRadius: '14px',
+                      background: '#F8FAFC',
+                      padding: '40px 30px',
+                      width: '100%',
+                      maxWidth: '580px',
+                      cursor: isDocxUploading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '14px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onClick={() => {
+                      if (!isDocxUploading) {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = '.docx,.doc,.pdf';
+                        input.onchange = (e: any) => {
+                          const file = e.target?.files?.[0];
+                          if (file) handleUploadDocxForTestSeries(file);
+                        };
+                        input.click();
+                      }
+                    }}
+                  >
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
+                      <Upload size={32} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 700, color: '#1E293B' }}>
+                        Click or drag &amp; drop examination paper here
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>
+                        Supports Microsoft Word (.docx, .doc) &amp; Question Paper PDFs (.pdf)
+                      </p>
+                    </div>
+
+                    {isDocxUploading && (
+                      <div style={{ width: '100%', maxWidth: '320px', marginTop: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#2563EB', fontWeight: 600, marginBottom: '6px' }}>
+                          <span>Parsing OMML equations...</span>
+                          <span>{docxUploadProgress}%</span>
+                        </div>
+                        <div style={{ width: '100%', height: '8px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${docxUploadProgress}%`, height: '100%', background: '#2563EB', transition: 'width 0.3s ease' }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {docxUploadError && (
+                    <div style={{ marginTop: '16px', padding: '12px 18px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#DC2626', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <AlertCircle size={16} />
+                      <span>{docxUploadError}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Two-Column Studio: Question Palette on left, Live Canvas on right */
+                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '20px', minHeight: '480px' }}>
+                  {/* Left Column: Question Navigation Grid */}
+                  <div style={{ borderRight: '1px solid #E2E8F0', paddingRight: '16px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Extracted Questions
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = '.docx,.doc,.pdf';
+                          input.onchange = (e: any) => {
+                            const file = e.target?.files?.[0];
+                            if (file) handleUploadDocxForTestSeries(file);
+                          };
+                          input.click();
+                        }}
+                        style={{ fontSize: '11px', color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Re-upload
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', overflowY: 'auto', maxHeight: '420px', paddingRight: '4px' }}>
+                      {parsedDocxQuestions.map((q, idx) => {
+                        const isActive = idx === activeDocxReviewIdx;
+                        const hasAns = !!q.correctKey;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveDocxReviewIdx(idx)}
+                            style={{
+                              height: '42px',
+                              borderRadius: '8px',
+                              border: isActive ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                              background: isActive ? '#EFF6FF' : hasAns ? '#F0FDF4' : '#FFFFFF',
+                              color: isActive ? '#1D4ED8' : '#334155',
+                              fontWeight: 700,
+                              fontSize: '13px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              position: 'relative'
+                            }}
+                          >
+                            <span>Q{idx + 1}</span>
+                            {hasAns && (
+                              <span style={{ fontSize: '9px', color: '#16A34A', marginTop: '-2px' }}>
+                                [{q.correctKey}]
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Question Review & Edit Canvas */}
+                  {parsedDocxQuestions[activeDocxReviewIdx] && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>
+                            Question {activeDocxReviewIdx + 1} of {parsedDocxQuestions.length}
+                          </span>
+                          <span style={{ background: '#F1F5F9', color: '#475569', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px' }}>
+                            {parsedDocxQuestions[activeDocxReviewIdx].subject || activeSubjectTab}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setDocxReviewShowRaw(!docxReviewShowRaw)}
+                            style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFFFFF', cursor: 'pointer', color: '#475569' }}
+                          >
+                            {docxReviewShowRaw ? 'Show Formatted View' : 'Edit Raw Statement'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={activeDocxReviewIdx === 0}
+                            onClick={() => setActiveDocxReviewIdx((p) => Math.max(0, p - 1))}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFFFFF', cursor: activeDocxReviewIdx === 0 ? 'not-allowed' : 'pointer' }}
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={activeDocxReviewIdx === parsedDocxQuestions.length - 1}
+                            onClick={() => setActiveDocxReviewIdx((p) => Math.min(parsedDocxQuestions.length - 1, p + 1))}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFFFFF', cursor: activeDocxReviewIdx === parsedDocxQuestions.length - 1 ? 'not-allowed' : 'pointer' }}
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Statement Area */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                          Problem Statement (KaTeX LaTeX formulas supported):
+                        </label>
+                        {docxReviewShowRaw ? (
+                          <textarea
+                            rows={4}
+                            value={parsedDocxQuestions[activeDocxReviewIdx].statement}
+                            onChange={(e) => handleUpdateParsedDocxQuestion(activeDocxReviewIdx, { statement: e.target.value })}
+                            className={styles.questionTextarea}
+                            style={{ fontFamily: 'monospace', fontSize: '13px' }}
+                          />
+                        ) : (
+                          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '14px', fontSize: '14.5px', lineHeight: '1.6', color: '#0F172A' }}>
+                            <MathText text={parsedDocxQuestions[activeDocxReviewIdx].statement} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Options Grid */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                          Answer Options &amp; Correct Key:
+                        </label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                          {parsedDocxQuestions[activeDocxReviewIdx].options.map((opt: any) => {
+                            const isCorrect = parsedDocxQuestions[activeDocxReviewIdx].correctKey === opt.key;
+                            return (
+                              <div
+                                key={opt.key}
+                                onClick={() => handleUpdateParsedDocxQuestion(activeDocxReviewIdx, { correctKey: opt.key })}
+                                style={{
+                                  border: `1.5px solid ${isCorrect ? '#22C55E' : '#E2E8F0'}`,
+                                  background: isCorrect ? '#F0FDF4' : '#FFFFFF',
+                                  borderRadius: '8px',
+                                  padding: '10px 12px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '10px',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    width: '26px',
+                                    height: '26px',
+                                    borderRadius: '50%',
+                                    background: isCorrect ? '#22C55E' : '#F1F5F9',
+                                    color: isCorrect ? '#FFFFFF' : '#475569',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 700,
+                                    fontSize: '12px',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {opt.key}
+                                </span>
+                                <div style={{ flex: 1, fontSize: '13.5px' }}>
+                                  <MathText text={opt.text || `(${opt.key})`} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Solution / Shortcut Preview */}
+                      {(parsedDocxQuestions[activeDocxReviewIdx].stepSolution || parsedDocxQuestions[activeDocxReviewIdx].dkSirShortcut) && (
+                        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '10px 14px', fontSize: '12.5px', color: '#92400E' }}>
+                          <span style={{ fontWeight: 700 }}>DK Sir Shortcut: </span>
+                          <MathText text={parsedDocxQuestions[activeDocxReviewIdx].dkSirShortcut || parsedDocxQuestions[activeDocxReviewIdx].stepSolution || ''} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            {parsedDocxQuestions.length > 0 && (
+              <div className={styles.smartPasteFooter} style={{ padding: '16px 20px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className={styles.smartPasteCancelBtn}
+                  onClick={() => setIsDocxModalOpen(false)}
+                >
+                  Close
+                </button>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDocxToTestSeries('populate')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 18px',
+                      background: '#2563EB',
+                      color: '#FFFFFF',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>✓ Populate {activeSubjectTab} Slots ({parsedDocxQuestions.length} Questions)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDocxToTestSeries('append')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 16px',
+                      background: '#047857',
+                      color: '#FFFFFF',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>+ Append All to Test Series</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

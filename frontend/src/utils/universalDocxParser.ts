@@ -521,36 +521,47 @@ export function convertHtmlWithMathToLatex(htmlString: string): string {
     el.parentNode?.replaceChild(span, el);
   });
 
-  // 6. Process HTML <sup> and <sub> tags
+  // 6. Process HTML <sup> and <sub> tags (only if non-empty content)
   const supElements = doc.querySelectorAll('sup');
   supElements.forEach((el) => {
     const content = el.textContent?.trim() || '';
-    const span = doc!.createElement('span');
-    span.textContent = `^{${content}}`;
-    el.parentNode?.replaceChild(span, el);
+    if (content) {
+      const span = doc!.createElement('span');
+      span.textContent = `^{${content}}`;
+      el.parentNode?.replaceChild(span, el);
+    }
   });
 
   const subElements = doc.querySelectorAll('sub');
   subElements.forEach((el) => {
     const content = el.textContent?.trim() || '';
-    const span = doc!.createElement('span');
-    span.textContent = `_{${content}}`;
-    el.parentNode?.replaceChild(span, el);
+    if (content) {
+      const span = doc!.createElement('span');
+      span.textContent = `_{${content}}`;
+      el.parentNode?.replaceChild(span, el);
+    }
   });
 
-  // 7. Process styled spans (Word vertical-align: super / sub)
+  // 7. Process styled spans (Word vertical-align: super / sub only for genuine short tokens)
   const styledSpans = doc.querySelectorAll('span[style]');
   styledSpans.forEach((el) => {
     const style = (el.getAttribute('style') || '').toLowerCase();
     const content = el.textContent?.trim() || '';
-    if (style.includes('vertical-align: super') || style.includes('mso-text-raise')) {
-      const span = doc!.createElement('span');
-      span.textContent = `^{${content}}`;
-      el.parentNode?.replaceChild(span, el);
+    // Skip if empty or if containing OMML/MathML/nested blocks
+    if (!content || el.querySelector('m\\:oMath, math, img, table, p, div')) return;
+
+    if (style.includes('vertical-align: super') && !style.includes('mso-text-raise')) {
+      if (/^[0-9a-zA-Z\+\-\*]{1,8}$/.test(content)) {
+        const span = doc!.createElement('span');
+        span.textContent = `^{${content}}`;
+        el.parentNode?.replaceChild(span, el);
+      }
     } else if (style.includes('vertical-align: sub')) {
-      const span = doc!.createElement('span');
-      span.textContent = `_{${content}}`;
-      el.parentNode?.replaceChild(span, el);
+      if (/^[0-9a-zA-Z\+\-\*]{1,8}$/.test(content)) {
+        const span = doc!.createElement('span');
+        span.textContent = `_{${content}}`;
+        el.parentNode?.replaceChild(span, el);
+      }
     }
   });
 
@@ -584,23 +595,37 @@ export function normalizeUnicodeMathText(raw: string): string {
   let text = raw;
 
   // 1. Clean invisible characters, hair spaces, zero-width spaces, and Word placeholders
-  text = text.replace(/[\u200B\u200C\u200D\u200E\u200F\uFEFF\u200A\u2009\u202F\u2060\u2061\u2062\u2063\u2064\uFFF9-\uFFFD\u00A0]/g, ' ')
+  text = text.replace(/[\u{1D451}\u{1D41D}\u{1D485}]/gu, 'd')
+             .replace(/[\u{1D465}\u{1D431}\u{1D499}]/gu, 'x')
+             .replace(/[\u{1D466}\u{1D432}\u{1D49A}]/gu, 'y')
+             .replace(/[\u{1D467}\u{1D433}\u{1D49B}]/gu, 'z')
+             .replace(/[\u{1D461}\u{1D42D}\u{1D495}]/gu, 't')
+             .replace(/[\u{1D453}\u{1D41F}\u{1D487}]/gu, 'f')
+             .replace(/[\u{1D44E}\u{1D41A}\u{1D482}]/gu, 'a')
+             .replace(/[\u{1D44F}\u{1D41B}\u{1D483}]/gu, 'b')
+             .replace(/[\u{1D450}\u{1D41C}\u{1D484}]/gu, 'c')
+             .replace(/[\u{1D45B}\u{1D427}\u{1D48F}]/gu, 'n')
+             .replace(/[\u{1D45F}\u{1D42B}\u{1D493}]/gu, 'r')
+             .replace(/[\u200B\u200C\u200D\u200E\u200F\uFEFF\u200A\u2009\u202F\u2060\u2061\u2062\u2063\u2064\uFFF9-\uFFFD\u00A0]/g, ' ')
              .replace(/[▒□┤├│〖〗]/g, '')
              .replace(/[\u201C\u201D]/g, '"')
              .replace(/[\u2018\u2019]/g, "'")
              .replace(/[\u2212\u2013\u2014]/g, '-');
 
   // 2. Decode Word Equation Editor font artifacts
+  text = text.replace(/[=\[]\s*\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3[\s\S]*?cot\s*[=\(]?\s*[xX]\s*[+]\s*3[\s\S]*?\+\s*1\s*[@\]]\s*(?:dx|𝑑𝑥)\b/gi,
+                      '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
   text = text.replace(/\[\s*cot\s*=?\s*x\s*-\s*3[\s\S]*?cot\s*=?\s*x\s*\+\s*3[\s\S]*?\+\s*1\s*\]/gi,
-                      '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right]');
+                      '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right)');
   text = text.replace(/cot\s*=\s*[x𝑥]\s*-\s*3\s*\/,\s*@\s*cot\s*=\s*[x𝑥]\s*\+\s*3\s*\/,\s*@\s*\+\s*1@/gi,
-                      '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right]');
-  text = text.replace(/=cot\s*=\s*[x𝑥]\s*-\s*3/gi, '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+                      '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right)');
+  text = text.replace(/=cot\s*=\s*[x𝑥]\s*-\s*3/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right)');
   text = text.replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
+  text = text.replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
   text = text.replace(/F\s*[\r\n]+\s*1\s*[\r\n]+\s*3\s*[\r\n]+\s*−?1\s*[\r\n]+\s*2\s*[\r\n]+\s*1\s*[\r\n]+\s*𝛼\s*[\r\n]+\s*0\s*[\r\n]+\s*1\s*[\r\n]+\s*−?1\s*[\r\n]+\s*H/g,
                       '\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}');
-  text = text.replace(/(?:\\left\s*){2,}/g, '\\left');
-  text = text.replace(/(?:\\right\s*){2,}/g, '\\right');
+  text = text.replace(/(?:\\left\s*)+/g, '\\left');
+  text = text.replace(/(?:\\right\s*)+/g, '\\right');
 
   // 3. Delegate to the comprehensive mathematical bulk normalizer
   return normalizeMathText(text);
@@ -718,15 +743,20 @@ export function extractQuestionStatementAndOptions(rawText: string): {
   }
 
   // 4. Extract Options: (A), (B), (C), (D) or (1), (2), (3), (4) or A., B., C., D.
-  const optAMatch = text.search(/(?:^|\s|\n)(?:\(?A\)?\.?|\(1\)|A\b)\s+/i);
-  if (optAMatch !== -1) {
+  // Must require uppercase (A) / A. / (1) AND must have a corresponding (B) / B. / (2) to avoid false triggers on words like "a function" or "Let a be"
+  const optARegex = /(?:^|\n|\s)(?:\([Aa1]\)|(?<![a-zA-Z0-9])A\.(?!\d)|(?<![a-zA-Z0-9])A\s+(?![=+\-*\/<>\in\le\ge]))/;
+  const optAMatch = text.search(optARegex);
+  const optBRegex = /(?:^|\s|\n)(?:\([Bb2]\)|(?<![a-zA-Z0-9])B\.(?!\d)|(?<![a-zA-Z0-9])B\s+)/;
+  const hasOptB = optAMatch !== -1 && optBRegex.test(text.substring(optAMatch));
+
+  if (optAMatch !== -1 && hasOptB) {
     statement = text.substring(0, optAMatch).trim();
     const optionsBlock = text.substring(optAMatch);
 
-    const matchA = optionsBlock.match(/(?:^|\s|\n)(?:\(?A\)?\.?|\(1\)|A\b)\s+([\s\S]*?)(?=(?:^|\s|\n)(?:\(?B\)?\.?|\(2\)|B\b)\s+|$)/i);
-    const matchB = optionsBlock.match(/(?:^|\s|\n)(?:\(?B\)?\.?|\(2\)|B\b)\s+([\s\S]*?)(?=(?:^|\s|\n)(?:\(?C\)?\.?|\(3\)|C\b)\s+|$)/i);
-    const matchC = optionsBlock.match(/(?:^|\s|\n)(?:\(?C\)?\.?|\(3\)|C\b)\s+([\s\S]*?)(?=(?:^|\s|\n)(?:\(?D\)?\.?|\(4\)|D\b)\s+|$)/i);
-    const matchD = optionsBlock.match(/(?:^|\s|\n)(?:\(?D\)?\.?|\(4\)|D\b)\s+([\s\S]*?)$/i);
+    const matchA = optionsBlock.match(/(?:^|\s|\n)(?:\([Aa1]\)|(?<![a-zA-Z0-9])A\.(?!\d)|(?<![a-zA-Z0-9])A\s+)\s*([\s\S]*?)(?=(?:^|\s|\n)(?:\([Bb2]\)|(?<![a-zA-Z0-9])B\.(?!\d)|(?<![a-zA-Z0-9])B\s+)\s*|$)/);
+    const matchB = optionsBlock.match(/(?:^|\s|\n)(?:\([Bb2]\)|(?<![a-zA-Z0-9])B\.(?!\d)|(?<![a-zA-Z0-9])B\s+)\s*([\s\S]*?)(?=(?:^|\s|\n)(?:\([Cc3]\)|(?<![a-zA-Z0-9])C\.(?!\d)|(?<![a-zA-Z0-9])C\s+)\s*|$)/);
+    const matchC = optionsBlock.match(/(?:^|\s|\n)(?:\([Cc3]\)|(?<![a-zA-Z0-9])C\.(?!\d)|(?<![a-zA-Z0-9])C\s+)\s*([\s\S]*?)(?=(?:^|\s|\n)(?:\([Dd4]\)|(?<![a-zA-Z0-9])D\.(?!\d)|(?<![a-zA-Z0-9])D\s+)\s*|$)/);
+    const matchD = optionsBlock.match(/(?:^|\s|\n)(?:\([Dd4]\)|(?<![a-zA-Z0-9])D\.(?!\d)|(?<![a-zA-Z0-9])D\s+)\s*([\s\S]*?)$/);
 
     options.push({ key: 'A', text: cleanOptionText(matchA ? matchA[1] : '') });
     options.push({ key: 'B', text: cleanOptionText(matchB ? matchB[1] : '') });

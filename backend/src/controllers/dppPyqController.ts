@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DppPyq } from '../models/DppPyq.js';
 import { QuestionBank } from '../models/QuestionBank.js';
 import { PdfImportHistory } from '../models/PdfImportHistory.js';
-import { extractQuestionsFromPdfBuffer, parseQuestionsFromText } from '../utils/pdfQuestionExtractor.js';
+import { extractQuestionsFromPdfBuffer, extractQuestionsFromDocxBuffer, parseQuestionsFromText } from '../utils/pdfQuestionExtractor.js';
 import {
   broadcastDppPyqCreated,
   broadcastDppPyqUpdated,
@@ -498,10 +498,7 @@ export const importPdfQuestions = async (req: Request, res: Response): Promise<v
     let summary;
     const originalName = (file.originalname || '').toLowerCase();
     if (originalName.endsWith('.docx') || originalName.endsWith('.doc')) {
-      const mammoth = await import('mammoth');
-      const { value: docText } = await mammoth.extractRawText({ buffer: file.buffer });
-      summary = parseQuestionsFromText(docText || '', String(subject), String(exam));
-      summary.totalPages = Math.max(1, Math.ceil(summary.questions.length / 5));
+      summary = await extractQuestionsFromDocxBuffer(file.buffer, String(subject), String(exam));
     } else {
       summary = await extractQuestionsFromPdfBuffer(file.buffer, String(subject), String(exam));
     }
