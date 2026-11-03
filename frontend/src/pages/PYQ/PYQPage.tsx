@@ -985,6 +985,7 @@ export const PYQPage: React.FC = () => {
                         isUnlocked={isQuestionAccessible(currentQuestion, activeQuestionIndex)}
                         paperVideoUrl={activeSet.videoUrl || activeSet.videoWalkthroughUrl}
                         paperPdfUrl={activeSet.pdfUrl}
+                        paperPrice={activeSet.price ?? 499}
                         onSelectOption={(optId) => handleSelectOption(currentQuestion.id, optId)}
                         onCheckAnswer={() =>
                           handleCheckAnswer(currentQuestion.id, currentQuestion.correctAnswer)
@@ -1029,6 +1030,7 @@ export const PYQPage: React.FC = () => {
                               index={idx}
                               userResponse={responses[q.id]}
                               isUnlocked={isQuestionAccessible(q, idx)}
+                              paperPrice={activeSet.price ?? 499}
                               onOpenQuestion={(i) => setActiveQuestionIndex(i)}
                               onOpenVideo={(selectedQ) => setActiveVideoQuestion(selectedQ)}
                               onUnlockCourse={() => handleOpenUnlockModal(idx + 1)}
@@ -1105,6 +1107,8 @@ export const PYQPage: React.FC = () => {
         onClose={() => setIsUnlockModalOpen(false)}
         onEnroll={handleEnrollCourse}
         questionNumber={lockedTargetNumber}
+        paperTitle={activeSet?.title}
+        paperPrice={activeSet?.price ?? 499}
       />
     </main>
   );

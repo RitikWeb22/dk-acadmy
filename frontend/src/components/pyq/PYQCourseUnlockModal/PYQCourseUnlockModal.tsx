@@ -9,13 +9,17 @@ interface PYQCourseUnlockModalProps {
   onClose: () => void;
   onEnroll: () => void;
   questionNumber?: number;
+  paperTitle?: string;
+  paperPrice?: number;
 }
 
 export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
   isOpen,
   onClose,
   onEnroll,
-  questionNumber
+  questionNumber,
+  paperTitle,
+  paperPrice = 499
 }) => {
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -25,7 +29,7 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Unlock Full PYQ Mastery Course"
+      aria-label="Unlock Complete Paper"
     >
       <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
         {/* Top Header Badge */}
@@ -48,37 +52,37 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
           <div className={styles.badgeRow}>
             <span className={styles.planBadge}>
               <Sparkles size={13} />
-              5 Free Questions Used • Course Upgrade
+              Unlock Complete Paper
             </span>
           </div>
 
           <h2 className={styles.title}>
-            {questionNumber ? `Question ${questionNumber} is part of the Full Course` : 'Unlock Full 10-Year JEE PYQ Mastery Course'}
+            {paperTitle ? `Unlock Complete Paper: ${paperTitle}` : (questionNumber ? `Question ${questionNumber} • Unlock Complete Paper` : 'Unlock Complete Paper')}
           </h2>
 
           <p className={styles.description}>
-            You have accessed the <strong>5 Free Questions</strong> in this PYQ Bank. To unlock this question along with all 500+ JEE Main &amp; Advanced questions, DK Sir YouTube video solutions, and downloadable PDF solutions, enroll in the course.
+            Unlock full instant access to all questions in this paper, including step-by-step mathematical derivations, DK Sir Kota speed shortcuts, video walkthroughs, and downloadable PDF solutions.
           </p>
 
           {/* Value Prop List */}
           <div className={styles.benefitsCard}>
-            <h4 className={styles.benefitsTitle}>Everything included in the Full Course:</h4>
+            <h4 className={styles.benefitsTitle}>Everything included in this Paper:</h4>
             <ul className={styles.benefitsList}>
               <li>
                 <CheckCircle2 size={16} className={styles.bulletIcon} />
-                <span><strong>500+ Chapter-wise PYQs:</strong> 10+ Years JEE Main &amp; Advanced complete archive</span>
+                <span><strong>All Paper Questions:</strong> Complete curated archive with KaTeX mathematical formulas</span>
               </li>
               <li>
                 <YoutubeIcon size={16} className={styles.bulletIconYt} />
-                <span><strong>Side-by-Side YouTube Solutions:</strong> DK Sir 20-30s Kota inspection shortcuts for each question</span>
+                <span><strong>Video Walkthroughs &amp; Solutions:</strong> DK Sir 20-30s Kota inspection shortcuts</span>
               </li>
               <li>
                 <FileText size={16} className={styles.bulletIconPdf} />
-                <span><strong>Downloadable Solution PDFs:</strong> High-resolution step-by-step papers and formula keys</span>
+                <span><strong>Downloadable Solution PDFs:</strong> High-resolution full paper derivation and step keys</span>
               </li>
               <li>
                 <CheckCircle2 size={16} className={styles.bulletIcon} />
-                <span><strong>CBT Exam Simulator:</strong> Real-time timer, marking scheme, and accuracy analytics</span>
+                <span><strong>Complete Scoring &amp; Review:</strong> Instant evaluation, timer, and detailed accuracy analytics</span>
               </li>
             </ul>
           </div>
@@ -86,18 +90,16 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
           {/* Pricing Row */}
           <div className={styles.pricingCard}>
             <div className={styles.priceLeft}>
-              <span className={styles.pricingTag}>Special Aspirant Offer</span>
+              <span className={styles.pricingTag}>Paper Access Fee</span>
               <div className={styles.priceNums}>
-                <span className={styles.mainPrice}>₹1,499</span>
-                <span className={styles.strikePrice}>₹4,999</span>
-                <span className={styles.discountBadge}>70% OFF</span>
+                <span className={styles.mainPrice}>₹{paperPrice}</span>
               </div>
-              <span className={styles.validityText}>Valid till JEE Advanced 2027 • Instant Access</span>
+              <span className={styles.validityText}>Full Lifetime Access • Instant Unlock</span>
             </div>
 
             <div className={styles.guaranteeTag}>
               <ShieldCheck size={16} />
-              <span>Instant Verification</span>
+              <span>Instant Unlock</span>
             </div>
           </div>
 
@@ -111,7 +113,7 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
                 onClose();
               }}
             >
-              <span>Proceed to Razorpay Checkout (₹1,499)</span>
+              <span>Unlock Complete Paper (₹{paperPrice})</span>
               <ArrowRight size={16} />
             </button>
 
@@ -120,7 +122,7 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
               className={styles.continueFreeBtn}
               onClick={onClose}
             >
-              Practice Free Questions (Q1 to Q5)
+              Continue Free Preview
             </button>
           </div>
         </div>

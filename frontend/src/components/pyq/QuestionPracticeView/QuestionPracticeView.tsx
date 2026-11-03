@@ -26,6 +26,7 @@ interface QuestionPracticeViewProps {
   onOpenVideo?: (question: PYQQuestion) => void;
   onUnlockCourse?: () => void;
   onToggleMarkForReview?: () => void;
+  paperPrice?: number;
 }
 
 export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
@@ -44,7 +45,8 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
   onBackToList,
   onOpenVideo,
   onUnlockCourse,
-  onToggleMarkForReview
+  onToggleMarkForReview,
+  paperPrice = 499
 }) => {
   const isSelected = Boolean(userResponse?.selectedOption);
   const isEvaluated = Boolean(userResponse?.isEvaluated);
@@ -108,16 +110,16 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
         <div className={styles.metadataBadges}>
           {/* Access Policy Badge */}
           {isFreeQuestion ? (
-            <span className={styles.freePreviewBadge} title="Part of 5 Free Preview Questions">
-              <Sparkles size={12} /> Free Question {currentIndex + 1} of 5
+            <span className={styles.freePreviewBadge} title="Free Preview Question">
+              <Sparkles size={12} /> Free Preview
             </span>
           ) : isUnlocked ? (
             <span className={styles.enrolledBadge}>
-              <CheckCircle size={12} /> Enrolled Access
+              <CheckCircle size={12} /> Full Paper Access
             </span>
           ) : (
             <span className={styles.lockedBadge}>
-              <Lock size={12} /> Course Only
+              <Lock size={12} /> Locked Paper
             </span>
           )}
 
@@ -183,16 +185,16 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
           <div className={styles.lockedInfo}>
             <span className={styles.lockedEyebrow}>Question {currentIndex + 1} Locked</span>
             <h3 className={styles.lockedHeading}>
-              You have completed your 5 Free Questions
+              Unlock Complete Paper
             </h3>
             <p className={styles.lockedDesc}>
-              This question, its step-by-step <strong>YouTube video walkthrough</strong>, and <strong>downloadable solution PDF</strong> are part of the full <strong>10-Year JEE Chapter-Wise PYQ Mastery Course</strong>.
+              This question, its step-by-step <strong>mathematical derivation</strong>, <strong>video solution</strong>, and <strong>downloadable solution PDF</strong> are part of this complete paper archive.
             </p>
 
             <div className={styles.lockedFeatures}>
               <div className={styles.featurePill}>
                 <CheckCircle size={14} className={styles.pillCheck} />
-                <span>500+ JEE Main &amp; Advanced Archive</span>
+                <span>All Paper Questions &amp; Solutions</span>
               </div>
               <div className={styles.featurePill}>
                 <YoutubeIcon size={14} className={styles.pillYt} />
@@ -200,7 +202,7 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
               </div>
               <div className={styles.featurePill}>
                 <FileText size={14} className={styles.pillPdf} />
-                <span>All PDF Solution Downloads</span>
+                <span>Downloadable Solution PDF</span>
               </div>
             </div>
 
@@ -210,7 +212,7 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
                 className={styles.enrollNowBtn}
                 onClick={onUnlockCourse}
               >
-                <span>Unlock Full Course (₹1,499)</span>
+                <span>Unlock Complete Paper (₹{paperPrice})</span>
                 <ArrowRight size={16} />
               </button>
 
@@ -219,7 +221,7 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
                 className={styles.backToFreeBtn}
                 onClick={onPrevQuestion}
               >
-                ← Back to Free Questions
+                ← Back to Free Preview
               </button>
             </div>
           </div>

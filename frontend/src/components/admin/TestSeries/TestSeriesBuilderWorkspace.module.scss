@@ -920,6 +920,26 @@
   }
 }
 
+.wizardTitleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wizardMainH1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.wizardSubtitle {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
 .wizardStatusTag {
   display: flex;
   align-items: center;

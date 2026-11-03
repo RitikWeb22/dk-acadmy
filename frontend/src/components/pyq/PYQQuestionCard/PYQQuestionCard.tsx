@@ -13,6 +13,7 @@ interface PYQQuestionCardProps {
   onOpenQuestion: (idx: number) => void;
   onOpenVideo?: (question: PYQQuestion) => void;
   onUnlockCourse?: () => void;
+  paperPrice?: number;
 }
 
 export const PYQQuestionCard: React.FC<PYQQuestionCardProps> = ({
@@ -22,7 +23,8 @@ export const PYQQuestionCard: React.FC<PYQQuestionCardProps> = ({
   isUnlocked = true,
   onOpenQuestion,
   onOpenVideo,
-  onUnlockCourse
+  onUnlockCourse,
+  paperPrice = 499
 }) => {
   const isEvaluated = Boolean(userResponse?.isEvaluated);
   const isCorrect = Boolean(userResponse?.isCorrect);
@@ -202,10 +204,10 @@ export const PYQQuestionCard: React.FC<PYQQuestionCardProps> = ({
               type="button"
               onClick={handleCardCtaClick}
               className={styles.unlockCtaBtn}
-              aria-label={`Unlock Question ${index + 1} with Course`}
+              aria-label={`Unlock Question ${index + 1}`}
             >
               <Lock size={13} aria-hidden="true" />
-              <span>Unlock Question (₹1,499)</span>
+              <span>Unlock Complete Paper (₹{paperPrice})</span>
             </button>
           )}
         </div>
