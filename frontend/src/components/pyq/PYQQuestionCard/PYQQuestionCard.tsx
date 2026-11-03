@@ -153,35 +153,36 @@ export const PYQQuestionCard: React.FC<PYQQuestionCardProps> = ({
       {/* 3. Action Bar: "View Video Solution", "Download PDF", and primary "Practice Question" */}
       <div className={styles.actionsBar}>
         <div className={styles.resourceGroup}>
-          {/* "View Video Solution" Button */}
-          <button
-            type="button"
-            onClick={handleVideoClick}
-            className={`${styles.actionBtn} ${styles.videoBtn}`}
-            title={isUnlocked ? 'Watch DK Sir video solution' : 'Unlock course to watch video solution'}
-            aria-label={`View Video Solution for Question ${index + 1}`}
-          >
-            <YoutubeIcon size={16} className={styles.ytRedIcon} aria-hidden="true" />
-            <span>View Video Solution</span>
-            {question.videoDuration && isUnlocked && (
-              <span className={styles.videoDuration}>{question.videoDuration}</span>
-            )}
-            {!isUnlocked && <Lock size={12} className={styles.miniLock} aria-hidden="true" />}
-          </button>
+          {/* "View Video Solution" Button - Render ONLY if video URL is configured by admin */}
+          {Boolean((question.youtubeUrl && question.youtubeUrl.trim().length > 0) || (question.videoUrl && question.videoUrl.trim().length > 0)) && (
+            <button
+              type="button"
+              onClick={handleVideoClick}
+              className={`${styles.actionBtn} ${styles.videoBtn}`}
+              title={isUnlocked ? 'Watch DK Sir video solution' : 'Unlock course to watch video solution'}
+              aria-label={`View Video Solution for Question ${index + 1}`}
+            >
+              <YoutubeIcon size={16} className={styles.ytRedIcon} aria-hidden="true" />
+              <span>View Video Solution</span>
+              {!isUnlocked && <Lock size={12} className={styles.miniLock} aria-hidden="true" />}
+            </button>
+          )}
 
-          {/* "Download PDF" Button */}
-          <button
-            type="button"
-            onClick={handlePdfClick}
-            className={`${styles.actionBtn} ${styles.pdfBtn}`}
-            title={isUnlocked ? 'Download step-by-step PDF solution' : 'Unlock course to download PDF'}
-            aria-label={`Download PDF solution for Question ${index + 1}`}
-          >
-            <FileText size={15} className={styles.pdfBlueIcon} aria-hidden="true" />
-            <span>Download PDF</span>
-            <Download size={13} className={styles.downloadIcon} aria-hidden="true" />
-            {!isUnlocked && <Lock size={12} className={styles.miniLock} aria-hidden="true" />}
-          </button>
+          {/* "Download PDF" Button - Render ONLY if PDF URL is configured by admin */}
+          {Boolean(question.pdfUrl && question.pdfUrl.trim().length > 0) && (
+            <button
+              type="button"
+              onClick={handlePdfClick}
+              className={`${styles.actionBtn} ${styles.pdfBtn}`}
+              title={isUnlocked ? 'Download step-by-step PDF solution' : 'Unlock course to download PDF'}
+              aria-label={`Download PDF solution for Question ${index + 1}`}
+            >
+              <FileText size={15} className={styles.pdfBlueIcon} aria-hidden="true" />
+              <span>Download PDF</span>
+              <Download size={13} className={styles.downloadIcon} aria-hidden="true" />
+              {!isUnlocked && <Lock size={12} className={styles.miniLock} aria-hidden="true" />}
+            </button>
+          )}
         </div>
 
         {/* Primary "Practice Question" CTA */}

@@ -82,7 +82,7 @@ export const AnswerExplanation: React.FC<AnswerExplanationProps> = ({
                     {isUnlocked ? 'Watch Video Solution' : 'Video Solution (Locked)'}
                   </span>
                   <span className={styles.btnSubText}>
-                    {isUnlocked ? `DK Sir Walkthrough • ${question.videoDuration || '12:45'}` : 'Requires Course Enrollment'}
+                    {isUnlocked ? 'DK Sir Walkthrough' : 'Requires Course Enrollment'}
                   </span>
                 </div>
                 {!isUnlocked ? <Lock size={14} className={styles.lockBadge} /> : <span className={styles.playPill}>Play</span>}

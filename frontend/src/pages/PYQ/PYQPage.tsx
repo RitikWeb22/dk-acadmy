@@ -305,10 +305,10 @@ export const PYQPage: React.FC = () => {
           isFree: activeSet.isFree !== false ? true : (q.isFree === true || idx === 0),
           youtubeUrl: q.videoUrl || q.youtubeUrl || activeSet.videoUrl || activeSet.videoWalkthroughUrl || '',
           videoUrl: q.videoUrl || activeSet.videoUrl || '',
-          pdfUrl: q.pdfUrl || activeSet.pdfUrl || '/assets/downloads/st line-2.pdf',
+          pdfUrl: q.pdfUrl || activeSet.pdfUrl || '',
           courseId: activeSet.id || activeSet._id || 'jee-pyq-archive-mastery',
           courseName: activeSet.title,
-          videoDuration: '05:00'
+          videoDuration: q.videoDuration || ''
         };
       });
   }, [activeSet]);
