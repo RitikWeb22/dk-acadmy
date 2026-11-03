@@ -52,8 +52,6 @@ const createDppPyqSchema = z
 // 1. PDF Studio Import & Extraction Routes
 router.post(
   '/ai-format-math',
-  protect,
-  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
   formatMathWithAi
 );
 

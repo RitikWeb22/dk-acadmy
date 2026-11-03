@@ -148,6 +148,9 @@ export interface TestSeriesTableItem {
   };
   instructions?: string[];
   batch?: string;
+  isFree?: boolean;
+  price?: number;
+  accessMode?: 'free' | 'paid';
   targetBatches?: string[];
   accessLevel?: 'BATCH_INCLUDED' | 'FREE_LEAD_MAGNET';
 }
@@ -634,6 +637,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   ]);
   const [zeroPenaltyNumerical, setZeroPenaltyNumerical] = useState(true);
   const [accessLevel, setAccessLevel] = useState<'BATCH_INCLUDED' | 'FREE_LEAD_MAGNET'>('BATCH_INCLUDED');
+  const [wizardIsFree, setWizardIsFree] = useState<boolean>(true);
+  const [wizardPrice, setWizardPrice] = useState<number>(299);
   const [subjectRules, setSubjectRules] = useState(INITIAL_SUBJECT_RULES);
   const [activeSubjectTab, setActiveSubjectTab] = useState<'Physics' | 'Chemistry' | 'Mathematics'>('Mathematics');
   const [questions, setQuestions] = useState<QuestionItem[]>(INITIAL_SAMPLE_QUESTIONS);
@@ -1536,6 +1541,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     }
     if (item.batch) setWizardBatch(item.batch);
     if (item.accessLevel) setAccessLevel(item.accessLevel);
+    setWizardIsFree(item.isFree !== false && (item as any).accessMode !== 'paid');
+    setWizardPrice(typeof item.price === 'number' && item.price > 0 ? item.price : 299);
 
     const initialStatus: 'Published' | 'Draft' | 'Scheduled' =
       item.status === 'Draft'
@@ -2593,6 +2600,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       })),
       batch: wizardBatch,
       accessLevel: accessLevel,
+      isFree: wizardIsFree,
+      price: wizardIsFree ? 0 : wizardPrice,
+      accessMode: wizardIsFree ? 'free' : 'paid',
       status: builderStatus,
       schedule: {
         startWindow: builderStatus === 'Scheduled' ? (startWindowDate ? new Date(startWindowDate) : new Date()) : new Date(),
@@ -3349,6 +3359,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               <span className={styles.breakdownSub}>
                                 {item.testsBreakdown}
                               </span>
+                              <div style={{ marginTop: '4px', display: 'flex', gap: '4px' }}>
+                                {item.isFree !== false && (item as any).accessMode !== 'paid' ? (
+                                  <span style={{ fontSize: '10px', fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '1px 6px', borderRadius: '4px' }}>Free</span>
+                                ) : (
+                                  <span style={{ fontSize: '10px', fontWeight: 700, background: '#EEF2FF', color: '#4F46E5', padding: '1px 6px', borderRadius: '4px' }}>🔒 ₹{item.price || 299}</span>
+                                )}
+                              </div>
                             </div>
                           </td>
 
@@ -4140,6 +4157,79 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Access Mode & Paid Monetization Lock */}
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '16px' }}>🔒</span>
+                        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Test Access &amp; Monetization Mode</h4>
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: wizardIsFree ? '#15803d' : '#4338ca', background: wizardIsFree ? '#dcfce7' : '#e0e7ff', padding: '3px 8px', borderRadius: '6px' }}>
+                        {wizardIsFree ? 'Free Access' : `Paid Lock • ₹${wizardPrice}`}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setWizardIsFree(true)}
+                        style={{
+                          flex: 1,
+                          minWidth: '200px',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: `2px solid ${wizardIsFree ? '#10b981' : '#cbd5e1'}`,
+                          background: wizardIsFree ? '#ecfdf5' : '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          gap: '4px'
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, fontSize: '13px', color: wizardIsFree ? '#065f46' : '#334155' }}>🟢 Free Test Series</span>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>Open for all enrolled students without payment lock.</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setWizardIsFree(false)}
+                        style={{
+                          flex: 1,
+                          minWidth: '200px',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: `2px solid ${!wizardIsFree ? '#6366f1' : '#cbd5e1'}`,
+                          background: !wizardIsFree ? '#eef2ff' : '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          gap: '4px'
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, fontSize: '13px', color: !wizardIsFree ? '#3730a3' : '#334155' }}>🔒 Paid &amp; Locked (Razorpay)</span>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>Students must pay via Razorpay to unlock and attempt.</span>
+                      </button>
+                    </div>
+
+                    {!wizardIsFree && (
+                      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>Unlock Price (INR):</label>
+                        <div style={{ position: 'relative', width: '140px' }}>
+                          <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b' }}>₹</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={wizardPrice}
+                            onChange={(e) => setWizardPrice(Math.max(1, Number(e.target.value) || 0))}
+                            style={{ width: '100%', padding: '6px 10px 6px 24px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700 }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className={styles.stepActionBarBetween}>
                     <button type="button" className={styles.prevStepBtn} onClick={handlePrevStep}>
                       <span>← Prev: Configuration</span>
@@ -4653,6 +4743,79 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         />
                       </div>
                     </div>
+                  </div>
+
+                  {/* Access Mode & Paid Monetization Lock */}
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '16px' }}>🔒</span>
+                        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Test Access &amp; Monetization Mode</h4>
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: wizardIsFree ? '#15803d' : '#4338ca', background: wizardIsFree ? '#dcfce7' : '#e0e7ff', padding: '3px 8px', borderRadius: '6px' }}>
+                        {wizardIsFree ? 'Free Access' : `Paid Lock • ₹${wizardPrice}`}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setWizardIsFree(true)}
+                        style={{
+                          flex: 1,
+                          minWidth: '200px',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: `2px solid ${wizardIsFree ? '#10b981' : '#cbd5e1'}`,
+                          background: wizardIsFree ? '#ecfdf5' : '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          gap: '4px'
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, fontSize: '13px', color: wizardIsFree ? '#065f46' : '#334155' }}>🟢 Free Test Series</span>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>Open for all enrolled students without payment lock.</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setWizardIsFree(false)}
+                        style={{
+                          flex: 1,
+                          minWidth: '200px',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: `2px solid ${!wizardIsFree ? '#6366f1' : '#cbd5e1'}`,
+                          background: !wizardIsFree ? '#eef2ff' : '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          gap: '4px'
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, fontSize: '13px', color: !wizardIsFree ? '#3730a3' : '#334155' }}>🔒 Paid &amp; Locked (Razorpay)</span>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>Students must pay via Razorpay to unlock and attempt.</span>
+                      </button>
+                    </div>
+
+                    {!wizardIsFree && (
+                      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>Unlock Price (INR):</label>
+                        <div style={{ position: 'relative', width: '140px' }}>
+                          <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b' }}>₹</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={wizardPrice}
+                            onChange={(e) => setWizardPrice(Math.max(1, Number(e.target.value) || 0))}
+                            style={{ width: '100%', padding: '6px 10px 6px 24px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700 }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className={styles.stepActionBarBetween}>

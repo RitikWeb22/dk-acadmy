@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import type {
   TestAttempt,
@@ -21,7 +21,9 @@ import { TestTakingView } from '../../components/testSeries/TestTakingView/TestT
 import { TestResultsView } from '../../components/testSeries/TestResultsView/TestResultsView';
 import { AnswerReviewView } from '../../components/testSeries/AnswerReviewView/AnswerReviewView';
 import { TestEmptyState } from '../../components/testSeries/TestEmptyState/TestEmptyState';
+import { TestSeriesUnlockModal } from '../../components/testSeries/TestSeriesUnlockModal/TestSeriesUnlockModal';
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
+import { paymentService } from '../../services/paymentService';
 import { requestFullScreen, exitFullScreen } from '../../utils/fullscreen';
 import { useStudentAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -34,6 +36,7 @@ const TEST_STORAGE_KEY = 'dk_academy_test_attempts_v1';
 
 export const TestSeriesPage: React.FC = () => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Read URL query params
@@ -44,12 +47,14 @@ export const TestSeriesPage: React.FC = () => {
 
   // Derive initial or URL-synced exam filter
   const selectedExam: ExamFilterValue = useMemo(() => {
-    if (urlSubject?.toLowerCase() === 'mathematics' || urlFilter === 'math-speed') return 'MathSpeed';
+    if (urlSubject?.toLowerCase() === 'mathematics' || urlFilter === 'math-speed' || urlExam === 'MathSpeed') return 'MathSpeed';
     if (urlFormat === 'Part Test' || urlExam === 'PartTest') return 'PartTest';
     if (urlExam === 'JEE Main') return 'JEE Main';
     if (urlExam === 'JEE Advanced') return 'JEE Advanced';
     if (urlExam === 'BITSAT') return 'BITSAT';
-    return 'All';
+    if (urlExam === 'All') return 'All';
+    if (urlExam === 'AllIndia' || urlFilter === 'all-india') return 'AllIndia';
+    return 'AllIndia';
   }, [urlExam, urlFormat, urlSubject, urlFilter]);
 
   // Derive initial or URL-synced format filter
@@ -68,7 +73,7 @@ export const TestSeriesPage: React.FC = () => {
     return 'All';
   }, [urlSubject, urlFilter]);
 
-  const { student } = useStudentAuth();
+  const { student, isAuthenticated } = useStudentAuth();
 
   // Session attempts state: persisted in localStorage so student progress and scores are retained
   const [attempts, setAttempts] = useState<Record<string, TestAttempt>>(() => {
@@ -185,26 +190,61 @@ export const TestSeriesPage: React.FC = () => {
     return testSeriesList.find((t) => t.id === instructionsModalTestId || (t as any)._id === instructionsModalTestId || t.slug === instructionsModalTestId) || null;
   }, [instructionsModalTestId, testSeriesList]);
 
+  // Categorization helpers for CBT tests
+  const isTestPart = (test: TestSeriesItem): boolean => {
+    return (
+      test.format === 'Part Test' ||
+      test.badgeCode === 'PART TEST' ||
+      (test as any).examType === 'PartTest' ||
+      test.title?.toLowerCase().includes('part test') ||
+      test.subtitle?.toLowerCase().includes('part test')
+    );
+  };
+
+  const isTestMathSpeed = (test: TestSeriesItem): boolean => {
+    return (
+      test.badgeCode === 'MATH SPEED' ||
+      (test as any).examType === 'MathSpeed' ||
+      test.title?.toLowerCase().includes('math speed') ||
+      test.title?.toLowerCase().includes('dk sir math') ||
+      (Array.isArray(test.subjects) && test.subjects.length === 1 && test.subjects[0] === 'Mathematics')
+    );
+  };
+
+  const isTestAllIndia = (test: TestSeriesItem): boolean => {
+    if (isTestPart(test) || isTestMathSpeed(test)) return false;
+    return (
+      test.format === 'Full Mock' ||
+      test.badgeCode === 'FULL CBT' ||
+      test.badgeCode === 'ALL INDIA' ||
+      test.title?.toLowerCase().includes('all india') ||
+      test.title?.toLowerCase().includes('full mock') ||
+      test.title?.toLowerCase().includes('cbt mock') ||
+      (test as any).examType === 'AllIndia' ||
+      test.examType === 'JEE Main' ||
+      test.examType === 'JEE Advanced'
+    );
+  };
+
   // Derive counts per exam from actual test data
   const examCounts = useMemo<Record<ExamFilterValue, number>>(() => {
     const counts: Record<ExamFilterValue, number> = {
       All: testSeriesList.length,
+      AllIndia: 0,
       'JEE Main': 0,
       'JEE Advanced': 0,
-      'BITSAT': 0,
+      BITSAT: 0,
       PartTest: 0,
       MathSpeed: 0,
     };
 
     testSeriesList.forEach((test) => {
-      const isPart = test.format === 'Part Test' || test.badgeCode === 'PART TEST' || (test as any).examType === 'PartTest';
-      const isMath = (test.subjects.includes('Mathematics') && test.subjects.length === 1) || test.badgeCode === 'MATH SPEED' || (test as any).examType === 'MathSpeed';
-
-      if (test.examType === 'JEE Main' && !isPart) counts['JEE Main'] += 1;
-      if (test.examType === 'JEE Advanced' && !isPart) counts['JEE Advanced'] += 1;
-      if (test.examType === 'BITSAT') counts['BITSAT'] += 1;
-      if (isPart) counts['PartTest'] += 1;
-      if (isMath) counts['MathSpeed'] += 1;
+      if (isTestAllIndia(test)) counts.AllIndia += 1;
+      if (isTestPart(test)) counts.PartTest += 1;
+      if (isTestMathSpeed(test)) counts.MathSpeed += 1;
+      if (test.examType === 'JEE Main' && !isTestPart(test) && !isTestMathSpeed(test)) counts['JEE Main'] += 1;
+      if (test.examType === 'JEE Advanced' && !isTestPart(test) && !isTestMathSpeed(test)) counts['JEE Advanced'] += 1;
+      if (test.examType === 'BITSAT' || test.title?.toLowerCase().includes('bitsat')) counts.BITSAT += 1;
     });
 
     return counts;
@@ -222,16 +262,103 @@ export const TestSeriesPage: React.FC = () => {
     ).length;
   }, [attempts]);
 
+  // Paid Test Unlock & Monetization State
+  const [unlockedMockTestIds, setUnlockedMockTestIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('unlocked_mock_test_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+  const [modalTargetTest, setModalTargetTest] = useState<TestSeriesItem | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const isTestUnlocked = (test: TestSeriesItem): boolean => {
+    // If not marked paid or explicitly free, it is open
+    if (test.isFree !== false && test.accessMode !== 'paid') return true;
+    const testId = test.id || (test as any)._id;
+    // Check local unlocked cache
+    if (unlockedMockTestIds.includes(testId)) return true;
+    // Check student enrolled list
+    if (student?.id && Array.isArray((test as any).unlockedStudents) && (test as any).unlockedStudents.includes(student.id)) {
+      return true;
+    }
+    return false;
+  };
+
+  const handleUnlockTest = (test: TestSeriesItem) => {
+    if (!isAuthenticated) {
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
+    setModalTargetTest(test);
+    setIsUnlockModalOpen(true);
+  };
+
+  const handlePayAndUnlockTest = async () => {
+    if (!modalTargetTest) return;
+    if (!isAuthenticated || !student) {
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
+
+    const testId = modalTargetTest.id || (modalTargetTest as any)._id;
+    const price = modalTargetTest.price || 299;
+
+    setIsProcessingPayment(true);
+
+    try {
+      await paymentService.initiateCourseCheckout({
+        amount: price,
+        courseId: `test_series_${testId}`,
+        courseTitle: `${modalTargetTest.title} (CBT Test Series)`,
+        studentName: student.name || 'Student',
+        studentEmail: student.email || '',
+        studentPhone: student.phone || '',
+        onSuccess: (paymentId) => {
+          setIsProcessingPayment(false);
+          setIsUnlockModalOpen(false);
+          // Unlock test locally and notify backend
+          setUnlockedMockTestIds((prev) => {
+            const next = Array.from(new Set([...prev, testId]));
+            try {
+              localStorage.setItem('unlocked_mock_test_ids', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+          apiClient.post(`/test-series/${testId}/unlock`, { paymentId }).catch(() => {});
+          handleOpenInstructions(testId);
+        },
+        onError: (err) => {
+          setIsProcessingPayment(false);
+          console.warn('[Test Series Payment Failed or Closed]:', err);
+        }
+      });
+    } catch (err) {
+      setIsProcessingPayment(false);
+      console.error('[Test Series Payment Error]:', err);
+    }
+  };
+
   // Filtered test catalog
   const filteredTests = useMemo(() => {
     return testSeriesList.filter((test) => {
-      // 1. Exam or MathSpeed or PartTest filter
-      if (selectedExam === 'MathSpeed') {
-        const isMath = (test.subjects.includes('Mathematics') && test.subjects.length === 1) || test.badgeCode === 'MATH SPEED' || (test as any).examType === 'MathSpeed';
-        if (!isMath) return false;
+      // 1. Strict Exam Categorization
+      if (selectedExam === 'AllIndia') {
+        if (!isTestAllIndia(test)) return false;
       } else if (selectedExam === 'PartTest') {
-        const isPart = test.format === 'Part Test' || test.badgeCode === 'PART TEST' || (test as any).examType === 'PartTest';
-        if (!isPart) return false;
+        if (!isTestPart(test)) return false;
+      } else if (selectedExam === 'MathSpeed') {
+        if (!isTestMathSpeed(test)) return false;
+      } else if (selectedExam === 'JEE Main') {
+        if (test.examType !== 'JEE Main' || isTestPart(test) || isTestMathSpeed(test)) return false;
+      } else if (selectedExam === 'JEE Advanced') {
+        if (test.examType !== 'JEE Advanced' || isTestPart(test) || isTestMathSpeed(test)) return false;
+      } else if (selectedExam === 'BITSAT') {
+        if (test.examType !== 'BITSAT' && !test.title?.toLowerCase().includes('bitsat')) return false;
       } else if (selectedExam !== 'All' && test.examType !== selectedExam) {
         return false;
       }
@@ -343,7 +470,11 @@ export const TestSeriesPage: React.FC = () => {
 
   // Open instructions modal
   const handleOpenInstructions = (testId: string) => {
-    const targetTest = testSeriesList.find((t) => t.id === testId);
+    const targetTest = testSeriesList.find((t) => t.id === testId || (t as any)._id === testId || t.slug === testId);
+    if (targetTest && !isTestUnlocked(targetTest)) {
+      handleUnlockTest(targetTest);
+      return;
+    }
     if (targetTest?.status === 'Scheduled' && targetTest.schedule?.endWindow) {
       const endTime = new Date(targetTest.schedule.endWindow).getTime();
       if (Date.now() > endTime) {
@@ -357,7 +488,11 @@ export const TestSeriesPage: React.FC = () => {
   // Start test from instructions modal
   const handleStartTest = (testId: string) => {
     const now = Date.now();
-    const targetTest = testSeriesList.find((t) => t.id === testId);
+    const targetTest = testSeriesList.find((t) => t.id === testId || (t as any)._id === testId || t.slug === testId);
+    if (targetTest && !isTestUnlocked(targetTest)) {
+      handleUnlockTest(targetTest);
+      return;
+    }
     if (targetTest?.status === 'Scheduled' && targetTest.schedule?.endWindow) {
       const endTime = new Date(targetTest.schedule.endWindow).getTime();
       if (now > endTime) {
@@ -405,11 +540,15 @@ export const TestSeriesPage: React.FC = () => {
 
   // Resume an in-progress test
   const handleResumeTest = (testId: string) => {
+    const targetTest = testSeriesList.find((t) => t.id === testId || (t as any)._id === testId || t.slug === testId);
+    if (targetTest && !isTestUnlocked(targetTest)) {
+      handleUnlockTest(targetTest);
+      return;
+    }
     requestFullScreen().catch(() => {});
     setActiveTestId(testId);
 
     const now = Date.now();
-    const targetTest = testSeriesList.find((t) => t.id === testId || (t as any)._id === testId);
     const testDurationMinutes = Number(targetTest?.durationMinutes) > 0 ? Number(targetTest?.durationMinutes) : 180;
 
     setAttempts((prev) => {
@@ -699,6 +838,8 @@ export const TestSeriesPage: React.FC = () => {
                     key={test.id}
                     test={test}
                     attempt={attempts[test.id]}
+                    isLocked={!isTestUnlocked(test)}
+                    onUnlock={handleUnlockTest}
                     onOpenInstructions={handleOpenInstructions}
                     onResumeTest={handleResumeTest}
                     onViewResults={handleViewResults}
@@ -756,6 +897,19 @@ export const TestSeriesPage: React.FC = () => {
           onClose={() => setScheduledModalData(null)}
           test={scheduledModalData?.test || null}
           formattedStartTime={scheduledModalData?.formattedStartTime || ''}
+        />
+
+        {/* Paid Test Series Unlock & Payment Modal */}
+        <TestSeriesUnlockModal
+          isOpen={isUnlockModalOpen}
+          test={modalTargetTest}
+          isProcessing={isProcessingPayment}
+          onPayAndUnlock={handlePayAndUnlockTest}
+          onClose={() => {
+            if (!isProcessingPayment) {
+              setIsUnlockModalOpen(false);
+            }
+          }}
         />
       </Container>
     </div>

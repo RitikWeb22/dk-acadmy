@@ -83,6 +83,10 @@ export interface ITestSeries extends Document {
   totalTests?: number;
   testsBreakdown?: any;
   accessLevel?: 'BATCH_INCLUDED' | 'FREE_LEAD_MAGNET';
+  isFree?: boolean;
+  price?: number;
+  accessMode?: 'free' | 'paid';
+  unlockedStudents?: string[];
   status: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
   schedule?: ITestSeriesSchedule;
   solutionRelease?: ITestSeriesSolutionRelease;
@@ -197,6 +201,10 @@ const testSeriesSchema = new Schema<ITestSeries>(
       enum: ['BATCH_INCLUDED', 'FREE_LEAD_MAGNET'],
       default: 'BATCH_INCLUDED'
     },
+    isFree: { type: Boolean, default: true },
+    price: { type: Number, default: 0 },
+    accessMode: { type: String, enum: ['free', 'paid'], default: 'free' },
+    unlockedStudents: { type: [String], default: [] },
     status: {
       type: String,
       enum: ['Published', 'Draft', 'Scheduled', 'Archived'],

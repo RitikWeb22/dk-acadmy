@@ -313,6 +313,9 @@ export interface TestSeriesItem {
   instructions: string[];
   questions: TestQuestion[];
   status?: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
+  isFree?: boolean;
+  price?: number;
+  accessMode?: 'free' | 'paid';
   schedule?: TestScheduleConfig;
   solutionRelease?: TestSolutionReleaseConfig;
   attemptsCount?: number;

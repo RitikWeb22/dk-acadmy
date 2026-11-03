@@ -613,6 +613,10 @@ export function normalizeUnicodeMathText(raw: string): string {
              .replace(/[\u2212\u2013\u2014]/g, '-');
 
   // 2. Decode Word Equation Editor font artifacts
+  text = text.replace(/(?:\\left\s*)?[=\[]\s*(?:\\left\s*)?\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3[\s\S]*?\\?cot\s*[=\(]?\s*[xX]\s*[\+]\s*3[\s\S]*?\+\s*1\s*\]\s*(?:dx|𝑑𝑥)?\b/gi,
+                      '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
+  text = text.replace(/\[\s*\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*[=\(]?\s*[xX]\s*[\+]\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*(?:dx|𝑑𝑥)?\b/gi,
+                      '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
   text = text.replace(/[=\[]\s*\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3[\s\S]*?cot\s*[=\(]?\s*[xX]\s*[+]\s*3[\s\S]*?\+\s*1\s*[@\]]\s*(?:dx|𝑑𝑥)\b/gi,
                       '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
   text = text.replace(/\[\s*cot\s*=?\s*x\s*-\s*3[\s\S]*?cot\s*=?\s*x\s*\+\s*3[\s\S]*?\+\s*1\s*\]/gi,
@@ -622,6 +626,8 @@ export function normalizeUnicodeMathText(raw: string): string {
   text = text.replace(/=cot\s*=\s*[x𝑥]\s*-\s*3/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right)');
   text = text.replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
   text = text.replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
+  text = text.replace(/\\{2,}log_e/g, '\\log_e');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[0-9a-zA-Z])/g, (_m, p1) => '\\log_e(' + p1);
   text = text.replace(/F\s*[\r\n]+\s*1\s*[\r\n]+\s*3\s*[\r\n]+\s*−?1\s*[\r\n]+\s*2\s*[\r\n]+\s*1\s*[\r\n]+\s*𝛼\s*[\r\n]+\s*0\s*[\r\n]+\s*1\s*[\r\n]+\s*−?1\s*[\r\n]+\s*H/g,
                       '\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}');
   text = text.replace(/(?:\\left\s*)+/g, '\\left');
