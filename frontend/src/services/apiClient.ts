@@ -79,6 +79,12 @@ const getAuthHeaders = (): Record<string, string> => {
     // ignore json parse error
   }
 
+  const geminiKey =
+    localStorage.getItem('dk_gemini_api_key') ||
+    localStorage.getItem('gemini_api_key');
+  if (geminiKey) {
+    headers['x-gemini-api-key'] = geminiKey.trim();
+  }
 
   return headers;
 };
@@ -339,6 +345,15 @@ export const apiClient = {
     });
   },
 
+  async getGeminiConfig(): Promise<{ configured: boolean; model: string; previewKey: string }> {
+    const res = await this.get<any>('/system/gemini-config');
+    return res as any;
+  },
+
+  async updateGeminiConfig(payload: { apiKey: string; model?: string }): Promise<any> {
+    return this.post<any>('/system/gemini-config', payload);
+  },
+
   async formatMathWithAi(payload: {
     statement?: string;
     options?: Array<{ key: string; text: string }>;
@@ -346,6 +361,7 @@ export const apiClient = {
     dkSirShortcut?: string;
     targetExam?: string;
     model?: string;
+    geminiApiKey?: string;
   }): Promise<{
     success: boolean;
     aiPowered: boolean;
@@ -357,7 +373,16 @@ export const apiClient = {
       dkSirShortcut?: string;
     };
   }> {
-    const res = await this.post<any>('/dpp-pyqs/ai-format-math', payload);
+    const key =
+      payload.geminiApiKey ||
+      localStorage.getItem('dk_gemini_api_key') ||
+      localStorage.getItem('gemini_api_key') ||
+      '';
+    const res = await this.post<any>('/dpp-pyqs/ai-format-math', {
+      ...payload,
+      model: payload.model || 'gemini-3.8-flash',
+      geminiApiKey: key
+    });
     return res as any;
   }
 };

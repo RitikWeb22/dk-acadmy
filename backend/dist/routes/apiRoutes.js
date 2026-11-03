@@ -14,6 +14,7 @@ import freeLectureRoutes from './freeLectureRoutes.js';
 import doubtRoutes from './doubtRoutes.js';
 import liveRoutes from './liveRoutes.js';
 import couponRoutes from './couponRoutes.js';
+import { getGeminiConfig, updateGeminiConfig } from '../controllers/aiFormatController.js';
 import mongoose from 'mongoose';
 const router = Router();
 // Standard Health Check
@@ -70,4 +71,7 @@ router.use('/doubts', doubtRoutes);
 router.use('/live', liveRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/coupons', couponRoutes);
+// Gemini AI System Configuration
+router.get('/system/gemini-config', getGeminiConfig);
+router.post('/system/gemini-config', updateGeminiConfig);
 export default router;

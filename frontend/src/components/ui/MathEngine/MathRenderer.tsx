@@ -47,22 +47,12 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // If raw content string is provided, normalize entire content first (to collapse multi-line formulas like \log_e\left(\n27\n64\n\right)), then split by lines
-  const lines = useMemo(() => {
-    if (!content) return [];
-    const normalized = normalizeMathText(content);
-    return normalized.split(/\r?\n/).map((line, idx) => ({
-      id: `line-${idx}`,
-      raw: line,
-      blocks: parseContentToBlocks(line)
-    }));
-  }, [content]);
-
-  // Fallback for pre-computed structured blocks
-  const fallbackBlocks = useMemo(() => {
+  // Parse structured blocks on the entire normalized content to avoid chopping multi-line formulas across line splits
+  const blocks = useMemo(() => {
     if (propBlocks && propBlocks.length > 0) return propBlocks;
-    return [];
-  }, [propBlocks]);
+    if (!content) return [];
+    return parseContentToBlocks(content);
+  }, [content, propBlocks]);
 
   // MathJax pass for advanced LaTeX environments
   useEffect(() => {
@@ -71,59 +61,15 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
         console.warn('[MathJax Typeset Warning]:', err);
       });
     }
-  }, [content, propBlocks, lines, engine]);
+  }, [content, propBlocks, blocks, engine]);
 
-  if ((!lines || lines.length === 0) && (!fallbackBlocks || fallbackBlocks.length === 0)) {
+  if (!blocks || blocks.length === 0) {
     return null;
   }
 
-  // Render line-by-line when raw content is available
-  if (lines.length > 0) {
-    return (
-      <div ref={containerRef} className={`${styles.mathRoot} ${className}`}>
-        {lines.map((line) => {
-          if (!line.raw.trim()) {
-            return <div key={line.id} className={styles.mathLineRow}>&nbsp;</div>;
-          }
-
-          return (
-            <div key={line.id} className={styles.mathLineRow}>
-              {line.blocks.map((block) => {
-                if (block.type === 'math_block' || displayMode) {
-                  return (
-                    <div key={block.id} className={styles.displayMathBlock}>
-                      <RenderMathExpression
-                        formula={block.content}
-                        isDisplay={true}
-                      />
-                    </div>
-                  );
-                }
-
-                if (block.type === 'math_inline') {
-                  return (
-                    <span key={block.id} className={styles.inlineMathWrapper}>
-                      <RenderMathExpression
-                        formula={block.content}
-                        isDisplay={false}
-                      />
-                    </span>
-                  );
-                }
-
-                return <span key={block.id} className={styles.plainTextSpan}>{block.content}</span>;
-              })}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // Render pre-computed structured blocks
   return (
     <div ref={containerRef} className={`${styles.mathRoot} ${className}`}>
-      {fallbackBlocks.map((block) => {
+      {blocks.map((block) => {
         if (block.type === 'math_block' || displayMode) {
           return (
             <div key={block.id} className={styles.displayMathBlock}>
@@ -224,6 +170,14 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
             });
             if (!thirdTry.includes('katex-error')) {
               html = thirdTry;
+            } else {
+              // Final fallback: clean error markup and display readable symbols safely without red syntax error
+              const safeText = stripped
+                .replace(/\\left\b/g, '')
+                .replace(/\\right\b/g, '')
+                .replace(/\\text\{\s*(?:If|Let|Then)\s*\}\s*/gi, '')
+                .replace(/\\/g, '');
+              html = `<span>${safeText}</span>`;
             }
           }
         } catch {}

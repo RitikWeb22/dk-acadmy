@@ -42,13 +42,15 @@ import {
   Video,
   Upload,
   FileUp,
-  Lock
+  Lock,
+  Key
 } from 'lucide-react';
 import styles from './DppPyqManagementWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
 import { downloadQuestionsTemplateCsv, parseBulkQuestions, normalizeMathText } from '../../../utils/questionBulkParser';
 import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
 import { MathText } from '../../ui/MathText/MathText';
+import { GeminiApiKeyModal } from '../../common/GeminiApiKeyModal/GeminiApiKeyModal';
 
 export type ProblemModuleType = 'DPP' | 'PYQ' | 'BITSAT';
 export type ProblemSubject = 'Mathematics' | 'Physics' | 'Chemistry' | 'Mixed';
@@ -666,6 +668,32 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
   const [isAiFormattingBulk, setIsAiFormattingBulk] = useState<boolean>(false);
   const [aiFormattingBulkIdx, setAiFormattingBulkIdx] = useState<number | null>(null);
   const [isAiFormattingActiveQ, setIsAiFormattingActiveQ] = useState<boolean>(false);
+  const [isGeminiKeyModalOpen, setIsGeminiKeyModalOpen] = useState<boolean>(false);
+  const [formattingDppOptionKey, setFormattingDppOptionKey] = useState<string | null>(null);
+
+  const handleAiFormatSingleDppOption = async (optKey: string) => {
+    if (!editingItem || editingQuestionIdx === null || !editingItem.questions[editingQuestionIdx]) return;
+    const curQ = editingItem.questions[editingQuestionIdx];
+    const targetOpt = curQ.options.find(o => o.key === optKey);
+    if (!targetOpt || !targetOpt.text) return;
+
+    setFormattingDppOptionKey(optKey);
+    try {
+      const res = await apiClient.formatMathWithAi({
+        statement: '',
+        options: [{ key: optKey, text: targetOpt.text }],
+        model: 'gemini-3.8-flash'
+      });
+      const formatted = res?.data?.options?.[0]?.text || normalizeMathText(targetOpt.text);
+      handleUpdateOptionText(optKey as any, formatted);
+      showToast(`✨ Option ${optKey} formatted!`);
+    } catch {
+      handleUpdateOptionText(optKey as any, normalizeMathText(targetOpt.text));
+      showToast(`✨ Option ${optKey} formatted!`);
+    } finally {
+      setFormattingDppOptionKey(null);
+    }
+  };
 
   const handleAiFormatSingleBulkQuestion = async (idx: number) => {
     const targetQ = bulkParsedQuestions[idx];
@@ -3532,29 +3560,52 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     <label className={styles.sectionSmallLabel} style={{ margin: 0 }}>
                       Problem Statement (KaTeX LaTeX formulas supported):
                     </label>
-                    <button
-                      type="button"
-                      disabled={isAiFormattingActiveQ}
-                      onClick={handleAiFormatActiveQuestion}
-                      style={{
-                        background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '4px 10px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: isAiFormattingActiveQ ? 'not-allowed' : 'pointer',
-                        opacity: isAiFormattingActiveQ ? 0.7 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px'
-                      }}
-                      title="Auto-repair multiline integrals, nested fractions, Greek letters, and bracket balance with Gemini AI"
-                    >
-                      {isAiFormattingActiveQ ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                      {isAiFormattingActiveQ ? 'Formatting with AI...' : 'Auto-Format & Fix LaTeX (AI)'}
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setIsGeminiKeyModalOpen(true)}
+                        style={{
+                          background: '#f8fafc',
+                          color: '#475569',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          padding: '4px 9px',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                        title="Configure Gemini API Key"
+                      >
+                        <Key size={12} color="#4f46e5" />
+                        <span>Gemini Key</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isAiFormattingActiveQ}
+                        onClick={handleAiFormatActiveQuestion}
+                        style={{
+                          background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '5px 12px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: isAiFormattingActiveQ ? 'not-allowed' : 'pointer',
+                          opacity: isAiFormattingActiveQ ? 0.7 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                        title="Auto-repair multiline integrals, nested fractions, Greek letters, and bracket balance across Statement & Options with Gemini AI"
+                      >
+                        {isAiFormattingActiveQ ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                        <span>{isAiFormattingActiveQ ? 'Formatting with AI...' : '✨ Auto-Fix Question & All Options (AI)'}</span>
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     rows={4}
@@ -3574,9 +3625,33 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
                 {/* 4 Options Grid with Correct Key radio */}
                 <div className={styles.optionsEditorSection}>
-                  <label className={styles.sectionSmallLabel}>
-                    Answer Choices &amp; Answer Key (Select the correct option):
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label className={styles.sectionSmallLabel} style={{ margin: 0 }}>
+                      Answer Choices &amp; Answer Key (Select the correct option):
+                    </label>
+                    <button
+                      type="button"
+                      disabled={isAiFormattingActiveQ}
+                      onClick={handleAiFormatActiveQuestion}
+                      style={{
+                        background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '3px 9px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: isAiFormattingActiveQ ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Format all 4 options simultaneously with AI"
+                    >
+                      <Sparkles size={11} />
+                      <span>Auto-Fix All 4 Options (AI)</span>
+                    </button>
+                  </div>
                   <div className={styles.optionsStack}>
                     {editingItem.questions[editingQuestionIdx].options.map((opt) => {
                       const isCorrect =
@@ -3607,6 +3682,33 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                               onPaste={(e) => handleOptionPaste(opt.key, e)}
                               placeholder={`Enter Option ${opt.key} value or LaTeX equation ($...$)...`}
                             />
+                            <button
+                              type="button"
+                              disabled={formattingDppOptionKey === opt.key}
+                              onClick={() => handleAiFormatSingleDppOption(opt.key)}
+                              style={{
+                                background: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                color: '#475569',
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title={`Auto-Fix Option ${opt.key} with AI`}
+                            >
+                              {formattingDppOptionKey === opt.key ? (
+                                <Loader2 size={11} className="animate-spin" />
+                              ) : (
+                                <Sparkles size={11} color="#4f46e5" />
+                              )}
+                              <span>Fix {opt.key}</span>
+                            </button>
                             {isCorrect && (
                               <span className={styles.answerKeyTag}>✓ Correct Key</span>
                             )}
@@ -4724,6 +4826,13 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
           </div>
         </div>
       )}
+
+      {/* Google Gemini API Key Configuration Modal */}
+      <GeminiApiKeyModal
+        isOpen={isGeminiKeyModalOpen}
+        onClose={() => setIsGeminiKeyModalOpen(false)}
+        onConfigured={() => showToast('✓ Gemini API connected!')}
+      />
     </div>
   );
 };
