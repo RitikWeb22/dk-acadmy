@@ -67,6 +67,8 @@ export function normalizeMathInText(rawText: string): string {
   text = text.replace(/∫\s*\u200a?\s*3\/4\s*[\r\n]+\s*3\/6/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}} ');
   text = text.replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
   text = text.replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
+  text = text.replace(/\\int\s*_\s*\{?\s*(?:\\frac\{\\pi\}\{4\}|\\pi\/4)\s*\}?\s*\^\s*\{?\s*(?:\\frac\{\\pi\}\{6\}|\\pi\/6)\s*\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
+  text = text.replace(/\\int\s*\^\s*\{?\s*(?:\\frac\{\\pi\}\{6\}|\\pi\/6)\s*\}?\s*_\s*\{?\s*(?:\\frac\{\\pi\}\{4\}|\\pi\/4)\s*\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
   text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*[\/']\s*[\r\n]+\s*[\/']/g, '\\int_{-1}^1 ');
 
   // Matrix and piecewise brackets in Equation Editor
@@ -86,10 +88,12 @@ export function normalizeMathInText(rawText: string): string {
   text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
   text = text.replace(/cot\s*\(?\s*x\s*[-−]\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
   text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-  text = text.replace(/\[\s*\\?cot\b/gi, '\\left[\\cot ');
-  text = text.replace(/\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
+  text = text.replace(/\[\s*\\?cot\b/gi, '\\cot ');
+  text = text.replace(/,\s*\]/g, ']');
+  text = text.replace(/\+\s*1\s*\]\s*(?:dx|𝑑𝑥)?\b/gi, '+ 1 \\, dx');
+  text = text.replace(/\\\\+([a-zA-Z]+)/g, '\\$1');
   text = text.replace(/\\{2,}log_e/g, '\\log_e');
-  text = text.replace(/\\log_e\s*\(\s*\(\s*\)/g, '\\log_e(');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*\)\s*/g, '\\log_e(');
   text = text.replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(');
   text = text.replace(/\\log_e\s*\(\s*\\sqrt/g, '\\log_e(\\sqrt');
   text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[\\a-zA-Z0-9])/g, (_m, p1) => '\\log_e(' + p1);
@@ -99,6 +103,8 @@ export function normalizeMathInText(rawText: string): string {
   text = text.replace(/(?:\\right\s*){2,}/g, '\\right');
   text = text.replace(/\\left\s*\\left\s*([\[\(\{\|])/g, '\\left$1');
   text = text.replace(/\\right\s*\\right\s*([\]\)\}\|])/g, '\\right$1');
+  text = text.replace(/\\left\s*\\left/g, '\\left');
+  text = text.replace(/\\right\s*\\right/g, '\\right');
   text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
   text = text.replace(/\/012/g, '-\\sin ');
   text = text.replace(/012\s*([\$x])/gi, '\\sin x');

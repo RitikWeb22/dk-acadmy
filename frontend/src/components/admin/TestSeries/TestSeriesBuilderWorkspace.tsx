@@ -59,12 +59,14 @@ import {
   Sliders,
   Globe,
   Hash,
-  Video
+  Video,
+  Key
 } from 'lucide-react';
 import styles from './TestSeriesBuilderWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
 import { cmsService } from '../../../services/cmsService';
 import { notificationService } from '../../../services/notificationService';
+import { GeminiApiKeyModal } from '../../common/GeminiApiKeyModal/GeminiApiKeyModal';
 
 import { PART_TESTS_DATA } from '../../../data/partTestsData';
 import { MathText } from '../../ui/MathText/MathText';
@@ -2265,6 +2267,37 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [isAiFormattingActiveQTestSeries, setIsAiFormattingActiveQTestSeries] = useState(false);
   const [isAiFormattingDocxQ, setIsAiFormattingDocxQ] = useState(false);
   const [isAiFormattingDocxAll, setIsAiFormattingDocxAll] = useState(false);
+  const [isGeminiKeyModalOpen, setIsGeminiKeyModalOpen] = useState(false);
+  const [formattingOptionKey, setFormattingOptionKey] = useState<string | null>(null);
+
+  const handleAiFormatSingleOption = async (optionKey: 'A' | 'B' | 'C' | 'D') => {
+    if (!currentEditingQuestion) return;
+    const targetOpt = currentEditingQuestion.options?.find((o) => o.key === optionKey);
+    if (!targetOpt || !targetOpt.text) return;
+    setFormattingOptionKey(optionKey);
+    try {
+      const res = await apiClient.formatMathWithAi({
+        statement: '',
+        options: [{ key: optionKey, text: targetOpt.text }],
+        model: 'gemini-3.8-flash'
+      });
+      const formattedText = res?.data?.options?.[0]?.text || normalizeMathText(targetOpt.text);
+      const newOpts = currentEditingQuestion.options.map((o) =>
+        o.key === optionKey ? { ...o, text: formattedText } : o
+      );
+      updateCurrentQuestion({ options: newOpts });
+      showToast(`✨ Option ${optionKey} formatted!`);
+    } catch {
+      const formattedText = normalizeMathText(targetOpt.text);
+      const newOpts = currentEditingQuestion.options.map((o) =>
+        o.key === optionKey ? { ...o, text: formattedText } : o
+      );
+      updateCurrentQuestion({ options: newOpts });
+      showToast(`✨ Option ${optionKey} formatted!`);
+    } finally {
+      setFormattingOptionKey(null);
+    }
+  };
 
   const handleAiFormatActiveTestSeriesQuestion = async () => {
     if (!currentEditingQuestion) return;
@@ -4544,10 +4577,32 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <button
                               type="button"
+                              onClick={() => setIsGeminiKeyModalOpen(true)}
+                              className={styles.smartPasteActionBtn}
+                              title="Configure Google Gemini API Key for AI math formatting"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: '#f8fafc',
+                                color: '#475569',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '4px 9px',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Key size={12} color="#4f46e5" />
+                              <span>Gemini Key</span>
+                            </button>
+                            <button
+                              type="button"
                               disabled={isAiFormattingActiveQTestSeries}
                               onClick={handleAiFormatActiveTestSeriesQuestion}
                               className={styles.smartPasteActionBtn}
-                              title="Auto-repair and reconstruct formulas with Gemini AI"
+                              title="Auto-repair and reconstruct question statement and all 4 options with Gemini AI"
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -4556,15 +4611,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                 color: '#ffffff',
                                 border: 'none',
                                 borderRadius: '6px',
-                                padding: '4px 9px',
-                                fontSize: '11.5px',
+                                padding: '5px 11px',
+                                fontSize: '12px',
                                 fontWeight: 700,
                                 cursor: isAiFormattingActiveQTestSeries ? 'not-allowed' : 'pointer',
                                 opacity: isAiFormattingActiveQTestSeries ? 0.7 : 1
                               }}
                             >
                               {isAiFormattingActiveQTestSeries ? <Loader2 size={13} className={styles.spinIcon} /> : <Sparkles size={13} />}
-                              <span>{isAiFormattingActiveQTestSeries ? 'Formatting...' : '✨ Auto-Format AI'}</span>
+                              <span>{isAiFormattingActiveQTestSeries ? 'Fixing Statement & Options...' : '✨ Auto-Fix Question & All Options (AI)'}</span>
                             </button>
                             <button
                               type="button"
@@ -4640,6 +4695,33 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </div>
                       ) : (
                         <div className={styles.optionsList}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
+                            <label className={styles.sectionLabel} style={{ marginBottom: 0, fontSize: '13px', color: '#1e293b' }}>
+                              Answer Choices (A, B, C, D) &amp; Correct Key
+                            </label>
+                            <button
+                              type="button"
+                              disabled={isAiFormattingActiveQTestSeries}
+                              onClick={handleAiFormatActiveTestSeriesQuestion}
+                              title="Auto-Fix Question Statement and all 4 Options simultaneously with Gemini AI"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '4px 10px',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                cursor: isAiFormattingActiveQTestSeries ? 'not-allowed' : 'pointer'
+                              }}
+                            >
+                              <Sparkles size={12} />
+                              <span>Auto-Fix All 4 Options (AI)</span>
+                            </button>
+                          </div>
                           {currentEditingQuestion.options.map((opt) => {
                             return (
                               <div key={opt.key} className={styles.optionRowItem} style={{ alignItems: 'flex-start', marginBottom: '14px' }}>
@@ -4668,9 +4750,37 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                     defaultViewMode="edit"
                                   />
                                 </div>
-                                {currentEditingQuestion.correctKey === opt.key && (
-                                  <span className={styles.correctKeyTag} style={{ marginTop: '10px' }}>✓ Answer Key</span>
-                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' }}>
+                                  <button
+                                    type="button"
+                                    disabled={formattingOptionKey === opt.key}
+                                    onClick={() => handleAiFormatSingleOption(opt.key)}
+                                    title={`Auto-Fix Option ${opt.key} with AI`}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      background: '#f8fafc',
+                                      border: '1px solid #cbd5e1',
+                                      color: '#475569',
+                                      borderRadius: '6px',
+                                      padding: '3px 7px',
+                                      fontSize: '11px',
+                                      fontWeight: 600,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {formattingOptionKey === opt.key ? (
+                                      <Loader2 size={11} className={styles.spinIcon} />
+                                    ) : (
+                                      <Sparkles size={11} color="#4f46e5" />
+                                    )}
+                                    <span>Fix {opt.key}</span>
+                                  </button>
+                                  {currentEditingQuestion.correctKey === opt.key && (
+                                    <span className={styles.correctKeyTag}>✓ Key</span>
+                                  )}
+                                </div>
                               </div>
                             );
                           })}
@@ -6825,6 +6935,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ─── GOOGLE GEMINI API KEY CONFIG MODAL ─── */}
+      <GeminiApiKeyModal
+        isOpen={isGeminiKeyModalOpen}
+        onClose={() => setIsGeminiKeyModalOpen(false)}
+        onConfigured={() => showToast('✓ Gemini API connected!')}
+      />
 
       {/* ─── SMART PASTE QUESTION MODAL (MATHS & MCQ EXTRACTOR) ─── */}
       {isSmartPasteModalOpen && (

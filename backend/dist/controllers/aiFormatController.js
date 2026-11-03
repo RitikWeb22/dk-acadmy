@@ -1,8 +1,75 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { normalizeMathInText } from '../utils/pdfQuestionExtractor.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+/**
+ * Returns current Gemini API configuration status
+ */
+export const getGeminiConfig = async (_req, res) => {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+    res.status(200).json({
+        configured: Boolean(apiKey && apiKey.trim().length > 5),
+        model,
+        previewKey: apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : ''
+    });
+};
+/**
+ * Updates Gemini API key and model in memory and persists to .env
+ */
+export const updateGeminiConfig = async (req, res) => {
+    try {
+        const { apiKey, model = 'gemini-3.8-flash' } = req.body;
+        if (apiKey !== undefined) {
+            process.env.GEMINI_API_KEY = String(apiKey).trim();
+        }
+        if (model) {
+            process.env.GEMINI_MODEL = String(model).trim();
+        }
+        // Persist to backend/.env if accessible
+        try {
+            const envPath = path.resolve(__dirname, '../../.env');
+            if (fs.existsSync(envPath)) {
+                let envContent = fs.readFileSync(envPath, 'utf8');
+                if (apiKey !== undefined) {
+                    if (/^GEMINI_API_KEY=/m.test(envContent)) {
+                        envContent = envContent.replace(/^GEMINI_API_KEY=.*$/m, `GEMINI_API_KEY=${String(apiKey).trim()}`);
+                    }
+                    else {
+                        envContent += `\nGEMINI_API_KEY=${String(apiKey).trim()}`;
+                    }
+                }
+                if (model) {
+                    if (/^GEMINI_MODEL=/m.test(envContent)) {
+                        envContent = envContent.replace(/^GEMINI_MODEL=.*$/m, `GEMINI_MODEL=${String(model).trim()}`);
+                    }
+                    else {
+                        envContent += `\nGEMINI_MODEL=${String(model).trim()}`;
+                    }
+                }
+                fs.writeFileSync(envPath, envContent, 'utf8');
+            }
+        }
+        catch (fsErr) {
+            console.warn('[Gemini Config] Could not persist to .env:', fsErr.message);
+        }
+        res.status(200).json({
+            success: true,
+            configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 5),
+            model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+            message: 'Gemini configuration updated successfully'
+        });
+    }
+    catch (err) {
+        res.status(500).json({ error: 'Failed to update Gemini configuration', details: err.message });
+    }
+};
 /**
  * AI-Powered Mathematical KaTeX & LaTeX Formatter
- * Connects to Google Gemini API (gemini-2.5-flash / gemini-1.5-flash) with
- * graceful offline fallback to high-precision deterministic regex normalizer.
+ * Connects to Google Gemini API (gemini-3.8-flash with fallback to gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash)
+ * with graceful offline fallback to high-precision deterministic regex normalizer.
  */
 export const formatMathWithAi = async (req, res) => {
     try {
