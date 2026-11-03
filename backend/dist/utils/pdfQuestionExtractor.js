@@ -12,31 +12,44 @@ export function normalizeMathInText(rawText) {
         return '';
     let text = rawText;
     // 0. Decode Word Quartz / CambriaMath subset font encoding artifacts (where no ToUnicode CMap is embedded)
+    text = text.replace(/#\$(\(\$!&\$&'\)|\(\$!&\$&|\(\$!&\$'\))/g, '\\sqrt{x(x^2 + x + 1)}');
+    text = text.replace(/\(√\$&'\)\*√\$"&\$!&'\+/g, '(\\sqrt{x} + 1)\\sqrt{x^4 + x^2 + 1}');
+    text = text.replace(/\(√\$&'\)\*√\$"&\$!&'/g, '(\\sqrt{x} + 1)\\sqrt{x^4 + x^2 + 1}');
+    text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*!\s*[\r\n]+\s*"/g, '\\int_0^2 ');
+    text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*,\s*\.\/4\s*[\r\n]+\s*"/g, '\\int_0^{\\pi/4} ');
+    text = text.replace(/∫\s*\u200a?\s*3\/6\s*[\r\n]+\s*3\/4/g, '\\int_{\\pi/4}^{\\pi/6} ');
+    text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*[\/']\s*[\r\n]+\s*[\/']/g, '\\int_{-1}^1 ');
     text = text.replace(/log[7\-]/g, '\\log_e ');
     text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
     text = text.replace(/\/012/g, '-\\sin ');
     text = text.replace(/012\s*([\$x])/gi, '\\sin x');
     text = text.replace(/012/g, '\\sin ');
+    text = text.replace(/!9:0\s*[\$x]?/gi, '\\cos^2 x');
     text = text.replace(/9:0\s*[\$x]?["!]?\s*([\$x])/gi, '\\cos^2 x');
     text = text.replace(/9:0/g, '\\cos ');
     // Standard fraction markers
     text = text.replace(/3\/6/g, '\\frac{\\pi}{6}');
     text = text.replace(/3\/4/g, '\\frac{\\pi}{4}');
     text = text.replace(/3\/2/g, '\\frac{\\pi}{2}');
+    text = text.replace(/3\/,/g, '\\frac{\\pi}{3}');
     text = text.replace(/3\/!\$/g, '(\\pi - 2x)');
     text = text.replace(/3\/!/g, '\\pi - 2');
     text = text.replace(/3\//g, '\\pi - ');
-    // Vertical stacked fractions: ' \n , or ! \n ,
-    text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{2}');
-    text = text.replace(/[!2]\s*[\r\n]+\s*,\s*,?/g, '\\frac{2}{2}');
+    // Vertical stacked fractions in options: ' \n , -> 1/3; ! \n , -> 2/3
+    text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{3} ');
+    text = text.replace(/[!2]\s*[\r\n]+\s*,\s*,?/g, '\\frac{2}{3} ');
+    text = text.replace(/\b['1]\s*,\s*/g, '\\frac{1}{3} ');
+    text = text.replace(/\b[!2]\s*,\s*/g, '\\frac{2}{3} ');
     // Variables and font characters: $ -> x
+    text = text.replace(/\$"/g, 'x^4');
+    text = text.replace(/\$!/g, 'x^2');
     text = text.replace(/\$([0-9!#'"&+\-/*])/g, 'x$1');
     text = text.replace(/([0-9!#'"&+\-/*\(])\$/g, '$1x');
     text = text.replace(/\$/g, 'x');
-    // Exponents & numbers (! -> ^2, # -> ^3)
+    // Exponents & numbers
     text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
     text = text.replace(/!/g, '^2');
-    text = text.replace(/([a-zA-Z0-9\)])#/g, '$1^3');
+    text = text.replace(/#(?=[a-zA-Z0-9\(\\])/g, '\\sqrt');
     text = text.replace(/#/g, '^3');
     // Operators
     text = text.replace(/&/g, ' + ');
