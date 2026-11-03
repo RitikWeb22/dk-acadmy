@@ -164,9 +164,12 @@
 }
 
 .statusClosed {
-  background-color: #f8fafc;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .liveRedDot {
@@ -365,6 +368,34 @@
   }
 }
 
+.closedExamBtn {
+  width: 100%;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: not-allowed;
+  user-select: none;
+  opacity: 0.88;
+  transition: all 0.18s ease;
+
+  .closedLockIcon {
+    color: #ef4444;
+  }
+
+  &:hover {
+    background: #f8fafc;
+    color: #64748b;
+  }
+}
+
 .scheduledUpcomingBtn {
   flex: 1;
   width: 100%;
@@ -544,6 +575,34 @@
   }
 }
 
+.closedExamBtn {
+  width: 100%;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: not-allowed;
+  user-select: none;
+  opacity: 0.88;
+  transition: all 0.18s ease;
+
+  .closedLockIcon {
+    color: #ef4444;
+  }
+
+  &:hover {
+    background: #f8fafc;
+    color: #64748b;
+  }
+}
+
 .scheduledUpcomingBtn {
   flex: 1;
   width: 100%;
@@ -669,6 +728,34 @@
   &:focus-visible {
     outline: 2px solid #16a34a;
     outline-offset: 2px;
+  }
+}
+
+.closedExamBtn {
+  width: 100%;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: not-allowed;
+  user-select: none;
+  opacity: 0.88;
+  transition: all 0.18s ease;
+
+  .closedLockIcon {
+    color: #ef4444;
+  }
+
+  &:hover {
+    background: #f8fafc;
+    color: #64748b;
   }
 }
 
