@@ -2255,6 +2255,125 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [parsedDocxQuestions, setParsedDocxQuestions] = useState<any[]>([]);
   const [activeDocxReviewIdx, setActiveDocxReviewIdx] = useState(0);
   const [docxReviewShowRaw, setDocxReviewShowRaw] = useState(false);
+  const [isAiFormattingActiveQTestSeries, setIsAiFormattingActiveQTestSeries] = useState(false);
+  const [isAiFormattingDocxQ, setIsAiFormattingDocxQ] = useState(false);
+  const [isAiFormattingDocxAll, setIsAiFormattingDocxAll] = useState(false);
+
+  const handleAiFormatActiveTestSeriesQuestion = async () => {
+    if (!currentEditingQuestion) return;
+    setIsAiFormattingActiveQTestSeries(true);
+    try {
+      const res = await apiClient.formatMathWithAi({
+        statement: currentEditingQuestion.questionText,
+        options: currentEditingQuestion.options?.map((o) => ({ key: o.key, text: o.text })),
+        stepSolution: currentEditingQuestion.solutionDerivation,
+        dkSirShortcut: currentEditingQuestion.shortcutTrick,
+        model: 'gemini-3.8-flash'
+      });
+      if (res?.data) {
+        const cleanStmt = res.data.statement || normalizeMathText(currentEditingQuestion.questionText);
+        const cleanBlocks = parseContentToBlocks(cleanStmt);
+        const cleanOptions = res.data.options?.length
+          ? res.data.options.map((o) => ({ key: o.key as 'A' | 'B' | 'C' | 'D', text: o.text }))
+          : currentEditingQuestion.options?.map((o) => ({ ...o, text: normalizeMathText(o.text) }));
+
+        updateCurrentQuestion({
+          questionText: cleanStmt,
+          statementBlocks: cleanBlocks,
+          options: cleanOptions,
+          solutionDerivation: res.data.stepSolution || currentEditingQuestion.solutionDerivation,
+          shortcutTrick: res.data.dkSirShortcut || currentEditingQuestion.shortcutTrick
+        });
+        showToast(res.aiPowered ? `✨ AI-formatted via Gemini (${res.modelUsed})!` : '✨ Mathematical LaTeX auto-formatted!');
+      }
+    } catch {
+      const cleanStmt = normalizeMathText(currentEditingQuestion.questionText);
+      const cleanBlocks = parseContentToBlocks(cleanStmt);
+      updateCurrentQuestion({
+        questionText: cleanStmt,
+        statementBlocks: cleanBlocks,
+        options: currentEditingQuestion.options?.map((o) => ({ ...o, text: normalizeMathText(o.text) }))
+      });
+      showToast('✨ Mathematical LaTeX auto-formatted!');
+    } finally {
+      setIsAiFormattingActiveQTestSeries(false);
+    }
+  };
+
+  const handleAiFormatActiveDocxQuestion = async () => {
+    const curQ = parsedDocxQuestions[activeDocxReviewIdx];
+    if (!curQ) return;
+    setIsAiFormattingDocxQ(true);
+    try {
+      const res = await apiClient.formatMathWithAi({
+        statement: curQ.statement,
+        options: curQ.options,
+        stepSolution: curQ.stepSolution,
+        dkSirShortcut: curQ.dkSirShortcut,
+        model: 'gemini-3.8-flash'
+      });
+      if (res?.data) {
+        handleUpdateParsedDocxQuestion(activeDocxReviewIdx, {
+          statement: res.data.statement || normalizeMathText(curQ.statement),
+          options: res.data.options?.length ? res.data.options : curQ.options?.map((o: any) => ({ ...o, text: normalizeMathText(o.text) })),
+          stepSolution: res.data.stepSolution || curQ.stepSolution,
+          dkSirShortcut: res.data.dkSirShortcut || curQ.dkSirShortcut
+        });
+        showToast(res.aiPowered ? `✨ Q${activeDocxReviewIdx + 1} AI-formatted via Gemini (${res.modelUsed})!` : `✨ Q${activeDocxReviewIdx + 1} auto-formatted!`);
+      }
+    } catch {
+      handleUpdateParsedDocxQuestion(activeDocxReviewIdx, {
+        statement: normalizeMathText(curQ.statement),
+        options: curQ.options?.map((o: any) => ({ ...o, text: normalizeMathText(o.text) }))
+      });
+      showToast(`✨ Q${activeDocxReviewIdx + 1} auto-formatted!`);
+    } finally {
+      setIsAiFormattingDocxQ(false);
+    }
+  };
+
+  const handleAiFormatAllDocxQuestions = async () => {
+    if (!parsedDocxQuestions.length) return;
+    setIsAiFormattingDocxAll(true);
+    try {
+      // Immediate clean pass
+      setParsedDocxQuestions((prev) =>
+        prev.map((q) => ({
+          ...q,
+          statement: normalizeMathText(q.statement || ''),
+          options: q.options?.map((o: any) => ({ ...o, text: normalizeMathText(o.text || '') })),
+          stepSolution: q.stepSolution ? normalizeMathText(q.stepSolution) : q.stepSolution,
+          dkSirShortcut: q.dkSirShortcut ? normalizeMathText(q.dkSirShortcut) : q.dkSirShortcut
+        }))
+      );
+      // AI refinement
+      for (let i = 0; i < parsedDocxQuestions.length; i++) {
+        const q = parsedDocxQuestions[i];
+        try {
+          const res = await apiClient.formatMathWithAi({
+            statement: q.statement,
+            options: q.options,
+            stepSolution: q.stepSolution,
+            dkSirShortcut: q.dkSirShortcut,
+            model: 'gemini-3.8-flash'
+          });
+          if (res?.data) {
+            handleUpdateParsedDocxQuestion(i, {
+              statement: res.data.statement,
+              options: res.data.options?.length ? res.data.options : q.options,
+              stepSolution: res.data.stepSolution || q.stepSolution,
+              dkSirShortcut: res.data.dkSirShortcut || q.dkSirShortcut
+            });
+          }
+        } catch {
+          // Keep deterministic normalizer output
+        }
+      }
+      showToast(`✨ All ${parsedDocxQuestions.length} questions AI-formatted!`);
+    } finally {
+      setIsAiFormattingDocxAll(false);
+    }
+  };
 
   const handleUploadDocxForTestSeries = async (file: File) => {
     const name = file.name.toLowerCase();
@@ -4333,6 +4452,30 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             Question Statement (LaTeX / KaTeX Syntax Supported)
                           </label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              type="button"
+                              disabled={isAiFormattingActiveQTestSeries}
+                              onClick={handleAiFormatActiveTestSeriesQuestion}
+                              className={styles.smartPasteActionBtn}
+                              title="Auto-repair and reconstruct formulas with Gemini AI"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '4px 9px',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                cursor: isAiFormattingActiveQTestSeries ? 'not-allowed' : 'pointer',
+                                opacity: isAiFormattingActiveQTestSeries ? 0.7 : 1
+                              }}
+                            >
+                              {isAiFormattingActiveQTestSeries ? <Loader2 size={13} className={styles.spinIcon} /> : <Sparkles size={13} />}
+                              <span>{isAiFormattingActiveQTestSeries ? 'Formatting...' : '✨ Auto-Format AI'}</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => setIsSmartPasteModalOpen(true)}
@@ -6684,6 +6827,30 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         {parsedDocxQuestions.length} Questions Ready
                       </span>
                     )}
+                    {parsedDocxQuestions.length > 0 && (
+                      <button
+                        type="button"
+                        disabled={isAiFormattingDocxAll}
+                        onClick={handleAiFormatAllDocxQuestions}
+                        style={{
+                          fontSize: '11.5px',
+                          padding: '3px 10px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                          color: '#FFFFFF',
+                          fontWeight: 700,
+                          cursor: isAiFormattingDocxAll ? 'not-allowed' : 'pointer',
+                          opacity: isAiFormattingDocxAll ? 0.7 : 1,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {isAiFormattingDocxAll ? <Loader2 size={12} className={styles.spinIcon} /> : <Sparkles size={12} />}
+                        <span>{isAiFormattingDocxAll ? 'AI Formatting All...' : '✨ AI Auto-Format All'}</span>
+                      </button>
+                    )}
                   </div>
                   <p className={styles.createModalSub} style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748B' }}>
                     Extracts Office Math (OMML), piecewise functions, integral limits, roots &amp; answer keys with 100% KaTeX LaTeX fidelity.
@@ -6843,6 +7010,29 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            disabled={isAiFormattingDocxQ}
+                            onClick={handleAiFormatActiveDocxQuestion}
+                            style={{
+                              fontSize: '11px',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                              color: '#FFFFFF',
+                              fontWeight: 700,
+                              cursor: isAiFormattingDocxQ ? 'not-allowed' : 'pointer',
+                              opacity: isAiFormattingDocxQ ? 0.7 : 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            title="Format this question with Gemini AI mathematical LaTeX engine"
+                          >
+                            {isAiFormattingDocxQ ? <Loader2 size={12} className={styles.spinIcon} /> : <Sparkles size={12} />}
+                            <span>{isAiFormattingDocxQ ? 'Formatting...' : 'Auto-Format Q (AI)'}</span>
+                          </button>
                           <button
                             type="button"
                             onClick={() => setDocxReviewShowRaw(!docxReviewShowRaw)}

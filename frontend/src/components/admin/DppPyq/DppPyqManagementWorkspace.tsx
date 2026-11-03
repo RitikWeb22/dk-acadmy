@@ -663,6 +663,80 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
   const [createdCustomQuestions, setCreatedCustomQuestions] = useState<ProblemQuestionItem[] | null>(null);
   const [activeBulkReviewIdx, setActiveBulkReviewIdx] = useState<number>(0);
   const [bulkReviewShowRaw, setBulkReviewShowRaw] = useState<boolean>(false);
+  const [isAiFormattingBulk, setIsAiFormattingBulk] = useState<boolean>(false);
+  const [aiFormattingBulkIdx, setAiFormattingBulkIdx] = useState<number | null>(null);
+  const [isAiFormattingActiveQ, setIsAiFormattingActiveQ] = useState<boolean>(false);
+
+  const handleAiFormatSingleBulkQuestion = async (idx: number) => {
+    const targetQ = bulkParsedQuestions[idx];
+    if (!targetQ) return;
+    setAiFormattingBulkIdx(idx);
+    try {
+      const res = await apiClient.formatMathWithAi({
+        statement: targetQ.statement,
+        options: targetQ.options,
+        stepSolution: targetQ.stepSolution,
+        dkSirShortcut: targetQ.dkSirShortcut,
+        model: 'gemini-3.8-flash'
+      });
+      if (res?.data) {
+        handleUpdateBulkQuestion(idx, {
+          statement: res.data.statement || normalizeMathText(targetQ.statement),
+          options: Array.isArray(res.data.options) && res.data.options.length > 0
+            ? res.data.options.map((o) => ({ key: o.key as 'A' | 'B' | 'C' | 'D', text: o.text }))
+            : targetQ.options.map((o) => ({ ...o, text: normalizeMathText(o.text) })),
+          stepSolution: res.data.stepSolution || (targetQ.stepSolution ? normalizeMathText(targetQ.stepSolution) : ''),
+          dkSirShortcut: res.data.dkSirShortcut || (targetQ.dkSirShortcut ? normalizeMathText(targetQ.dkSirShortcut) : '')
+        });
+        showToast(res.aiPowered ? `✨ Q${idx + 1} AI-formatted via Gemini (${res.modelUsed})!` : `✨ Q${idx + 1} math auto-formatted!`);
+      }
+    } catch (err: any) {
+      console.warn('AI format notice:', err?.message || err);
+      const cleanStmt = normalizeMathText(targetQ.statement);
+      const cleanOpts = targetQ.options.map((o) => ({ ...o, text: normalizeMathText(o.text) }));
+      handleUpdateBulkQuestion(idx, { statement: cleanStmt, options: cleanOpts });
+      showToast(`✨ Q${idx + 1} math auto-formatted!`);
+    } finally {
+      setAiFormattingBulkIdx(null);
+    }
+  };
+
+  const handleAiFormatAllBulkQuestions = async () => {
+    if (bulkParsedQuestions.length === 0) return;
+    setIsAiFormattingBulk(true);
+    try {
+      // First instant pass with deterministic normalizer so UI immediately reflects clean formulas
+      handleAutoFormatAllBulkQuestions();
+      // AI refinement pass
+      for (let i = 0; i < bulkParsedQuestions.length; i++) {
+        const q = bulkParsedQuestions[i];
+        try {
+          const res = await apiClient.formatMathWithAi({
+            statement: q.statement,
+            options: q.options,
+            stepSolution: q.stepSolution,
+            dkSirShortcut: q.dkSirShortcut,
+            model: 'gemini-3.8-flash'
+          });
+          if (res?.data) {
+            handleUpdateBulkQuestion(i, {
+              statement: res.data.statement,
+              options: res.data.options?.length
+                ? res.data.options.map((o) => ({ key: o.key as 'A' | 'B' | 'C' | 'D', text: o.text }))
+                : q.options,
+              stepSolution: res.data.stepSolution || q.stepSolution,
+              dkSirShortcut: res.data.dkSirShortcut || q.dkSirShortcut
+            });
+          }
+        } catch {
+          // Keep deterministic normalizer output
+        }
+      }
+      showToast(`✨ All ${bulkParsedQuestions.length} questions AI auto-formatted!`);
+    } finally {
+      setIsAiFormattingBulk(false);
+    }
+  };
 
   const handleAutoFormatAllBulkQuestions = () => {
     setBulkParsedQuestions((prev) =>
@@ -1344,6 +1418,40 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       opt.key === optKey ? { ...opt, text } : opt
     );
     handleUpdateActiveQuestion({ options: updatedOpts });
+  };
+
+  const handleAiFormatActiveQuestion = async () => {
+    if (!editingItem || editingQuestionIdx === null || !editingItem.questions[editingQuestionIdx]) return;
+    const curQ = editingItem.questions[editingQuestionIdx];
+    setIsAiFormattingActiveQ(true);
+    try {
+      const res = await apiClient.formatMathWithAi({
+        statement: curQ.statement,
+        options: curQ.options,
+        stepSolution: curQ.stepSolution,
+        dkSirShortcut: curQ.dkSirShortcut,
+        model: 'gemini-3.8-flash'
+      });
+      if (res?.data) {
+        handleUpdateActiveQuestion({
+          statement: res.data.statement || normalizeMathText(curQ.statement),
+          options: res.data.options?.length
+            ? res.data.options.map(o => ({ key: o.key as 'A' | 'B' | 'C' | 'D', text: o.text }))
+            : curQ.options.map(o => ({ ...o, text: normalizeMathText(o.text) })),
+          stepSolution: res.data.stepSolution || (curQ.stepSolution ? normalizeMathText(curQ.stepSolution) : ''),
+          dkSirShortcut: res.data.dkSirShortcut || (curQ.dkSirShortcut ? normalizeMathText(curQ.dkSirShortcut) : '')
+        });
+        showToast(res.aiPowered ? `✨ AI-formatted via Gemini (${res.modelUsed})!` : '✨ Mathematical LaTeX auto-formatted!');
+      }
+    } catch {
+      handleUpdateActiveQuestion({
+        statement: normalizeMathText(curQ.statement),
+        options: curQ.options.map(o => ({ ...o, text: normalizeMathText(o.text) }))
+      });
+      showToast('✨ Mathematical LaTeX auto-formatted!');
+    } finally {
+      setIsAiFormattingActiveQ(false);
+    }
   };
 
   const handleStatementPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -3426,13 +3534,8 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     </label>
                     <button
                       type="button"
-                      onClick={() => {
-                        const cur = editingItem.questions[editingQuestionIdx]?.statement || '';
-                        if (!cur.trim()) return;
-                        const formatted = normalizeMathText(cur);
-                        handleUpdateActiveQuestion({ statement: formatted });
-                        showToast('✓ Statement auto-formatted into clean KaTeX LaTeX!');
-                      }}
+                      disabled={isAiFormattingActiveQ}
+                      onClick={handleAiFormatActiveQuestion}
                       style={{
                         background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
                         color: '#fff',
@@ -3441,15 +3544,16 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                         padding: '4px 10px',
                         fontSize: '12px',
                         fontWeight: 600,
-                        cursor: 'pointer',
+                        cursor: isAiFormattingActiveQ ? 'not-allowed' : 'pointer',
+                        opacity: isAiFormattingActiveQ ? 0.7 : 1,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '5px'
                       }}
-                      title="Auto-repair multiline integrals, nested fractions, Greek letters, and bracket balance"
+                      title="Auto-repair multiline integrals, nested fractions, Greek letters, and bracket balance with Gemini AI"
                     >
-                      <Sparkles size={13} />
-                      Auto-Format &amp; Fix LaTeX
+                      {isAiFormattingActiveQ ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                      {isAiFormattingActiveQ ? 'Formatting with AI...' : 'Auto-Format & Fix LaTeX (AI)'}
                     </button>
                   </div>
                   <textarea
@@ -4072,7 +4176,8 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     </button>
                     <button
                       type="button"
-                      onClick={handleAutoFormatAllBulkQuestions}
+                      disabled={isAiFormattingBulk}
+                      onClick={handleAiFormatAllBulkQuestions}
                       style={{
                         padding: '5px 10px',
                         borderRadius: '6px',
@@ -4081,14 +4186,16 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                         color: '#ffffff',
                         fontSize: '11.5px',
                         fontWeight: 700,
-                        cursor: 'pointer',
+                        cursor: isAiFormattingBulk ? 'not-allowed' : 'pointer',
+                        opacity: isAiFormattingBulk ? 0.7 : 1,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px'
                       }}
-                      title="Auto-repair formulas, integrals, and limits for all extracted questions"
+                      title="Auto-repair formulas, integrals, and limits for all extracted questions with Gemini AI"
                     >
-                      <Sparkles size={12} /> Auto-Format All
+                      {isAiFormattingBulk ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                      {isAiFormattingBulk ? 'Formatting All (AI)...' : '✨ Auto-Format All (AI)'}
                     </button>
                   </div>
                 )}
@@ -4306,12 +4413,8 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
                           <button
                             type="button"
-                            onClick={() => {
-                              const cleanStmt = normalizeMathText(currentQ.statement);
-                              const cleanOpts = currentQ.options.map((o) => ({ ...o, text: normalizeMathText(o.text) }));
-                              handleUpdateBulkQuestion(activeBulkReviewIdx, { statement: cleanStmt, options: cleanOpts });
-                              showToast(`✨ Q${activeBulkReviewIdx + 1} math auto-formatted!`);
-                            }}
+                            disabled={aiFormattingBulkIdx === activeBulkReviewIdx}
+                            onClick={() => handleAiFormatSingleBulkQuestion(activeBulkReviewIdx)}
                             style={{
                               padding: '4px 10px',
                               borderRadius: '6px',
@@ -4320,13 +4423,20 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                               color: '#ffffff',
                               fontSize: '11px',
                               fontWeight: 700,
-                              cursor: 'pointer',
+                              cursor: aiFormattingBulkIdx === activeBulkReviewIdx ? 'not-allowed' : 'pointer',
+                              opacity: aiFormattingBulkIdx === activeBulkReviewIdx ? 0.7 : 1,
                               display: 'flex',
                               alignItems: 'center',
                               gap: '4px'
                             }}
+                            title="Format this question with Gemini AI mathematical LaTeX engine"
                           >
-                            <Sparkles size={11} /> Auto-Format Q
+                            {aiFormattingBulkIdx === activeBulkReviewIdx ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <Sparkles size={11} />
+                            )}
+                            {aiFormattingBulkIdx === activeBulkReviewIdx ? 'Formatting...' : 'Auto-Format Q (AI)'}
                           </button>
 
                           <button

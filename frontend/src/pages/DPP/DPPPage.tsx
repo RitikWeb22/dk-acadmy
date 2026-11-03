@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { DPPAttempt, DPPQuestionResponse } from '../../types';
 import { Container } from '../../components/ui/Container/Container';
 import { DPPPageHeader } from '../../components/dpp/DPPPageHeader/DPPPageHeader';
@@ -118,8 +119,6 @@ export const DPPPage: React.FC = () => {
     };
   }, []);
 
-  const { student } = useStudentAuth();
-
   // DPP Unlock status & Razorpay checkout
   const [unlockedSetIds, setUnlockedSetIds] = useState<string[]>(() => {
     try {
@@ -139,8 +138,14 @@ export const DPPPage: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const navigate = useNavigate();
+  const { student, isAuthenticated } = useStudentAuth();
+
   const isSetUnlocked = (set: DPPSet): boolean => {
-    if (set.isFree !== false || !set.price || set.price === 0) return true;
+    if (set.isFree === true || set.price === 0) return true;
+    if (set.isFree === false && (!set.price || set.price > 0)) {
+      if (!isAuthenticated || !student) return false;
+    }
     const setId = String(set.id);
     if (unlockedSetIds.includes(setId)) return true;
     if (!student?.enrolledCourseIds) return false;
@@ -153,11 +158,21 @@ export const DPPPage: React.FC = () => {
   };
 
   const handleUnlockDPP = (set: DPPSet) => {
+    if (!isAuthenticated || !student) {
+      showToast('Please log in to your student account to unlock DPP Sets.');
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
     setModalTargetSet(set);
     setIsUnlockModalOpen(true);
   };
 
   const handleEnrollDPP = async () => {
+    if (!isAuthenticated || !student) {
+      showToast('Please log in to your student account to unlock DPP Sets.');
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
     const targetSet = modalTargetSet || activeSet;
     if (!targetSet) return;
     const price = targetSet.price ?? 299;
@@ -169,9 +184,9 @@ export const DPPPage: React.FC = () => {
         amount: price,
         courseId: setId,
         courseTitle: paperTitle,
-        studentName: student?.name || 'Aspirant',
-        studentEmail: student?.email || 'student@dkacademy.in',
-        studentPhone: student?.phone || '9999999999',
+        studentName: student.name || 'Aspirant',
+        studentEmail: student.email || 'student@dkacademy.in',
+        studentPhone: student.phone || '9999999999',
         onSuccess: (_paymentId: string) => {
           setIsUnlockModalOpen(false);
           setUnlockedSetIds((prev) => {
@@ -184,11 +199,12 @@ export const DPPPage: React.FC = () => {
           showToast('DPP Set unlocked successfully! You now have full access to all questions.');
         },
         onError: (err: any) => {
-          console.error('DPP payment error:', err);
+          const errStr = typeof err === 'string' ? err : err?.message || '';
+          showToast(errStr && !errStr.includes('closed') ? `Payment failed: ${errStr}` : 'Payment was closed or cancelled. DPP Set remains locked.');
         }
       });
-    } catch (err) {
-      console.error('Failed to initiate DPP checkout:', err);
+    } catch {
+      showToast('Payment window closed. DPP Set remains locked.');
     }
   };
 

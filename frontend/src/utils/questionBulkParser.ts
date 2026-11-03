@@ -361,6 +361,8 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
 
   // Decode Word cotangent terms with brackets (both single-line and split across newlines)
+  text = text.replace(/(?:\\left\s*)?[=\[]\s*(?:\\left\s*)?\\?cot\s*[=\(]?\s*x\s*[-−]\s*3[\s\S]*?\\?cot\s*[=\(]?\s*x\s*\+\s*3[\s\S]*?\+\s*1\s*\]\s*dx\b/gi,
+    '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
   text = text.replace(/[=\[]\s*\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3[\s\S]*?cot\s*[=\(]?\s*[xX]\s*[+]\s*3[\s\S]*?\+\s*1\s*[@\]]\s*(?:dx|𝑑𝑥)\b/gi,
     '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
   text = text.replace(/\[\s*\\?cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*=?\s*x\s*\+\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*dx\b/gi,
@@ -370,16 +372,14 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
   text = text.replace(/cot\s*\(?\s*x\s*[-−]\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
   text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-  text = text.replace(/(?<!\\left\s*)\[\s*\\?cot\b/gi, '\\left[\\cot ');
-  text = text.replace(/(?<!\\right\s*)\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
 
   // Decode Word Quartz / CambriaMath font artifact substitutions in formulas FIRST
   text = text.replace(/\\{2,}log_e/g, '\\log_e');
   text = text.replace(/\\log_e\s*\(\s*\(\s*\)/g, '\\log_e(');
   text = text.replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(');
   text = text.replace(/\\log_e\s*\(\s*\\sqrt/g, '\\log_e(\\sqrt');
-  text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
-  text = text.replace(/\\log_e\s*\(\s*\)\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[0-9a-zA-Z])/g, (_m, p1) => '\\log_e(' + p1);
+  text = text.replace(/\\log_e\s*\(\s*\)\s*(\\sqrt|[0-9a-zA-Z])/g, (_m, p1) => '\\log_e(' + p1);
   text = text.replace(/log[7\-]/g, '\\log_e ');
   text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
   text = text.replace(/\/012/g, '-\\sin ');
@@ -946,7 +946,16 @@ export function normalizeMathText(raw: string): string {
     return res.split('$$').join('$');
   });
 
-  return processedLines.join('\n');
+  let finalResult = processedLines.join('\n');
+  // Sanitize unbalanced \left and \right delimiters which crash KaTeX rendering
+  const leftMatches = (finalResult.match(/\\left\b/g) || []).length;
+  const rightMatches = (finalResult.match(/\\right\b/g) || []).length;
+  if (leftMatches !== rightMatches) {
+    // If unmatched, replace \left[ \left( etc. with plain [ ( to prevent KaTeX syntax error
+    finalResult = finalResult.replace(/\\left\s*([\[\(\{\|])/g, '$1');
+    finalResult = finalResult.replace(/\\right\s*([\]\)\}\|])/g, '$1');
+  }
+  return finalResult;
 }
 
 /**

@@ -805,14 +805,10 @@ export const CourseLmsPage: React.FC = () => {
         }
         showToast(`Congratulations! Complete syllabus for "${course.title}" is now unlocked!`, 'success');
       },
-      onError: (_err) => {
-        // Fallback for instant test/evaluation
+      onError: (err) => {
         setIsUnlocking(false);
-        setIsUnlockModalOpen(false);
-        setLockedModalLecture(null);
-        localStorage.setItem(`course_unlocked_full_${course.id}`, 'true');
-        setIsUnlockedFull(true);
-        showToast(`Complete syllabus unlocked successfully! Enjoy full batch access.`, 'success');
+        const errStr = typeof err === 'string' ? err : (err as any)?.message || '';
+        showToast(errStr && !errStr.includes('closed') ? `Payment failed: ${errStr}` : 'Payment was closed or not completed. Syllabus remains locked.', 'error');
       }
     });
   };

@@ -337,5 +337,27 @@ export const apiClient = {
       if (meta.paperTitle) formData.append('paperTitle', meta.paperTitle);
       xhr.send(formData);
     });
+  },
+
+  async formatMathWithAi(payload: {
+    statement?: string;
+    options?: Array<{ key: string; text: string }>;
+    stepSolution?: string;
+    dkSirShortcut?: string;
+    targetExam?: string;
+    model?: string;
+  }): Promise<{
+    success: boolean;
+    aiPowered: boolean;
+    modelUsed: string;
+    data: {
+      statement: string;
+      options: Array<{ key: string; text: string }>;
+      stepSolution?: string;
+      dkSirShortcut?: string;
+    };
+  }> {
+    const res = await this.post<any>('/dpp-pyqs/ai-format-math', payload);
+    return res as any;
   }
 };

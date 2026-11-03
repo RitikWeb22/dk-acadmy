@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
   CheckCircle2,
@@ -11,6 +12,8 @@ import {
   X
 } from 'lucide-react';
 import { couponService } from '../../services/couponService';
+import { paymentService } from '../../services/paymentService';
+import { useStudentAuth } from '../../context/AuthContext';
 
 // ─── Constants & Configuration ───
 const BRAND_NAME = 'DK Academy JEE';
@@ -71,12 +74,30 @@ const VERIFIED_COUPONS: Record<string, CouponData> = {
 };
 
 export const CourseCheckout: React.FC = () => {
+  const navigate = useNavigate();
+  const { student, isAuthenticated, isLoading, enrollCourse } = useStudentAuth();
+
+  // Authentication Guard: Student must be logged in before opening checkout
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !student)) {
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`, { replace: true });
+    }
+  }, [isLoading, isAuthenticated, student, navigate]);
+
   // ─── Form State ───
-  const [fullName, setFullName] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState(student?.name || '');
+  const [whatsapp, setWhatsapp] = useState(student?.phone ? student.phone.replace(/\D/g, '').slice(-10) : '');
+  const [email, setEmail] = useState(student?.email || '');
   const [selectedState, setSelectedState] = useState('Rajasthan');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  useEffect(() => {
+    if (student) {
+      if (student.name && !fullName) setFullName(student.name);
+      if (student.phone && !whatsapp) setWhatsapp(student.phone.replace(/\D/g, '').slice(-10));
+      if (student.email && !email) setEmail(student.email);
+    }
+  }, [student]);
 
   // ─── Coupon State ───
   const [isCouponOpen, setIsCouponOpen] = useState(false);
@@ -168,58 +189,46 @@ export const CourseCheckout: React.FC = () => {
   };
 
   // ─── Payment Submission ───
-  const handlePayNow = () => {
+  const handlePayNow = async () => {
     setSubmitted(true);
     if (!isFormValid) {
       return;
     }
 
+    if (!isAuthenticated || !student) {
+      alert('Please log in to your student account to proceed with secure payment.');
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+
     setIsProcessing(true);
 
-    // Razorpay Integration Trigger
-    if (typeof window !== 'undefined' && (window as any).Razorpay) {
-      const options = {
-        key: 'rzp_test_DKAcademyKey',
-        amount: finalPayableTotal * 100, // paise
-        currency: 'INR',
-        name: BRAND_NAME,
-        description: 'Class 11th Self-Study Distance Learning Package',
-        prefill: {
-          name: fullName,
-          email: email,
-          contact: `+91${whatsapp}`
-        },
-        theme: {
-          color: '#2563eb'
-        },
-        handler: function (response: any) {
+    try {
+      await paymentService.initCourseCheckout({
+        amount: finalPayableTotal,
+        courseId: 'jee-class11-dlp',
+        courseTitle: 'Class 11th Distance Learning Package',
+        studentName: fullName.trim() || student.name || 'Student Aspirant',
+        studentEmail: email.trim() || student.email || 'student@dkacademyjee.com',
+        studentPhone: whatsapp.trim() || student.phone || '',
+        onSuccess: (paymentId: string) => {
           setIsProcessing(false);
           if (appliedCoupon?.code) {
             couponService.validateAndApply(appliedCoupon.code, BASE_COURSE_MRP, true).catch(() => {});
           }
-          alert(`Payment Successful! Razorpay Payment ID: ${response.razorpay_payment_id}\nLMS classroom credentials will be sent to ${email}`);
+          enrollCourse('jee-class11-dlp');
+          alert(`Payment Successful! Razorpay Payment ID: ${paymentId}\nWelcome ${fullName}! Your enrollment is confirmed.`);
+          navigate('/learn/jee-class11-dlp');
         },
-        modal: {
-          ondismiss: function () {
-            setIsProcessing(false);
-          }
+        onError: (err: string) => {
+          setIsProcessing(false);
+          alert(typeof err === 'string' && !err.includes('closed') ? `Payment failed: ${err}` : 'Payment was closed or not completed. Enrollment was not initiated.');
         }
-      };
-
-      try {
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
-        return;
-      } catch (err) {
-        console.warn('Direct Razorpay init fallback:', err);
-      }
-    }
-
-    // Fallback Mock simulation
-    setTimeout(() => {
+      });
+    } catch (err: any) {
       setIsProcessing(false);
-      alert(`Payment of ₹${finalPayableTotal.toLocaleString('en-IN')} initiated securely via Razorpay!\nWelcome ${fullName}! Your enrollment in Class 11th DLP is confirmed.`);
-    }, 1200);
+      alert(err.message || 'Payment was cancelled or could not be initiated.');
+    }
   };
 
   return (

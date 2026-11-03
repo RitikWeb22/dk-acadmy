@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
   ChevronLeft,
@@ -550,7 +550,8 @@ export const BitsatPage: React.FC = () => {
     );
   }, [selectedDrillId, drills]);
 
-  const { student } = useStudentAuth();
+  const navigate = useNavigate();
+  const { student, isAuthenticated } = useStudentAuth();
 
   // BITSAT Drills unlocked status stored in localStorage
   const [unlockedDrillIds, setUnlockedDrillIds] = useState<string[]>(() => {
@@ -566,7 +567,10 @@ export const BitsatPage: React.FC = () => {
   const [modalTargetDrill, setModalTargetDrill] = useState<BITSATDrillItem | null>(null);
 
   const isDrillUnlocked = (drill: BITSATDrillItem): boolean => {
-    if (drill.isFree !== false || !drill.price || drill.price === 0) return true;
+    if (drill.isFree === true || drill.price === 0) return true;
+    if (drill.isFree === false && (!drill.price || drill.price > 0)) {
+      if (!isAuthenticated || !student) return false;
+    }
     const drillId = String(drill.id || drill._id || '');
     if (unlockedDrillIds.includes(drillId)) return true;
     if (!student?.enrolledCourseIds) return false;
@@ -579,11 +583,22 @@ export const BitsatPage: React.FC = () => {
   };
 
   const handleUnlockDrill = (drill: BITSATDrillItem) => {
+    if (!isAuthenticated || !student) {
+      showToast('Please log in to your student account to unlock BITSAT Drills.');
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
     setModalTargetDrill(drill);
     setIsUnlockModalOpen(true);
   };
 
   const handleEnrollDrill = async () => {
+    if (!isAuthenticated || !student) {
+      showToast('Please log in to your student account to unlock BITSAT Drills.');
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
+
     const targetDrill = modalTargetDrill || activeDrill;
     if (!targetDrill) return;
     const price = targetDrill.price ?? 299;
@@ -595,9 +610,9 @@ export const BitsatPage: React.FC = () => {
         amount: price,
         courseId: drillId,
         courseTitle: drillTitle,
-        studentName: student?.name || 'Aspirant',
-        studentEmail: student?.email || 'student@dkacademy.in',
-        studentPhone: student?.phone || '9999999999',
+        studentName: student.name || 'Aspirant',
+        studentEmail: student.email || 'student@dkacademy.in',
+        studentPhone: student.phone || '9999999999',
         onSuccess: (_paymentId: string) => {
           setIsUnlockModalOpen(false);
           setUnlockedDrillIds((prev) => {
@@ -610,11 +625,12 @@ export const BitsatPage: React.FC = () => {
           showToast('BITSAT Drill unlocked successfully! You now have full access to all questions.');
         },
         onError: (err: any) => {
-          console.error('BITSAT drill payment error:', err);
+          const errStr = typeof err === 'string' ? err : err?.message || '';
+          showToast(errStr && !errStr.includes('closed') ? `Payment failed: ${errStr}` : 'Payment was closed or not completed. Drill remains locked.');
         }
       });
-    } catch (err) {
-      console.error('Failed to initiate BITSAT drill checkout:', err);
+    } catch {
+      showToast('Payment window closed. Drill remains locked.');
     }
   };
 
