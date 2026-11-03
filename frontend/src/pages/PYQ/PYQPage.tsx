@@ -33,6 +33,7 @@ import { PYQVideoModal } from '../../components/pyq/PYQVideoModal/PYQVideoModal'
 import { PYQCourseUnlockModal } from '../../components/pyq/PYQCourseUnlockModal/PYQCourseUnlockModal';
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { apiClient } from '../../services/apiClient';
+import { paymentService } from '../../services/paymentService';
 import { useStudentAuth } from '../../context/AuthContext';
 import styles from './PYQPage.module.scss';
 
@@ -313,33 +314,80 @@ export const PYQPage: React.FC = () => {
       });
   }, [activeSet]);
 
-  // Course enrollment status for student
+  // Course enrollment & paper unlock status for student
+  const [unlockedSetIds, setUnlockedSetIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('dk_unlocked_pyq_sets');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const isEnrolled = useMemo(() => {
-    if (!student?.enrolledCourseIds) return false;
     const setId = activeSet?.id || activeSet?._id || '';
+    if (unlockedSetIds.includes(setId)) return true;
+    if (!student?.enrolledCourseIds) return false;
     return (
       student.enrolledCourseIds.includes(setId) ||
       student.enrolledCourseIds.includes('jee-pyq-archive-mastery') ||
       student.enrolledCourseIds.includes('jee-main-advanced-2yr-ultimate') ||
       student.enrolledCourseIds.includes('jee-rankers-crash-course-2026')
     );
-  }, [student, activeSet]);
+  }, [student, activeSet, unlockedSetIds]);
 
   // Access rule for individual question inside active set
-  const isQuestionAccessible = (q: PYQQuestion, index: number): boolean => {
+  const isQuestionAccessible = (q: PYQQuestion, _index: number): boolean => {
     if (activeSet?.isFree !== false) return true;
     if (isEnrolled) return true;
     if (q.isFree === true) return true;
-    if (index === 0) return true; // First question free preview
     return false;
   };
 
-  const handleEnrollCourse = () => {
-    const targetCourse = activeSet?.id || 'jee-pyq-archive-mastery';
-    navigate(`/payment/${targetCourse}`);
+  const [modalTargetSet, setModalTargetSet] = useState<LiveDppPyqSet | null>(null);
+
+  const handleEnrollCourse = async () => {
+    const targetSet = modalTargetSet || activeSet;
+    if (!targetSet) return;
+    const price = targetSet.price ?? 499;
+    const setId = targetSet.id || targetSet._id || 'pyq-paper';
+    const paperTitle = targetSet.title || 'PYQ Complete Paper';
+
+    try {
+      await paymentService.initiateCourseCheckout({
+        amount: price,
+        courseId: setId,
+        courseTitle: paperTitle,
+        studentName: student?.name || 'Aspirant',
+        studentEmail: student?.email || 'student@dkacademy.in',
+        studentPhone: student?.phone || '9999999999',
+        onSuccess: (paymentId: string) => {
+          setIsUnlockModalOpen(false);
+          setUnlockedSetIds((prev) => {
+            const next = Array.from(new Set([...prev, setId]));
+            try {
+              localStorage.setItem('dk_unlocked_pyq_sets', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+          showToast(`🎉 Payment of ₹${price} Successful (Txn #${paymentId.slice(-6)})! Complete paper unlocked.`);
+        },
+        onError: (errMsg: string) => {
+          // STRICT RULE: DO NOT UNLOCK IF USER CLOSES, CANCELS OR FAILS PAYMENT
+          showToast(errMsg && !errMsg.includes('closed') ? `Payment failed: ${errMsg}` : 'Payment not completed. Paper remains locked.');
+        }
+      });
+    } catch {
+      showToast('Payment window closed or cancelled. Paper remains locked.');
+    }
   };
 
-  const handleOpenUnlockModal = (qNumber?: number) => {
+  const handleOpenUnlockModal = (qNumber?: number, specificSet?: LiveDppPyqSet) => {
+    if (specificSet) {
+      setModalTargetSet(specificSet);
+    } else {
+      setModalTargetSet(activeSet || null);
+    }
     setLockedTargetNumber(qNumber);
     setIsUnlockModalOpen(true);
   };
@@ -724,6 +772,9 @@ export const PYQPage: React.FC = () => {
                       ? set.questions.length
                       : set.questionsCount || 0;
                     const isSetFree = set.isFree !== false;
+                    const setId = set.id || set._id || '';
+                    const isSetUnlocked = isSetFree || (setId ? unlockedSetIds.includes(setId) : false) || Boolean(student?.enrolledCourseIds && setId && student.enrolledCourseIds.includes(setId));
+                    const hasFreeQuestions = isSetFree || (Array.isArray(set.questions) && set.questions.some((q: any) => q.isFree === true));
                     const priceVal = set.price || 499;
 
                     const subClass =
@@ -750,6 +801,11 @@ export const PYQPage: React.FC = () => {
                             );
                             return;
                           }
+                          // If paper is locked with no free questions, prompt to pay/unlock directly
+                          if (!isSetUnlocked && !hasFreeQuestions) {
+                            handleOpenUnlockModal(undefined, set);
+                            return;
+                          }
                           setSelectedSetId(set.id || set._id || null);
                           setActiveQuestionIndex(null);
                         }}
@@ -766,14 +822,19 @@ export const PYQPage: React.FC = () => {
                               <Clock size={11} />
                               <span>Opens in {countdown?.text}</span>
                             </span>
-                          ) : isSetFree ? (
+                          ) : isSetUnlocked ? (
                             <span className={styles.freeAccessBadge}>
-                              ✓ 100% Free Practice
+                              ✓ {isSetFree ? '100% Free Practice' : 'Paper Unlocked'}
+                            </span>
+                          ) : hasFreeQuestions ? (
+                            <span className={styles.lockedAccessBadge} style={{ background: '#f5f3ff', color: '#7c3aed', borderColor: '#ddd6fe' }}>
+                              <Lock size={12} />
+                              <span>Free Preview • ₹{priceVal}</span>
                             </span>
                           ) : (
                             <span className={styles.lockedAccessBadge}>
                               <Lock size={12} />
-                              <span>Premium • ₹{priceVal}</span>
+                              <span>Locked • ₹{priceVal}</span>
                             </span>
                           )}
                         </div>
@@ -806,15 +867,26 @@ export const PYQPage: React.FC = () => {
                               <Clock size={13} />
                               <span>Opens {new Date(set.scheduledDate!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                             </span>
-                          ) : isSetFree ? (
+                          ) : isSetUnlocked ? (
                             <span className={styles.openSetBtn}>
                               <span>Practice Questions</span>
                               <ArrowRight size={14} />
                             </span>
+                          ) : hasFreeQuestions ? (
+                            <span className={styles.openSetBtn} style={{ background: '#f5f3ff', color: '#7c3aed', borderColor: '#ddd6fe' }}>
+                              <span>Free Preview &amp; Solve</span>
+                              <ArrowRight size={14} />
+                            </span>
                           ) : (
-                            <span className={styles.openLockedSetBtn}>
+                            <span
+                              className={styles.openLockedSetBtn}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenUnlockModal(undefined, set);
+                              }}
+                            >
                               <Lock size={13} />
-                              <span>Unlock &amp; Solve</span>
+                              <span>Unlock Complete Paper (₹{priceVal})</span>
                               <ArrowRight size={14} />
                             </span>
                           )}
@@ -1050,7 +1122,7 @@ export const PYQPage: React.FC = () => {
                       responses={responses}
                       questionIds={questionIds}
                       isEnrolled={activeSet.isFree !== false || isEnrolled}
-                      freeCount={activeSet.isFree !== false ? setQuestions.length : 1}
+                      freeCount={activeSet.isFree !== false ? setQuestions.length : setQuestions.filter((q, i) => isQuestionAccessible(q, i)).length}
                       isAccessible={(idx) => isQuestionAccessible(setQuestions[idx], idx)}
                       onToggleMarkForReview={handleToggleMarkForReview}
                     />
@@ -1108,8 +1180,8 @@ export const PYQPage: React.FC = () => {
         onClose={() => setIsUnlockModalOpen(false)}
         onEnroll={handleEnrollCourse}
         questionNumber={lockedTargetNumber}
-        paperTitle={activeSet?.title}
-        paperPrice={activeSet?.price ?? 499}
+        paperTitle={modalTargetSet?.title || activeSet?.title}
+        paperPrice={modalTargetSet?.price ?? activeSet?.price ?? 499}
       />
     </main>
   );

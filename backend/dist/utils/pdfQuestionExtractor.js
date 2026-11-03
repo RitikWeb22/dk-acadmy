@@ -19,6 +19,14 @@ export function normalizeMathInText(rawText) {
     text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*,\s*\.\/4\s*[\r\n]+\s*"/g, '\\int_0^{\\pi/4} ');
     text = text.replace(/∫\s*\u200a?\s*3\/6\s*[\r\n]+\s*3\/4/g, '\\int_{\\pi/4}^{\\pi/6} ');
     text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*[\/']\s*[\r\n]+\s*[\/']/g, '\\int_{-1}^1 ');
+    // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2
+    text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');
+    text = text.replace(/\\int_\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
+    text = text.replace(/\\int\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
+    // Stitch stacked fractions where numerator is on one line and denominator is on the next line (with dx)
+    text = text.replace(/(\\int[^\n]+?)\s*\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s]+?)\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s]+?\s*dx\b)/g, (_, intPart, num, den) => {
+        return `${intPart} \\frac{${num.trim()}}{${den.replace(/\s*dx\b/, '').trim()}} \\, dx`;
+    });
     text = text.replace(/log[7\-]/g, '\\log_e ');
     text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
     text = text.replace(/\/012/g, '-\\sin ');
@@ -40,12 +48,13 @@ export function normalizeMathInText(rawText) {
     text = text.replace(/[!2]\s*[\r\n]+\s*,\s*,?/g, '\\frac{2}{3} ');
     text = text.replace(/\b['1]\s*,\s*/g, '\\frac{1}{3} ');
     text = text.replace(/\b[!2]\s*,\s*/g, '\\frac{2}{3} ');
-    // Variables and font characters: $ -> x
-    text = text.replace(/\$"/g, 'x^4');
-    text = text.replace(/\$!/g, 'x^2');
-    text = text.replace(/\$([0-9!#'"&+\-/*])/g, 'x$1');
-    text = text.replace(/([0-9!#'"&+\-/*\(])\$/g, '$1x');
-    text = text.replace(/\$/g, 'x');
+    // Only perform glyph substitutions if no structured LaTeX tags exist
+    if (!text.includes('\\frac') && !text.includes('\\int') && !text.includes('\\sqrt')) {
+        text = text.replace(/\$"/g, 'x^4');
+        text = text.replace(/\$!/g, 'x^2');
+        text = text.replace(/\$([0-9!#'"&+\-/*])/g, 'x$1');
+        text = text.replace(/([0-9!#'"&+\-/*\(])\$/g, '$1x');
+    }
     // Exponents & numbers
     text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
     text = text.replace(/!/g, '^2');

@@ -717,7 +717,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
           correctKey: q.suggestedAnswer || 'A',
           dkSirShortcut: q.dkSirShortcut || '',
           stepSolution: q.stepSolution || '',
-          isFree: true,
+          isFree: isBulkForCreateModal ? newIsFree : (editingItem?.isFree !== false),
           videoUrl: '',
           pdfUrl: ''
         }));
@@ -776,10 +776,15 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
     }
 
     if (isBulkForCreateModal) {
-      setCreatedCustomQuestions(bulkParsedQuestions);
-      setNewQuestionsCount(bulkParsedQuestions.length);
-      setNewSolutionNote(`${bulkParsedQuestions.length} with detailed step & video solutions`);
-      showToast(`✓ Imported ${bulkParsedQuestions.length} questions into new problem set!`);
+      const mapped = bulkParsedQuestions.map((q, idx) => ({
+        ...q,
+        qNum: idx + 1,
+        isFree: newIsFree ? (q.isFree ?? true) : false
+      }));
+      setCreatedCustomQuestions(mapped);
+      setNewQuestionsCount(mapped.length);
+      setNewSolutionNote(`${mapped.length} with detailed step & video solutions`);
+      showToast(`✓ Imported ${mapped.length} questions into new problem set!`);
       setIsBulkModalOpen(false);
       return;
     }
@@ -1109,9 +1114,13 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       status: newStatus,
       scheduledDate: newStatus === 'Scheduled' && newScheduledDate ? newScheduledDate : undefined,
       attemptsCount: 0,
-      questions: createdCustomQuestions && createdCustomQuestions.length > 0
+      questions: (createdCustomQuestions && createdCustomQuestions.length > 0
         ? createdCustomQuestions
         : getSampleQuestionsForSubject(newSubject, newChapter).slice(0, Number(newQuestionsCount) || 4)
+      ).map((q) => ({
+        ...q,
+        isFree: newIsFree ? (q.isFree ?? true) : false
+      }))
     };
 
     try {
@@ -2543,6 +2552,10 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     onClick={() => {
                       setNewIsFree(true);
                       setNewPrice(0);
+                      if (createdCustomQuestions && createdCustomQuestions.length > 0) {
+                        setCreatedCustomQuestions(createdCustomQuestions.map((q) => ({ ...q, isFree: true })));
+                      }
+                      showToast('✓ Entire paper set to Free Practice. All questions unlocked!');
                     }}
                     style={{
                       border: newIsFree ? '2px solid #16a34a' : '1.5px solid #e2e8f0',
@@ -2570,6 +2583,10 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     onClick={() => {
                       setNewIsFree(false);
                       if (!newPrice) setNewPrice(499);
+                      if (createdCustomQuestions && createdCustomQuestions.length > 0) {
+                        setCreatedCustomQuestions(createdCustomQuestions.map((q) => ({ ...q, isFree: false })));
+                      }
+                      showToast('🔒 Entire paper set to Locked. All questions automatically set to Locked (Paid)!');
                     }}
                     style={{
                       border: !newIsFree ? '2px solid #7c3aed' : '1.5px solid #e2e8f0',
