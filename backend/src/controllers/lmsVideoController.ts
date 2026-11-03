@@ -1,5 +1,6 @@
 import type { Response, Request } from 'express';
 import type { AuthRequest } from '../middlewares/authMiddleware.js';
+import mongoose from 'mongoose';
 import { Video } from '../models/Video.js';
 import { Course } from '../models/Course.js';
 import { WatchProgress } from '../models/WatchProgress.js';
@@ -256,23 +257,33 @@ export const lmsVideoController = {
         hasAccess = true;
       }
 
+      // Fetch course by ObjectId or slug safely without Mongoose CastError
+      const courseQuery = mongoose.Types.ObjectId.isValid(courseId)
+        ? { $or: [{ _id: courseId }, { slug: courseId }] }
+        : { slug: courseId };
+      const course = await Course.findOne(courseQuery);
+
+      // Check if course is free
+      if (course && (course.price === 0 || (course as any).isFree || (course as any).pricing?.isFree)) {
+        hasAccess = true;
+      }
+
       // 2. Check if lecture is free preview
-      if (!hasAccess) {
-        const course = await Course.findById(courseId);
-        if (course) {
-          for (const section of course.curriculumSections || []) {
-            const lecture = section.lectures?.find((l) => l.id === lectureId);
-            if (lecture && lecture.isFreePreview) {
-              hasAccess = true;
-              break;
-            }
+      if (!hasAccess && course) {
+        for (const section of course.curriculumSections || []) {
+          const lecture = section.lectures?.find((l) => l.id === lectureId);
+          if (lecture && lecture.isFreePreview) {
+            hasAccess = true;
+            break;
           }
         }
       }
 
       // 3. Check if student is enrolled in the course
       if (!hasAccess && user.enrolledCourses) {
-        const enrolled = user.enrolledCourses.some((cId) => cId.toString() === courseId);
+        const enrolled = user.enrolledCourses.some(
+          (cId) => cId.toString() === courseId || (course && cId.toString() === course._id.toString())
+        );
         if (enrolled) {
           hasAccess = true;
         }
@@ -567,7 +578,7 @@ export const lmsVideoController = {
           },
           $inc: { watchHistoryCount: 1 }
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
 
       res.status(200).json({ success: true, data: progress });
@@ -642,7 +653,7 @@ export const lmsVideoController = {
       const session = await PlaybackSession.findOneAndUpdate(
         { sessionId },
         { isActive: false, revoked: true, revokedReason: reason || 'Revoked by admin' },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (!session) {
         res.status(404).json({ success: false, message: 'Session not found' });

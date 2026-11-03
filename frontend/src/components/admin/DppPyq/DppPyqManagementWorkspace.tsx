@@ -1462,7 +1462,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       });
       if (res?.data) {
         handleUpdateActiveQuestion({
-          statement: res.data.statement || normalizeMathText(curQ.statement)
+          statement: normalizeMathText(res.data.statement || curQ.statement)
         });
         showToast(res.aiPowered ? `✨ Question AI-formatted via Gemini (${res.modelUsed})!` : '✨ Question LaTeX auto-formatted!');
       }
@@ -1488,7 +1488,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       });
       if (res?.data?.options?.length) {
         handleUpdateActiveQuestion({
-          options: res.data.options.map(o => ({ key: o.key as 'A' | 'B' | 'C' | 'D', text: o.text }))
+          options: res.data.options.map(o => ({ key: o.key as 'A' | 'B' | 'C' | 'D', text: normalizeMathText(o.text) }))
         });
         showToast(res.aiPowered ? `✨ Options AI-formatted via Gemini (${res.modelUsed})!` : '✨ Options LaTeX auto-formatted!');
       }
@@ -1516,7 +1516,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       });
       if (res?.data) {
         handleUpdateActiveQuestion({
-          statement: res.data.statement || normalizeMathText(curQ.statement),
+          statement: normalizeMathText(res.data.statement || curQ.statement),
           options: res.data.options?.length
             ? res.data.options.map(o => ({ key: o.key as 'A' | 'B' | 'C' | 'D', text: o.text }))
             : curQ.options.map(o => ({ ...o, text: normalizeMathText(o.text) })),

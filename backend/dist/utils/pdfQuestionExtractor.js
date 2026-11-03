@@ -167,6 +167,13 @@ export function normalizeMathInText(rawText) {
         text = text.replace(/\\left\s*([\[\(\{\|])/g, '$1');
         text = text.replace(/\\right\s*([\]\)\}\|])/g, '$1');
     }
+    // Wrap math expressions in $ delimiters if unwrapped to prevent prose collision in KaTeX
+    if (!text.includes('$')) {
+        const ifM = text.match(/^(If\s+)([\s\S]+?)(,\s*then\s+|\s+then\s+)([\s\S]+?)(\s+(?:is equal to(?:\s+[_.\-]+|\s*[:._\-]*)?|is(?:\s+[_.\-]+|\s*[:._\-]*)?|\.|$))$/i);
+        if (ifM && !/\b(?:let|where|given|satisfying|passing|point|plane|line|foot)\b/i.test(ifM[2])) {
+            text = `${ifM[1]}$ ${ifM[2].trim()} $ then $ ${ifM[4].trim()} $${ifM[5]}`;
+        }
+    }
     return text;
 }
 /**
