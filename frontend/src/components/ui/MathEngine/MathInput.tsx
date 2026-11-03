@@ -6,6 +6,7 @@ import { MathPreview } from './MathPreview';
 import { parseContentToBlocks } from './mathParser';
 import type { MathContentBlock } from './mathParser';
 import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
+import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
 import { Eye, Code, Columns, Sparkles } from 'lucide-react';
 
 export interface MathInputProps {
@@ -84,51 +85,36 @@ export const MathInput: React.FC<MathInputProps> = ({
     onChange(raw, blocks);
   };
 
-  // Handles pasting from Word or clipboard, auto-normalizing UnicodeMath and extracting options
+  // Handles pasting from Word, Google Docs, MathML, OMML, or plain text clipboard
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const pasted = e.clipboardData.getData('text');
-    if (!pasted) return;
+    const result = normalizePastedQuestion(e.clipboardData);
+    if (!result.fullNormalizedText) return;
 
-    // 1. Check if pasted content contains question options (e.g. A -21. B 21. C 19. D 0)
-    if (onExtractOptions) {
-      const extracted = extractStatementAndOptions(pasted);
-      const hasOptions =
-        extracted.options &&
-        extracted.options.length === 4 &&
-        (extracted.options[0].text !== 'Option A' || extracted.options[1].text !== 'Option B') &&
-        extracted.statement.length > 0;
-
-      if (hasOptions) {
-        e.preventDefault();
-        const cleanStmt = normalizeMathText(extracted.statement);
-        const cleanOpts = extracted.options.map((o) => ({
-          key: o.key,
-          text: normalizeMathText(o.text)
-        }));
-        onExtractOptions(cleanStmt, cleanOpts, extracted.correctKey);
-        onChange(cleanStmt, parseContentToBlocks(cleanStmt));
-        return;
-      }
+    // 1. Check if pasted content contains question options (e.g. (A)/(B)/(C)/(D) or 1-4)
+    if (onExtractOptions && result.hasQuestionWithOptions) {
+      e.preventDefault();
+      onExtractOptions(result.statement, result.options, result.correctKey);
+      onChange(result.statement, parseContentToBlocks(result.statement));
+      return;
     }
 
-    // 2. Normalize any pasted text to clean Word artifacts, hair spaces, powers, and fractions
+    // 2. Otherwise insert normalized text at current cursor position (preserving cursor and rest of statement)
     e.preventDefault();
-    const normalized = normalizeMathText(pasted);
     const textarea = textareaRef.current;
     if (!textarea) {
-      const next = value ? `${value}\n${normalized}` : normalized;
+      const next = value ? `${value}\n${result.fullNormalizedText}` : result.fullNormalizedText;
       onChange(next, parseContentToBlocks(next));
       return;
     }
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const next = value.substring(0, start) + normalized + value.substring(end);
+    const next = value.substring(0, start) + result.fullNormalizedText + value.substring(end);
     onChange(next, parseContentToBlocks(next));
 
     setTimeout(() => {
       textarea.focus();
-      const pos = start + normalized.length;
+      const pos = start + result.fullNormalizedText.length;
       textarea.setSelectionRange(pos, pos);
     }, 0);
   };

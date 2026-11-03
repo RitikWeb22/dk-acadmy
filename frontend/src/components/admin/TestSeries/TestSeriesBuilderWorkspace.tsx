@@ -70,6 +70,7 @@ import { PART_TESTS_DATA } from '../../../data/partTestsData';
 import { MathText } from '../../ui/MathText/MathText';
 import { MathInput, parseContentToBlocks } from '../../ui/MathEngine';
 import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
+import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -2224,39 +2225,21 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
   const handleApplySmartPaste = () => {
     if (!smartPasteText.trim()) return;
-    const extracted = extractStatementAndOptions(smartPasteText);
+    const result = normalizePastedQuestion({ text: smartPasteText });
 
-    // Also extract answer key
-    const ansMatch = smartPasteText.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Option))?|Option)\s*[:=\-]\s*[(]?([A-Da-d1-4])[)]?/i);
-    let correctKey = currentEditingQuestion?.correctKey || 'A';
-    if (ansMatch) {
-      let raw = ansMatch[1].toUpperCase();
-      if (raw === '1') raw = 'A';
-      else if (raw === '2') raw = 'B';
-      else if (raw === '3') raw = 'C';
-      else if (raw === '4') raw = 'D';
-      if (['A', 'B', 'C', 'D'].includes(raw)) correctKey = raw as any;
-    }
-
-    const solMatch = smartPasteText.match(/(?:^|\n)\s*(?:Sol(?:ution)?|Expl(?:anation)?)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Shortcut|Trick|DK\s*Sir|Video|PDF|Topic)|$))/i);
-    const trickMatch = smartPasteText.match(/(?:^|\n)\s*(?:Shortcut|Trick|DK\s*Sir)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Video|PDF|Topic)|$))/i);
-
-    // Extract numerical answer for Section B questions (e.g. "Ans: 14", "Answer = -2.5")
-    const numAnsMatch = smartPasteText.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Answer|Value))?|Value)\s*[:=\-]\s*(-?[0-9]+(?:\.[0-9]+)?)/i);
     const isSectionB = currentEditingQuestion?.section === 'B';
-    const hasOptions = Array.isArray(extracted.options) && extracted.options.some((o) => o.text && !o.text.startsWith('Option '));
+    const hasOptions = result.options.length === 4;
 
-    const cleanStmt = normalizeMathText(extracted.statement);
     updateCurrentQuestion({
-      questionText: cleanStmt,
-      statementBlocks: parseContentToBlocks(cleanStmt),
+      questionText: result.statement,
+      statementBlocks: parseContentToBlocks(result.statement),
       options: hasOptions
-        ? extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) }))
-        : (currentEditingQuestion?.options || extracted.options),
-      correctKey: (extracted.correctKey || correctKey) as any,
-      numericalAnswer: numAnsMatch ? numAnsMatch[1] : currentEditingQuestion?.numericalAnswer,
-      solutionDerivation: solMatch ? normalizeMathText(solMatch[1]) : currentEditingQuestion?.solutionDerivation,
-      shortcutTrick: trickMatch ? normalizeMathText(trickMatch[1]) : currentEditingQuestion?.shortcutTrick
+        ? result.options
+        : (currentEditingQuestion?.options || result.options),
+      correctKey: (result.correctKey || currentEditingQuestion?.correctKey || 'A') as any,
+      numericalAnswer: result.numericalAnswer || currentEditingQuestion?.numericalAnswer,
+      solutionDerivation: result.stepSolution || currentEditingQuestion?.solutionDerivation,
+      shortcutTrick: result.dkSirShortcut || currentEditingQuestion?.shortcutTrick
     });
 
     setSmartPasteText('');
@@ -2265,46 +2248,22 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   };
 
   const handleStatementPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const pasted = e.clipboardData.getData('text');
-    if (!pasted) return;
+    const result = normalizePastedQuestion(e.clipboardData);
+    if (!result.fullNormalizedText) return;
 
-    // Check if pasted content contains question options (A)/(B) or A)/B) or (1)/(2)
-    const hasOptions =
-      ((pasted.includes('(A)') || pasted.includes('A)') || pasted.includes('A.')) &&
-       (pasted.includes('(B)') || pasted.includes('B)') || pasted.includes('B.'))) ||
-      ((pasted.includes('(1)') || pasted.includes('1)') || pasted.includes('1.')) &&
-       (pasted.includes('(2)') || pasted.includes('2)') || pasted.includes('2.')));
+    if (result.hasQuestionWithOptions) {
+      e.preventDefault();
+      updateCurrentQuestion({
+        questionText: result.statement,
+        statementBlocks: parseContentToBlocks(result.statement),
+        options: result.options,
+        correctKey: (result.correctKey || currentEditingQuestion?.correctKey || 'A') as any,
+        numericalAnswer: result.numericalAnswer || currentEditingQuestion?.numericalAnswer,
+        solutionDerivation: result.stepSolution || currentEditingQuestion?.solutionDerivation,
+        shortcutTrick: result.dkSirShortcut || currentEditingQuestion?.shortcutTrick
+      });
 
-    if (hasOptions) {
-      const extracted = extractStatementAndOptions(pasted);
-      if (extracted.options.length === 4 && extracted.statement) {
-        e.preventDefault();
-        const ansMatch = pasted.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Option))?|Option)\s*[:=\-]\s*[(]?([A-Da-d1-4])[)]?/i);
-        let correctKey = currentEditingQuestion?.correctKey || 'A';
-        if (ansMatch) {
-          let raw = ansMatch[1].toUpperCase();
-          if (raw === '1') raw = 'A';
-          else if (raw === '2') raw = 'B';
-          else if (raw === '3') raw = 'C';
-          else if (raw === '4') raw = 'D';
-          if (['A', 'B', 'C', 'D'].includes(raw)) correctKey = raw as any;
-        }
-
-        const solMatch = pasted.match(/(?:^|\n)\s*(?:Sol(?:ution)?|Expl(?:anation)?)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Shortcut|Trick|DK\s*Sir|Video|PDF|Topic)|$))/i);
-        const trickMatch = pasted.match(/(?:^|\n)\s*(?:Shortcut|Trick|DK\s*Sir)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Video|PDF|Topic)|$))/i);
-        const numAnsMatch = pasted.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Answer|Value))?|Value)\s*[:=\-]\s*(-?[0-9]+(?:\.[0-9]+)?)/i);
-
-        updateCurrentQuestion({
-          questionText: normalizeMathText(extracted.statement),
-          options: extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) })),
-          correctKey: correctKey as any,
-          numericalAnswer: numAnsMatch ? numAnsMatch[1] : currentEditingQuestion?.numericalAnswer,
-          solutionDerivation: solMatch ? normalizeMathText(solMatch[1]) : currentEditingQuestion?.solutionDerivation,
-          shortcutTrick: trickMatch ? normalizeMathText(trickMatch[1]) : currentEditingQuestion?.shortcutTrick
-        });
-
-        showToast('✓ Auto-extracted Question Statement, 4 Options & Answer Key with Math formatting!');
-      }
+      showToast('✓ Auto-extracted Question Statement, 4 Options & Answer Key with Math formatting!');
     }
   };
 
@@ -6408,6 +6367,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   rows={7}
                   value={smartPasteText}
                   onChange={(e) => setSmartPasteText(e.target.value)}
+                  onPaste={(e) => {
+                    const res = normalizePastedQuestion(e.clipboardData);
+                    if (res.fullNormalizedText) {
+                      e.preventDefault();
+                      setSmartPasteText(res.fullNormalizedText);
+                    }
+                  }}
                   placeholder={`Paste full question here, e.g.:\n\nIf f(x) = \\int_0^x \\sqrt{1 + t^3} dt, then find f'(2).\n(A) 3\n(B) 4\n(C) 5\n(D) 9\nAns: A\nShortcut: Apply Leibniz rule f'(x) = \\sqrt{1 + x^3}`}
                   className={styles.questionTextarea}
                   style={{ fontFamily: 'monospace', fontSize: '13px', lineHeight: '1.5' }}

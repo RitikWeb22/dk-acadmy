@@ -46,6 +46,7 @@ import {
 import styles from './DppPyqManagementWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
 import { downloadQuestionsTemplateCsv, parseBulkQuestions } from '../../../utils/questionBulkParser';
+import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
 import { MathText } from '../../ui/MathText/MathText';
 
 export type ProblemModuleType = 'DPP' | 'PYQ' | 'BITSAT';
@@ -1310,6 +1311,40 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       opt.key === optKey ? { ...opt, text } : opt
     );
     handleUpdateActiveQuestion({ options: updatedOpts });
+  };
+
+  const handleStatementPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const result = normalizePastedQuestion(e.clipboardData);
+    if (!result.fullNormalizedText) return;
+
+    if (result.hasQuestionWithOptions) {
+      e.preventDefault();
+      handleUpdateActiveQuestion({
+        statement: result.statement,
+        options: result.options,
+        correctKey: (result.correctKey || editingItem?.questions[editingQuestionIdx]?.correctKey || 'A') as any,
+        stepSolution: result.stepSolution || editingItem?.questions[editingQuestionIdx]?.stepSolution,
+        dkSirShortcut: result.dkSirShortcut || editingItem?.questions[editingQuestionIdx]?.dkSirShortcut
+      });
+      showToast('✓ Auto-extracted Question Statement, 4 Options & Answer Key with Math formatting!');
+    } else {
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart ?? 0;
+      const end = textarea.selectionEnd ?? 0;
+      const currentVal = editingItem?.questions[editingQuestionIdx]?.statement || '';
+      const newVal = currentVal.substring(0, start) + result.fullNormalizedText + currentVal.substring(end);
+      handleUpdateActiveQuestion({ statement: newVal });
+      showToast('✓ Formatted mathematical notation inserted cleanly!');
+    }
+  };
+
+  const handleOptionPaste = (optKey: 'A' | 'B' | 'C' | 'D', e: React.ClipboardEvent<HTMLInputElement>) => {
+    const result = normalizePastedQuestion(e.clipboardData);
+    if (result.fullNormalizedText) {
+      e.preventDefault();
+      handleUpdateOptionText(optKey, result.fullNormalizedText);
+    }
   };
 
   const formatTimer = (totalSec: number) => {
@@ -3161,7 +3196,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                         </span>
                         {/* Question Access Toggle */}
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 6px', background: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>Question Access:</span>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>This Q:</span>
                           <button
                             type="button"
                             onClick={() => handleUpdateActiveQuestion({ isFree: true })}
@@ -3193,6 +3228,52 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                             }}
                           >
                             🔒 Locked (Paid)
+                          </button>
+                        </div>
+
+                        {/* Bulk Action: Lock/Free All */}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (editingItem.questions || []).map((q) => ({ ...q, isFree: false }));
+                              setEditingItem({ ...editingItem, questions: updated });
+                              showToast('🔒 All questions in this paper are now Locked (Paid)!');
+                            }}
+                            title="Set all questions in this paper to Locked (Paid)"
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              border: '1px solid #cbd5e1',
+                              background: '#ffffff',
+                              color: '#6d28d9'
+                            }}
+                          >
+                            🔒 Lock All Qs
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (editingItem.questions || []).map((q) => ({ ...q, isFree: true }));
+                              setEditingItem({ ...editingItem, questions: updated });
+                              showToast('✓ All questions in this paper unlocked as Free Practice!');
+                            }}
+                            title="Set all questions in this paper to Free Practice"
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              border: '1px solid #cbd5e1',
+                              background: '#ffffff',
+                              color: '#15803d'
+                            }}
+                          >
+                            ✓ Free All Qs
                           </button>
                         </div>
                       </div>
@@ -3308,6 +3389,8 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     className={styles.statementTextarea}
                     value={editingItem.questions[editingQuestionIdx].statement}
                     onChange={(e) => handleUpdateActiveQuestion({ statement: e.target.value })}
+                    onPaste={handleStatementPaste}
+                    placeholder="Enter or paste question statement (Word .docx OMML, LaTeX KaTeX $...$, fractions, piecewise functions supported)..."
                   />
                   <div className={styles.mathLivePreviewBox}>
                     <span className={styles.previewTag}>CANDIDATE VIEW PREVIEW (MATHJAX / KATEX):</span>
@@ -3349,6 +3432,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                               className={styles.optInputText}
                               value={opt.text}
                               onChange={(e) => handleUpdateOptionText(opt.key, e.target.value)}
+                              onPaste={(e) => handleOptionPaste(opt.key, e)}
                               placeholder={`Enter Option ${opt.key} value or LaTeX equation ($...$)...`}
                             />
                             {isCorrect && (
