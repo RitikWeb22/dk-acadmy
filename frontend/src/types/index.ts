@@ -200,6 +200,7 @@ export interface DPPQuestion {
   correctAnswer: string;
   explanation: string;
   formulaKey?: string;
+  isFree?: boolean;
 }
 
 export interface DPPSet {
@@ -213,6 +214,10 @@ export interface DPPSet {
   pdfUrl?: string;
   videoWalkthroughUrl?: string;
   questions: DPPQuestion[];
+  isFree?: boolean;
+  price?: number;
+  scheduledDate?: string;
+  status?: string;
 }
 
 export interface DPPQuestionResponse {

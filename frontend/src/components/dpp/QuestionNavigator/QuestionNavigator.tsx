@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, Check, X } from 'lucide-react';
+import { Bookmark, Check, X, Lock } from 'lucide-react';
 import type { DPPQuestionResponse, DPPQuestion } from '../../../types';
 import styles from './QuestionNavigator.module.scss';
 
@@ -9,6 +9,8 @@ interface QuestionNavigatorProps {
   onSelectIndex: (idx: number) => void;
   responses: Record<string, DPPQuestionResponse>;
   isReviewMode?: boolean;
+  isQuestionAccessible?: (q: DPPQuestion, index: number) => boolean;
+  onLockedClick?: (q: DPPQuestion, index: number) => void;
 }
 
 export const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
@@ -17,6 +19,8 @@ export const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
   onSelectIndex,
   responses,
   isReviewMode = false,
+  isQuestionAccessible,
+  onLockedClick,
 }) => {
   const totalCount = questions.length;
 
@@ -33,6 +37,8 @@ export const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
         {questions.map((q, index) => {
           const resp = responses[q.id];
           const isCurrent = index === currentIndex;
+          const isAccessible = isQuestionAccessible ? isQuestionAccessible(q, index) : true;
+          const isLocked = !isAccessible;
           const isAnswered = Boolean(resp?.selectedOption);
           const isMarked = Boolean(resp?.isMarkedForReview);
           const isEvaluated = Boolean(resp?.isEvaluated || isReviewMode);
@@ -41,7 +47,10 @@ export const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
           let statusClass = styles.unanswered;
           let labelText = `Question ${index + 1}: Unanswered`;
 
-          if (isEvaluated && isAnswered) {
+          if (isLocked) {
+            statusClass = styles.locked;
+            labelText = `Question ${index + 1}: Locked (Premium)`;
+          } else if (isEvaluated && isAnswered) {
             if (isCorrect) {
               statusClass = styles.correct;
               labelText = `Question ${index + 1}: Correct`;
@@ -65,14 +74,26 @@ export const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
               key={q.id}
               type="button"
               className={`${styles.navBtn} ${statusClass} ${isCurrent ? styles.active : ''}`}
-              onClick={() => onSelectIndex(index)}
+              onClick={() => {
+                if (isLocked && onLockedClick) {
+                  onLockedClick(q, index);
+                } else {
+                  onSelectIndex(index);
+                }
+              }}
               aria-label={`${labelText}${isCurrent ? ' (Current Question)' : ''}`}
               aria-current={isCurrent ? 'true' : undefined}
             >
               <span className={styles.qNum}>{index + 1}</span>
-              {isMarked && !isEvaluated && <Bookmark size={10} className={styles.markedIcon} />}
-              {isEvaluated && isAnswered && isCorrect && <Check size={11} className={styles.evalIcon} />}
-              {isEvaluated && isAnswered && !isCorrect && <X size={11} className={styles.evalIcon} />}
+              {isLocked ? (
+                <Lock size={10} className={styles.lockedIcon} />
+              ) : (
+                <>
+                  {isMarked && !isEvaluated && <Bookmark size={10} className={styles.markedIcon} />}
+                  {isEvaluated && isAnswered && isCorrect && <Check size={11} className={styles.evalIcon} />}
+                  {isEvaluated && isAnswered && !isCorrect && <X size={11} className={styles.evalIcon} />}
+                </>
+              )}
             </button>
           );
         })}

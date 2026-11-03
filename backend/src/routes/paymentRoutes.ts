@@ -7,9 +7,10 @@ import {
   getMyOrders,
   createAdminInvoice,
   updateOrderStatus,
-  deleteOrder
+  deleteOrder,
+  purgeDemoOrders
 } from '../controllers/paymentController.js';
-import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
+import { protect, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
@@ -75,17 +76,16 @@ router.post(
 );
 router.patch(
   '/orders/:id/status',
-  protect,
-  authorize('SUPER_ADMIN', 'ADMIN'),
+  directoryProtect,
   validate({ params: idOrSlugParamSchema, body: updateOrderStatusSchema }),
   updateOrderStatus
 );
 router.delete(
   '/orders/:id',
-  protect,
-  authorize('SUPER_ADMIN', 'ADMIN'),
+  directoryProtect,
   validate({ params: idOrSlugParamSchema }),
   deleteOrder
 );
+router.post('/orders-purge-demo', directoryProtect, purgeDemoOrders);
 
 export default router;

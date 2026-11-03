@@ -114,7 +114,7 @@ export function convertAllFractions(input: string): string {
               p++;
             }
           } else {
-            while (p < str.length && /[a-zA-Z0-9_\^\\\{\}α-ωΑ-Ω]/.test(str[p])) {
+            while (p < str.length && /[a-zA-Z0-9α-ωΑ-Ω]/.test(str[p])) {
               p++;
             }
             rightEnd = p - 1;
@@ -146,7 +146,7 @@ export function convertAllFractions(input: string): string {
                 if (p < str.length && (str[p] === '(' || str[p] === '{')) {
                   continue;
                 }
-                while (p < str.length && /[a-zA-Z0-9_\^\\\{\}α-ωΑ-Ω]/.test(str[p])) p++;
+                while (p < str.length && /[a-zA-Z0-9α-ωΑ-Ω]/.test(str[p])) p++;
                 rightEnd = p - 1;
                 break;
               }
@@ -157,7 +157,7 @@ export function convertAllFractions(input: string): string {
           }
         } else {
           let p = rightStart;
-          while (p < str.length && /[a-zA-Z0-9_\^\\\{\}α-ωΑ-Ω]/.test(str[p])) {
+          while (p < str.length && /[a-zA-Z0-9α-ωΑ-Ω]/.test(str[p])) {
             p++;
           }
           rightEnd = p - 1;
@@ -753,9 +753,9 @@ export function normalizeMathText(raw: string): string {
     res = convertAllFractions(res);
 
     // 10b. Normalize powers with unbraced fractions: x^\frac{{2}}{2} -> x^{\frac{2}{2}}
-    res = res.replace(/\^\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}');
-    res = res.replace(/\^\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}');
-    res = res.replace(/\^(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '^{$1}');
+    res = res.replace(/(?<!\{)\^\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}');
+    res = res.replace(/(?<!\{)\^\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}');
+    res = res.replace(/(?<!\{)\^(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '^{$1}');
 
     // 11. Multi-digit exponents without braces: 1^15 -> 1^{15}, n^16 -> n^{16} (run after fractions!)
     res = res.replace(/([a-zA-Z0-9_\)\]\}])\^([0-9]{2,})\b/g, '$1^{$2}');

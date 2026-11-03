@@ -44,8 +44,12 @@ export function normalizeMathInText(rawText: string): string {
   text = text.replace(/\(√\$&'\)\*√\$"&\$!&'/g, '(\\sqrt{x} + 1)\\sqrt{x^4 + x^2 + 1}');
   text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*!\s*[\r\n]+\s*"/g, '\\int_0^2 ');
   text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*,\s*\.\/4\s*[\r\n]+\s*"/g, '\\int_0^{\\pi/4} ');
-  text = text.replace(/∫\s*\u200a?\s*3\/6\s*[\r\n]+\s*3\/4/g, '\\int_{\\pi/4}^{\\pi/6} ');
+  text = text.replace(/∫\s*\u200a?\s*3\/6\s*[\r\n]+\s*3\/4/g, '\\int_{\\frac{\\pi}{4}}^{\\frac{\\pi}{6}} ');
   text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*[\/']\s*[\r\n]+\s*[\/']/g, '\\int_{-1}^1 ');
+
+  // Matrix and piecewise brackets in Equation Editor
+  text = text.replace(/F\s*[\r\n]+\s*1\s*[\r\n]+\s*3\s*[\r\n]+\s*−1\s*[\r\n]+\s*2\s*[\r\n]+\s*1\s*[\r\n]+\s*𝛼\s*[\r\n]+\s*0\s*[\r\n]+\s*1\s*[\r\n]+\s*−1\s*[\r\n]+\s*H/g, '\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}');
+  text = text.replace(/=cot\s*=\s*[x𝑥]\s*[−-]\s*3\s*\/,\s*@\s*cot\s*=\s*[x𝑥]\s*\+\s*3\s*\/,\s*@\s*\+\s*1@/gi, '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right]');
 
   // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2
   text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');

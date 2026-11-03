@@ -133,10 +133,28 @@
       background-color: #DC2626;
     }
   }
+
+  &.locked {
+    background-color: #FFF1F2;
+    color: #E11D48;
+    border-color: #FECDD3;
+
+    &:hover {
+      background-color: #FFE4E6;
+      border-color: #F43F5E;
+    }
+  }
 }
 
 .qNum {
   line-height: 1;
+}
+
+.lockedIcon {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #E11D48;
 }
 
 .markedIcon {
