@@ -270,80 +270,23 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
             </div>
           </div>
 
-          {/* Answer Explanation & Official Solution Media (Revealed ONLY when student checks answer) */}
+          {/* Answer Explanation & Step-by-Step Solution Media (Revealed ONLY when student checks answer) */}
           {isEvaluated ? (
             <div className={styles.evaluatedSolutionSection}>
-              {/* Official Solution Video & PDF Resources */}
-              <div className={styles.sideResourcePanel}>
-                <div className={styles.resourceHeader}>
-                  <span className={styles.resourcePanelTitle}>Official Solutions &amp; Media</span>
-                  <span className={styles.courseTag}>
-                    {question.courseName || 'JEE PYQ Mastery Course'}
-                  </span>
-                </div>
-
-                <div className={styles.resourceButtonsGrid}>
-                  {/* Video Solution Button */}
-                  <button
-                    type="button"
-                    onClick={handleVideoClick}
-                    className={`${styles.ytSolutionBtn} ${!isUnlocked ? styles.resourceBtnDisabled : ''}`}
-                    title={isUnlocked ? 'Watch step-by-step video solution' : 'Unlock full course to watch'}
-                  >
-                    <div className={styles.ytIconWrap}>
-                      <YoutubeIcon size={18} className={styles.ytIcon} />
-                    </div>
-                    <div className={styles.btnTextWrap}>
-                      <span className={styles.primaryActionText}>
-                        {isUnlocked ? 'Watch Video Solution' : 'Video Solution (Locked)'}
-                      </span>
-                      <span className={styles.subActionText}>
-                        {isUnlocked
-                          ? `DK Sir Walkthrough • ${question.videoDuration || '12:45'}`
-                          : 'Requires Course Enrollment'}
-                      </span>
-                    </div>
-                    {!isUnlocked && <Lock size={14} className={styles.lockIcon} />}
-                  </button>
-
-                  {/* Solution PDF Download Button */}
-                  <button
-                    type="button"
-                    onClick={handlePdfClick}
-                    className={`${styles.pdfSolutionBtn} ${!isUnlocked ? styles.resourceBtnDisabled : ''}`}
-                    title={isUnlocked ? 'Download high-res step-by-step PDF' : 'Unlock full course to download PDF'}
-                  >
-                    <div className={styles.pdfIconWrap}>
-                      <FileText size={18} className={styles.pdfIcon} />
-                    </div>
-                    <div className={styles.btnTextWrap}>
-                      <span className={styles.primaryActionText}>
-                        {isUnlocked ? 'Download Solution PDF' : 'Solution PDF (Locked)'}
-                      </span>
-                      <span className={styles.subActionText}>
-                        {isUnlocked ? 'Step-by-step Kota notes & key' : 'Requires Course Enrollment'}
-                      </span>
-                    </div>
-                    {isUnlocked ? (
-                      <Download size={14} className={styles.downloadIcon} />
-                    ) : (
-                      <Lock size={14} className={styles.lockIcon} />
-                    )}
-                  </button>
-                </div>
-              </div>
-
               <AnswerExplanation
                 question={question}
                 userAnswer={userResponse?.selectedOption}
                 isCorrect={isCorrect}
+                isUnlocked={isUnlocked}
+                onWatchVideo={handleVideoClick}
+                onDownloadPdf={handlePdfClick}
               />
             </div>
           ) : (
             <div className={styles.solveFirstNotice}>
               <Sparkles size={14} className={styles.sparkleIcon} />
               <span>
-                Attempt this question and click <strong>Check Answer</strong> to reveal DK Sir’s step-by-step YouTube video solution and download the PDF.
+                Attempt this question and click <strong>Check Answer</strong> to reveal DK Sir’s step-by-step mathematical derivation, YouTube video walkthrough, and solution PDF.
               </span>
             </div>
           )}

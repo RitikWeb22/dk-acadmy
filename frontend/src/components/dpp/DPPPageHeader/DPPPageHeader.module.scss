@@ -180,6 +180,12 @@
   border-color: $color-primary;
   font-weight: 700;
   box-shadow: 0 3px 10px rgba(0, 82, 204, 0.28);
+
+  &:hover {
+    background-color: #0043a8 !important;
+    color: #fff !important;
+    border-color: #0043a8 !important;
+  }
 }
 
 .statsGrid {

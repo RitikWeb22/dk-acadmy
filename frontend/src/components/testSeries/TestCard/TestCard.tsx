@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2, Calendar, Timer } from 'lucide-react';
 import type { TestSeriesItem, TestAttempt } from '../../../types';
 import { requestFullScreen } from '../../../utils/fullscreen';
 import styles from './TestCard.module.scss';
@@ -41,6 +41,34 @@ export const TestCard: React.FC<TestCardProps> = ({
         minute: '2-digit',
         hour12: true
       }).format(new Date(startTime))
+    : '';
+
+  // Live Countdown Timer for Upcoming Scheduled Tests
+  const [countdown, setCountdown] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
+
+  useEffect(() => {
+    if (!startTime || !isUpcoming) return;
+
+    const updateCountdown = () => {
+      const diff = startTime - Date.now();
+      if (diff <= 0) {
+        setCountdown(null);
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setCountdown({ days, hours, minutes, seconds });
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [startTime, isUpcoming]);
+
+  const countdownFormatted = countdown
+    ? `${countdown.days > 0 ? `${countdown.days}d ` : ''}${String(countdown.hours).padStart(2, '0')}h : ${String(countdown.minutes).padStart(2, '0')}m : ${String(countdown.seconds).padStart(2, '0')}s`
     : '';
 
   const markingCorrect = test.markingScheme?.correct ?? 4;
@@ -135,9 +163,9 @@ export const TestCard: React.FC<TestCardProps> = ({
               <span>LIVE CBT EXAM</span>
             </span>
           ) : isUpcoming ? (
-            <span className={`${styles.statusPill} ${styles.statusScheduled}`}>
-              <Calendar size={12} aria-hidden="true" />
-              <span>Starts {formattedStartTime}</span>
+            <span className={`${styles.statusPill} ${styles.statusScheduled}`} title={`Opens on ${formattedStartTime}`}>
+              <Timer size={12} aria-hidden="true" />
+              <span>{countdownFormatted ? `Opens in ${countdownFormatted}` : `Starts ${formattedStartTime}`}</span>
             </span>
           ) : isWindowClosed ? (
             <span className={`${styles.statusPill} ${styles.statusClosed}`}>
@@ -255,7 +283,7 @@ export const TestCard: React.FC<TestCardProps> = ({
             <ArrowRight size={15} aria-hidden="true" />
           </button>
         ) : isUpcoming ? (
-          /* Upcoming scheduled test button */
+          /* Upcoming scheduled test button with live countdown and time/date */
           <button
             type="button"
             className={styles.scheduledUpcomingBtn}
@@ -266,10 +294,20 @@ export const TestCard: React.FC<TestCardProps> = ({
                 alert(`This scheduled CBT mock opens on ${formattedStartTime}. Please return at that time to take the live test.`);
               }
             }}
-            aria-label={`Scheduled test opens on ${formattedStartTime}`}
+            aria-label={`Scheduled test opens on ${formattedStartTime}. Countdown: ${countdownFormatted || 'Upcoming'}`}
           >
-            <Calendar size={14} aria-hidden="true" />
-            <span>Opens {formattedStartTime}</span>
+            <div className={styles.scheduledBtnInner}>
+              <div className={styles.scheduledDateRow}>
+                <Calendar size={14} aria-hidden="true" />
+                <span>Opens {formattedStartTime}</span>
+              </div>
+              {countdownFormatted && (
+                <div className={styles.scheduledCountdownRow}>
+                  <Timer size={12} className={styles.countdownTimerIcon} aria-hidden="true" />
+                  <span>Starts in: <strong>{countdownFormatted}</strong></span>
+                </div>
+              )}
+            </div>
           </button>
         ) : (
           /* "Start Test" (Solid Primary Blue) */
