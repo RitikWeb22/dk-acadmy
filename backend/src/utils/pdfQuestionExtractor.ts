@@ -65,6 +65,17 @@ export function normalizeMathInText(rawText: string): string {
     return `${intPart} \\frac{${num.trim()}}{${den.replace(/\s*dx\b/i, '').trim()}} \\, dx${trail}`;
   });
 
+  // Decode Word Quartz / CambriaMath font artifact substitutions in formulas
+  text = text.replace(/cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*\(?\s*x\s*-\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
+  text = text.replace(/\[\s*\\?cot\b/gi, '\\left[\\cot ');
+  text = text.replace(/\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
+  text = text.replace(/\\{2,}log_e/g, '\\log_e');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*\)/g, '\\log_e(');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(');
+  text = text.replace(/\\log_e\s*\(\s*\\sqrt/g, '\\log_e(\\sqrt');
   text = text.replace(/log[7\-]/g, '\\log_e ');
   text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
   text = text.replace(/\/012/g, '-\\sin ');

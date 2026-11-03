@@ -108,7 +108,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
             dkSirShortcut: 'DK Sir 20s Inspection: Monotonic integrand substitution bounds 0 to 1 directly.',
             videoUrl: '',
             pdfUrl: '',
-            isFree: true
+            isFree: initialPaper?.accessMode === 'paid' || initialPaper?.isFree === false ? false : true
           }
         ]
   );
@@ -245,7 +245,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
             dkSirShortcut: q.dkSirShortcut || '',
             videoUrl: '',
             pdfUrl: '',
-            isFree: true,
+            isFree: initialPaper?.accessMode === 'paid' || initialPaper?.isFree === false ? false : true,
             status: q.status || 'EXTRACTED',
             reviewReason: q.reviewReason || ''
           };
@@ -309,7 +309,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
       dkSirShortcut: '',
       videoUrl: '',
       pdfUrl: '',
-      isFree: true
+      isFree: accessMode === 'paid' ? false : true
     };
     setQuestions((prev) => [...prev, newQ]);
     setActiveQuestionIndex(questions.length);
@@ -1408,7 +1408,10 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     type="radio"
                     name="accessMode"
                     checked={accessMode === 'free'}
-                    onChange={() => setAccessMode('free')}
+                    onChange={() => {
+                      setAccessMode('free');
+                      setQuestions((prev) => prev.map((q) => ({ ...q, isFree: true })));
+                    }}
                   />
                   <div>
                     <div style={{ fontWeight: 600, color: '#0f172a' }}>Free Practice Drill</div>
@@ -1434,7 +1437,10 @@ export const PyqCreateWizard: React.FC<Props> = ({
                     type="radio"
                     name="accessMode"
                     checked={accessMode === 'paid'}
-                    onChange={() => setAccessMode('paid')}
+                    onChange={() => {
+                      setAccessMode('paid');
+                      setQuestions((prev) => prev.map((q) => ({ ...q, isFree: false })));
+                    }}
                   />
                   <div>
                     <div style={{ fontWeight: 600, color: '#0f172a' }}>Paid / Locked Mastery Course</div>
@@ -1634,7 +1640,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                             videoUrl: qbItem.videoUrl,
                             pdfUrl: qbItem.pdfUrl,
                             diagramUrl: qbItem.diagramUrl,
-                            isFree: true
+                            isFree: initialPaper?.accessMode === 'paid' || initialPaper?.isFree === false ? false : true
                           };
                           setQuestions((prev) => [...prev, newQ]);
                           setActiveQuestionIndex(questions.length);

@@ -66,12 +66,11 @@ export function convertAllFractions(input: string): string {
               if (depth === 0) {
                 leftStart = p;
                 let cmdCheck = p - 1;
-                while (cmdCheck >= 0 && /[a-zA-Z\\]/.test(str[cmdCheck])) {
-                  if (str[cmdCheck] === '\\') {
-                    leftStart = cmdCheck;
-                    break;
-                  }
+                while (cmdCheck >= 0 && /[a-zA-Z]/.test(str[cmdCheck])) {
                   cmdCheck--;
+                }
+                if (cmdCheck >= 0 && str[cmdCheck] === '\\') {
+                  leftStart = cmdCheck;
                 }
                 break;
               }
@@ -80,7 +79,10 @@ export function convertAllFractions(input: string): string {
           }
         } else {
           let p = leftEnd;
-          while (p >= 0 && /[a-zA-Z0-9_\^\\\{\}α-ωΑ-Ω]/.test(str[p])) {
+          while (p >= 0 && /[a-zA-Z0-9α-ωΑ-Ω]/.test(str[p])) {
+            p--;
+          }
+          if (p >= 0 && str[p] === '\\') {
             p--;
           }
           leftStart = p + 1;
@@ -357,6 +359,16 @@ export function normalizeMathText(raw: string): string {
   });
 
   // Decode Word Quartz / CambriaMath font artifact substitutions in formulas
+  text = text.replace(/cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*\(?\s*x\s*-\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
+  text = text.replace(/\[\s*\\?cot\b/gi, '\\left[\\cot ');
+  text = text.replace(/\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
+  text = text.replace(/\\{2,}log_e/g, '\\log_e');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*\)/g, '\\log_e(');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(');
+  text = text.replace(/\\log_e\s*\(\s*\\sqrt/g, '\\log_e(\\sqrt');
   text = text.replace(/log[7\-]/g, '\\log_e ');
   text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
   text = text.replace(/\/012/g, '-\\sin ');
@@ -666,15 +678,17 @@ export function normalizeMathText(raw: string): string {
 
     // 5. Integral limits: ∫_0^1▒ or ∫_0^(π/4)▒ or \int_0^(\pi/4) or ∫_0^1
     res = res.replace(/(?:∫|\\int)_([0-9a-zA-Z]+|\{[^}]+\}|\([^)]+\))\s*\^\s*(\([^)]+\)|\{[^}]+\}|[0-9a-zA-Z]+?)(?:▒|\s*(?=[0-9a-zA-Z\/\(\\])|$)\s*/g, (_, low, high) => {
-      let cleanLow = stripOuterParens(low).replace(/[{}]/g, '').trim();
-      cleanLow = cleanLow.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
-                         .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
-                         .replace(/π/, '\\pi');
-      let cleanHigh = stripOuterParens(high).replace(/[{}]/g, '').trim();
-      cleanHigh = cleanHigh.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
-                           .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
-                           .replace(/π/, '\\pi');
-      return `\\int_{${cleanLow}}^{${cleanHigh}} `;
+      const normalizeLimit = (val: string) => {
+        let clean = stripOuterParens(val).replace(/[{}]/g, '').trim();
+        clean = clean.replace(/π\/6|\\pi\/6/g, '\\frac{\\pi}{6}')
+                     .replace(/π\/4|\\pi\/4/g, '\\frac{\\pi}{4}')
+                     .replace(/π\/3|\\pi\/3/g, '\\frac{\\pi}{3}')
+                     .replace(/π\/2|\\pi\/2/g, '\\frac{\\pi}{2}')
+                     .replace(/π\/8|\\pi\/8/g, '\\frac{\\pi}{8}')
+                     .replace(/π/g, '\\pi');
+        return clean;
+      };
+      return `\\int_{${normalizeLimit(low)}}^{${normalizeLimit(high)}} `;
     });
     res = res.replace(/▒/g, ' ');
     res = res.replace(/∫01\b/g, '\\int_0^1 ')
