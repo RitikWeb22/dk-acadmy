@@ -4464,6 +4464,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                   ⭐ 7 Days (Recommended)
                                 </button>
                               </div>
+                              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Or Set Closing Date &amp; Time manually:</span>
+                                <input
+                                  type="datetime-local"
+                                  value={endWindowDate}
+                                  onChange={(e) => setEndWindowDate(e.target.value)}
+                                  className={styles.modernDateInput}
+                                  style={{ maxWidth: '240px', fontSize: '12.5px', padding: '6px 10px' }}
+                                />
+                              </div>
                             </div>
 
                             {/* 4. Live Visual Confirmation Badge */}
@@ -5731,7 +5741,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Window Duration Presets */}
+                    {/* Window Duration Presets & Manual Closing Date/Time */}
                     <div className={styles.pickerSubSection}>
                       <div className={styles.pickerSectionLabel}>
                         <span>Duration Window</span>
@@ -5751,6 +5761,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         >
                           7 Days Window
                         </button>
+                      </div>
+                      <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#475569' }}>Or Closing Date &amp; Time:</span>
+                        <input
+                          type="datetime-local"
+                          value={newScheduledEndTime}
+                          onChange={(e) => setNewScheduledEndTime(e.target.value)}
+                          className={styles.modernDateInput}
+                          style={{ maxWidth: '220px', fontSize: '12px', padding: '5px 8px' }}
+                        />
                       </div>
                     </div>
 
