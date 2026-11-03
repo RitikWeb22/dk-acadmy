@@ -11,6 +11,7 @@ interface QuestionNavigatorProps {
   questionIds: string[];
   isEnrolled?: boolean;
   freeCount?: number;
+  isAccessible?: (idx: number) => boolean;
   onToggleMarkForReview?: (questionId: string) => void;
 }
 
@@ -24,6 +25,7 @@ export const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
   questionIds,
   isEnrolled = false,
   freeCount = 5,
+  isAccessible,
   onToggleMarkForReview
 }) => {
   const [filterMode, setFilterMode] = useState<PaletteFilter>('all');
@@ -117,7 +119,10 @@ export const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
           const isCurrent = index === currentIndex;
           const isAnswered = Boolean(resp?.selectedOption);
           const isMarked = Boolean(resp?.isMarkedForReview);
-          const isLocked = !isEnrolled && index >= freeCount;
+          const isAccessibleQuestion = isAccessible
+            ? isAccessible(index)
+            : (isEnrolled || index < freeCount);
+          const isLocked = !isAccessibleQuestion;
 
           // Apply Filter Mode
           if (filterMode === 'attempted' && !isAnswered) return null;

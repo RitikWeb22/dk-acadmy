@@ -1051,6 +1051,7 @@ export const PYQPage: React.FC = () => {
                       questionIds={questionIds}
                       isEnrolled={activeSet.isFree !== false || isEnrolled}
                       freeCount={activeSet.isFree !== false ? setQuestions.length : 1}
+                      isAccessible={(idx) => isQuestionAccessible(setQuestions[idx], idx)}
                       onToggleMarkForReview={handleToggleMarkForReview}
                     />
 
