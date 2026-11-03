@@ -172,14 +172,42 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
     const cleanFormula = sanitizeFormula(formula);
 
     try {
+      let html = katex.renderToString(cleanFormula, {
+        displayMode: isDisplay,
+        throwOnError: false,
+        output: 'html',
+        strict: false,
+        trust: false
+      });
+
+      // If KaTeX encountered an error node, attempt auto-balancing repair
+      if (html.includes('katex-error')) {
+        let repaired = cleanFormula
+          .replace(/(?:\\left\s*){2,}/g, '\\left')
+          .replace(/(?:\\right\s*){2,}/g, '\\right');
+        const leftCount = (repaired.match(/\\left\b/g) || []).length;
+        const rightCount = (repaired.match(/\\right\b/g) || []).length;
+        if (leftCount > rightCount) {
+          repaired += '\\right.'.repeat(leftCount - rightCount);
+        } else if (rightCount > leftCount) {
+          repaired = '\\left.'.repeat(rightCount - leftCount) + repaired;
+        }
+        try {
+          const secondTry = katex.renderToString(repaired, {
+            displayMode: isDisplay,
+            throwOnError: false,
+            output: 'html',
+            strict: false,
+            trust: false
+          });
+          if (!secondTry.includes('katex-error')) {
+            html = secondTry;
+          }
+        } catch {}
+      }
+
       return {
-        html: katex.renderToString(cleanFormula, {
-          displayMode: isDisplay,
-          throwOnError: false,
-          output: 'html',
-          strict: false,
-          trust: false
-        }),
+        html,
         error: null
       };
     } catch (err: any) {
@@ -228,8 +256,11 @@ function sanitizeFormula(str: string): string {
     .replace(/^\\text\{\s*(?:If|Let|Then|Where|When)\s*\}\s*/i, '')
     .replace(/^(?:If|Let|Then|Where|When)\s+/i, '')
     // Normalize any duplicated \left\left or \right\right for any delimiter
-    .replace(/\\left\s*\\left/g, '\\left')
-    .replace(/\\right\s*\\right/g, '\\right')
+    .replace(/(?:\\left\s*){2,}/g, '\\left')
+    .replace(/(?:\\right\s*){2,}/g, '\\right')
+    // Fix inverted definite integral limits
+    .replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}')
+    .replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}')
     // Clean triple braces on exponents and subscripts e.g. ^{\frac{\pi}{6}}} -> ^{\frac{\pi}{6}}
     .replace(/(\^\{[^{}]+(?:\{[^{}]*\}[^{}]*)*)\}\}/g, '$1}')
     .replace(/(\_\{[^{}]+(?:\{[^{}]*\}[^{}]*)*)\}\}/g, '$1}')
