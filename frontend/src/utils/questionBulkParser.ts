@@ -339,32 +339,8 @@ export function normalizeMathText(raw: string): string {
   // Convert all double dollar display delimiters to single dollar inline delimiters
   let text = raw.split('$$').join('$');
 
-  // 0. Global pre-pass for Word/PDF copy-paste artifacts across multi-line blocks
-  // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2 or \int_0 \n ^2
-  text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');
-  text = text.replace(/\\int_\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
-  text = text.replace(/\\int\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
-
-  // Stitch stacked fractions where numerator is on one line and denominator is on the next line (with dx, dt, etc. and optional trailing words)
-  text = text.replace(/((?:The value of the integral\s*)?\\int[^\r\n]*?)\s*\r?\n+([^\r\n]+?)\r?\n+([^\r\n]+?\b(?:dx|dt|dy|d\theta)\b)([\s\S]*?)(?=\r?\n|$)/gi, (_, intPart, num, den, trail) => {
-    const diffMatch = den.match(/\b(dx|dt|dy|d\theta)\b/i);
-    const diffVar = diffMatch ? diffMatch[0] : 'dx';
-    const cleanDen = den.replace(new RegExp(`\\s*\\b${diffVar}\\b`, 'i'), '').trim();
-    return `${intPart} \\frac{${num.trim()}}{${cleanDen}} \\, ${diffVar}${trail}`;
-  });
-
-  // Also catch generic multiline fraction where numerator is on one line and denominator has dx on the next line
-  text = text.replace(/(\\int[^\n]+?)\s*\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s_]+?)\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s_]+?\s*dx\b)([\s\S]*?)(?=\r?\n|$)/gi, (_, intPart, num, den, trail) => {
-    return `${intPart} \\frac{${num.trim()}}{${den.replace(/\s*dx\b/i, '').trim()}} \\, dx${trail}`;
-  });
-
-  // Decode Word Quartz / CambriaMath font artifact substitutions in formulas
-  text = text.replace(/cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
-  text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-  text = text.replace(/cot\s*\(?\s*x\s*-\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
-  text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-  text = text.replace(/\[\s*\\?cot\b/gi, '\\left[\\cot ');
-  text = text.replace(/\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
+  // 0. Global pre-pass for Word/PDF copy-paste artifacts & CambriaMath font substitutions
+  // Decode Word Quartz / CambriaMath font artifact substitutions in formulas FIRST
   text = text.replace(/\\{2,}log_e/g, '\\log_e');
   text = text.replace(/\\log_e\s*\(\s*\(\s*\)/g, '\\log_e(');
   text = text.replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(');
@@ -376,6 +352,12 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/012/g, '\\sin ');
   text = text.replace(/9:0\s*[\$x]?["!]?\s*([\$x])/gi, '\\cos^2 x');
   text = text.replace(/9:0/g, '\\cos ');
+
+  // Standard fraction markers
+  text = text.replace(/\\pi\/4/g, '\\frac{\\pi}{4}');
+  text = text.replace(/\\pi\/6/g, '\\frac{\\pi}{6}');
+  text = text.replace(/\\pi\/3/g, '\\frac{\\pi}{3}');
+  text = text.replace(/\\pi\/2/g, '\\frac{\\pi}{2}');
   text = text.replace(/3\/6/g, '\\frac{\\pi}{6}');
   text = text.replace(/3\/4/g, '\\frac{\\pi}{4}');
   text = text.replace(/3\/2/g, '\\frac{\\pi}{2}');
@@ -384,10 +366,41 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/3\//g, '\\pi - ');
   text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{2}');
 
-  // Only decode font garbles if text does not already contain structured LaTeX tags
-  if (!text.includes('\\frac') && !text.includes('\\int') && !text.includes('\\sqrt')) {
-    text = text.replace(/\$([0-9!#'"&+\-/*])/g, 'x$1');
-    text = text.replace(/([0-9!#'"&+\-/*\(])\$/g, '$1x');
+  // Decode Word cotangent terms with brackets
+  text = text.replace(/\[\s*cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*\(?\s*x\s*-\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
+  text = text.replace(/\[\s*\\?cot\b/gi, '\\left[\\cot ');
+  text = text.replace(/\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
+
+  // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2 or \int_0 \n ^2
+  text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');
+  text = text.replace(/\\int_\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
+  text = text.replace(/\\int\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
+
+  // Stitch stacked fractions where numerator is on one line and denominator is on the next line (with dx, dt, etc. and optional trailing words)
+  text = text.replace(/((?:The value of the integral\s*)?\\int[^\r\n]*?)\s*\r?\n+([^\r\n]+?)\r?\n+([^\r\n]+?\b(?:dx|dt|dy|d\theta)\b)([\s\S]*?)(?=\r?\n|$)/gi, (match, intPart, num, den, trail) => {
+    // If num contains bracket openers or cotangent, don't treat as fraction
+    if (/\\cot\b|\\left\[|\[/.test(num)) return match;
+    const diffMatch = den.match(/\b(dx|dt|dy|d\theta)\b/i);
+    const diffVar = diffMatch ? diffMatch[0] : 'dx';
+    const cleanDen = den.replace(new RegExp(`\\s*\\b${diffVar}\\b`, 'i'), '').trim();
+    return `${intPart} \\frac{${num.trim()}}{${cleanDen}} \\, ${diffVar}${trail}`;
+  });
+
+  // Also catch generic multiline fraction where numerator is on one line and denominator has dx on the next line
+  text = text.replace(/(\\int[^\n]+?)\s*\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s_]+?)\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s_]+?\s*dx\b)([\s\S]*?)(?=\r?\n|$)/gi, (match, intPart, num, den, trail) => {
+    if (/\\cot\b|\\left\[|\[/.test(num)) return match;
+    return `${intPart} \\frac{${num.trim()}}{${den.replace(/\s*dx\b/i, '').trim()}} \\, dx${trail}`;
+  });
+
+  // Only decode font garbles if text does not already contain structured LaTeX tags or math delimiters
+  const hasDollarMath = /\$[^\$\n]+\$/.test(text);
+  if (!hasDollarMath && !text.includes('\\frac') && !text.includes('\\int') && !text.includes('\\sqrt')) {
+    text = text.replace(/\$([!#'"&+\-/*])/g, 'x$1');
+    text = text.replace(/([!#'"&+\-/*\(])\$/g, '$1x');
     text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
     text = text.replace(/([a-zA-Z0-9\)])#/g, '$1^3');
   }
@@ -752,10 +765,11 @@ export function normalizeMathText(raw: string): string {
     // 10. Universal Fractions: converts all quotients A/B into \frac{A}{B}
     res = convertAllFractions(res);
 
-    // 10b. Normalize powers with unbraced fractions: x^\frac{{2}}{2} -> x^{\frac{2}{2}}
-    res = res.replace(/(?<!\{)\^\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}');
-    res = res.replace(/(?<!\{)\^\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}');
-    res = res.replace(/(?<!\{)\^(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '^{$1}');
+    // 10b. Normalize powers with unbraced fractions: x^\frac{1}{2} -> x^{\frac{1}{2}} (careful: never corrupt already-braced ^{\frac{...}{...}})
+    res = res.replace(/\^\{\{\\frac\{([^}]+)\}\}\{([^}]+)\}\}/g, '^{\\frac{$1}{$2}}')
+             .replace(/\^(?!\{)\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}')
+             .replace(/\^(?!\{)\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}')
+             .replace(/\^(?!\{)(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '^{$1}');
 
     // 11. Multi-digit exponents without braces: 1^15 -> 1^{15}, n^16 -> n^{16} (run after fractions!)
     res = res.replace(/([a-zA-Z0-9_\)\]\}])\^([0-9]{2,})\b/g, '$1^{$2}');

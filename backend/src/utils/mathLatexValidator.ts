@@ -186,3 +186,4 @@ export function validateQuestionLatexStructure(question: {
     uncertainRegions: Array.from(new Set(uncertainRegions))
   };
 }
+

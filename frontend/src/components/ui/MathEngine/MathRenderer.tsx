@@ -231,9 +231,10 @@ function sanitizeFormula(str: string): string {
     .replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ")
     // Normalize empty set phi
     .replace(/∅/g, '\\phi ')
-    // Normalize unbraced fractions in powers: x^\frac{{2}}{2} -> x^{\frac{2}{2}}
-    .replace(/(?<!\{)\^\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}')
-    .replace(/(?<!\{)\^\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}')
+    // Normalize unbraced fractions in powers: x^\frac{1}{2} -> x^{\frac{1}{2}} (careful: never corrupt already-braced ^{\frac{...}{...}})
+    .replace(/\^\{\{\\frac\{([^}]+)\}\}\{([^}]+)\}\}/g, '^{\\frac{$1}{$2}}')
+    .replace(/\^(?!\{)\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}')
+    .replace(/\^(?!\{)\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}')
     // Normalize vectors: (OA) ⃗ -> \vec{OA}, a ⃗ -> \vec{a}, i ˆ -> \hat{i}
     .replace(/\(([A-Za-z]{1,3})\)\s*[\u20D7\u2192⃗]/g, '\\vec{$1}')
     .replace(/([a-zA-Z])\s*[\u20D7\u2192⃗]/g, '\\vec{$1}')
@@ -256,8 +257,8 @@ function sanitizeFormula(str: string): string {
     .trim();
 
   // If formula contains connecting words inside math mode without \text, wrap them in \text{ ... }
-  // to ensure proper spaces between words and prevent collapsed text
-  res = res.replace(/(?<!\\)\b(is equal to|equal to|then|where|and|or|for|if|such that|be defined as|defined as)\b/gi, (match) => `\\text{ ${match} }`);
+  // to ensure proper spaces between words and prevent collapsed text (excluding sentence starters like 'if')
+  res = res.replace(/(?<!\\)\b(is equal to|equal to|then|where|and|such that|be defined as|defined as)\b/gi, (match) => `\\text{ ${match} }`);
 
   return res;
 }

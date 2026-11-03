@@ -337,11 +337,12 @@ export const PYQPage: React.FC = () => {
   }, [student, activeSet, unlockedSetIds]);
 
   // Access rule for individual question inside active set
-  const isQuestionAccessible = (q: PYQQuestion, _index: number): boolean => {
+  const isQuestionAccessible = (q: PYQQuestion, index: number): boolean => {
     if (activeSet?.isFree !== false) return true;
     if (isEnrolled) return true;
     if (q.isFree === true) return true;
-    return false;
+    if (q.isFree === false) return false;
+    return index === 0;
   };
 
   const [modalTargetSet, setModalTargetSet] = useState<LiveDppPyqSet | null>(null);
