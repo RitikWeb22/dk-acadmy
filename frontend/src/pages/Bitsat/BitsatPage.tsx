@@ -40,6 +40,10 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { Container } from '../../components/ui/Container/Container';
+import { MathText } from '../../components/ui/MathText/MathText';
+import { PYQCourseUnlockModal } from '../../components/pyq/PYQCourseUnlockModal/PYQCourseUnlockModal';
+import { paymentService } from '../../services/paymentService';
+import { useStudentAuth } from '../../context/AuthContext';
 import { apiClient } from '../../services/apiClient';
 import { CMS_EVENT_KEY } from '../../services/cmsService';
 import { soundEffects } from '../../utils/sound';
@@ -546,6 +550,74 @@ export const BitsatPage: React.FC = () => {
     );
   }, [selectedDrillId, drills]);
 
+  const { student } = useStudentAuth();
+
+  // BITSAT Drills unlocked status stored in localStorage
+  const [unlockedDrillIds, setUnlockedDrillIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('dk_unlocked_bitsat_sets');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+  const [modalTargetDrill, setModalTargetDrill] = useState<BITSATDrillItem | null>(null);
+
+  const isDrillUnlocked = (drill: BITSATDrillItem): boolean => {
+    if (drill.isFree !== false || !drill.price || drill.price === 0) return true;
+    const drillId = String(drill.id || drill._id || '');
+    if (unlockedDrillIds.includes(drillId)) return true;
+    if (!student?.enrolledCourseIds) return false;
+    return (
+      student.enrolledCourseIds.includes(drillId) ||
+      student.enrolledCourseIds.includes('bitsat-speed-master-crash-course') ||
+      student.enrolledCourseIds.includes('bitsat-full-test-series-2026') ||
+      student.enrolledCourseIds.includes('jee-main-advanced-2yr-ultimate')
+    );
+  };
+
+  const handleUnlockDrill = (drill: BITSATDrillItem) => {
+    setModalTargetDrill(drill);
+    setIsUnlockModalOpen(true);
+  };
+
+  const handleEnrollDrill = async () => {
+    const targetDrill = modalTargetDrill || activeDrill;
+    if (!targetDrill) return;
+    const price = targetDrill.price ?? 299;
+    const drillId = String(targetDrill.id || targetDrill._id || 'bitsat-drill');
+    const drillTitle = targetDrill.title || 'BITSAT Speed Drill';
+
+    try {
+      await paymentService.initiateCourseCheckout({
+        amount: price,
+        courseId: drillId,
+        courseTitle: drillTitle,
+        studentName: student?.name || 'Aspirant',
+        studentEmail: student?.email || 'student@dkacademy.in',
+        studentPhone: student?.phone || '9999999999',
+        onSuccess: (_paymentId: string) => {
+          setIsUnlockModalOpen(false);
+          setUnlockedDrillIds((prev) => {
+            const next = Array.from(new Set([...prev, drillId]));
+            try {
+              localStorage.setItem('dk_unlocked_bitsat_sets', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+          showToast('BITSAT Drill unlocked successfully! You now have full access to all questions.');
+        },
+        onError: (err: any) => {
+          console.error('BITSAT drill payment error:', err);
+        }
+      });
+    } catch (err) {
+      console.error('Failed to initiate BITSAT drill checkout:', err);
+    }
+  };
+
   // Current questions list for active drill
   const activeQuestions = useMemo(() => {
     if (!activeDrill || !Array.isArray(activeDrill.questions) || activeDrill.questions.length === 0) {
@@ -557,6 +629,14 @@ export const BitsatPage: React.FC = () => {
   const currentQ = useMemo(() => {
     return activeQuestions[activeQuestionIndex] || activeQuestions[0] || null;
   }, [activeQuestions, activeQuestionIndex]);
+
+  const isQuestionAccessible = (_q: BITSATQuestion, index: number): boolean => {
+    if (!activeDrill) return true;
+    if (activeDrill.isFree !== false || isDrillUnlocked(activeDrill)) return true;
+    return index === 0; // free preview for Question 1
+  };
+
+  const isCurrentAccessible = currentQ ? isQuestionAccessible(currentQ, activeQuestionIndex) : true;
 
   // 3. Fixed CBT Drill Countdown Timer Hook (Non-pausable, calibrated from Admin setting)
   useEffect(() => {
@@ -995,66 +1075,107 @@ export const BitsatPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className={styles.setsCardsGrid}>
-                    {filteredDrills.map((drill) => (
-                      <article
-                        key={drill.id || drill._id}
-                        className={styles.setCard}
-                        onClick={() => {
-                          setSelectedDrillId(drill.id || drill._id || '');
-                          setActiveQuestionIndex(0);
-                          setResponses({});
-                          setIsDrillSubmitted(false);
-                          window.scrollTo({ top: 320, behavior: 'smooth' });
-                        }}
-                      >
-                        <div
-                          className={styles.setCardTopAccent}
-                          style={{
-                            background: drill.subject === 'Mathematics'
-                              ? 'linear-gradient(90deg, #d97706, #f59e0b)'
-                              : drill.subject === 'Physics'
-                              ? 'linear-gradient(90deg, #2563eb, #38bdf8)'
-                              : drill.subject === 'Chemistry'
-                              ? 'linear-gradient(90deg, #059669, #34d399)'
-                              : 'linear-gradient(90deg, #7c3aed, #a855f7)'
+                    {filteredDrills.map((drill) => {
+                      const isClosed = drill.status === 'Closed';
+                      const isLocked = !isClosed && drill.isFree === false && (drill.price || 0) > 0 && !isDrillUnlocked(drill);
+
+                      return (
+                        <article
+                          key={drill.id || drill._id}
+                          className={styles.setCard}
+                          onClick={() => {
+                            if (isClosed) return;
+                            if (isLocked) {
+                              handleUnlockDrill(drill);
+                              return;
+                            }
+                            setSelectedDrillId(drill.id || drill._id || '');
+                            setActiveQuestionIndex(0);
+                            setResponses({});
+                            setIsDrillSubmitted(false);
+                            window.scrollTo({ top: 320, behavior: 'smooth' });
                           }}
-                        />
+                        >
+                          <div
+                            className={styles.setCardTopAccent}
+                            style={{
+                              background: drill.subject === 'Mathematics'
+                                ? 'linear-gradient(90deg, #d97706, #f59e0b)'
+                                : drill.subject === 'Physics'
+                                ? 'linear-gradient(90deg, #2563eb, #38bdf8)'
+                                : drill.subject === 'Chemistry'
+                                ? 'linear-gradient(90deg, #059669, #34d399)'
+                                : 'linear-gradient(90deg, #7c3aed, #a855f7)'
+                            }}
+                          />
 
-                        <div className={styles.setCardTopRow}>
-                          <span className={styles.setModuleBadge}>
-                            <Zap size={11} /> {drill.badgeCode || 'BITSAT Speed Drill'}
-                          </span>
-                          {drill.isFree === false && (drill.price || 0) > 0 ? (
-                            <span className={styles.accessBadgeLocked}>PRO • ₹{drill.price}</span>
+                          <div className={styles.setCardTopRow}>
+                            <span className={styles.setModuleBadge}>
+                              <Zap size={11} /> {drill.badgeCode || 'BITSAT Speed Drill'}
+                            </span>
+                            {isClosed ? (
+                              <span style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <Lock size={11} /> CLOSED DRILL
+                              </span>
+                            ) : isLocked ? (
+                              <span className={styles.accessBadgeLocked} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <Lock size={11} /> LOCKED • ₹{drill.price}
+                              </span>
+                            ) : (
+                              <span className={styles.accessBadgeFree}>FREE ACCESS</span>
+                            )}
+                          </div>
+
+                          <h3 className={styles.setCardTitle}>{drill.title}</h3>
+                          <p className={styles.setCardSubtext}>
+                            {drill.chapter ? `${drill.chapter} • ` : ''}{drill.solutionNote || 'Strict 45s timer format with DK Sir shortcuts'}
+                          </p>
+
+                          <div className={styles.setCardMetaStrip}>
+                            <span className={styles.setCardMetaItem}>
+                              <Clock size={13} style={{ color: '#d97706' }} /> 45s / Question
+                            </span>
+                            <span className={styles.setCardMetaItem}>
+                              <ListOrdered size={13} style={{ color: '#2563eb' }} /> {drill.questionsCount || drill.questions?.length || 4} Questions
+                            </span>
+                            <span className={styles.setCardMetaItem}>
+                              <Brain size={13} style={{ color: '#059669' }} /> {drill.attemptsCount || 120}+ Solved
+                            </span>
+                          </div>
+
+                          {isClosed ? (
+                            <button
+                              type="button"
+                              disabled
+                              className={styles.setCardActionBtn}
+                              style={{ background: '#f1f5f9', color: '#64748b', cursor: 'not-allowed', border: '1px solid #cbd5e1' }}
+                            >
+                              <Lock size={14} />
+                              <span>Closed Drill / Expired</span>
+                            </button>
+                          ) : isLocked ? (
+                            <button
+                              type="button"
+                              className={styles.setCardActionBtn}
+                              style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', color: '#38bdf8', border: '1px solid #334155' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUnlockDrill(drill);
+                              }}
+                            >
+                              <Lock size={14} />
+                              <span>Unlock Speed Drill (₹{drill.price || 299})</span>
+                            </button>
                           ) : (
-                            <span className={styles.accessBadgeFree}>FREE ACCESS</span>
+                            <button type="button" className={styles.setCardActionBtn}>
+                              <Flame size={15} />
+                              <span>Start Speed Drill</span>
+                              <ArrowRight size={14} />
+                            </button>
                           )}
-                        </div>
-
-                        <h3 className={styles.setCardTitle}>{drill.title}</h3>
-                        <p className={styles.setCardSubtext}>
-                          {drill.chapter ? `${drill.chapter} • ` : ''}{drill.solutionNote || 'Strict 45s timer format with DK Sir shortcuts'}
-                        </p>
-
-                        <div className={styles.setCardMetaStrip}>
-                          <span className={styles.setCardMetaItem}>
-                            <Clock size={13} style={{ color: '#d97706' }} /> 45s / Question
-                          </span>
-                          <span className={styles.setCardMetaItem}>
-                            <ListOrdered size={13} style={{ color: '#2563eb' }} /> {drill.questionsCount || drill.questions?.length || 4} Questions
-                          </span>
-                          <span className={styles.setCardMetaItem}>
-                            <Brain size={13} style={{ color: '#059669' }} /> {drill.attemptsCount || 120}+ Solved
-                          </span>
-                        </div>
-
-                        <button type="button" className={styles.setCardActionBtn}>
-                          <Flame size={15} />
-                          <span>Start Speed Drill</span>
-                          <ArrowRight size={14} />
-                        </button>
-                      </article>
-                    ))}
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1131,29 +1252,86 @@ export const BitsatPage: React.FC = () => {
                           </span>
                         </div>
 
-                        <p className={styles.questionStatement}>
-                          {currentQ.statement}
-                        </p>
+                        {!isCurrentAccessible ? (
+                          <div style={{
+                            padding: '48px 24px',
+                            textAlign: 'center',
+                            background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+                            border: '1.5px dashed #cbd5e1',
+                            borderRadius: '16px',
+                            margin: '16px 0'
+                          }}>
+                            <div style={{
+                              width: '60px',
+                              height: '60px',
+                              borderRadius: '50%',
+                              background: '#fff1f2',
+                              color: '#e11d48',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginBottom: '16px',
+                              border: '1px solid #fecdd3'
+                            }}>
+                              <Lock size={28} />
+                            </div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                              Question {activeQuestionIndex + 1} is Locked
+                            </h3>
+                            <p style={{ fontSize: '0.92rem', color: '#64748b', maxWidth: '440px', margin: '0 auto 20px', lineHeight: 1.6 }}>
+                              This speed problem and its instant shortcut inspection trick are part of the Complete BITSAT Speed Drill.
+                              Unlock now to attempt all questions and view your live AIR ranking score.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => handleUnlockDrill(activeDrill)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                                color: '#38bdf8',
+                                border: '1px solid #334155',
+                                borderRadius: '12px',
+                                padding: '12px 24px',
+                                fontSize: '0.95rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Lock size={16} />
+                              <span>Unlock Complete Drill (₹{activeDrill.price || 299})</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className={styles.questionStatement}>
+                              <MathText text={currentQ.statement} />
+                            </div>
 
-                        {/* Interactive Option Buttons */}
-                        <div className={styles.optionsList}>
-                          {(currentQ.options || []).map((opt) => {
-                            const isSelected = responses[currentQ.id]?.selectedOption === opt.key;
-                            return (
-                              <button
-                                key={opt.key}
-                                type="button"
-                                className={`${styles.optionItemBtn} ${isSelected ? styles.optionSelected : ''}`}
-                                onClick={() => handleSelectOption(currentQ.id, opt.key)}
-                              >
-                                <span className={`${styles.optionKeyCircle} ${isSelected ? styles.optionKeySelected : ''}`}>
-                                  {opt.key}
-                                </span>
-                                <span className={styles.optionTextString}>{opt.text}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                            {/* Interactive Option Buttons */}
+                            <div className={styles.optionsList}>
+                              {(currentQ.options || []).map((opt) => {
+                                const isSelected = responses[currentQ.id]?.selectedOption === opt.key;
+                                return (
+                                  <button
+                                    key={opt.key}
+                                    type="button"
+                                    className={`${styles.optionItemBtn} ${isSelected ? styles.optionSelected : ''}`}
+                                    onClick={() => handleSelectOption(currentQ.id, opt.key)}
+                                  >
+                                    <span className={`${styles.optionKeyCircle} ${isSelected ? styles.optionKeySelected : ''}`}>
+                                      {opt.key}
+                                    </span>
+                                    <span className={styles.optionTextString}>
+                                      <MathText text={opt.text} />
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
 
                         {/* Action Toolbar */}
                         <div className={styles.actionToolbar}>
@@ -1208,9 +1386,9 @@ export const BitsatPage: React.FC = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, marginBottom: '6px' }}>
                               <Zap size={16} /> DK Sir 20–30s Inspection Trick:
                             </div>
-                            <p style={{ margin: 0 }}>
-                              {currentQ.dkSirShortcut || 'Use boundary-value substitution and eliminate choices with opposite parity or sign in under 20 seconds!'}
-                            </p>
+                            <div style={{ margin: 0 }}>
+                              <MathText text={currentQ.dkSirShortcut || 'Use boundary-value substitution and eliminate choices with opposite parity or sign in under 20 seconds!'} />
+                            </div>
                           </div>
                         )}
 
@@ -1220,9 +1398,9 @@ export const BitsatPage: React.FC = () => {
                             <div style={{ fontWeight: 800, marginBottom: '6px', color: '#0f172a' }}>
                               Official Step-by-Step Derivation:
                             </div>
-                            <p style={{ margin: 0 }}>
-                              {currentQ.stepSolution || 'Detailed theoretical proof and algebraic breakdown.'}
-                            </p>
+                            <div style={{ margin: 0 }}>
+                              <MathText text={currentQ.stepSolution || 'Detailed theoretical proof and algebraic breakdown.'} />
+                            </div>
                           </div>
                         )}
 
@@ -1301,6 +1479,8 @@ export const BitsatPage: React.FC = () => {
                     <div className={styles.paletteGrid}>
                       {activeQuestions.map((q, idx) => {
                         const isCurrent = idx === activeQuestionIndex;
+                        const isAccessible = isQuestionAccessible(q, idx);
+                        const isLocked = !isAccessible;
                         const isAnswered = Boolean(responses[q.id]?.selectedOption);
                         const isMarked = Boolean(responses[q.id]?.isMarkedForReview);
 
@@ -1309,9 +1489,20 @@ export const BitsatPage: React.FC = () => {
                             key={q.id}
                             type="button"
                             className={`${styles.paletteBubble} ${isCurrent ? styles.paletteActive : ''} ${isAnswered ? styles.paletteAnswered : ''} ${isMarked ? styles.paletteMarked : ''}`}
-                            onClick={() => handleJumpQuestion(idx)}
+                            style={isLocked ? { background: '#fff1f2', color: '#e11d48', borderColor: '#fecdd3', position: 'relative' } : undefined}
+                            onClick={() => {
+                              if (isLocked) {
+                                handleUnlockDrill(activeDrill);
+                              } else {
+                                handleJumpQuestion(idx);
+                              }
+                            }}
+                            title={isLocked ? `Question ${idx + 1} (Locked - Click to unlock)` : `Question ${idx + 1}`}
                           >
-                            {idx + 1}
+                            <span>{idx + 1}</span>
+                            {isLocked && (
+                              <Lock size={10} style={{ position: 'absolute', top: 2, right: 2, color: '#e11d48' }} />
+                            )}
                           </button>
                         );
                       })}
@@ -2289,6 +2480,37 @@ export const BitsatPage: React.FC = () => {
           </div>
         </Container>
       </section>
+
+      {/* Unlock Complete BITSAT Drill Modal */}
+      <PYQCourseUnlockModal
+        isOpen={isUnlockModalOpen}
+        onClose={() => setIsUnlockModalOpen(false)}
+        onEnroll={handleEnrollDrill}
+        paperTitle={modalTargetDrill?.title || activeDrill?.title || 'BITSAT Speed Drill'}
+        paperPrice={modalTargetDrill?.price ?? activeDrill?.price ?? 299}
+      />
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          backgroundColor: '#0F172A',
+          color: '#FFFFFF',
+          padding: '12px 20px',
+          borderRadius: '10px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+          zIndex: 99999,
+          fontWeight: 600,
+          fontSize: '0.9rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 };

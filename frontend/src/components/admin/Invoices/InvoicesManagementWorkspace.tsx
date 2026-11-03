@@ -147,12 +147,21 @@ export const InvoicesManagementWorkspace: React.FC = () => {
           } catch {}
 
           const activeOrders = res.data.filter((o: any) => {
-            const oid = String(o._id || o.orderId || '');
-            return (
-              !deletedIds.includes(oid) &&
-              !deletedIds.includes(String(o.orderId)) &&
-              !deletedIds.includes(String(o._id))
-            );
+            const oid = String(o._id || '');
+            const orderId = String(o.orderId || '');
+            const payId = String(o.paymentId || '');
+            const invNo = String(o.notes?.invoiceNo || '');
+            const isDemoEmail = String(o.studentEmail || '').endsWith('@jee2026.in');
+            const isDemoOrder = ['order_rzp_101', 'order_rzp_102', 'order_desk_103', 'order_rzp_104', 'order_rzp_105', 'order_desk_106'].includes(orderId);
+            const isDemoInvoice = ['INV-2026-0842', 'INV-2026-0841', 'INV-2026-0840', 'INV-2026-0839', 'INV-2026-0838', 'INV-2026-0837'].includes(invNo);
+
+            const isDeletedLocally =
+              (oid && deletedIds.includes(oid)) ||
+              (orderId && deletedIds.includes(orderId)) ||
+              (payId && deletedIds.includes(payId)) ||
+              (invNo && deletedIds.includes(invNo));
+
+            return !isDeletedLocally && !isDemoOrder && !isDemoInvoice && !isDemoEmail;
           });
 
           const mapped = activeOrders.map((o: any, idx: number) => mapOrderToInvoice(o, idx));
@@ -398,46 +407,65 @@ export const InvoicesManagementWorkspace: React.FC = () => {
   const handleConfirmDelete = async () => {
     if (confirmDeleteState.type === 'single' && confirmDeleteState.id) {
       const id = confirmDeleteState.id;
-      try {
-        await apiClient.delete(`/payment/orders/${id}`);
-      } catch (err: any) {
-        console.warn('Backend delete note:', err);
+      const targetInv = invoices.find((i) => i.id === id);
+      const identifiers: string[] = [id];
+      if (targetInv) {
+        if (targetInv.invoiceNo && !identifiers.includes(targetInv.invoiceNo)) identifiers.push(targetInv.invoiceNo);
+        if (targetInv.paymentRef && !identifiers.includes(targetInv.paymentRef)) identifiers.push(targetInv.paymentRef);
+        if (targetInv.rollNo && !identifiers.includes(targetInv.rollNo)) identifiers.push(targetInv.rollNo);
       }
-      setInvoices((prev) => prev.filter((i) => i.id !== id));
+
+      for (const ident of identifiers) {
+        try {
+          await apiClient.delete(`/payment/orders/${encodeURIComponent(ident)}`);
+        } catch (err: any) {
+          console.warn('Backend delete note:', err);
+        }
+      }
+
+      setInvoices((prev) => prev.filter((i) => i.id !== id && i.invoiceNo !== id));
       setSelectedIds((prev) => prev.filter((item) => item !== id));
 
       try {
         const deletedRaw = localStorage.getItem('dk_deleted_invoice_ids') || '[]';
-        const deletedList = JSON.parse(deletedRaw);
-        if (!deletedList.includes(id)) {
-          deletedList.push(id);
-          localStorage.setItem('dk_deleted_invoice_ids', JSON.stringify(deletedList));
-        }
+        const deletedList: string[] = JSON.parse(deletedRaw);
+        identifiers.forEach((ident) => {
+          if (!deletedList.includes(ident)) deletedList.push(ident);
+        });
+        localStorage.setItem('dk_deleted_invoice_ids', JSON.stringify(deletedList));
       } catch {}
 
-      triggerToast('Invoice deleted successfully');
+      triggerToast('Invoice deleted permanently');
     } else if (confirmDeleteState.type === 'bulk') {
       const idsToDelete = [...selectedIds];
+      const allIdentifiers: string[] = [...idsToDelete];
+
       for (const id of idsToDelete) {
+        const targetInv = invoices.find((i) => i.id === id);
+        if (targetInv) {
+          if (targetInv.invoiceNo && !allIdentifiers.includes(targetInv.invoiceNo)) allIdentifiers.push(targetInv.invoiceNo);
+          if (targetInv.paymentRef && !allIdentifiers.includes(targetInv.paymentRef)) allIdentifiers.push(targetInv.paymentRef);
+        }
         try {
-          await apiClient.delete(`/payment/orders/${id}`);
+          await apiClient.delete(`/payment/orders/${encodeURIComponent(id)}`);
         } catch (err: any) {
           console.warn('Bulk delete backend note:', err);
         }
       }
-      setInvoices((prev) => prev.filter((i) => !idsToDelete.includes(i.id)));
+
+      setInvoices((prev) => prev.filter((i) => !idsToDelete.includes(i.id) && !idsToDelete.includes(i.invoiceNo)));
       setSelectedIds([]);
 
       try {
         const deletedRaw = localStorage.getItem('dk_deleted_invoice_ids') || '[]';
-        const deletedList = JSON.parse(deletedRaw);
-        idsToDelete.forEach((id) => {
+        const deletedList: string[] = JSON.parse(deletedRaw);
+        allIdentifiers.forEach((id) => {
           if (!deletedList.includes(id)) deletedList.push(id);
         });
         localStorage.setItem('dk_deleted_invoice_ids', JSON.stringify(deletedList));
       } catch {}
 
-      triggerToast(`✓ Deleted ${idsToDelete.length} invoice(s) successfully`);
+      triggerToast(`✓ Deleted ${idsToDelete.length} invoice(s) permanently`);
     }
     setConfirmDeleteState({ isOpen: false, type: 'single' });
   };

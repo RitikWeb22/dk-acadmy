@@ -472,19 +472,46 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
 export const deleteOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const idStr = String(id);
-    const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
-    const order = await Order.findOneAndDelete(
-      isObjectId
-        ? { $or: [{ _id: idStr }, { orderId: idStr }, { paymentId: idStr }] }
-        : { $or: [{ orderId: idStr }, { paymentId: idStr }] }
-    );
-    if (!order) {
-      res.status(404).json({ success: false, message: 'Order not found' });
-      return;
-    }
+    const idStr = String(id).trim();
+    const isObjectId = mongoose.Types.ObjectId.isValid(idStr) && idStr.length === 24;
+
+    const matchConditions: any[] = [
+      ...(isObjectId ? [{ _id: new mongoose.Types.ObjectId(idStr) }] : []),
+      { orderId: idStr },
+      { paymentId: idStr },
+      { 'notes.invoiceNo': idStr },
+      { 'notes.invoiceNo': new RegExp(`^${idStr}$`, 'i') },
+      { orderId: new RegExp(`${idStr}$`, 'i') }
+    ];
+
+    const order = await Order.findOneAndDelete({ $or: matchConditions });
     broadcastCMSUpdated('orders', String(id));
-    res.status(200).json({ success: true, message: 'Order deleted successfully' });
+    res.status(200).json({
+      success: true,
+      message: order ? 'Order deleted successfully' : 'Order record cleared'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Purge all demo/mock/seed payments from database
+ */
+export const purgeDemoOrders = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const result = await Order.deleteMany({
+      $or: [
+        { orderId: { $in: ['order_rzp_101', 'order_rzp_102', 'order_desk_103', 'order_rzp_104', 'order_rzp_105', 'order_desk_106'] } },
+        { 'notes.invoiceNo': { $in: ['INV-2026-0842', 'INV-2026-0841', 'INV-2026-0840', 'INV-2026-0839', 'INV-2026-0838', 'INV-2026-0837'] } },
+        { studentEmail: { $regex: /@jee2026\.in$/i } }
+      ]
+    });
+    broadcastCMSUpdated('orders', 'all_purged');
+    res.status(200).json({
+      success: true,
+      message: `Purged ${result.deletedCount} demo orders from database successfully.`
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

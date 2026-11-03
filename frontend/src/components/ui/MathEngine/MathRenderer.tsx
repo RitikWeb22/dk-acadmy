@@ -232,8 +232,8 @@ function sanitizeFormula(str: string): string {
     // Normalize empty set phi
     .replace(/∅/g, '\\phi ')
     // Normalize unbraced fractions in powers: x^\frac{{2}}{2} -> x^{\frac{2}{2}}
-    .replace(/\^\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}')
-    .replace(/\^\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}')
+    .replace(/(?<!\{)\^\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}')
+    .replace(/(?<!\{)\^\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}')
     // Normalize vectors: (OA) ⃗ -> \vec{OA}, a ⃗ -> \vec{a}, i ˆ -> \hat{i}
     .replace(/\(([A-Za-z]{1,3})\)\s*[\u20D7\u2192⃗]/g, '\\vec{$1}')
     .replace(/([a-zA-Z])\s*[\u20D7\u2192⃗]/g, '\\vec{$1}')

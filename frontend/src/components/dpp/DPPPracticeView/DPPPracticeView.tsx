@@ -17,8 +17,9 @@ import {
   ExternalLink,
   Play,
   Zap,
+  Lock,
 } from 'lucide-react';
-import type { DPPSet, DPPQuestionResponse } from '../../../types';
+import type { DPPSet, DPPQuestionResponse, DPPQuestion } from '../../../types';
 import { MathText } from '../../ui/MathText/MathText';
 import { QuestionNavigator } from '../QuestionNavigator/QuestionNavigator';
 import { ConfirmSubmitDialog } from '../ConfirmSubmitDialog/ConfirmSubmitDialog';
@@ -28,20 +29,24 @@ interface DPPPracticeViewProps {
   set: DPPSet;
   initialMode?: 'practice' | 'test';
   isReviewMode?: boolean;
+  isUnlocked?: boolean;
   savedResponses?: Record<string, DPPQuestionResponse>;
   onSaveProgress: (responses: Record<string, DPPQuestionResponse>, mode: 'practice' | 'test') => void;
   onSubmitPractice: (responses: Record<string, DPPQuestionResponse>, mode: 'practice' | 'test') => void;
   onBackToSets: () => void;
+  onUnlock?: () => void;
 }
 
 export const DPPPracticeView: React.FC<DPPPracticeViewProps> = ({
   set,
   initialMode = 'practice',
   isReviewMode = false,
+  isUnlocked = true,
   savedResponses = {},
   onSaveProgress,
   onSubmitPractice,
   onBackToSets,
+  onUnlock,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [mode, setMode] = useState<'practice' | 'test'>(initialMode);
@@ -55,6 +60,12 @@ export const DPPPracticeView: React.FC<DPPPracticeViewProps> = ({
   const totalQuestions = set.questions.length;
   const currentQuestion = set.questions[currentIndex];
   const currentResponse = responses[currentQuestion.id] || { isMarkedForReview: false };
+
+  const isQuestionAccessible = (q: DPPQuestion, index: number) => {
+    if (set.isFree !== false || isUnlocked) return true;
+    return q.isFree === true || index === 0;
+  };
+  const isCurrentAccessible = isQuestionAccessible(currentQuestion, currentIndex);
 
   // Timer interval handling
   useEffect(() => {
@@ -291,68 +302,91 @@ export const DPPPracticeView: React.FC<DPPPracticeViewProps> = ({
             </div>
 
             {/* Question Body with High-Contrast Typography & Math/LaTeX */}
-            <div className={styles.questionBody}>
-              <div className={styles.statementText}>
-                <MathText text={currentQuestion.statement} />
+            {!isCurrentAccessible ? (
+              <div className={styles.lockedQuestionPaywall}>
+                <div className={styles.lockedIconCircle}>
+                  <Lock size={32} />
+                </div>
+                <h3>Question {currentIndex + 1} is Locked</h3>
+                <p>
+                  This problem and its step-by-step video solution are part of the Complete DPP Problem Sheet.
+                  Unlock the complete DPP to solve all questions and access DK Sir's 20s shortcut tricks.
+                </p>
+                <button
+                  type="button"
+                  className={styles.unlockPaywallBtn}
+                  onClick={onUnlock}
+                >
+                  <Lock size={16} />
+                  <span>Unlock Complete DPP (₹{set.price || 299})</span>
+                </button>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className={styles.questionBody}>
+                  <div className={styles.statementText}>
+                    <MathText text={currentQuestion.statement} />
+                  </div>
+                </div>
 
-            {/* Multiple-Choice Options (A, B, C, D) */}
-            <div
-              className={styles.optionsList}
-              role="radiogroup"
-              aria-label={`Options for Question ${currentIndex + 1}`}
-            >
-              {currentQuestion.options.map((opt) => {
-                const optSelected = currentResponse.selectedOption === opt.id;
-                const optIsCorrect = opt.id === currentQuestion.correctAnswer;
-                const optIsSelectedWrong = isEvaluated && optSelected && !optIsCorrect;
+                {/* Multiple-Choice Options (A, B, C, D) */}
+                <div
+                  className={styles.optionsList}
+                  role="radiogroup"
+                  aria-label={`Options for Question ${currentIndex + 1}`}
+                >
+                  {currentQuestion.options.map((opt) => {
+                    const optSelected = currentResponse.selectedOption === opt.id;
+                    const optIsCorrect = opt.id === currentQuestion.correctAnswer;
+                    const optIsSelectedWrong = isEvaluated && optSelected && !optIsCorrect;
 
-                let stateClass = styles.defaultOption;
-                if (isEvaluated) {
-                  if (optIsCorrect) {
-                    stateClass = styles.correctOption;
-                  } else if (optIsSelectedWrong) {
-                    stateClass = styles.incorrectOption;
-                  }
-                } else if (optSelected) {
-                  stateClass = styles.selectedOption;
-                }
+                    let stateClass = styles.defaultOption;
+                    if (isEvaluated) {
+                      if (optIsCorrect) {
+                        stateClass = styles.correctOption;
+                      } else if (optIsSelectedWrong) {
+                        stateClass = styles.incorrectOption;
+                      }
+                    } else if (optSelected) {
+                      stateClass = styles.selectedOption;
+                    }
 
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={optSelected}
-                    disabled={isEvaluated}
-                    className={`${styles.optionCard} ${stateClass}`}
-                    onClick={() => handleSelectOption(opt.id)}
-                  >
-                    <div className={styles.optionBadge}>
-                      {isEvaluated && optIsCorrect ? (
-                        <Check size={18} strokeWidth={2.5} />
-                      ) : isEvaluated && optIsSelectedWrong ? (
-                        <X size={18} strokeWidth={2.5} />
-                      ) : (
-                        opt.id
-                      )}
-                    </div>
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={optSelected}
+                        disabled={isEvaluated}
+                        className={`${styles.optionCard} ${stateClass}`}
+                        onClick={() => handleSelectOption(opt.id)}
+                      >
+                        <div className={styles.optionBadge}>
+                          {isEvaluated && optIsCorrect ? (
+                            <Check size={18} strokeWidth={2.5} />
+                          ) : isEvaluated && optIsSelectedWrong ? (
+                            <X size={18} strokeWidth={2.5} />
+                          ) : (
+                            opt.id
+                          )}
+                        </div>
 
-                    <div className={styles.optionContent}>
-                      <MathText text={opt.text} />
-                    </div>
+                        <div className={styles.optionContent}>
+                          <MathText text={opt.text} />
+                        </div>
 
-                    {isEvaluated && optIsCorrect && (
-                      <span className={styles.stateTagCorrect}>Correct Answer</span>
-                    )}
-                    {isEvaluated && optIsSelectedWrong && (
-                      <span className={styles.stateTagIncorrect}>Your Choice</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                        {isEvaluated && optIsCorrect && (
+                          <span className={styles.stateTagCorrect}>Correct Answer</span>
+                        )}
+                        {isEvaluated && optIsSelectedWrong && (
+                          <span className={styles.stateTagIncorrect}>Your Choice</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             {/* Explanation Drawer (Appears after Check Answer in Practice Mode or in Review Mode) */}
             {isEvaluated && (
@@ -547,6 +581,11 @@ export const DPPPracticeView: React.FC<DPPPracticeViewProps> = ({
             onSelectIndex={(idx) => setCurrentIndex(idx)}
             responses={responses}
             isReviewMode={isReviewMode}
+            isQuestionAccessible={isQuestionAccessible}
+            onLockedClick={(q, idx) => {
+              setCurrentIndex(idx);
+              if (onUnlock) onUnlock();
+            }}
           />
 
           {/* Submit Session Button */}

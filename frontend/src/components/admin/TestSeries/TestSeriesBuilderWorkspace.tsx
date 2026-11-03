@@ -135,6 +135,7 @@ export interface TestSeriesTableItem {
     computeRank?: boolean;
   };
   createdAtFormatted: string;
+  createdAt?: string;
   attemptsCount: number;
   durationMinutes: number;
   totalMarks: number;
@@ -946,6 +947,43 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<'indexNo' | 'title' | 'examType' | 'totalTests' | 'status' | 'createdAt'>('indexNo');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+  // Date Range Filtering state
+  const [dateRangePreset, setDateRangePreset] = useState<'ALL' | 'TODAY' | '7DAYS' | '30DAYS' | 'THIS_MONTH' | 'CUSTOM'>('ALL');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(e.target as Node)) {
+        setIsDatePickerOpen(false);
+      }
+    };
+    if (isDatePickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDatePickerOpen]);
+
+  const dateRangeLabel = useMemo(() => {
+    switch (dateRangePreset) {
+      case 'TODAY': return 'Today';
+      case '7DAYS': return 'Last 7 Days';
+      case '30DAYS': return 'Last 30 Days';
+      case 'THIS_MONTH': return 'This Month';
+      case 'CUSTOM':
+        if (customStartDate && customEndDate) return `${customStartDate} to ${customEndDate}`;
+        if (customStartDate) return `From ${customStartDate}`;
+        if (customEndDate) return `Until ${customEndDate}`;
+        return 'Custom Range';
+      default:
+        return 'Select date range 📅';
+    }
+  }, [dateRangePreset, customStartDate, customEndDate]);
+
   const handleSort = (column: 'indexNo' | 'title' | 'examType' | 'totalTests' | 'status' | 'createdAt') => {
     if (sortColumn === column) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -974,7 +1012,48 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       const matchesStatus =
         statusFilter === 'ALL' || item.status === statusFilter;
 
-      return matchesSearch && matchesExam && matchesFormat && matchesStatus;
+      let matchesDate = true;
+      if (dateRangePreset !== 'ALL') {
+        const itemTime = (() => {
+          if (item.createdAt) {
+            const t = new Date(item.createdAt).getTime();
+            if (!isNaN(t)) return t;
+          }
+          if (item.createdAtFormatted) {
+            const clean = item.createdAtFormatted.split('•')[0].trim();
+            const t = new Date(clean).getTime();
+            if (!isNaN(t)) return t;
+          }
+          return 0;
+        })();
+
+        const now = Date.now();
+        if (dateRangePreset === 'TODAY') {
+          const startOfToday = new Date();
+          startOfToday.setHours(0, 0, 0, 0);
+          matchesDate = itemTime >= startOfToday.getTime();
+        } else if (dateRangePreset === '7DAYS') {
+          matchesDate = itemTime >= now - 7 * 24 * 60 * 60 * 1000;
+        } else if (dateRangePreset === '30DAYS') {
+          matchesDate = itemTime >= now - 30 * 24 * 60 * 60 * 1000;
+        } else if (dateRangePreset === 'THIS_MONTH') {
+          const startOfMonth = new Date();
+          startOfMonth.setDate(1);
+          startOfMonth.setHours(0, 0, 0, 0);
+          matchesDate = itemTime >= startOfMonth.getTime();
+        } else if (dateRangePreset === 'CUSTOM') {
+          if (customStartDate) {
+            const startT = new Date(customStartDate).setHours(0, 0, 0, 0);
+            matchesDate = matchesDate && itemTime >= startT;
+          }
+          if (customEndDate) {
+            const endT = new Date(customEndDate).setHours(23, 59, 59, 999);
+            matchesDate = matchesDate && itemTime <= endT;
+          }
+        }
+      }
+
+      return matchesSearch && matchesExam && matchesFormat && matchesStatus && matchesDate;
     });
 
     return [...list].sort((a, b) => {
@@ -994,12 +1073,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [testSeriesList, debouncedSearch, examTypeFilter, statusFilter, sortColumn, sortDirection]);
+  }, [testSeriesList, debouncedSearch, examTypeFilter, formatFilter, statusFilter, dateRangePreset, customStartDate, customEndDate, sortColumn, sortDirection]);
 
   // Reset to page 1 on filter/search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, examTypeFilter, formatFilter, statusFilter, pageSize]);
+  }, [debouncedSearch, examTypeFilter, formatFilter, statusFilter, dateRangePreset, customStartDate, customEndDate, pageSize]);
 
   const totalPages = Math.ceil(filteredItems.length / pageSize) || 1;
   const paginatedItems = useMemo(() => {
@@ -2662,9 +2741,118 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               {/* Date Range Picker */}
               <div className={styles.filterGroupItem}>
                 <span className={styles.controlLabel}>Created At</span>
-                <div className={styles.datePickerPill}>
-                  <Calendar size={13} className={styles.calIcon} />
-                  <span>Select date range 📅</span>
+                <div className={styles.datePickerWrapper} ref={datePickerRef}>
+                  <button
+                    type="button"
+                    className={`${styles.datePickerPill} ${dateRangePreset !== 'ALL' ? styles.datePickerPillActive : ''}`}
+                    onClick={() => setIsDatePickerOpen((prev) => !prev)}
+                    title="Filter test series by creation date"
+                  >
+                    <Calendar size={13} className={styles.calIcon} />
+                    <span>{dateRangeLabel}</span>
+                  </button>
+
+                  {isDatePickerOpen && (
+                    <div className={styles.datePickerPopover} role="dialog" aria-label="Date Range Selector">
+                      <div className={styles.datePresetsList}>
+                        <button
+                          type="button"
+                          className={`${styles.datePresetBtn} ${dateRangePreset === 'ALL' ? styles.datePresetBtnActive : ''}`}
+                          onClick={() => { setDateRangePreset('ALL'); setIsDatePickerOpen(false); }}
+                        >
+                          All Time
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.datePresetBtn} ${dateRangePreset === 'TODAY' ? styles.datePresetBtnActive : ''}`}
+                          onClick={() => { setDateRangePreset('TODAY'); setIsDatePickerOpen(false); }}
+                        >
+                          Today
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.datePresetBtn} ${dateRangePreset === '7DAYS' ? styles.datePresetBtnActive : ''}`}
+                          onClick={() => { setDateRangePreset('7DAYS'); setIsDatePickerOpen(false); }}
+                        >
+                          Last 7 Days
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.datePresetBtn} ${dateRangePreset === '30DAYS' ? styles.datePresetBtnActive : ''}`}
+                          onClick={() => { setDateRangePreset('30DAYS'); setIsDatePickerOpen(false); }}
+                        >
+                          Last 30 Days
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.datePresetBtn} ${dateRangePreset === 'THIS_MONTH' ? styles.datePresetBtnActive : ''}`}
+                          onClick={() => { setDateRangePreset('THIS_MONTH'); setIsDatePickerOpen(false); }}
+                        >
+                          This Month
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.datePresetBtn} ${dateRangePreset === 'CUSTOM' ? styles.datePresetBtnActive : ''}`}
+                          onClick={() => setDateRangePreset('CUSTOM')}
+                        >
+                          Custom Range
+                        </button>
+                      </div>
+
+                      <div className={styles.dateCustomSection}>
+                        <span className={styles.dateCustomLabel}>Custom Date Range:</span>
+                        <div className={styles.dateInputsRow}>
+                          <label className={styles.dateFieldGroup}>
+                            <span>From:</span>
+                            <input
+                              type="date"
+                              value={customStartDate}
+                              onChange={(e) => {
+                                setCustomStartDate(e.target.value);
+                                setDateRangePreset('CUSTOM');
+                              }}
+                            />
+                          </label>
+                          <label className={styles.dateFieldGroup}>
+                            <span>To:</span>
+                            <input
+                              type="date"
+                              value={customEndDate}
+                              onChange={(e) => {
+                                setCustomEndDate(e.target.value);
+                                setDateRangePreset('CUSTOM');
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className={styles.datePopoverFooter}>
+                        {dateRangePreset !== 'ALL' && (
+                          <button
+                            type="button"
+                            className={styles.dateClearBtn}
+                            onClick={() => {
+                              setDateRangePreset('ALL');
+                              setCustomStartDate('');
+                              setCustomEndDate('');
+                              setIsDatePickerOpen(false);
+                            }}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className={styles.dateApplyBtn}
+                          onClick={() => setIsDatePickerOpen(false)}
+                          style={{ marginLeft: 'auto' }}
+                        >
+                          Apply Filter
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

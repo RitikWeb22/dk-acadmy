@@ -955,3 +955,69 @@
     transform: translateY(0);
   }
 }
+
+.lockedQuestionPaywall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1.5px dashed #CBD5E1;
+  border-radius: $radius-xl;
+  margin: $space-4 0;
+
+  .lockedIconCircle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #FFF1F2;
+    color: #E11D48;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: $space-4;
+    border: 1px solid #FECDD3;
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.15);
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0F172A;
+    margin-bottom: $space-2;
+  }
+
+  p {
+    font-size: 0.9375rem;
+    color: #64748B;
+    max-width: 480px;
+    line-height: 1.6;
+    margin-bottom: $space-6;
+  }
+}
+
+.unlockPaywallBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  color: #FFFFFF;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 0.875rem 1.75rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.25);
+  transition: all $transition-fast;
+
+  &:hover {
+    background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+    color: #38BDF8;
+    border-color: #38BDF8;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
+  }
+}

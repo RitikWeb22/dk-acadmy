@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { createOrder, verifyPayment, getOrdersList, getMyOrders, createAdminInvoice, updateOrderStatus, deleteOrder } from '../controllers/paymentController.js';
-import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
+import { createOrder, verifyPayment, getOrdersList, getMyOrders, createAdminInvoice, updateOrderStatus, deleteOrder, purgeDemoOrders } from '../controllers/paymentController.js';
+import { protect, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 const router = Router();
 const createOrderSchema = z
@@ -52,6 +52,7 @@ router.get('/my-orders', protect, getMyOrders);
 // Admin orders list, manual invoice creation, and management (supports valid JWT and admin session)
 router.get('/orders', directoryProtect, getOrdersList);
 router.post('/admin-invoice', directoryProtect, validate({ body: adminInvoiceSchema }), createAdminInvoice);
-router.patch('/orders/:id/status', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema, body: updateOrderStatusSchema }), updateOrderStatus);
-router.delete('/orders/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), deleteOrder);
+router.patch('/orders/:id/status', directoryProtect, validate({ params: idOrSlugParamSchema, body: updateOrderStatusSchema }), updateOrderStatus);
+router.delete('/orders/:id', directoryProtect, validate({ params: idOrSlugParamSchema }), deleteOrder);
+router.post('/orders-purge-demo', directoryProtect, purgeDemoOrders);
 export default router;

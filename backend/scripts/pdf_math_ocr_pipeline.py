@@ -87,7 +87,13 @@ def decode_font_glyphs(raw: str) -> str:
     s = re.sub(r'∫\s*\u200a?\s*[\r\n]+\s*\'\s*[\r\n]+\s*\/\'', r'\\int_{-1}^1 ', s)
     s = re.sub(r'∫\s*\u200a?\s*[\r\n]+\s*\$\s*[\r\n]+\s*"', r'\\int_0^x ', s)
 
-    # 7. Roots and powers
+    # 7. Equation Editor Brackets and Matrix
+    s = re.sub(r'=cot\s*=\s*𝑥\s*−\s*3\s*\/,\s*@\s*cot\s*=\s*𝑥\s*\+\s*3\s*\/,\s*@\s*\+\s*1@', r'\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right]', s)
+    s = re.sub(r'=cot\s*=\s*x\s*−\s*3\s*\/,\s*@\s*cot\s*=\s*x\s*\+\s*3\s*\/,\s*@\s*\+\s*1@', r'\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right]', s)
+    s = re.sub(r'=cot\s*=\s*x\s*-\s*3\s*\/,\s*@\s*cot\s*=\s*x\s*\+\s*3\s*\/,\s*@\s*\+\s*1@', r'\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right]', s)
+    s = re.sub(r'F\s*[\r\n]+\s*1\s*[\r\n]+\s*3\s*[\r\n]+\s*−1\s*[\r\n]+\s*2\s*[\r\n]+\s*1\s*[\r\n]+\s*𝛼\s*[\r\n]+\s*0\s*[\r\n]+\s*1\s*[\r\n]+\s*−1\s*[\r\n]+\s*H', r'\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}', s)
+
+    # 8. Roots and powers
     # In polynomials, $" is x^4, $! is x^2, $' is x+1, $ is x
     s = re.sub(r'\$\"', r'x^4', s)
     s = re.sub(r'\$!', r'x^2', s)
@@ -96,20 +102,25 @@ def decode_font_glyphs(raw: str) -> str:
     s = re.sub(r'𝑥!', r'x^2', s)
     s = re.sub(r'x!', r'x^2', s)
     s = re.sub(r't!', r't^2', s)
-    s = re.sub(r'\$\b', r'x', s)
-    s = s.replace('$', 'x')
-    s = s.replace('&', '+')
-    s = s.replace('d𝑥', r'\, dx')
-    s = s.replace('𝑑𝑥', r'\, dx')
-    s = s.replace('dt', r'\, dt')
+    s = re.sub(r'𝛼!', r'\\alpha^2', s)
+    s = re.sub(r'\\alpha!', r'\\alpha^2', s)
+    s = re.sub(r'&', r'+', s)
+    s = re.sub(r'd𝑥', r'\\, dx', s)
+    s = re.sub(r'𝑑𝑥', r'\\, dx', s)
+    s = re.sub(r'dt\b', r'\\, dt', s)
 
-    # 8. Single character cleanups
+    # Only replace font variable $ if not part of LaTeX markup or math delimiters
+    if not ("$" in s and ("\\int" in s or "\\frac" in s or "\\begin" in s)):
+        s = re.sub(r'(?<!\\)\$(?![a-zA-Z0-9_\{\}\\])', r'x', s)
+
+    # 9. Single character cleanups
     s = s.replace('−', '-')
     s = s.replace('≤', r'\le ')
     s = s.replace('≥', r'\ge ')
     s = s.replace('π', r'\pi')
     s = s.replace('𝛼', r'\alpha')
     s = s.replace('𝑓', r'f')
+    s = s.replace('log7', r'\log_e')
 
     # Remove extra spaces
     s = re.sub(r'[ \t]{2,}', ' ', s)

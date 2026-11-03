@@ -8,8 +8,10 @@ import { DPPSetCard } from '../../components/dpp/DPPSetCard/DPPSetCard';
 import { DPPEmptyState } from '../../components/dpp/DPPEmptyState/DPPEmptyState';
 import { DPPPracticeView } from '../../components/dpp/DPPPracticeView/DPPPracticeView';
 import { DPPResults } from '../../components/dpp/DPPResults/DPPResults';
+import { PYQCourseUnlockModal } from '../../components/pyq/PYQCourseUnlockModal/PYQCourseUnlockModal';
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { apiClient } from '../../services/apiClient';
+import { paymentService } from '../../services/paymentService';
 import { useStudentAuth } from '../../context/AuthContext';
 import type { DPPSet } from '../../types';
 import styles from './DPPPage.module.scss';
@@ -32,6 +34,10 @@ const mapDppPyqToDPPSet = (item: any): DPPSet => {
     estimatedMinutes: Math.max(15, qs.length * 3),
     pdfUrl: item.pdfUrl || '/assets/downloads/st line-2.pdf',
     videoWalkthroughUrl: item.videoWalkthroughUrl || '',
+    isFree: item.isFree !== false,
+    price: item.price !== undefined ? item.price : 299,
+    status: item.status || 'Active',
+    scheduledDate: item.scheduledDate || '',
     questions: qs.map((q: any, idx: number) => ({
       id: q.id || `q-${item.id}-${idx + 1}`,
       questionNumber: q.qNum || idx + 1,
@@ -50,7 +56,8 @@ const mapDppPyqToDPPSet = (item: any): DPPSet => {
             ],
       correctAnswer: q.correctKey || q.correctAnswer || 'A',
       explanation: q.stepSolution || q.explanation || 'Detailed step-by-step solution.',
-      formulaKey: q.dkSirShortcut || 'DK Sir 20s Inspection Rule'
+      formulaKey: q.dkSirShortcut || 'DK Sir 20s Inspection Rule',
+      isFree: q.isFree !== undefined ? q.isFree : (idx === 0)
     }))
   };
 };
@@ -112,6 +119,78 @@ export const DPPPage: React.FC = () => {
   }, []);
 
   const { student } = useStudentAuth();
+
+  // DPP Unlock status & Razorpay checkout
+  const [unlockedSetIds, setUnlockedSetIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('dk_unlocked_dpp_sets');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+  const [modalTargetSet, setModalTargetSet] = useState<DPPSet | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const isSetUnlocked = (set: DPPSet): boolean => {
+    if (set.isFree !== false || !set.price || set.price === 0) return true;
+    const setId = String(set.id);
+    if (unlockedSetIds.includes(setId)) return true;
+    if (!student?.enrolledCourseIds) return false;
+    return (
+      student.enrolledCourseIds.includes(setId) ||
+      student.enrolledCourseIds.includes('jee-dpp-archive-mastery') ||
+      student.enrolledCourseIds.includes('jee-main-advanced-2yr-ultimate') ||
+      student.enrolledCourseIds.includes('jee-rankers-crash-course-2026')
+    );
+  };
+
+  const handleUnlockDPP = (set: DPPSet) => {
+    setModalTargetSet(set);
+    setIsUnlockModalOpen(true);
+  };
+
+  const handleEnrollDPP = async () => {
+    const targetSet = modalTargetSet || activeSet;
+    if (!targetSet) return;
+    const price = targetSet.price ?? 299;
+    const setId = String(targetSet.id);
+    const paperTitle = targetSet.title || 'DPP Problem Sheet';
+
+    try {
+      await paymentService.initiateCourseCheckout({
+        amount: price,
+        courseId: setId,
+        courseTitle: paperTitle,
+        studentName: student?.name || 'Aspirant',
+        studentEmail: student?.email || 'student@dkacademy.in',
+        studentPhone: student?.phone || '9999999999',
+        onSuccess: (_paymentId: string) => {
+          setIsUnlockModalOpen(false);
+          setUnlockedSetIds((prev) => {
+            const next = Array.from(new Set([...prev, setId]));
+            try {
+              localStorage.setItem('dk_unlocked_dpp_sets', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+          showToast('DPP Set unlocked successfully! You now have full access to all questions.');
+        },
+        onError: (err: any) => {
+          console.error('DPP payment error:', err);
+        }
+      });
+    } catch (err) {
+      console.error('Failed to initiate DPP checkout:', err);
+    }
+  };
 
   // Session attempts state: persisted in localStorage so student progress is remembered during practice sessions
   const [attempts, setAttempts] = useState<Record<string, DPPAttempt>>(() => {
@@ -366,8 +445,17 @@ export const DPPPage: React.FC = () => {
                     key={set.id}
                     set={set}
                     attempt={attempts[set.id]}
-                    onStartPractice={handleStartPractice}
+                    isUnlocked={isSetUnlocked(set)}
+                    onStartPractice={(setId) => {
+                      const target = dppList.find((s) => s.id === setId);
+                      if (target && !isSetUnlocked(target)) {
+                        handleUnlockDPP(target);
+                        return;
+                      }
+                      handleStartPractice(setId);
+                    }}
                     onReviewPractice={handleReviewPractice}
+                    onUnlock={handleUnlockDPP}
                   />
                 ))}
               </div>
@@ -390,10 +478,12 @@ export const DPPPage: React.FC = () => {
             set={activeSet}
             initialMode={attempts[activeSet.id]?.mode || 'practice'}
             isReviewMode={viewState === 'review'}
+            isUnlocked={isSetUnlocked(activeSet)}
             savedResponses={attempts[activeSet.id]?.responses || {}}
             onSaveProgress={handleSaveProgress}
             onSubmitPractice={handleSubmitPractice}
             onBackToSets={handleBackToCatalog}
+            onUnlock={() => handleUnlockDPP(activeSet)}
           />
         )}
 
@@ -408,6 +498,37 @@ export const DPPPage: React.FC = () => {
           />
         )}
       </Container>
+
+      {/* Unlock Complete DPP Paper Modal */}
+      <PYQCourseUnlockModal
+        isOpen={isUnlockModalOpen}
+        onClose={() => setIsUnlockModalOpen(false)}
+        onEnroll={handleEnrollDPP}
+        paperTitle={modalTargetSet?.title || activeSet?.title || 'DPP Problem Sheet'}
+        paperPrice={modalTargetSet?.price ?? activeSet?.price ?? 299}
+      />
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          backgroundColor: '#0F172A',
+          color: '#FFFFFF',
+          padding: '12px 20px',
+          borderRadius: '10px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+          zIndex: 99999,
+          fontWeight: 600,
+          fontSize: '0.9rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 };

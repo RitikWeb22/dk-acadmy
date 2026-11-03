@@ -218,6 +218,60 @@
   }
 }
 
+.unlockBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-3 $space-4;
+  background: linear-gradient(135deg, #1E293B, #0F172A);
+  color: #F8FAFC;
+  border: 1px solid #334155;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: linear-gradient(135deg, #0F172A, #020617);
+    border-color: #38BDF8;
+    color: #38BDF8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.35);
+  }
+}
+
+.statusLocked {
+  background: #FFF1F2;
+  color: #E11D48;
+  border: 1px solid #FECDD3;
+}
+
+.statusClosed {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.closedBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-3 $space-4;
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #CBD5E1;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
 .actionButtonGroup {
   display: flex;
   align-items: center;

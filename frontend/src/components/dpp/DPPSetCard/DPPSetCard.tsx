@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, HelpCircle, ArrowRight, CheckCircle2, RotateCcw, FileText, Download } from 'lucide-react';
+import { Clock, HelpCircle, ArrowRight, CheckCircle2, RotateCcw, FileText, Download, Lock } from 'lucide-react';
 import type { DPPSet, DPPAttempt } from '../../../types';
 import { Badge } from '../../ui/Badge/Badge';
 import styles from './DPPSetCard.module.scss';
@@ -7,18 +7,24 @@ import styles from './DPPSetCard.module.scss';
 interface DPPSetCardProps {
   set: DPPSet;
   attempt?: DPPAttempt;
+  isUnlocked?: boolean;
   onStartPractice: (setId: string) => void;
   onReviewPractice: (setId: string) => void;
+  onUnlock?: (set: DPPSet) => void;
 }
 
 export const DPPSetCard: React.FC<DPPSetCardProps> = ({
   set,
   attempt,
+  isUnlocked = true,
   onStartPractice,
   onReviewPractice,
+  onUnlock,
 }) => {
   const status = attempt ? attempt.status : 'Not Started';
   const totalQuestions = set.questions.length;
+  const isClosed = (set as any).status === 'Closed' || (set as any).isClosed === true;
+  const isLocked = !isClosed && set.isFree === false && (set.price || 0) > 0 && !isUnlocked;
 
   const [nowTime, setNowTime] = useState<number>(Date.now());
   useEffect(() => {
@@ -106,7 +112,17 @@ export const DPPSetCard: React.FC<DPPSetCardProps> = ({
           </span>
           {getDifficultyBadge(set.difficulty)}
         </div>
-        {countdown ? (
+        {isClosed ? (
+          <span className={`${styles.statusBadge} ${styles.statusClosed}`}>
+            <Lock size={12} />
+            <span>Closed Drill</span>
+          </span>
+        ) : isLocked ? (
+          <span className={`${styles.statusBadge} ${styles.statusLocked}`}>
+            <Lock size={12} />
+            <span>LOCKED • ₹{set.price || 299}</span>
+          </span>
+        ) : countdown ? (
           <span style={{ fontSize: '11px', fontWeight: 800, color: '#7c3aed', background: '#faf5ff', border: '1px solid #ddd6fe', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <Clock size={11} />
             <span>Opens in {countdown}</span>
@@ -158,7 +174,25 @@ export const DPPSetCard: React.FC<DPPSetCardProps> = ({
         )}
 
         {/* Action Button */}
-        {countdown ? (
+        {isClosed ? (
+          <button
+            type="button"
+            disabled
+            className={styles.closedBtn}
+          >
+            <Lock size={14} />
+            <span>Closed Drill / Access Expired</span>
+          </button>
+        ) : isLocked ? (
+          <button
+            type="button"
+            className={styles.unlockBtn}
+            onClick={() => (onUnlock ? onUnlock(set) : onStartPractice(set.id))}
+          >
+            <Lock size={14} />
+            <span>Unlock Complete DPP (₹{set.price || 299})</span>
+          </button>
+        ) : countdown ? (
           <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#7c3aed', background: '#ede9fe', padding: '10px 14px', borderRadius: '8px', width: '100%', boxSizing: 'border-box' }}>
             <Clock size={14} />
             <span>Opens {new Date((set as any).scheduledDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
