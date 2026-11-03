@@ -338,6 +338,35 @@ export function normalizeMathText(raw: string): string {
   let text = raw.split('$$').join('$');
 
   // 0. Global pre-pass for Word/PDF copy-paste artifacts across multi-line blocks
+  // Decode Word Quartz / CambriaMath font artifact substitutions in formulas
+  text = text.replace(/log[7\-]/g, '\\log_e ');
+  text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
+  text = text.replace(/\/012/g, '-\\sin ');
+  text = text.replace(/012\s*([\$x])/gi, '\\sin x');
+  text = text.replace(/012/g, '\\sin ');
+  text = text.replace(/9:0\s*[\$x]?["!]?\s*([\$x])/gi, '\\cos^2 x');
+  text = text.replace(/9:0/g, '\\cos ');
+  text = text.replace(/3\/6/g, '\\frac{\\pi}{6}');
+  text = text.replace(/3\/4/g, '\\frac{\\pi}{4}');
+  text = text.replace(/3\/2/g, '\\frac{\\pi}{2}');
+  text = text.replace(/3\/!\$/g, '(\\pi - 2x)');
+  text = text.replace(/3\/!/g, '\\pi - 2');
+  text = text.replace(/3\//g, '\\pi - ');
+  text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{2}');
+  text = text.replace(/\$([0-9!#'"&+\-/*])/g, 'x$1');
+  text = text.replace(/([0-9!#'"&+\-/*\(])\$/g, '$1x');
+  text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
+  text = text.replace(/([a-zA-Z0-9\)])#/g, '$1^3');
+  text = text.replace(/\$/g, 'x');
+  text = text.replace(/!/g, '^2');
+  text = text.replace(/#/g, '^3');
+  text = text.replace(/&/g, ' + ');
+  text = text.replace(/(^|[\s\+\-\*\/\^\=,\(\$x])'/g, '$11');
+  text = text.replace(/'(?=[\s\+\-\*\/\^\=,\)\$x]|$)/g, '1');
+  text = text.replace(/"/g, '0');
+  text = text.replace(/;/g, 'x');
+  text = text.replace(/=(?=[a-zA-Z0-9\\])/g, '[');
+  text = text.replace(/@(?=[\s\+\-\*\/\^\=,\)\$x]|$)/g, ']');
   // 0a. Strip invisible characters, hair spaces, zero-width spaces, and placeholders
   text = text.replace(/[\u200B\u200C\u200D\u200E\u200F\uFEFF\u200A\u2009\u202F\u2060\u2061\u2062\u2063\u2064\uFFF9-\uFFFD\u00A0]/g, ' ')
              .replace(/[▒□┤├│〖〗]/g, '')

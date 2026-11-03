@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle, RotateCcw, FileText, Download, Lock, Sparkles, Bookmark } from 'lucide-react';
 import { YoutubeIcon } from '../../ui/YoutubeIcon/YoutubeIcon';
 import type { PYQQuestion, PYQUserResponse } from '../../../types';
@@ -51,6 +51,13 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
   const isCorrect = Boolean(userResponse?.isCorrect);
   const isFreeQuestion = question.isFree ?? currentIndex < 5;
 
+  const effectiveQuestion: PYQQuestion = useMemo(() => ({
+    ...question,
+    youtubeUrl: question.youtubeUrl || question.videoUrl || paperVideoUrl || '',
+    videoUrl: question.videoUrl || question.youtubeUrl || paperVideoUrl || '',
+    pdfUrl: question.pdfUrl || paperPdfUrl || ''
+  }), [question, paperVideoUrl, paperPdfUrl]);
+
   const getSubjectBadgeVariant = (subject: string) => {
     switch (subject) {
       case 'Physics': return 'primary';
@@ -65,10 +72,11 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
       onUnlockCourse?.();
       return;
     }
-    if (onOpenVideo) {
-      onOpenVideo(question);
-    } else if (question.youtubeUrl) {
-      window.open(question.youtubeUrl, '_blank', 'noopener,noreferrer');
+    const targetVideo = effectiveQuestion.youtubeUrl || effectiveQuestion.videoUrl;
+    if (onOpenVideo && targetVideo) {
+      onOpenVideo(effectiveQuestion);
+    } else if (targetVideo) {
+      window.open(targetVideo, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -77,8 +85,9 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
       onUnlockCourse?.();
       return;
     }
-    if (question.pdfUrl) {
-      window.open(question.pdfUrl, '_blank', 'noopener,noreferrer');
+    const targetPdf = effectiveQuestion.pdfUrl;
+    if (targetPdf) {
+      window.open(targetPdf, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -315,7 +324,7 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
           {isEvaluated ? (
             <div className={styles.evaluatedSolutionSection}>
               <AnswerExplanation
-                question={question}
+                question={effectiveQuestion}
                 userAnswer={userResponse?.selectedOption}
                 isCorrect={isCorrect}
                 isUnlocked={isUnlocked}

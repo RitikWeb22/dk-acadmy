@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Clock, HelpCircle, ArrowRight, CheckCircle2, RotateCcw, FileText, Download } from 'lucide-react';
 import type { DPPSet, DPPAttempt } from '../../../types';
 import { Badge } from '../../ui/Badge/Badge';
@@ -19,6 +19,26 @@ export const DPPSetCard: React.FC<DPPSetCardProps> = ({
 }) => {
   const status = attempt ? attempt.status : 'Not Started';
   const totalQuestions = set.questions.length;
+
+  const [nowTime, setNowTime] = useState<number>(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNowTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const countdown = useMemo(() => {
+    const schedDate = (set as any).scheduledDate;
+    if ((set as any).status !== 'Scheduled' || !schedDate) return null;
+    const target = new Date(schedDate).getTime();
+    if (isNaN(target)) return null;
+    const diff = target - nowTime;
+    if (diff <= 0) return null;
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const m = Math.floor((diff / (1000 * 60)) % 60);
+    const s = Math.floor((diff / 1000) % 60);
+    return `${d > 0 ? `${d}d ` : ''}${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+  }, [set, nowTime]);
 
   // Calculate quick score if completed
   let correctCount = 0;
@@ -86,7 +106,14 @@ export const DPPSetCard: React.FC<DPPSetCardProps> = ({
           </span>
           {getDifficultyBadge(set.difficulty)}
         </div>
-        {renderStatusBadge()}
+        {countdown ? (
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#7c3aed', background: '#faf5ff', border: '1px solid #ddd6fe', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <Clock size={11} />
+            <span>Opens in {countdown}</span>
+          </span>
+        ) : (
+          renderStatusBadge()
+        )}
       </div>
 
       {/* Main Info */}
@@ -131,7 +158,12 @@ export const DPPSetCard: React.FC<DPPSetCardProps> = ({
         )}
 
         {/* Action Button */}
-        {status === 'Completed' ? (
+        {countdown ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#7c3aed', background: '#ede9fe', padding: '10px 14px', borderRadius: '8px', width: '100%', boxSizing: 'border-box' }}>
+            <Clock size={14} />
+            <span>Opens {new Date((set as any).scheduledDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+          </span>
+        ) : status === 'Completed' ? (
           <div className={styles.actionButtonGroup}>
             <button
               type="button"

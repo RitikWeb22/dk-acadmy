@@ -34,6 +34,47 @@ export function normalizeMathInText(rawText: string): string {
   if (!rawText) return '';
   let text = rawText;
 
+  // 0. Decode Word Quartz / CambriaMath subset font encoding artifacts (where no ToUnicode CMap is embedded)
+  text = text.replace(/log[7\-]/g, '\\log_e ');
+  text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
+  text = text.replace(/\/012/g, '-\\sin ');
+  text = text.replace(/012\s*([\$x])/gi, '\\sin x');
+  text = text.replace(/012/g, '\\sin ');
+  text = text.replace(/9:0\s*[\$x]?["!]?\s*([\$x])/gi, '\\cos^2 x');
+  text = text.replace(/9:0/g, '\\cos ');
+
+  // Standard fraction markers
+  text = text.replace(/3\/6/g, '\\frac{\\pi}{6}');
+  text = text.replace(/3\/4/g, '\\frac{\\pi}{4}');
+  text = text.replace(/3\/2/g, '\\frac{\\pi}{2}');
+  text = text.replace(/3\/!\$/g, '(\\pi - 2x)');
+  text = text.replace(/3\/!/g, '\\pi - 2');
+  text = text.replace(/3\//g, '\\pi - ');
+
+  // Vertical stacked fractions: ' \n , or ! \n ,
+  text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{2}');
+  text = text.replace(/[!2]\s*[\r\n]+\s*,\s*,?/g, '\\frac{2}{2}');
+
+  // Variables and font characters: $ -> x
+  text = text.replace(/\$([0-9!#'"&+\-/*])/g, 'x$1');
+  text = text.replace(/([0-9!#'"&+\-/*\(])\$/g, '$1x');
+  text = text.replace(/\$/g, 'x');
+
+  // Exponents & numbers (! -> ^2, # -> ^3)
+  text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
+  text = text.replace(/!/g, '^2');
+  text = text.replace(/([a-zA-Z0-9\)])#/g, '$1^3');
+  text = text.replace(/#/g, '^3');
+
+  // Operators
+  text = text.replace(/&/g, ' + ');
+  text = text.replace(/(^|[\s\+\-\*\/\^\=,\(\$x])'/g, '$11');
+  text = text.replace(/'(?=[\s\+\-\*\/\^\=,\)\$x]|$)/g, '1');
+  text = text.replace(/"/g, '0');
+  text = text.replace(/;/g, 'x');
+  text = text.replace(/=(?=[a-zA-Z0-9\\])/g, '[');
+  text = text.replace(/@(?=[\s\+\-\*\/\^\=,\)\$x]|$)/g, ']');
+
   // Normalize common math unicode symbols to LaTeX equivalents
   text = text.replace(/∫/g, '\\int ');
   text = text.replace(/√\s*(\([^\)]+\)|[a-zA-Z0-9]+)/g, '\\sqrt{$1}');

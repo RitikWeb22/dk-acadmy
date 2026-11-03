@@ -612,6 +612,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
   });
   const [isAddingChapter, setIsAddingChapter] = useState<boolean>(false);
   const [customChapterName, setCustomChapterName] = useState<string>('');
+  const [chapterSearchQuery, setChapterSearchQuery] = useState<string>('');
 
   const handleAddNewHighYieldChapter = () => {
     const trimmed = customChapterName.trim();
@@ -2321,7 +2322,27 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                 {/* High-yield Chapter Quick Pick Pills */}
                 <div className={styles.chapterQuickPickRow}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
-                    <span className={styles.quickPickPrompt}>High-Yield Chapters:</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span className={styles.quickPickPrompt}>High-Yield Chapters:</span>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <Search size={12} style={{ position: 'absolute', left: '8px', color: '#94a3b8', pointerEvents: 'none' }} />
+                        <input
+                          type="text"
+                          placeholder="Search chapter..."
+                          value={chapterSearchQuery}
+                          onChange={(e) => setChapterSearchQuery(e.target.value)}
+                          style={{
+                            padding: '3px 8px 3px 24px',
+                            fontSize: '11px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            outline: 'none',
+                            width: '135px',
+                            background: '#ffffff'
+                          }}
+                        />
+                      </div>
+                    </div>
                     {!isAddingChapter ? (
                       <button
                         type="button"
@@ -2405,7 +2426,9 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     )}
                   </div>
                   <div className={styles.chapterPillsStrip}>
-                    {(highYieldChapters[newSubject] || []).map((ch) => (
+                    {(highYieldChapters[newSubject] || [])
+                      .filter((ch) => !chapterSearchQuery.trim() || ch.toLowerCase().includes(chapterSearchQuery.trim().toLowerCase()))
+                      .map((ch) => (
                       <button
                         key={ch}
                         type="button"
@@ -2604,9 +2627,9 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                         value={newStatus}
                         onChange={(e) => setNewStatus(e.target.value as ProblemStatus)}
                       >
-                        <option value="Published">✓ Published (Immediate Student Access)</option>
-                        <option value="Draft">📝 Draft (Editorial / Review Mode)</option>
-                        <option value="Scheduled">⏰ Scheduled (Unlock at Specific Date &amp; Time)</option>
+                        <option value="Published">Live Publish</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Scheduled">Schedule</option>
                       </select>
                     </div>
 
@@ -2884,77 +2907,188 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
               </button>
             </div>
 
-            {/* Studio Navigation Tabs: Switch Questions vs Settings */}
-            <div className={styles.studioTabBar}>
-              <div className={styles.studioQuestionsTabs}>
-                {editingItem.questions.map((q, idx) => (
+            {/* 1. Test-Series Style Questions Palette Strip */}
+            <div style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '12px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Questions Palette ({editingItem.questions.length}):
+                  </span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '4px' }}>
+                    ✓ {editingItem.questions.filter((q) => Boolean(q.statement && q.options && q.options.length > 0)).length} Ready
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button
-                    key={q.id || idx}
                     type="button"
-                    className={`${styles.qTabBtn} ${
-                      editingQuestionIdx === idx ? styles.qTabActive : ''
-                    }`}
-                    onClick={() => setEditingQuestionIdx(idx)}
+                    onClick={handleAddQuestionToEditingItem}
+                    style={{
+                      background: '#ffffff',
+                      color: '#2563eb',
+                      border: '1.5px solid #bfdbfe',
+                      borderRadius: '8px',
+                      padding: '5px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
                   >
-                    <span>Q{idx + 1}</span>
-                    <span className={styles.qTopicMini}>{q.topic?.slice(0, 10)}</span>
+                    <Plus size={14} /> Add Question
                   </button>
-                ))}
-
-                <button
-                  type="button"
-                  className={styles.addQTabBtn}
-                  onClick={handleAddQuestionToEditingItem}
-                  title="Add new single question"
-                >
-                  <Plus size={14} />
-                  <span>Add Q</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={styles.addQTabBtn}
-                  onClick={() => handleOpenBulkModal(false)}
-                  style={{
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    borderColor: '#1d4ed8',
-                    fontWeight: 700,
-                    padding: '6px 14px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                  title="Bulk Upload Questions (Word .docx & PDF .pdf)"
-                >
-                  <Upload size={14} />
-                  <span>Bulk Upload</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBulkModal(false)}
+                    style={{
+                      background: '#2563eb',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '5px 14px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Upload size={14} /> Bulk Upload (Word/PDF)
+                  </button>
+                </div>
               </div>
 
-              <div className={styles.qActionButtonsBar}>
-                <button
-                  type="button"
-                  className={styles.smallActionBtn}
-                  onClick={() => handleDuplicateQuestionInEditingItem(editingQuestionIdx)}
-                  title="Duplicate active question"
-                >
-                  <Copy size={13} />
-                  <span>Duplicate</span>
-                </button>
-                {editingItem.questions.length > 1 && (
-                  <button
-                    type="button"
-                    className={`${styles.smallActionBtn} ${styles.dangerSmallBtn}`}
-                    onClick={() => handleDeleteQuestionInEditingItem(editingQuestionIdx)}
-                    title="Delete active question"
-                  >
-                    <Trash2 size={13} />
-                    <span>Delete</span>
-                  </button>
-                )}
+              {/* Question Tiles */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                {editingItem.questions.map((q, idx) => {
+                  const isCurrent = editingQuestionIdx === idx;
+                  const isFilled = Boolean(q.statement && q.statement.trim().length > 10);
+                  return (
+                    <button
+                      key={q.id || idx}
+                      type="button"
+                      onClick={() => setEditingQuestionIdx(idx)}
+                      style={{
+                        minWidth: '54px',
+                        height: '38px',
+                        borderRadius: '8px',
+                        border: isCurrent ? '2px solid #2563eb' : isFilled ? '1px solid #cbd5e1' : '1px dashed #f87171',
+                        background: isCurrent ? '#eff6ff' : '#ffffff',
+                        color: isCurrent ? '#1d4ed8' : '#334155',
+                        fontWeight: 800,
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        position: 'relative',
+                        flexShrink: 0,
+                        transition: 'all 0.15s ease'
+                      }}
+                      title={`Question ${idx + 1}: ${q.topic || 'General'}`}
+                    >
+                      <span>Q{idx + 1}</span>
+                      {isFilled && <span style={{ color: '#16a34a', fontSize: '10px' }}>✓</span>}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+
+            {/* 2. Question Actions Toolbar Right Above Editor */}
+            {editingItem.questions[editingQuestionIdx] && (
+              <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e40af', background: '#dbeafe', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: '6px' }}>
+                    Q{editingQuestionIdx + 1} • Single Choice MCQ
+                  </span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
+                    {editingItem.questions[editingQuestionIdx].topic || 'Topic: Not Assigned'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewingStudentItem(editingItem);
+                      setPreviewCurrentQIndex(editingQuestionIdx);
+                      setPreviewSelectedOptions({});
+                      setPreviewShowSolution(false);
+                      setPreviewSubmitted(false);
+                      setPreviewSecondsLeft(1800);
+                    }}
+                    style={{
+                      background: '#ecfdf5',
+                      color: '#065f46',
+                      border: '1px solid #a7f3d0',
+                      borderRadius: '8px',
+                      padding: '5px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Test solve this question in Student Simulator"
+                  >
+                    <Play size={13} />
+                    <span>Live Student Simulator</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDuplicateQuestionInEditingItem(editingQuestionIdx)}
+                    style={{
+                      background: '#f8fafc',
+                      color: '#334155',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      padding: '5px 10px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Duplicate active question"
+                  >
+                    <Copy size={13} />
+                    <span>Duplicate</span>
+                  </button>
+
+                  {editingItem.questions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteQuestionInEditingItem(editingQuestionIdx)}
+                      style={{
+                        background: '#fef2f2',
+                        color: '#991b1b',
+                        border: '1px solid #fecaca',
+                        borderRadius: '8px',
+                        padding: '5px 10px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Delete active question"
+                    >
+                      <Trash2 size={13} />
+                      <span>Delete</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Active Question Editor Body */}
             {editingItem.questions[editingQuestionIdx] && (
@@ -3102,9 +3236,9 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                             border: '1px solid #cbd5e1'
                           }}
                         >
-                          <option value="Published">✓ Published</option>
+                          <option value="Published">Live Publish</option>
                           <option value="Draft">Draft</option>
-                          <option value="Scheduled">⏰ Scheduled</option>
+                          <option value="Scheduled">Schedule</option>
                         </select>
                         {editingItem.status === 'Scheduled' && (
                           <input
