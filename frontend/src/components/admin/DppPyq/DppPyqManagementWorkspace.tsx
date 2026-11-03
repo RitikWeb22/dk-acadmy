@@ -791,13 +791,22 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
     if (!editingItem) return;
 
+    const isPaperPaid = editingItem.isFree === false;
     let finalQuestions: ProblemQuestionItem[] = [];
     if (mode === 'replace') {
-      finalQuestions = bulkParsedQuestions.map((q, idx) => ({ ...q, qNum: idx + 1 }));
+      finalQuestions = bulkParsedQuestions.map((q, idx) => ({
+        ...q,
+        qNum: idx + 1,
+        isFree: isPaperPaid ? false : (q.isFree ?? true)
+      }));
     } else {
       const existing = editingItem.questions || [];
       const startNum = existing.length;
-      const appended = bulkParsedQuestions.map((q, idx) => ({ ...q, qNum: startNum + idx + 1 }));
+      const appended = bulkParsedQuestions.map((q, idx) => ({
+        ...q,
+        qNum: startNum + idx + 1,
+        isFree: isPaperPaid ? false : (q.isFree ?? true)
+      }));
       finalQuestions = [...existing, ...appended];
     }
 
@@ -1207,6 +1216,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
   const handleAddQuestionToEditingItem = () => {
     if (!editingItem) return;
+    const isPaperPaid = editingItem.isFree === false;
     const nextQNum = (editingItem.questions?.length || 0) + 1;
     const newQ: ProblemQuestionItem = {
       id: `q-custom-${Date.now()}`,
@@ -1228,7 +1238,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       dkSirShortcut: 'DK Sir Speed Rule: Eliminate boundary conditions or test limits to lock answer in 20 seconds.',
       stepSolution: 'Step 1: Write down basic governing laws. Step 2: Simplify algebraic terms and solve for unknown.',
       difficulty: 'Moderate',
-      isFree: editingItem.isFree !== false,
+      isFree: !isPaperPaid,
       examYear: editingItem.moduleType === 'PYQ' ? 'JEE Main' : undefined
     };
 
@@ -1244,12 +1254,14 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
   const handleDuplicateQuestionInEditingItem = (idx: number) => {
     if (!editingItem || !editingItem.questions[idx]) return;
+    const isPaperPaid = editingItem.isFree === false;
     const sourceQ = editingItem.questions[idx];
     const clonedQ: ProblemQuestionItem = {
       ...sourceQ,
       id: `q-custom-${Date.now()}`,
       qNum: editingItem.questions.length + 1,
-      statement: `${sourceQ.statement} (Variant)`
+      statement: `${sourceQ.statement} (Variant)`,
+      isFree: isPaperPaid ? false : sourceQ.isFree
     };
     const updatedQs = [...editingItem.questions, clonedQ];
     setEditingItem({
@@ -2924,357 +2936,367 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
               </button>
             </div>
 
-            {/* 1. Test-Series Style Questions Palette Strip */}
-            <div style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '12px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Questions Palette ({editingItem.questions.length}):
-                  </span>
-                  <span style={{ fontSize: '11px', fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '4px' }}>
-                    ✓ {editingItem.questions.filter((q) => Boolean(q.statement && q.options && q.options.length > 0)).length} Ready
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={handleAddQuestionToEditingItem}
-                    style={{
-                      background: '#ffffff',
-                      color: '#2563eb',
-                      border: '1.5px solid #bfdbfe',
-                      borderRadius: '8px',
-                      padding: '5px 12px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}
-                  >
-                    <Plus size={14} /> Add Question
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenBulkModal(false)}
-                    style={{
-                      background: '#2563eb',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '5px 14px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <Upload size={14} /> Bulk Upload (Word/PDF)
-                  </button>
-                </div>
-              </div>
+            {/* Split 2-Column Builder Workspace */}
+            <div className={styles.studioWorkspaceSplit}>
+              {/* Left Column: Questions Palette & Paper Monetization Settings */}
+              <div className={styles.studioPaletteSidebar}>
+                {/* 1. Entire Paper Monetization & Release Status Card */}
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#475569', letterSpacing: '0.04em' }}>
+                      Paper Monetization:
+                    </span>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: editingItem.isFree === false ? '#ede9fe' : '#dcfce7', color: editingItem.isFree === false ? '#6d28d9' : '#15803d' }}>
+                      {editingItem.isFree === false ? '🔒 PAID' : '✓ FREE'}
+                    </span>
+                  </div>
 
-              {/* Question Tiles */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
-                {editingItem.questions.map((q, idx) => {
-                  const isCurrent = editingQuestionIdx === idx;
-                  const isFilled = Boolean(q.statement && q.statement.trim().length > 10);
-                  return (
-                    <button
-                      key={q.id || idx}
-                      type="button"
-                      onClick={() => setEditingQuestionIdx(idx)}
+                  <select
+                    value={editingItem.isFree === false ? 'PAID' : 'FREE'}
+                    onChange={(e) => {
+                      const isPaid = e.target.value === 'PAID';
+                      const updatedQuestions = (editingItem.questions || []).map((q) => ({
+                        ...q,
+                        isFree: !isPaid
+                      }));
+                      setEditingItem({
+                        ...editingItem,
+                        isFree: !isPaid,
+                        price: isPaid ? (editingItem.price || 499) : 0,
+                        questions: updatedQuestions
+                      });
+                      showToast(
+                        isPaid
+                          ? '🔒 Locked entire paper! All questions are automatically set to Locked (Paid).'
+                          : '✓ Set entire paper to Free Practice!'
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      border: '1.5px solid #cbd5e1',
+                      background: '#ffffff',
+                      marginBottom: editingItem.isFree === false ? '8px' : '0'
+                    }}
+                  >
+                    <option value="FREE">✓ Free Set (₹0)</option>
+                    <option value="PAID">🔒 Paid / Locked Set</option>
+                  </select>
+
+                  {editingItem.isFree === false && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>Unlock Price:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={10}
+                        value={editingItem.price ?? 499}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            price: Number(e.target.value)
+                          })
+                        }
+                        placeholder="Price ₹"
+                        style={{
+                          flex: 1,
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          borderRadius: '6px',
+                          border: '1.5px solid #7c3aed'
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Release Status:</span>
+                    </div>
+                    <select
+                      value={editingItem.status || 'Published'}
+                      onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as ProblemStatus })}
                       style={{
-                        minWidth: '54px',
-                        height: '38px',
-                        borderRadius: '8px',
-                        border: isCurrent ? '2px solid #2563eb' : isFilled ? '1px solid #cbd5e1' : '1px dashed #f87171',
-                        background: isCurrent ? '#eff6ff' : '#ffffff',
-                        color: isCurrent ? '#1d4ed8' : '#334155',
-                        fontWeight: 800,
+                        width: '100%',
+                        padding: '5px 8px',
+                        borderRadius: '6px',
                         fontSize: '12px',
+                        fontWeight: 600,
+                        border: '1px solid #cbd5e1'
+                      }}
+                    >
+                      <option value="Published">Live Publish</option>
+                      <option value="Draft">Draft</option>
+                      <option value="Scheduled">Schedule</option>
+                    </select>
+                    {editingItem.status === 'Scheduled' && (
+                      <input
+                        type="datetime-local"
+                        value={editingItem.scheduledDate || ''}
+                        onChange={(e) => setEditingItem({ ...editingItem, scheduledDate: e.target.value })}
+                        style={{
+                          marginTop: '6px',
+                          width: '100%',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          border: '1.5px solid #8b5cf6',
+                          background: '#faf5ff',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Questions Palette Header & Actions */}
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
+                      Question Palette ({editingItem.questions.length})
+                    </span>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px' }}>
+                      ✓ {editingItem.questions.filter((q) => Boolean(q.statement && q.statement.trim().length > 10)).length} Ready
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={handleAddQuestionToEditingItem}
+                      style={{
+                        background: '#ffffff',
+                        color: '#2563eb',
+                        border: '1.5px solid #bfdbfe',
+                        borderRadius: '6px',
+                        padding: '5px 8px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '3px',
-                        position: 'relative',
-                        flexShrink: 0,
-                        transition: 'all 0.15s ease'
+                        gap: '4px'
                       }}
-                      title={`Question ${idx + 1}: ${q.topic || 'General'}`}
                     >
-                      <span>Q{idx + 1}</span>
-                      {isFilled && <span style={{ color: '#16a34a', fontSize: '10px' }}>✓</span>}
+                      <Plus size={13} /> Add Q
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 2. Question Actions Toolbar Right Above Editor */}
-            {editingItem.questions[editingQuestionIdx] && (
-              <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e40af', background: '#dbeafe', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: '6px' }}>
-                    Q{editingQuestionIdx + 1} • Single Choice MCQ
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
-                    {editingItem.questions[editingQuestionIdx].topic || 'Topic: Not Assigned'}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPreviewingStudentItem(editingItem);
-                      setPreviewCurrentQIndex(editingQuestionIdx);
-                      setPreviewSelectedOptions({});
-                      setPreviewShowSolution(false);
-                      setPreviewSubmitted(false);
-                      setPreviewSecondsLeft(1800);
-                    }}
-                    style={{
-                      background: '#ecfdf5',
-                      color: '#065f46',
-                      border: '1px solid #a7f3d0',
-                      borderRadius: '8px',
-                      padding: '5px 12px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      transition: 'all 0.15s ease'
-                    }}
-                    title="Test solve this question in Student Simulator"
-                  >
-                    <Play size={13} />
-                    <span>Live Student Simulator</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDuplicateQuestionInEditingItem(editingQuestionIdx)}
-                    style={{
-                      background: '#f8fafc',
-                      color: '#334155',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '8px',
-                      padding: '5px 10px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                    title="Duplicate active question"
-                  >
-                    <Copy size={13} />
-                    <span>Duplicate</span>
-                  </button>
-
-                  {editingItem.questions.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => handleDeleteQuestionInEditingItem(editingQuestionIdx)}
+                      onClick={() => handleOpenBulkModal(false)}
                       style={{
-                        background: '#fef2f2',
-                        color: '#991b1b',
-                        border: '1px solid #fecaca',
-                        borderRadius: '8px',
-                        padding: '5px 10px',
-                        fontSize: '12px',
-                        fontWeight: 600,
+                        background: '#2563eb',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '5px 8px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
+                        justifyContent: 'center',
                         gap: '4px'
                       }}
-                      title="Delete active question"
                     >
-                      <Trash2 size={13} />
-                      <span>Delete</span>
+                      <Upload size={13} /> Bulk Upload
                     </button>
-                  )}
+                  </div>
+                </div>
+
+                {/* 3. Question Buttons Grid */}
+                <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', alignContent: 'start', flex: 1, overflowY: 'auto' }}>
+                  {editingItem.questions.map((q, idx) => {
+                    const isCurrent = editingQuestionIdx === idx;
+                    const isFilled = Boolean(q.statement && q.statement.trim().length > 10);
+                    const isLocked = q.isFree === false;
+                    return (
+                      <button
+                        key={q.id || idx}
+                        type="button"
+                        onClick={() => setEditingQuestionIdx(idx)}
+                        style={{
+                          height: '42px',
+                          borderRadius: '8px',
+                          border: isCurrent ? '2px solid #2563eb' : isFilled ? '1px solid #cbd5e1' : '1px dashed #f87171',
+                          background: isCurrent ? '#eff6ff' : '#ffffff',
+                          color: isCurrent ? '#1d4ed8' : '#334155',
+                          fontWeight: 800,
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          position: 'relative',
+                          transition: 'all 0.15s ease',
+                          boxShadow: isCurrent ? '0 0 0 2px rgba(37, 99, 235, 0.2)' : 'none'
+                        }}
+                        title={`Question ${idx + 1} (${isLocked ? 'Locked' : 'Free'})`}
+                      >
+                        <span style={{ lineHeight: 1 }}>Q{idx + 1}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px', fontSize: '9px' }}>
+                          {isFilled && <span style={{ color: '#16a34a' }}>✓</span>}
+                          {isLocked && <span>🔒</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            )}
 
-            {/* Active Question Editor Body */}
-            {editingItem.questions[editingQuestionIdx] && (
-              <div className={styles.studioEditorBody}>
-                {/* Meta Row: Topic, Difficulty, Exam Year */}
-                <div className={styles.editorMetaRow}>
-                  <div className={styles.metaField}>
-                    <label>Topic / Chapter Tag:</label>
-                    <input
-                      type="text"
-                      className={styles.fieldInputSmall}
-                      value={editingItem.questions[editingQuestionIdx].topic}
-                      onChange={(e) => handleUpdateActiveQuestion({ topic: e.target.value })}
-                    />
-                  </div>
-
-                  <div className={styles.metaField}>
-                    <label>Difficulty Rating:</label>
-                    <select
-                      className={styles.fieldSelectSmall}
-                      value={editingItem.questions[editingQuestionIdx].difficulty}
-                      onChange={(e) =>
-                        handleUpdateActiveQuestion({ difficulty: e.target.value as any })
-                      }
-                    >
-                      <option value="Easy">Easy</option>
-                      <option value="Moderate">Moderate</option>
-                      <option value="Challenging">Challenging</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.metaField} style={{ flex: '1 1 100%' }}>
-                    {/* Paper & Question Monetization Controls */}
-                    <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>
-                          Question Access:
+              {/* Right Column: Question Authoring Area */}
+              <div className={styles.studioEditorMain}>
+                {editingItem.questions[editingQuestionIdx] && (
+                  <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Header Toolbar */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e40af', background: '#dbeafe', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: '6px' }}>
+                          Q{editingQuestionIdx + 1} • Single Choice MCQ
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateActiveQuestion({ isFree: true })}
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: editingItem.questions[editingQuestionIdx].isFree !== false ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
-                            background: editingItem.questions[editingQuestionIdx].isFree !== false ? '#dcfce7' : '#ffffff',
-                            color: editingItem.questions[editingQuestionIdx].isFree !== false ? '#15803d' : '#64748b'
-                          }}
-                        >
-                          ✓ Free Preview
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateActiveQuestion({ isFree: false })}
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: editingItem.questions[editingQuestionIdx].isFree === false ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
-                            background: editingItem.questions[editingQuestionIdx].isFree === false ? '#ede9fe' : '#ffffff',
-                            color: editingItem.questions[editingQuestionIdx].isFree === false ? '#6d28d9' : '#64748b'
-                          }}
-                        >
-                          🔒 Locked (Paid)
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>
-                          Entire Paper:
-                        </span>
-                        <select
-                          value={editingItem.isFree === false ? 'PAID' : 'FREE'}
-                          onChange={(e) => {
-                            const isPaid = e.target.value === 'PAID';
-                            const updatedQuestions = (editingItem.questions || []).map((q) => ({
-                              ...q,
-                              isFree: !isPaid
-                            }));
-                            setEditingItem({
-                              ...editingItem,
-                              isFree: !isPaid,
-                              price: isPaid ? (editingItem.price || 499) : 0,
-                              questions: updatedQuestions
-                            });
-                            showToast(
-                              isPaid
-                                ? '🔒 Locked all questions! You can still toggle individual questions to Free Preview.'
-                                : '✓ Set all questions to Free Preview!'
-                            );
-                          }}
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            border: '1px solid #cbd5e1'
-                          }}
-                        >
-                          <option value="FREE">✓ Free Set (₹0)</option>
-                          <option value="PAID">🔒 Paid / Locked Set</option>
-                        </select>
-                        {editingItem.isFree === false && (
-                          <input
-                            type="number"
-                            min={0}
-                            step={10}
-                            value={editingItem.price ?? 499}
-                            onChange={(e) =>
-                              setEditingItem({
-                                ...editingItem,
-                                price: Number(e.target.value)
-                              })
-                            }
-                            placeholder="Price ₹"
+                        {/* Question Access Toggle */}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 6px', background: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>Question Access:</span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateActiveQuestion({ isFree: true })}
                             style={{
-                              width: '75px',
-                              padding: '3px 6px',
+                              padding: '2px 7px',
+                              borderRadius: '4px',
                               fontSize: '11px',
                               fontWeight: 700,
-                              borderRadius: '4px',
-                              border: '1.5px solid #7c3aed'
+                              cursor: 'pointer',
+                              border: editingItem.questions[editingQuestionIdx].isFree !== false ? '1.5px solid #16a34a' : '1px solid transparent',
+                              background: editingItem.questions[editingQuestionIdx].isFree !== false ? '#dcfce7' : 'transparent',
+                              color: editingItem.questions[editingQuestionIdx].isFree !== false ? '#15803d' : '#64748b'
                             }}
-                          />
-                        )}
+                          >
+                            ✓ Free Preview
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateActiveQuestion({ isFree: false })}
+                            style={{
+                              padding: '2px 7px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              border: editingItem.questions[editingQuestionIdx].isFree === false ? '1.5px solid #7c3aed' : '1px solid transparent',
+                              background: editingItem.questions[editingQuestionIdx].isFree === false ? '#ede9fe' : 'transparent',
+                              color: editingItem.questions[editingQuestionIdx].isFree === false ? '#6d28d9' : '#64748b'
+                            }}
+                          >
+                            🔒 Locked (Paid)
+                          </button>
+                        </div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>
-                          Status:
-                        </span>
-                        <select
-                          value={editingItem.status || 'Published'}
-                          onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as ProblemStatus })}
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            border: '1px solid #cbd5e1'
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewingStudentItem(editingItem);
+                            setPreviewCurrentQIndex(editingQuestionIdx);
+                            setPreviewSelectedOptions({});
+                            setPreviewShowSolution(false);
+                            setPreviewSubmitted(false);
+                            setPreviewSecondsLeft(1800);
                           }}
+                          style={{
+                            background: '#ecfdf5',
+                            color: '#065f46',
+                            border: '1px solid #a7f3d0',
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          title="Test solve this question in Student Simulator"
                         >
-                          <option value="Published">Live Publish</option>
-                          <option value="Draft">Draft</option>
-                          <option value="Scheduled">Schedule</option>
-                        </select>
-                        {editingItem.status === 'Scheduled' && (
-                          <input
-                            type="datetime-local"
-                            value={editingItem.scheduledDate || ''}
-                            onChange={(e) => setEditingItem({ ...editingItem, scheduledDate: e.target.value })}
+                          <Play size={12} />
+                          <span>Student Simulator</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicateQuestionInEditingItem(editingQuestionIdx)}
+                          style={{
+                            background: '#f8fafc',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            fontSize: '11.5px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          title="Duplicate active question"
+                        >
+                          <Copy size={12} /> Duplicate
+                        </button>
+                        {editingItem.questions.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteQuestionInEditingItem(editingQuestionIdx)}
                             style={{
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              border: '1.5px solid #8b5cf6',
-                              background: '#faf5ff'
+                              background: '#fef2f2',
+                              color: '#991b1b',
+                              border: '1px solid #fecaca',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              fontSize: '11.5px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
                             }}
-                          />
+                            title="Delete active question"
+                          >
+                            <Trash2 size={12} /> Delete
+                          </button>
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
+
+                    {/* Topic and Difficulty */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+                      <div className={styles.metaField}>
+                        <label>Topic / Chapter Tag:</label>
+                        <input
+                          type="text"
+                          className={styles.fieldInputSmall}
+                          value={editingItem.questions[editingQuestionIdx].topic}
+                          onChange={(e) => handleUpdateActiveQuestion({ topic: e.target.value })}
+                        />
+                      </div>
+                      <div className={styles.metaField}>
+                        <label>Difficulty Rating:</label>
+                        <select
+                          className={styles.fieldSelectSmall}
+                          value={editingItem.questions[editingQuestionIdx].difficulty}
+                          onChange={(e) =>
+                            handleUpdateActiveQuestion({ difficulty: e.target.value as any })
+                          }
+                        >
+                          <option value="Easy">Easy</option>
+                          <option value="Moderate">Moderate</option>
+                          <option value="Challenging">Challenging</option>
+                        </select>
+                      </div>
+                    </div>
 
                 {/* Problem Statement Textarea & Live KaTeX preview */}
                 <div className={styles.statementEditorSection}>
@@ -3473,8 +3495,51 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     </div>
                   </div>
                 </div>
+
+                {/* Previous / Next Question Navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '14px', borderTop: '1px solid #e2e8f0', marginTop: '10px' }}>
+                  <button
+                    type="button"
+                    disabled={editingQuestionIdx === 0}
+                    onClick={() => setEditingQuestionIdx(editingQuestionIdx - 1)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      background: editingQuestionIdx === 0 ? '#f1f5f9' : '#ffffff',
+                      color: editingQuestionIdx === 0 ? '#94a3b8' : '#334155',
+                      cursor: editingQuestionIdx === 0 ? 'not-allowed' : 'pointer',
+                      fontWeight: 600,
+                      fontSize: '12px'
+                    }}
+                  >
+                    &larr; Previous Question
+                  </button>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
+                    Question {editingQuestionIdx + 1} of {editingItem.questions.length}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={editingQuestionIdx === editingItem.questions.length - 1}
+                    onClick={() => setEditingQuestionIdx(editingQuestionIdx + 1)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      background: editingQuestionIdx === editingItem.questions.length - 1 ? '#f1f5f9' : '#ffffff',
+                      color: editingQuestionIdx === editingItem.questions.length - 1 ? '#94a3b8' : '#334155',
+                      cursor: editingQuestionIdx === editingItem.questions.length - 1 ? 'not-allowed' : 'pointer',
+                      fontWeight: 600,
+                      fontSize: '12px'
+                    }}
+                  >
+                    Next Question &rarr;
+                  </button>
+                </div>
               </div>
             )}
+          </div>
+        </div>
 
             <div className={styles.modalFooterActions}>
               <button

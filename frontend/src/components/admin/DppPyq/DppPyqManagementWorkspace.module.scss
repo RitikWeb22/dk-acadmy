@@ -1204,17 +1204,58 @@
 }
 
 .modalCardStudio {
-  width: 100%;
-  max-width: 980px;
-  max-height: 90vh;
+  width: 98vw;
+  max-width: 1560px;
+  height: 94vh;
+  max-height: 94vh;
   background: #FFFFFF;
   border-radius: 16px;
-  border: 1px solid #E2E8F0;
-  box-shadow: 0 25px 55px rgba(15, 23, 42, 0.22);
+  border: 1px solid #CBD5E1;
+  box-shadow: 0 25px 55px rgba(15, 23, 42, 0.25);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   animation: scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studioWorkspaceSplit {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+  }
+}
+
+.studioPaletteSidebar {
+  width: 330px;
+  min-width: 290px;
+  max-width: 350px;
+  background: #F8FAFC;
+  border-right: 1px solid #E2E8F0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+
+  @media (max-width: 900px) {
+    width: 100%;
+    max-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #E2E8F0;
+    max-height: 220px;
+  }
+}
+
+.studioEditorMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: #FFFFFF;
 }
 
 /* Studio Tabs & Controls */
