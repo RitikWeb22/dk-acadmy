@@ -541,6 +541,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
   const [newDurationMinutes, setNewDurationMinutes] = useState<number>(15);
   const [newSolutionNote, setNewSolutionNote] = useState<string>('5 with step solutions');
   const [newStatus, setNewStatus] = useState<ProblemStatus>('Published');
+  const [newScheduledDate, setNewScheduledDate] = useState<string>('');
   const [newIsFree, setNewIsFree] = useState<boolean>(true);
   const [newPrice, setNewPrice] = useState<number>(0);
   const [newVideoUrl, setNewVideoUrl] = useState<string>('');
@@ -1105,6 +1106,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       durationMinutes: Number(newDurationMinutes) || 15,
       solutionNote: newSolutionNote.trim() || `${createdCustomQuestions ? createdCustomQuestions.length : newQuestionsCount} questions with step solutions`,
       status: newStatus,
+      scheduledDate: newStatus === 'Scheduled' && newScheduledDate ? newScheduledDate : undefined,
       attemptsCount: 0,
       questions: createdCustomQuestions && createdCustomQuestions.length > 0
         ? createdCustomQuestions
@@ -1216,7 +1218,8 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       dkSirShortcut: 'DK Sir Speed Rule: Eliminate boundary conditions or test limits to lock answer in 20 seconds.',
       stepSolution: 'Step 1: Write down basic governing laws. Step 2: Simplify algebraic terms and solve for unknown.',
       difficulty: 'Moderate',
-      examYear: editingItem.moduleType === 'PYQ' ? 'JEE Main 2025' : undefined
+      isFree: editingItem.isFree !== false,
+      examYear: editingItem.moduleType === 'PYQ' ? 'JEE Main' : undefined
     };
 
     const updatedQs = [...(editingItem.questions || []), newQ];
@@ -2590,12 +2593,52 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>Aspirants pay this amount to unlock full solutions.</span>
                   </div>
                 )}
+
+                {/* Release Publication Status & Automated Schedule */}
+                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px dashed #e2e8f0' }}>
+                  <label className={styles.fieldLabel}>Release Publication Status</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: newStatus === 'Scheduled' ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr', gap: '12px', marginTop: '6px' }}>
+                    <div>
+                      <select
+                        className={styles.fieldSelectEnhanced}
+                        value={newStatus}
+                        onChange={(e) => setNewStatus(e.target.value as ProblemStatus)}
+                      >
+                        <option value="Published">✓ Published (Immediate Student Access)</option>
+                        <option value="Draft">📝 Draft (Editorial / Review Mode)</option>
+                        <option value="Scheduled">⏰ Scheduled (Unlock at Specific Date &amp; Time)</option>
+                      </select>
+                    </div>
+
+                    {newStatus === 'Scheduled' && (
+                      <div>
+                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                          <Clock size={12} />
+                          <span>Select Release Date &amp; Time:</span>
+                        </label>
+                        <input
+                          type="datetime-local"
+                          className={styles.fieldInputEnhanced}
+                          value={newScheduledDate}
+                          onChange={(e) => setNewScheduledDate(e.target.value)}
+                          required
+                          style={{ borderColor: '#8b5cf6', background: '#faf5ff' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {newStatus === 'Scheduled' && (
+                    <p style={{ margin: '6px 0 0', fontSize: '11.5px', color: '#7c3aed', fontWeight: 600 }}>
+                      ⏰ When scheduled, students see a live countdown timer until this exact timestamp. It unlocks automatically when the timer reaches zero!
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {/* Step 6: Video Walkthrough & Solution PDF */}
+              {/* Step 5: Video Walkthrough & Solution PDF */}
               <div className={styles.formSectionBox}>
                 <div className={styles.fieldSectionHeading}>
-                  <span>6. Video Walkthrough &amp; Solution PDF *</span>
+                  <span>5. Video Walkthrough &amp; Solution PDF *</span>
                   <span className={styles.requiredIndicator}>Optional Attachments</span>
                 </div>
 
@@ -2877,25 +2920,19 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     color: '#ffffff',
                     borderColor: '#1d4ed8',
                     fontWeight: 700,
-                    padding: '6px 12px'
+                    padding: '6px 14px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
-                  title="Bulk Upload 200+ Questions via CSV, Excel, or Text Paste"
+                  title="Bulk Upload Questions (Word .docx & PDF .pdf)"
                 >
                   <Upload size={14} />
-                  <span>📥 Bulk Upload (200+ Qs)</span>
+                  <span>Bulk Upload</span>
                 </button>
               </div>
 
               <div className={styles.qActionButtonsBar}>
-                <button
-                  type="button"
-                  className={styles.smallActionBtn}
-                  onClick={downloadQuestionsTemplateCsv}
-                  title="Download standard CSV template to open and fill in Excel"
-                >
-                  <Download size={13} />
-                  <span>CSV Template</span>
-                </button>
                 <button
                   type="button"
                   className={styles.smallActionBtn}
@@ -2998,11 +3035,21 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                           value={editingItem.isFree === false ? 'PAID' : 'FREE'}
                           onChange={(e) => {
                             const isPaid = e.target.value === 'PAID';
+                            const updatedQuestions = (editingItem.questions || []).map((q) => ({
+                              ...q,
+                              isFree: !isPaid
+                            }));
                             setEditingItem({
                               ...editingItem,
                               isFree: !isPaid,
-                              price: isPaid ? (editingItem.price || 499) : 0
+                              price: isPaid ? (editingItem.price || 499) : 0,
+                              questions: updatedQuestions
                             });
+                            showToast(
+                              isPaid
+                                ? '🔒 Locked all questions! You can still toggle individual questions to Free Preview.'
+                                : '✓ Set all questions to Free Preview!'
+                            );
                           }}
                           style={{
                             padding: '3px 8px',
@@ -3035,6 +3082,41 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                               fontWeight: 700,
                               borderRadius: '4px',
                               border: '1.5px solid #7c3aed'
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>
+                          Status:
+                        </span>
+                        <select
+                          value={editingItem.status || 'Published'}
+                          onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as ProblemStatus })}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            border: '1px solid #cbd5e1'
+                          }}
+                        >
+                          <option value="Published">✓ Published</option>
+                          <option value="Draft">Draft</option>
+                          <option value="Scheduled">⏰ Scheduled</option>
+                        </select>
+                        {editingItem.status === 'Scheduled' && (
+                          <input
+                            type="datetime-local"
+                            value={editingItem.scheduledDate || ''}
+                            onChange={(e) => setEditingItem({ ...editingItem, scheduledDate: e.target.value })}
+                            style={{
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              border: '1.5px solid #8b5cf6',
+                              background: '#faf5ff'
                             }}
                           />
                         )}
@@ -3563,11 +3645,11 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     <Upload size={18} />
                   </div>
                   <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
-                    Bulk Upload Questions (200+ Questions)
+                    Bulk Upload Questions (Word .docx &amp; PDF .pdf)
                   </h3>
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
-                  Easily import 10, 50, or 200+ questions in seconds using CSV template or copy-pasting from Word/Notepad.
+                  Upload Word (.docx) or PDF (.pdf) question papers to extract questions, options, keys, and KaTeX math derivations automatically.
                 </p>
               </div>
 
@@ -3593,261 +3675,75 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
             {/* Modal Body */}
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Tab Selector & Template Download */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setBulkInputMode('doc')}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: bulkInputMode === 'doc' ? '#ffffff' : 'transparent',
-                      color: bulkInputMode === 'doc' ? '#2563eb' : '#64748b',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                      boxShadow: bulkInputMode === 'doc' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <Upload size={15} /> 📄 Word (.docx) &amp; PDF (.pdf)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBulkInputMode('csv')}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: bulkInputMode === 'csv' ? '#ffffff' : 'transparent',
-                      color: bulkInputMode === 'csv' ? '#2563eb' : '#64748b',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                      boxShadow: bulkInputMode === 'csv' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <FileUp size={15} /> Upload CSV File
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBulkInputMode('paste')}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: bulkInputMode === 'paste' ? '#ffffff' : 'transparent',
-                      color: bulkInputMode === 'paste' ? '#2563eb' : '#64748b',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                      boxShadow: bulkInputMode === 'paste' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <FileText size={15} /> Paste Text / Numbered Qs
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={downloadQuestionsTemplateCsv}
+              {/* Word & PDF Document Upload */}
+              <div
+                style={{
+                  border: '2px dashed #3b82f6',
+                  background: '#eff6ff',
+                  borderRadius: '14px',
+                  padding: '36px 20px',
+                  textAlign: 'center',
+                  cursor: isDocUploading ? 'wait' : 'pointer',
+                  position: 'relative',
+                  transition: 'border-color 0.2s'
+                }}
+              >
+                <input
+                  type="file"
+                  accept=".docx,.doc,.pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUploadDocument(file);
+                  }}
+                  disabled={isDocUploading}
                   style={{
+                    position: 'absolute',
+                    inset: 0,
+                    opacity: 0,
+                    cursor: isDocUploading ? 'wait' : 'pointer',
+                    width: '100%',
+                    height: '100%'
+                  }}
+                />
+                <div
+                  style={{
+                    width: '54px',
+                    height: '54px',
+                    borderRadius: '14px',
+                    background: '#dbeafe',
+                    color: '#1d4ed8',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    background: '#f0fdf4',
-                    border: '1.5px solid #86efac',
-                    borderRadius: '8px',
-                    color: '#166534',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                  title="Download standard Excel/CSV template"
-                >
-                  <Download size={14} /> Download Sample CSV Template
-                </button>
-              </div>
-
-              {/* Mode 0: Word & PDF Document Upload */}
-              {bulkInputMode === 'doc' && (
-                <div
-                  style={{
-                    border: '2px dashed #3b82f6',
-                    background: '#eff6ff',
-                    borderRadius: '14px',
-                    padding: '36px 20px',
-                    textAlign: 'center',
-                    cursor: isDocUploading ? 'wait' : 'pointer',
-                    position: 'relative',
-                    transition: 'border-color 0.2s'
+                    justifyContent: 'center',
+                    marginBottom: '12px'
                   }}
                 >
-                  <input
-                    type="file"
-                    accept=".docx,.doc,.pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleUploadDocument(file);
-                    }}
-                    disabled={isDocUploading}
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      opacity: 0,
-                      cursor: isDocUploading ? 'wait' : 'pointer',
-                      width: '100%',
-                      height: '100%'
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: '54px',
-                      height: '54px',
-                      borderRadius: '14px',
-                      background: '#dbeafe',
-                      color: '#1d4ed8',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginBottom: '12px'
-                    }}
-                  >
-                    {isDocUploading ? <Loader2 size={26} className="animate-spin" /> : <Upload size={26} />}
-                  </div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                    {isDocUploading ? 'Extracting & Parsing Document...' : 'Click to Upload Word (.docx) or PDF (.pdf) or Drag & Drop'}
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '6px', maxWidth: '560px', margin: '6px auto 0' }}>
-                    AI-powered extraction parses Question Statements, 4 Options, Answer Keys, Step Solutions &amp; DK Sir Shortcuts with KaTeX Math support.
-                  </div>
-                  {isDocUploading && (
-                    <div style={{ marginTop: '16px', maxWidth: '360px', margin: '16px auto 0' }}>
-                      <div style={{ height: '8px', background: '#bfdbfe', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            height: '100%',
-                            background: '#2563eb',
-                            width: `${docUploadProgress}%`,
-                            transition: 'width 0.3s ease'
-                          }}
-                        />
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#1e40af', marginTop: '4px', fontWeight: 700 }}>
-                        {docUploadProgress}% Complete
-                      </div>
+                  {isDocUploading ? <Loader2 size={26} className="animate-spin" /> : <Upload size={26} />}
+                </div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                  {isDocUploading ? 'Extracting & Parsing Document...' : 'Click to Upload Word (.docx) or PDF (.pdf) or Drag & Drop'}
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '6px', maxWidth: '560px', margin: '6px auto 0' }}>
+                  AI-powered extraction parses Question Statements, 4 Options, Answer Keys, Step Solutions &amp; DK Sir Shortcuts with KaTeX Math support.
+                </div>
+                {isDocUploading && (
+                  <div style={{ marginTop: '16px', maxWidth: '360px', margin: '16px auto 0' }}>
+                    <div style={{ height: '8px', background: '#bfdbfe', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          background: '#2563eb',
+                          width: `${docUploadProgress}%`,
+                          transition: 'width 0.3s ease'
+                        }}
+                      />
                     </div>
-                  )}
-                </div>
-              )}
-
-              {/* Mode 1: File Upload */}
-              {bulkInputMode === 'csv' && (
-                <div
-                  style={{
-                    border: '2px dashed #93c5fd',
-                    background: '#f8fafc',
-                    borderRadius: '14px',
-                    padding: '36px 20px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    transition: 'border-color 0.2s'
-                  }}
-                >
-                  <input
-                    type="file"
-                    accept=".csv,.txt,.json,.tsv"
-                    onChange={handleFileUpload}
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      opacity: 0,
-                      cursor: 'pointer',
-                      width: '100%',
-                      height: '100%'
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '12px',
-                      background: '#eff6ff',
-                      color: '#2563eb',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginBottom: '10px'
-                    }}
-                  >
-                    <FileUp size={24} />
+                    <div style={{ fontSize: '0.75rem', color: '#1e40af', marginTop: '4px', fontWeight: 700 }}>
+                      {docUploadProgress}% Complete
+                    </div>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
-                    Click to select CSV / Excel file or drag &amp; drop here
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
-                    Supports <code>.csv</code>, <code>.tsv</code>, <code>.json</code> or text file exported from Excel or Google Sheets.
-                  </div>
-                </div>
-              )}
-
-              {/* Mode 2: Paste Text Area */}
-              {bulkInputMode === 'paste' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
-                      Paste Questions Data (CSV, JSON Array, or Numbered Format):
-                    </label>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      Formats supported: CSV text, JSON, or standard "Q1. ... A) ... B) ... Ans: B"
-                    </span>
-                  </div>
-                  <textarea
-                    rows={8}
-                    value={bulkPastedText}
-                    onChange={(e) => {
-                      setBulkPastedText(e.target.value);
-                      handleParseText(e.target.value);
-                    }}
-                    placeholder={`Paste CSV content or standard question block:
-Statement,Option A,Option B,Option C,Option D,Correct Key,Solution,DK Sir Shortcut,Video URL,PDF URL
-"Solve the limit as x->0 of (sin x)/x","0","1","-1","undefined","B","Standard limit theorem","Inspect standard trigonometric expansion","https://youtu.be/sample1",""
-
-OR paste numbered questions:
-Q1. What is the derivative of sin(x)?
-A) cos(x)
-B) -cos(x)
-C) tan(x)
-D) sec(x)
-Ans: A
-Sol: Standard derivative theorem.`}
-                    style={{
-                      width: '100%',
-                      fontFamily: 'monospace',
-                      fontSize: '0.8rem',
-                      lineHeight: '1.4',
-                      padding: '12px',
-                      borderRadius: '10px',
-                      border: '1.5px solid #cbd5e1',
-                      background: '#f8fafc',
-                      color: '#0f172a',
-                      resize: 'vertical'
-                    }}
-                  />
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Parsing Feedback & Validation Banner */}
               {bulkParsedQuestions.length > 0 && (
