@@ -15,6 +15,8 @@ interface QuestionPracticeViewProps {
   totalQuestions: number;
   userResponse?: PYQUserResponse;
   isUnlocked?: boolean;
+  paperVideoUrl?: string;
+  paperPdfUrl?: string;
   onSelectOption: (optionId: string) => void;
   onCheckAnswer: () => void;
   onResetQuestion: () => void;
@@ -32,6 +34,8 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
   totalQuestions,
   userResponse,
   isUnlocked = true,
+  paperVideoUrl,
+  paperPdfUrl,
   onSelectOption,
   onCheckAnswer,
   onResetQuestion,
@@ -122,6 +126,43 @@ export const QuestionPracticeView: React.FC<QuestionPracticeViewProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Paper-Level Video Walkthrough & Solution PDF Bar */}
+      {(paperVideoUrl || paperPdfUrl) && (
+        <div className={styles.paperMediaActionRow}>
+          <div className={styles.paperMediaTitle}>
+            <Sparkles size={14} className={styles.paperMediaSparkle} />
+            <span>Complete Paper Solutions &amp; Walkthrough:</span>
+          </div>
+          <div className={styles.paperMediaButtons}>
+            {paperVideoUrl && (
+              <a
+                href={paperVideoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.paperVideoBtn}
+                title="Watch Full Paper Video Walkthrough"
+              >
+                <YoutubeIcon size={15} />
+                <span>Full Video Walkthrough</span>
+              </a>
+            )}
+            {paperPdfUrl && (
+              <a
+                href={paperPdfUrl}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.paperPdfBtn}
+                title="Download Complete Solution PDF"
+              >
+                <FileText size={14} />
+                <span>Solution PDF</span>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Question Body OR Locked Course Prompt */}
       {!isUnlocked ? (

@@ -19,7 +19,8 @@ import {
   BookOpen,
   Filter,
   AlertCircle,
-  RotateCcw
+  RotateCcw,
+  Clock
 } from 'lucide-react';
 import type { PYQExam, Subject, PYQUserResponse, PYQQuestion } from '../../types';
 import { Container } from '../../components/ui/Container/Container';
@@ -54,6 +55,7 @@ export interface LiveDppPyqSet {
   questionsCount?: number;
   solutionNote?: string;
   status?: string;
+  scheduledDate?: string;
   questions: any[];
 }
 
@@ -100,6 +102,32 @@ export const PYQPage: React.FC = () => {
     } catch {}
     return [2026, 2025, 2024, 2023, 2022, 2021, 2020];
   });
+
+  // 1-second interval for real-time live scheduled paper countdowns
+  const [nowTime, setNowTime] = useState<number>(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNowTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getCountdown = (scheduledDate?: string) => {
+    if (!scheduledDate) return null;
+    const target = new Date(scheduledDate).getTime();
+    if (isNaN(target)) return null;
+    const diff = target - nowTime;
+    if (diff <= 0) return null;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+    return {
+      days,
+      hours,
+      minutes,
+      seconds,
+      text: `${days > 0 ? `${days}d ` : ''}${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`
+    };
+  };
 
   // Practice session state for questions inside an opened set
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
@@ -705,11 +733,23 @@ export const PYQPage: React.FC = () => {
                         ? styles.subjectPillChem
                         : styles.subjectPillMath;
 
+                    const countdown =
+                      set.status === 'Scheduled' && set.scheduledDate
+                        ? getCountdown(set.scheduledDate)
+                        : null;
+                    const isScheduledLocked = Boolean(countdown);
+
                     return (
                       <article
                         key={set.id || set._id}
                         className={styles.pyqSetCard}
                         onClick={() => {
+                          if (isScheduledLocked) {
+                            showToast(
+                              `⏰ Scheduled: Opens in ${countdown?.text} (${new Date(set.scheduledDate!).toLocaleString()})`
+                            );
+                            return;
+                          }
                           setSelectedSetId(set.id || set._id || null);
                           setActiveQuestionIndex(null);
                         }}
@@ -721,7 +761,12 @@ export const PYQPage: React.FC = () => {
                           <span className={styles.examTargetBadge}>
                             {set.examTarget || 'JEE Main'}
                           </span>
-                          {isSetFree ? (
+                          {isScheduledLocked ? (
+                            <span style={{ fontSize: '11px', fontWeight: 800, color: '#7c3aed', background: '#faf5ff', border: '1px solid #ddd6fe', padding: '2px 8px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Clock size={11} />
+                              <span>Opens in {countdown?.text}</span>
+                            </span>
+                          ) : isSetFree ? (
                             <span className={styles.freeAccessBadge}>
                               ✓ 100% Free Practice
                             </span>
@@ -756,7 +801,12 @@ export const PYQPage: React.FC = () => {
 
                         <div className={styles.setCardFooter}>
                           <span className={styles.qCountBadge}>{qCount} Questions</span>
-                          {isSetFree ? (
+                          {isScheduledLocked ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#7c3aed', background: '#ede9fe', padding: '6px 12px', borderRadius: '8px' }}>
+                              <Clock size={13} />
+                              <span>Opens {new Date(set.scheduledDate!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                            </span>
+                          ) : isSetFree ? (
                             <span className={styles.openSetBtn}>
                               <span>Practice Questions</span>
                               <ArrowRight size={14} />
@@ -882,8 +932,10 @@ export const PYQPage: React.FC = () => {
                         type="button"
                         className={styles.resourceBtn}
                         onClick={() => {
-                          const targetQ = setQuestions[0];
-                          if (targetQ) setActiveVideoQuestion(targetQ);
+                          const vUrl = activeSet.videoUrl || activeSet.videoWalkthroughUrl;
+                          if (vUrl) {
+                            window.open(vUrl, '_blank', 'noopener,noreferrer');
+                          }
                         }}
                       >
                         <Play size={14} fill="currentColor" />
@@ -931,6 +983,8 @@ export const PYQPage: React.FC = () => {
                         totalQuestions={setQuestions.length}
                         userResponse={responses[currentQuestion.id]}
                         isUnlocked={isQuestionAccessible(currentQuestion, activeQuestionIndex)}
+                        paperVideoUrl={activeSet.videoUrl || activeSet.videoWalkthroughUrl}
+                        paperPdfUrl={activeSet.pdfUrl}
                         onSelectOption={(optId) => handleSelectOption(currentQuestion.id, optId)}
                         onCheckAnswer={() =>
                           handleCheckAnswer(currentQuestion.id, currentQuestion.correctAnswer)

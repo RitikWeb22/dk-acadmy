@@ -22,7 +22,6 @@ import { CourseBuilderWorkspace } from '../../../components/admin/CourseBuilder/
 import { InvoicesManagementWorkspace } from '../../../components/admin/Invoices/InvoicesManagementWorkspace';
 import { TestSeriesBuilderWorkspace } from '../../../components/admin/TestSeries/TestSeriesBuilderWorkspace';
 import { DppPyqManagementWorkspace } from '../../../components/admin/DppPyq/DppPyqManagementWorkspace';
-import { PyqManagementStudio } from '../../../components/admin/PYQStudio/PyqManagementStudio';
 import { CourseReviewManagementWorkspace } from '../../../components/admin/CourseReview/CourseReviewManagementWorkspace';
 import { FreeLecturesManagementWorkspace } from '../../../components/admin/FreeLectures/FreeLecturesManagementWorkspace';
 import { ContactManagementWorkspace } from '../../../components/admin/ContactManagement/ContactManagementWorkspace';
@@ -331,7 +330,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
             <InvoicesManagementWorkspace />
           ) : activeMenu === 'test-series' ? (
             <TestSeriesBuilderWorkspace />
-          ) : activeMenu === 'pyq-studio' || activeMenu === 'dpp-pyq' ? (
+          ) : activeMenu === 'dpp-pyq' ? (
             <DppPyqManagementWorkspace />
           ) : activeMenu === 'free-lectures' ? (
             <FreeLecturesManagementWorkspace />
