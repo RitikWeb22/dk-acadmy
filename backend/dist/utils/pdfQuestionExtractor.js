@@ -23,9 +23,16 @@ export function normalizeMathInText(rawText) {
     text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');
     text = text.replace(/\\int_\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
     text = text.replace(/\\int\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
-    // Stitch stacked fractions where numerator is on one line and denominator is on the next line (with dx)
-    text = text.replace(/(\\int[^\n]+?)\s*\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s]+?)\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s]+?\s*dx\b)/g, (_, intPart, num, den) => {
-        return `${intPart} \\frac{${num.trim()}}{${den.replace(/\s*dx\b/, '').trim()}} \\, dx`;
+    // Stitch stacked fractions where numerator is on one line and denominator is on the next line (with dx, dt, etc. and optional trailing words)
+    text = text.replace(/((?:The value of the integral\s*)?\\int[^\r\n]*?)\s*\r?\n+([^\r\n]+?)\r?\n+([^\r\n]+?\b(?:dx|dt|dy|d\theta)\b)([\s\S]*?)(?=\r?\n|$)/gi, (_, intPart, num, den, trail) => {
+        const diffMatch = den.match(/\b(dx|dt|dy|d\theta)\b/i);
+        const diffVar = diffMatch ? diffMatch[0] : 'dx';
+        const cleanDen = den.replace(new RegExp(`\\s*\\b${diffVar}\\b`, 'i'), '').trim();
+        return `${intPart} \\frac{${num.trim()}}{${cleanDen}} \\, ${diffVar}${trail}`;
+    });
+    // Also catch generic multiline fraction where numerator is on one line and denominator has dx on the next line
+    text = text.replace(/(\\int[^\n]+?)\s*\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s_]+?)\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s_]+?\s*dx\b)([\s\S]*?)(?=\r?\n|$)/gi, (_, intPart, num, den, trail) => {
+        return `${intPart} \\frac{${num.trim()}}{${den.replace(/\s*dx\b/i, '').trim()}} \\, dx${trail}`;
     });
     text = text.replace(/log[7\-]/g, '\\log_e ');
     text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');

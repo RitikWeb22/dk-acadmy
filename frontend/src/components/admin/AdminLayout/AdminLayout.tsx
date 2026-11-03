@@ -499,15 +499,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                           <button
                             type="button"
                             onClick={handleMarkAllRead}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#2563eb',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              padding: '2px 4px'
-                            }}
+                            className={styles.markAllReadBtn}
                           >
                             Mark all read
                           </button>
@@ -527,36 +519,32 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                     <div className={styles.notificationList}>
                       {notifications.length === 0 ? (
                         <div className={styles.emptyNotification}>
+                          <Bell size={24} style={{ opacity: 0.4 }} />
                           <p>No new activity or inquiries</p>
                         </div>
                       ) : (
-                        notifications.slice(0, 15).map((item) => (
+                        notifications.map((item) => (
                           <div
                             key={item.id}
-                            className={styles.notificationItem}
+                            className={`${styles.notificationItem} ${item.unread ? styles.notifUnread : ''}`}
                             onClick={() => handleNotificationClick(item)}
-                            style={{
-                              cursor: 'pointer',
-                              opacity: item.unread ? 1 : 0.72,
-                              background: item.unread ? '#f8faff' : '#ffffff'
-                            }}
                           >
                             <div className={styles.notificationItemTop}>
-                              <span className={styles.notificationLeadName} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                {item.unread && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2563eb', flexShrink: 0 }} />}
-                                <span style={{ color: item.unread ? '#0f172a' : '#475569', fontWeight: item.unread ? 700 : 500 }}>
-                                  {item.title}
-                                </span>
+                              <span className={styles.notificationLeadName}>
+                                {item.title}
                               </span>
-                              <span className={styles.notificationTime} style={{ flexShrink: 0, marginLeft: '6px' }}>
-                                {item.time}
-                              </span>
+                              {item.unread && <span className={styles.unreadDot} />}
                             </div>
                             {item.description && (
-                              <p className={styles.notificationCourse} style={{ color: '#64748b', fontSize: '11.5px', marginTop: '2px' }}>
+                              <p className={styles.notificationCourse}>
                                 {item.description}
                               </p>
                             )}
+                            <div className={styles.notificationItemFooter}>
+                              <span className={styles.notificationTime}>
+                                {item.time}
+                              </span>
+                            </div>
                           </div>
                         ))
                       )}

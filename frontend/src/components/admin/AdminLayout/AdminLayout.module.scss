@@ -457,17 +457,20 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 320px;
+  width: 340px;
+  max-width: 90vw;
   background: #ffffff;
   border: 1px solid var(--color-border, #e2e8f0);
   border-radius: 12px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
-  z-index: 100;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 4px 8px rgba(15, 23, 42, 0.04);
+  z-index: 1000;
   overflow: hidden;
   animation: dropdownFade 0.15s ease-out;
+  display: flex;
+  flex-direction: column;
 
   @include mobile {
-    width: 290px;
+    width: 300px;
     right: -50px;
   }
 }
@@ -510,6 +513,20 @@
   border-radius: 4px;
 }
 
+.markAllReadBtn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .testToneBtn {
   display: inline-flex;
   align-items: center;
@@ -530,15 +547,32 @@
 }
 
 .notificationList {
-  max-height: 280px;
+  max-height: 350px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
 }
 
 .emptyNotification {
-  padding: 24px;
-  text-align: center;
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   color: #94a3b8;
   font-size: 12px;
 }
@@ -550,10 +584,19 @@
   padding: 10px 14px;
   border-bottom: 1px solid #f1f5f9;
   text-decoration: none;
-  transition: background 0.12s ease;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 
   &:hover {
     background: #f8fafc;
+  }
+
+  &.notifUnread {
+    background: #f0f7ff;
+
+    &:hover {
+      background: #e5f0fe;
+    }
   }
 
   &:last-child {
@@ -569,9 +612,42 @@
 }
 
 .notificationLeadName {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #0f172a;
+  line-height: 1.3;
+}
+
+.unreadDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  flex-shrink: 0;
+}
+
+.notificationCourse {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.4;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notificationItemFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.notificationTime {
+  font-size: 10.5px;
+  color: #94a3b8;
 }
 
 .leadBadge {
