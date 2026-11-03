@@ -367,7 +367,7 @@ export const getAllTestSeries = async (req, res) => {
         // Only seed initial default test series if database collection is completely empty
         if (items.length === 0 && Object.keys(filter).length === 0) {
             for (const seed of SEED_TEST_SERIES) {
-                await TestSeries.findOneAndUpdate({ slug: seed.slug }, seed, { upsert: true, new: true, setDefaultsOnInsert: true });
+                await TestSeries.findOneAndUpdate({ slug: seed.slug }, seed, { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true });
             }
             items = await TestSeries.find({}).sort({ createdAt: -1 });
         }
@@ -545,7 +545,7 @@ export const createTestSeries = async (req, res) => {
         const existing = queryOr.length > 0 ? await TestSeries.findOne({ $or: queryOr }) : null;
         if (existing) {
             const updated = await TestSeries.findByIdAndUpdate(existing._id, payload, {
-                new: true,
+                returnDocument: 'after',
                 runValidators: true
             });
             if (updated) {

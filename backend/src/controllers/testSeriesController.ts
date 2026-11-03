@@ -386,7 +386,7 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
         await TestSeries.findOneAndUpdate(
           { slug: seed.slug },
           seed,
-          { upsert: true, new: true, setDefaultsOnInsert: true }
+          { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
         );
       }
       items = await TestSeries.find({}).sort({ createdAt: -1 });
@@ -574,7 +574,7 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
 
     if (existing) {
       const updated = await TestSeries.findByIdAndUpdate(existing._id, payload, {
-        new: true,
+        returnDocument: 'after',
         runValidators: true
       });
       if (updated) {
