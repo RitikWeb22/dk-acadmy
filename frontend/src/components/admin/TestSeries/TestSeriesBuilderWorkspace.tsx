@@ -4403,36 +4403,85 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                   {/* 1. Release Publication Status & Exam Delivery Mode */}
                   <div style={{ marginBottom: '20px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                      <label style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Clock size={16} color="#2563EB" />
-                        <span>Release Publication Status *</span>
-                      </label>
-                      <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', background: builderStatus === 'Published' ? '#DCFCE7' : builderStatus === 'Scheduled' ? '#EFF6FF' : '#F1F5F9', color: builderStatus === 'Published' ? '#166534' : builderStatus === 'Scheduled' ? '#1D4ED8' : '#475569' }}>
-                        {builderStatus === 'Published' ? '🟢 Live & Accessible' : builderStatus === 'Scheduled' ? '⏳ Scheduled Window' : '📝 Saved as Draft'}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
-                        <select
-                          value={builderStatus}
-                          onChange={(e) => {
-                            const val = e.target.value as 'Published' | 'Draft' | 'Scheduled';
-                            setBuilderStatus(val);
-                            if (val === 'Scheduled') {
-                              setScheduleMode('SCHEDULED_WINDOW');
-                            } else {
-                              setScheduleMode('OPEN_PRACTICE');
-                            }
+                        <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Clock size={16} color="#2563EB" />
+                          <span>Examination Schedule &amp; Publication Status</span>
+                        </div>
+                        <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0' }}>
+                          {builderStatus === 'Scheduled'
+                            ? '✓ Live CBT Schedule is configured. Review or fine-tune window dates below.'
+                            : builderStatus === 'Published'
+                            ? '✓ Live Examination Mode: Published and immediately accessible to enrolled candidates.'
+                            : '✓ Draft Mode: Paper is securely saved and private.'}
+                        </p>
+                      </div>
+
+                      {/* Mode Toggle Button Group */}
+                      <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: '3px', borderRadius: '8px', gap: '3px' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBuilderStatus('Scheduled');
+                            setScheduleMode('SCHEDULED_WINDOW');
                           }}
-                          className={styles.primaryTextInput}
-                          style={{ fontSize: '13.5px', fontWeight: 600, padding: '10px 14px', borderRadius: '8px' }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            background: builderStatus === 'Scheduled' ? '#2563EB' : 'transparent',
+                            color: builderStatus === 'Scheduled' ? '#FFFFFF' : '#475569'
+                          }}
                         >
-                          <option value="Published">Live Publish</option>
-                          <option value="Draft">Draft</option>
-                          <option value="Scheduled">Schedule</option>
-                        </select>
+                          ⏳ Scheduled Window {builderStatus === 'Scheduled' ? '(Active)' : ''}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBuilderStatus('Published');
+                            setScheduleMode('OPEN_PRACTICE');
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            background: builderStatus === 'Published' ? '#16A34A' : 'transparent',
+                            color: builderStatus === 'Published' ? '#FFFFFF' : '#475569'
+                          }}
+                        >
+                          🟢 Live Publish {builderStatus === 'Published' ? '(Active)' : ''}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBuilderStatus('Draft');
+                            setScheduleMode('OPEN_PRACTICE');
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            background: builderStatus === 'Draft' ? '#64748B' : 'transparent',
+                            color: builderStatus === 'Draft' ? '#FFFFFF' : '#475569'
+                          }}
+                        >
+                          📝 Draft {builderStatus === 'Draft' ? '(Active)' : ''}
+                        </button>
                       </div>
                     </div>
 

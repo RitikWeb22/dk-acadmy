@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 import styles from './DppPyqManagementWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
-import { downloadQuestionsTemplateCsv, parseBulkQuestions } from '../../../utils/questionBulkParser';
+import { downloadQuestionsTemplateCsv, parseBulkQuestions, normalizeMathText } from '../../../utils/questionBulkParser';
 import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
 import { MathText } from '../../ui/MathText/MathText';
 
@@ -3381,11 +3381,40 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
                 {/* Problem Statement Textarea & Live KaTeX preview */}
                 <div className={styles.statementEditorSection}>
-                  <label className={styles.sectionSmallLabel}>
-                    Problem Statement (KaTeX LaTeX formulas supported):
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label className={styles.sectionSmallLabel} style={{ margin: 0 }}>
+                      Problem Statement (KaTeX LaTeX formulas supported):
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = editingItem.questions[editingQuestionIdx]?.statement || '';
+                        if (!cur.trim()) return;
+                        const formatted = normalizeMathText(cur);
+                        handleUpdateActiveQuestion({ statement: formatted });
+                        showToast('✓ Statement auto-formatted into clean KaTeX LaTeX!');
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                      title="Auto-repair multiline integrals, nested fractions, Greek letters, and bracket balance"
+                    >
+                      <Sparkles size={13} />
+                      Auto-Format &amp; Fix LaTeX
+                    </button>
+                  </div>
                   <textarea
-                    rows={3}
+                    rows={4}
                     className={styles.statementTextarea}
                     value={editingItem.questions[editingQuestionIdx].statement}
                     onChange={(e) => handleUpdateActiveQuestion({ statement: e.target.value })}

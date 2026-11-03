@@ -224,9 +224,15 @@ function sanitizeFormula(str: string): string {
     .replace(/[\u2018\u2019]/g, "'")
     // Clean leading dots from copy-pasting
     .replace(/^\s*\.\s*(?=[A-Za-z])/g, '')
-    // Normalize any duplicated \left\left( or \right\right)
-    .replace(/\\left\s*\\left\s*\(/g, '\\left(')
-    .replace(/\\right\s*\\right\s*\)/g, '\\right)')
+    // Strip accidental leading sentence starters mistakenly wrapped into math
+    .replace(/^\\text\{\s*(?:If|Let|Then|Where|When)\s*\}\s*/i, '')
+    .replace(/^(?:If|Let|Then|Where|When)\s+/i, '')
+    // Normalize any duplicated \left\left or \right\right for any delimiter
+    .replace(/\\left\s*\\left/g, '\\left')
+    .replace(/\\right\s*\\right/g, '\\right')
+    // Clean triple braces on exponents and subscripts e.g. ^{\frac{\pi}{6}}} -> ^{\frac{\pi}{6}}
+    .replace(/(\^\{[^{}]+(?:\{[^{}]*\}[^{}]*)*)\}\}/g, '$1}')
+    .replace(/(\_\{[^{}]+(?:\{[^{}]*\}[^{}]*)*)\}\}/g, '$1}')
     // Normalize prime derivatives: ϕ^' (t) -> \phi'(t)
     .replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ")
     // Normalize empty set phi
@@ -259,6 +265,38 @@ function sanitizeFormula(str: string): string {
   // If formula contains connecting words inside math mode without \text, wrap them in \text{ ... }
   // to ensure proper spaces between words and prevent collapsed text (excluding sentence starters like 'if')
   res = res.replace(/(?<!\\)\b(is equal to|equal to|then|where|and|such that|be defined as|defined as)\b/gi, (match) => `\\text{ ${match} }`);
+
+  // Auto-balance \left and \right delimiters to eliminate unclosed group crashes
+  const leftMatches = res.match(/\\left\b/g) || [];
+  const rightMatches = res.match(/\\right\b/g) || [];
+  if (leftMatches.length > rightMatches.length) {
+    let count = 0;
+    res = res.replace(/\\left([(\[{.|])/g, (m, char) => {
+      count++;
+      if (count > rightMatches.length) return char;
+      return m;
+    });
+  } else if (rightMatches.length > leftMatches.length) {
+    res = res.replace(/\\right([)\]}.|])/g, '$1');
+  }
+
+  // Auto-balance curly braces { and } (excluding escaped \{ and \})
+  let openBraces = 0;
+  for (let i = 0; i < res.length; i++) {
+    if (res[i] === '{' && (i === 0 || res[i - 1] !== '\\')) openBraces++;
+    else if (res[i] === '}' && (i === 0 || res[i - 1] !== '\\')) openBraces--;
+  }
+  while (openBraces < 0) {
+    const lastClose = res.lastIndexOf('}');
+    if (lastClose !== -1) {
+      res = res.slice(0, lastClose) + res.slice(lastClose + 1);
+      openBraces++;
+    } else break;
+  }
+  while (openBraces > 0) {
+    res += '}';
+    openBraces--;
+  }
 
   return res;
 }
