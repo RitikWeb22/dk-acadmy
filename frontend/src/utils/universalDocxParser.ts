@@ -9,6 +9,8 @@
  * - Question statement, options (A-D, 1-4), answer keys, numerical solutions, DK Sir shortcuts
  */
 
+import { normalizeMathText } from './questionBulkParser';
+
 export interface NormalizedOption {
   key: 'A' | 'B' | 'C' | 'D';
   text: string;
@@ -92,6 +94,21 @@ export const OPERATOR_MAP: Record<string, string> = {
   'ℚ': '\\mathbb{Q}',
   'ℂ': '\\mathbb{C}'
 };
+
+export function cleanMathSymbols(text: string): string {
+  let s = text;
+  for (const [char, latex] of Object.entries(GREEK_MATH_MAP)) {
+    s = s.split(char).join(` ${latex} `);
+  }
+  for (const [char, latex] of Object.entries(OPERATOR_MAP)) {
+    s = s.split(char).join(` ${latex} `);
+  }
+  return s;
+}
+
+export function stripHtmlTags(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
 // ============================================================================
 // 2. OFFICE MATH MARKUP LANGUAGE (OMML) TO LATEX CONVERTER
@@ -580,178 +597,8 @@ export function normalizeUnicodeMathText(raw: string): string {
   text = text.replace(/F\s*[\r\n]+\s*1\s*[\r\n]+\s*3\s*[\r\n]+\s*−?1\s*[\r\n]+\s*2\s*[\r\n]+\s*1\s*[\r\n]+\s*𝛼\s*[\r\n]+\s*0\s*[\r\n]+\s*1\s*[\r\n]+\s*−?1\s*[\r\n]+\s*H/g,
                       '\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}');
 
-  // 3. Normalizes Definite Integrals
-  // Matches ∫01 or ∫ 0 1 or 0π4 or ∫0π2 or ∫-loge2loge2
-  text = text.replace(/∫\s*0\s*1\b/g, '\\int_0^1 ');
-  text = text.replace(/∫\s*0\s*2\b/g, '\\int_0^2 ');
-  text = text.replace(/0\s*π\s*4/g, '\\int_0^{\\pi/4} ');
-  text = text.replace(/∫\s*0\s*π\s*2/g, '\\int_0^{\\pi/2} ');
-  text = text.replace(/∫\s*0\s*π\b/g, '\\int_0^\\pi ');
-  text = text.replace(/∫\s*-?\s*loge\s*2\s*loge\s*2/gi, '\\int_{-\\log_e 2}^{\\log_e 2} ');
-  text = text.replace(/∫\s*([0-9a-zA-Z\\/]+)\s*\r?\n+\s*([0-9a-zA-Z\\/]+)/g, '\\int_{$2}^{$1} ');
-  text = text.replace(/∫\b/g, '\\int ');
-
-  // 4. Normalizes Limits
-  // limn→∞ or limx→0 or limx→1a or limx→π/4
-  text = text.replace(/lim\s*n\s*→\s*∞\s* ?/gi, '\\lim_{n \\to \\infty} ');
-  text = text.replace(/lim\s*x\s*→\s*0\s*\+?\s* ?/gi, '\\lim_{x \\to 0} ');
-  text = text.replace(/lim\s*x\s*→\s*1\s*a\s* ?/gi, '\\lim_{x \\to \\frac{1}{a}} ');
-  text = text.replace(/lim\s*x\s*→\s*1\s* ?/gi, '\\lim_{x \\to 1} ');
-  text = text.replace(/lim\s*x\s*→\s*π\s*\/?\s*([0-9]+)?\s* ?/gi, (_, d) => d ? `\\lim_{x \\to \\frac{\\pi}{${d}}} ` : '\\lim_{x \\to \\pi} ');
-  text = text.replace(/lim\s*([a-zA-Z])\s*→\s*([0-9a-zA-Z∞]+)\s* ?/gi, '\\lim_{$1 \\to $2} ');
-
-  // 5. Normalizes Summations & Products
-  text = text.replace(/∑\s*r\s*=\s*1\s*n\s* ?/gi, '\\sum_{r=1}^n ');
-  text = text.replace(/∑\s*a\s*e\s*s\s* ?/gi, '\\sum_{a \\in S} ');
-  text = text.replace(/∑\s*([a-zA-Z0-9=\-]+)\s*([a-zA-Z0-9]+)?\s* ?/g, (_, sub, sup) => sup ? `\\sum_{${sub}}^{${sup}} ` : `\\sum_{${sub}} `);
-
-  // 6. Normalizes Exponents on variables and numbers
-  // Matches e.g. x2 -> x^2, t2 -> t^2, n15 -> n^{15}, α4 -> \alpha^4, β4 -> \beta^4
-  text = text.replace(/\b([a-zA-Zα-ωΑ-Ω])([2-9])\b/g, '$1^$2');
-  text = text.replace(/\b([a-zA-Zα-ωΑ-Ω])(1[0-9])\b/g, '$1^{$2}');
-  text = text.replace(/([0-9])(1[0-9])\b(?=\+|-|\*|\/|=|\)|\s)/g, '$1^{$2}');
-  // Subscript + Superscript combo e.g. α12 -> \alpha_1^2, β12 -> \beta_1^2
-  text = text.replace(/([α-ωΑ-Ωa-zA-Z])([1-9])([2-9])\b/g, '$1_$2^$3');
-  text = text.replace(/([α-ωΑ-Ωa-zA-Z])([1-9])([α-ωΑ-Ωa-zA-Z])([1-9])\b/g, '$1_$2 $3_$4');
-
-  // Normalizes fractional exponents: (5x+1)1/3 -> (5x+1)^{1/3}, (2x+3)1/2 -> (2x+3)^{1/2}
-  text = text.replace(/(\)[a-zA-Z0-9]?)\s*(1\/[2-9]|2\/[3-9]|3\/[4-9])/g, '$1^{$2}');
-  text = text.replace(/([a-zA-Z0-9\)])\s*(1\/[2-9]|2\/[3-9]|3\/[4-9])\b/g, '$1^{$2}');
-
-  // Normalizes e-π4 -> e^{-\pi/4}, e-x -> e^{-x}, e2x -> e^{2x}
-  text = text.replace(/e-π\/?([0-9]+)?/gi, (_, d) => d ? `e^{-\\pi/${d}}` : 'e^{-\\pi}');
-  text = text.replace(/\be-([a-zA-Z0-9]+)\b/g, 'e^{-$1}');
-  text = text.replace(/\be([2-9][a-zA-Z])\b/g, 'e^{$1}');
-
-  // Normalizes 1n2 -> 1/n^2, 1n16 -> 1/n^{16}
-  text = text.replace(/\b1n([2-9])\b/gi, '\\frac{1}{n^$1}');
-  text = text.replace(/\b1n(1[0-9])\b/gi, '\\frac{1}{n^{$1}}');
-
-  // Normalizes stacked fraction in options e.g. 16(7i+12j+k) -> \frac{1}{6}(7\hat{i} + 12\hat{j} + \hat{k})
-  text = text.replace(/\b(1)([2-9]|1[0-9])\s*\(/g, '\\frac{$1}{$2}(');
-
-  // 7. Normalizes Option Fractions (e.g. A 23 -> A 2/3, B 12 -> B 1/2, C 34 -> C 3/4)
-  text = text.replace(/(?:\b|\()([A-D])(?:\)|\.|\s+)\s*([1-9])([1-9])\b(?!\d)/g, (match, optKey, num, den) => {
-    // Only convert if plausible fraction like 1/2, 2/3, 3/4, 1/3, 1/4, 4/3
-    const n = parseInt(num, 10);
-    const d = parseInt(den, 10);
-    if ((n === 1 && (d === 2 || d === 3 || d === 4 || d === 6 || d === 8)) ||
-        (n === 2 && (d === 3 || d === 5)) ||
-        (n === 3 && (d === 4 || d === 2)) ||
-        (n === 4 && d === 3)) {
-      return `(${optKey}) \\frac{${n}}{${d}}`;
-    }
-    return match;
-  });
-
-  // 8. Normalizes Trigonometric and Inverse Trig powers
-  // sin3x -> \sin 3x, tan50x -> \tan^{50} x, cos2x -> \cos 2x
-  text = text.replace(/\b(sin|cos|tan|cot|sec|cosec)\s*(\d{2,3})\s*([a-zA-Z])/gi, '\\$1^{$2} $3');
-  text = text.replace(/\b(sin|cos|tan|cot|sec|cosec)\s*([2-9])\s*([a-zA-Z])/gi, '\\$1^$2 $3');
-  text = text.replace(/\b(sin|cos|tan|cot|sec|cosec)-1\s*([a-zA-Z0-9\(\[\{])/gi, '\\$1^{-1}($2');
-  text = text.replace(/\b(sin|cos|tan|cot|sec|cosec)\s*([0-9a-zA-Z])/gi, '\\$1 $2');
-
-  // 9. Normalizes Logarithms
-  text = text.replace(/loge\s*([0-9a-zA-Z\(\[\{])/gi, '\\log_e($1');
-  text = text.replace(/log_e\s*([0-9a-zA-Z\(\[\{])/gi, '\\log_e($1');
-  text = text.replace(/\blog\s*\(/gi, '\\log(');
-  text = text.replace(/\bln\s*\(/gi, '\\ln(');
-
-  // 10. Normalizes Vectors: i+2j+k or a×r=a×b
-  text = text.replace(/\b([0-9\-]*)\s*i\s*\+\s*([0-9\-]*)\s*j\s*([\+\-]\s*[0-9\-]*\s*k)?/g, (match, iCoeff, jCoeff, kPart) => {
-    const ic = iCoeff.trim() || '1';
-    const jc = jCoeff.trim() || '1';
-    let res = `${ic === '1' ? '' : ic}\\hat{i} + ${jc === '1' ? '' : jc}\\hat{j}`;
-    if (kPart) {
-      const kc = kPart.replace(/\s+/g, '').replace('k', '');
-      res += ` ${kc.startsWith('-') ? '-' : '+'} ${kc.replace(/^[\+\-]/, '') || '1'}\\hat{k}`;
-    }
-    return res;
-  });
-  text = text.replace(/\b([a-z])\s*×\s*([a-z])\b/g, '\\vec{$1} \\times \\vec{$2}');
-  text = text.replace(/\b([a-z])\s*⋅\s*([a-z])\b/g, '\\vec{$1} \\cdot \\vec{$2}');
-
-  // 11. Replace Unicode Greek letters with LaTeX equivalents
-  for (const [char, latex] of Object.entries(GREEK_MATH_MAP)) {
-    text = text.split(char).join(latex);
-  }
-
-  // 12. Replace Unicode Math operators with LaTeX equivalents
-  for (const [char, latex] of Object.entries(OPERATOR_MAP)) {
-    text = text.split(char).join(latex);
-  }
-
-  // 13. Auto-wrap unbracketed formulas into $...$
-  text = autoWrapMathFormulas(text);
-
-  return text.trim();
-}
-
-/**
- * Automatically wraps mathematical formulas in inline $...$ while preserving
- * regular prose, question labels ("1.", "2."), option tags ("(A)", "(B)"), and section titles.
- */
-function autoWrapMathFormulas(text: string): string {
-  const lines = text.split('\n');
-  const processedLines = lines.map((line) => {
-    // If line already contains $ or is purely whitespace, leave intact
-    if (line.includes('$') || !line.trim()) return line;
-
-    // Check if line contains mathematical symbols: \int, \frac, \sqrt, \lim, \sum, ^, _, \alpha
-    const hasMath = /\\(int|frac|sqrt|lim|sum|prod|begin|alpha|beta|pi|theta|lambda|to|infty|le|ge|ne|pm|times|cdot|log|sin|cos|tan)\b|\^|\_/.test(line);
-    if (!hasMath) return line;
-
-    // Check for leading question numbering e.g. "1. Let " or "2. "
-    const qNumMatch = line.match(/^(\s*(?:Q\.?|Question)?\s*\d{1,3}\s*[\.\:\)]\s*)([\s\S]*)$/i);
-    if (qNumMatch) {
-      const prefix = qNumMatch[1];
-      const body = qNumMatch[2];
-      return `${prefix}${wrapMathInSegments(body)}`;
-    }
-
-    return wrapMathInSegments(line);
-  });
-
-  return processedLines.join('\n');
-}
-
-function wrapMathInSegments(textSegment: string): string {
-  // If line contains options e.g. (A) 21 (B) 12 (C) 34 (D) 13
-  if (/(?:\(?A\)?|\(1\))\s+[\s\S]+?(?:\(?B\)?|\(2\))\s+/.test(textSegment)) {
-    return textSegment.replace(/((?:\(?A\)?|\(1\))\s+)([\s\S]*?)((?:\(?B\)?|\(2\))\s+)([\s\S]*?)((?:\(?C\)?|\(3\))\s+)([\s\S]*?)((?:\(?D\)?|\(4\))\s+)([\s\S]*)$/i,
-      (_, optA, txtA, optB, txtB, optC, txtC, optD, txtD) => {
-        return `${optA}${wrapIfFormula(txtA)} ${optB}${wrapIfFormula(txtB)} ${optC}${wrapIfFormula(txtC)} ${optD}${wrapIfFormula(txtD)}`;
-      }
-    );
-  }
-
-  return wrapIfFormula(textSegment);
-}
-
-function wrapIfFormula(segment: string): string {
-  const trimmed = segment.trim();
-  if (!trimmed || trimmed.startsWith('$')) return segment;
-
-  // If the segment has LaTeX markup, wrap in $...$
-  if (/\\(frac|int|sqrt|lim|sum|alpha|beta|pi|log|sin|cos|tan)\b|\^|\_/.test(trimmed)) {
-    return `$${trimmed}$`;
-  }
-  return segment;
-}
-
-function cleanMathSymbols(text: string): string {
-  let s = text;
-  for (const [char, latex] of Object.entries(GREEK_MATH_MAP)) {
-    s = s.split(char).join(` ${latex} `);
-  }
-  for (const [char, latex] of Object.entries(OPERATOR_MAP)) {
-    s = s.split(char).join(` ${latex} `);
-  }
-  return s;
-}
-
-function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  // 3. Delegate to the comprehensive mathematical bulk normalizer
+  return normalizeMathText(text);
 }
 
 // ============================================================================
@@ -885,12 +732,12 @@ export function extractQuestionStatementAndOptions(rawText: string): {
   }
 
   return {
-    statement,
+    statement: normalizeMathText(statement),
     options,
     correctKey,
     numericalAnswer,
-    stepSolution,
-    dkSirShortcut
+    stepSolution: stepSolution ? normalizeMathText(stepSolution) : undefined,
+    dkSirShortcut: dkSirShortcut ? normalizeMathText(dkSirShortcut) : undefined
   };
 }
 
@@ -899,5 +746,5 @@ function cleanOptionText(optText: string): string {
   // Strip trailing exam metadata if merged e.g. "JEE Main 2024 (Online)..."
   s = s.replace(/(?:^|\n)\s*JEE\s+Main[^\n]*$/i, '').trim();
   s = s.replace(/[\.\,;]+$/, '').trim();
-  return s;
+  return normalizeMathText(s);
 }

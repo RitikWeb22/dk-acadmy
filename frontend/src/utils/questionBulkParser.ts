@@ -366,7 +366,9 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/3\//g, '\\pi - ');
   text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{2}');
 
-  // Decode Word cotangent terms with brackets
+  // Decode Word cotangent terms with brackets (both single-line and split across newlines)
+  text = text.replace(/\[\s*\\?cot\s*=?\s*x\s*-\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*=?\s*x\s*\+\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*dx\b/gi,
+    '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right] \\, dx');
   text = text.replace(/\[\s*cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right)');
   text = text.replace(/cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
   text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
@@ -374,6 +376,11 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
   text = text.replace(/\[\s*\\?cot\b/gi, '\\left[\\cot ');
   text = text.replace(/\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
+
+  // Decode double backslashes and corrupt parentheses in logarithms
+  text = text.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
+  text = text.replace(/\\log_e\s*\(\s*\)\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
 
   // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2 or \int_0 \n ^2
   text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');
