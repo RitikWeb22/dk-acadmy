@@ -210,6 +210,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             <div className={styles.notificationsMenu}>
               <div className={styles.dropdownTitleRow}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Bell size={15} color="#2563eb" />
                   <span className={styles.dropdownTitle}>Notifications</span>
                   {unreadCount > 0 && (
                     <span className={styles.unreadCountPill}>{unreadCount} new</span>
@@ -218,15 +219,8 @@ export const Topbar: React.FC<TopbarProps> = ({
                 {unreadCount > 0 && (
                   <button
                     type="button"
+                    className={styles.markAllReadBtn}
                     onClick={() => notificationService.markAllAsRead()}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#2563eb',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
                   >
                     Mark all read
                   </button>
@@ -234,27 +228,27 @@ export const Topbar: React.FC<TopbarProps> = ({
               </div>
               <div className={styles.notificationsList}>
                 {notifications.length === 0 ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                    No new activity yet
+                  <div className={styles.emptyNotifications}>
+                    <Bell size={24} className={styles.emptyIcon} />
+                    <p>No new activity yet</p>
                   </div>
                 ) : (
                   notifications.map((n) => (
                     <div
                       key={n.id}
-                      className={styles.notificationItem}
+                      className={`${styles.notificationItem} ${n.unread ? styles.notificationUnread : ''}`}
                       onClick={() => handleNotificationClick(n)}
-                      style={{ cursor: 'pointer', opacity: n.unread ? 1 : 0.7 }}
                     >
-                      {n.unread && <div className={styles.notificationItemDot} />}
-                      <div className={styles.notificationTextWrap}>
-                        <p className={styles.notificationTitle} style={{ fontWeight: n.unread ? 600 : 400 }}>
-                          {n.title}
+                      <div className={styles.notificationItemHeader}>
+                        <span className={styles.notificationTitle}>{n.title}</span>
+                        {n.unread && <span className={styles.notificationItemDot} />}
+                      </div>
+                      {n.description && (
+                        <p className={styles.notificationDescription}>
+                          {n.description}
                         </p>
-                        {n.description && (
-                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>
-                            {n.description}
-                          </p>
-                        )}
+                      )}
+                      <div className={styles.notificationItemFooter}>
                         <span className={styles.notificationTime}>{n.time}</span>
                       </div>
                     </div>
