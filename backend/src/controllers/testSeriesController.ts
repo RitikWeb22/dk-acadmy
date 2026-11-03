@@ -1137,3 +1137,47 @@ export const updateTestSeriesSolutionConfig = async (req: AuthRequest, res: Resp
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * Unlock Paid Test Series after verified Razorpay checkout
+ */
+export const unlockTestSeries = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { paymentId, studentId } = req.body;
+
+    const studentIdentifier = studentId || (req.user as any)?.id || req.user?._id?.toString();
+
+    const test = await TestSeries.findOne({
+      $or: [{ id }, { slug: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }]
+    });
+
+    if (!test) {
+      res.status(404).json({ success: false, message: 'Test Series not found' });
+      return;
+    }
+
+    if (studentIdentifier) {
+      if (!Array.isArray(test.unlockedStudents)) {
+        test.unlockedStudents = [];
+      }
+      if (!test.unlockedStudents.includes(studentIdentifier)) {
+        test.unlockedStudents.push(studentIdentifier);
+        await test.save();
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Test Series unlocked successfully',
+      data: {
+        testId: test.id,
+        isUnlocked: true,
+        paymentId
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

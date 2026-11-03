@@ -11,7 +11,11 @@ export const formatMathWithAi = async (req, res) => {
             res.status(400).json({ error: 'Question statement or options are required for formatting.' });
             return;
         }
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+        const apiKey = req.body?.geminiApiKey ||
+            req.headers['x-gemini-api-key'] ||
+            process.env.GEMINI_API_KEY ||
+            process.env.GOOGLE_API_KEY ||
+            '';
         const preferredModel = model || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
         if (apiKey) {
             try {
@@ -25,11 +29,23 @@ export const formatMathWithAi = async (req, res) => {
                     modelName: preferredModel
                 });
                 if (aiResult) {
+                    const sanitizedStatement = normalizeMathInText(aiResult.statement || statement);
+                    const sanitizedOptions = Array.isArray(aiResult.options) && aiResult.options.length > 0
+                        ? aiResult.options.map((o) => ({ key: o.key, text: normalizeMathInText(o.text || '') }))
+                        : Array.isArray(options)
+                            ? options.map((opt) => ({ key: opt.key, text: normalizeMathInText(opt.text || '') }))
+                            : [];
                     res.status(200).json({
                         success: true,
                         aiPowered: true,
                         modelUsed: preferredModel,
-                        data: aiResult
+                        data: {
+                            ...aiResult,
+                            statement: sanitizedStatement,
+                            options: sanitizedOptions,
+                            stepSolution: aiResult.stepSolution ? normalizeMathInText(aiResult.stepSolution) : (stepSolution ? normalizeMathInText(stepSolution) : ''),
+                            dkSirShortcut: aiResult.dkSirShortcut ? normalizeMathInText(aiResult.dkSirShortcut) : (dkSirShortcut ? normalizeMathInText(dkSirShortcut) : '')
+                        }
                     });
                     return;
                 }

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getAllTestSeries, getTestSeriesByIdOrSlug, createTestSeries, updateTestSeries, deleteTestSeries, submitTestSeries, getTestSeriesSubmissionSolution, getTestSeriesSubmissionStatus, getTestSeriesSolutionAdminOverview, updateTestSeriesSolutionConfig } from '../controllers/testSeriesController.js';
+import { getAllTestSeries, getTestSeriesByIdOrSlug, createTestSeries, updateTestSeries, deleteTestSeries, submitTestSeries, getTestSeriesSubmissionSolution, getTestSeriesSubmissionStatus, getTestSeriesSolutionAdminOverview, updateTestSeriesSolutionConfig, unlockTestSeries } from '../controllers/testSeriesController.js';
 import { formatMathWithAi } from '../controllers/aiFormatController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
@@ -48,8 +48,10 @@ router.get('/submissions/:submissionId/solution', getTestSeriesSubmissionSolutio
 // Admin Solution Management & Overview
 router.get('/:id/solution-admin-overview', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getTestSeriesSolutionAdminOverview);
 router.patch('/:id/solution-config', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateTestSeriesSolutionConfig);
-// Admin & Faculty creation/management routes
-router.post('/ai-format-math', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), formatMathWithAi);
+// Post-payment test unlock
+router.post('/:id/unlock', unlockTestSeries);
+// Mathematical KaTeX formatting utility
+router.post('/ai-format-math', formatMathWithAi);
 router.post('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ body: createTestSeriesSchema }), createTestSeries);
 router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ params: idOrSlugParamSchema }), updateTestSeries);
 router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ params: idOrSlugParamSchema }), deleteTestSeries);

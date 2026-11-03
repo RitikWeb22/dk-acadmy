@@ -10,7 +10,8 @@ import {
   getTestSeriesSubmissionSolution,
   getTestSeriesSubmissionStatus,
   getTestSeriesSolutionAdminOverview,
-  updateTestSeriesSolutionConfig
+  updateTestSeriesSolutionConfig,
+  unlockTestSeries
 } from '../controllers/testSeriesController.js';
 import { formatMathWithAi } from '../controllers/aiFormatController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
@@ -75,11 +76,15 @@ router.patch(
   updateTestSeriesSolutionConfig
 );
 
-// Admin & Faculty creation/management routes
+// Post-payment test unlock
+router.post(
+  '/:id/unlock',
+  unlockTestSeries
+);
+
+// Mathematical KaTeX formatting utility
 router.post(
   '/ai-format-math',
-  protect,
-  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
   formatMathWithAi
 );
 

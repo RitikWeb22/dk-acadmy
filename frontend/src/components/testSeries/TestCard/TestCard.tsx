@@ -7,19 +7,23 @@ import styles from './TestCard.module.scss';
 interface TestCardProps {
   test: TestSeriesItem;
   attempt?: TestAttempt;
+  isLocked?: boolean;
   onOpenInstructions: (testId: string) => void;
   onResumeTest: (testId: string) => void;
   onViewResults: (testId: string) => void;
   onOpenScheduledNotice?: (test: TestSeriesItem, formattedStartTime: string) => void;
+  onUnlock?: (test: TestSeriesItem) => void;
 }
 
 export const TestCard: React.FC<TestCardProps> = ({
   test,
   attempt,
+  isLocked = false,
   onOpenInstructions,
   onResumeTest,
   onViewResults,
   onOpenScheduledNotice,
+  onUnlock,
 }) => {
   const status = attempt ? attempt.status : 'Not Started';
 
@@ -153,6 +157,41 @@ export const TestCard: React.FC<TestCardProps> = ({
           <span className={`${styles.pillBadge} ${getDifficultyClass(test.difficulty)}`}>
             {test.difficulty}
           </span>
+
+          {/* Pricing / Lock Badge */}
+          {isLocked ? (
+            <span
+              style={{
+                background: '#FEF3C7',
+                color: '#B45309',
+                border: '1px solid #FCD34D',
+                borderRadius: '4px',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                padding: '2px 7px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <Lock size={10} />
+              <span>₹{test.price || 299}</span>
+            </span>
+          ) : (
+            <span
+              style={{
+                background: '#ECFDF5',
+                color: '#047857',
+                border: '1px solid #A7F3D0',
+                borderRadius: '4px',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                padding: '2px 7px'
+              }}
+            >
+              Free
+            </span>
+          )}
         </div>
 
         {/* Status Pill: "In Progress", "Completed", "Not Started", "Scheduled", "LIVE" */}
@@ -331,6 +370,28 @@ export const TestCard: React.FC<TestCardProps> = ({
           >
             <Lock size={14} className={styles.closedLockIcon} aria-hidden="true" />
             <span>Closed Test</span>
+          </button>
+        ) : isLocked ? (
+          /* "Unlock Test" (Paid Lock Gate) */
+          <button
+            type="button"
+            className={styles.startTestBtn}
+            style={{
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              color: '#ffffff',
+              border: 'none',
+              boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+            onClick={() => (onUnlock ? onUnlock(test) : onOpenInstructions(test.id))}
+            aria-label={`Unlock test: ${test.title} for ₹${test.price || 299}`}
+          >
+            <Lock size={15} />
+            <span>Unlock Test (₹{test.price || 299})</span>
+            <ArrowRight size={15} />
           </button>
         ) : (
           /* "Start Test" (Solid Primary Blue) */

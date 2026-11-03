@@ -31,7 +31,12 @@ export const formatMathWithAi = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    const apiKey =
+      (req.body as any)?.geminiApiKey ||
+      (req.headers['x-gemini-api-key'] as string) ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      '';
     const preferredModel = model || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
     if (apiKey) {
@@ -47,11 +52,24 @@ export const formatMathWithAi = async (req: Request, res: Response): Promise<voi
         });
 
         if (aiResult) {
+          const sanitizedStatement = normalizeMathInText(aiResult.statement || statement);
+          const sanitizedOptions = Array.isArray(aiResult.options) && aiResult.options.length > 0
+            ? aiResult.options.map((o: any) => ({ key: o.key, text: normalizeMathInText(o.text || '') }))
+            : Array.isArray(options)
+            ? options.map((opt) => ({ key: opt.key, text: normalizeMathInText(opt.text || '') }))
+            : [];
+
           res.status(200).json({
             success: true,
             aiPowered: true,
             modelUsed: preferredModel,
-            data: aiResult
+            data: {
+              ...aiResult,
+              statement: sanitizedStatement,
+              options: sanitizedOptions,
+              stepSolution: aiResult.stepSolution ? normalizeMathInText(aiResult.stepSolution) : (stepSolution ? normalizeMathInText(stepSolution) : ''),
+              dkSirShortcut: aiResult.dkSirShortcut ? normalizeMathInText(aiResult.dkSirShortcut) : (dkSirShortcut ? normalizeMathInText(dkSirShortcut) : '')
+            }
           });
           return;
         }

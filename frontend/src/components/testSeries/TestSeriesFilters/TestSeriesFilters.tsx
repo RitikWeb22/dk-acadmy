@@ -6,7 +6,7 @@ import styles from './TestSeriesFilters.module.scss';
 export type FormatFilterValue = 'All' | TestFormat;
 export type DifficultyFilterValue = 'All' | TestDifficulty;
 export type StatusFilterValue = 'All' | 'Not Started' | 'In Progress' | 'Completed';
-export type ExamFilterValue = 'All' | TestExamType | 'PartTest' | 'MathSpeed';
+export type ExamFilterValue = 'All' | 'AllIndia' | TestExamType | 'PartTest' | 'MathSpeed';
 
 interface PrimaryTabItem {
   value: ExamFilterValue;
@@ -16,7 +16,7 @@ interface PrimaryTabItem {
 }
 
 const PRIMARY_EXAM_TABS: PrimaryTabItem[] = [
-  { value: 'All', label: 'All India CBT Mock', icon: Layers },
+  { value: 'AllIndia', label: 'All India CBT Mock', icon: Layers },
   { value: 'JEE Main', label: 'JEE Main Filter', icon: GraduationCap },
   { value: 'JEE Advanced', label: 'JEE Advanced Engine', icon: Flame },
   { value: 'BITSAT', label: 'BITSAT Speed CBT', icon: Zap },
@@ -55,7 +55,7 @@ export const TestSeriesFilters: React.FC<TestSeriesFiltersProps> = ({
   totalResults,
   selectedExam = 'All',
   onSelectExam,
-  examCounts = { All: 0, 'JEE Main': 0, 'JEE Advanced': 0, BITSAT: 0, PartTest: 0, MathSpeed: 0 }
+  examCounts = { All: 0, AllIndia: 0, 'JEE Main': 0, 'JEE Advanced': 0, BITSAT: 0, PartTest: 0, MathSpeed: 0 }
 }) => {
   return (
     <div className={styles.toolbarContainer} aria-label="Mock Test Filters and Search Toolbar">
@@ -83,6 +83,20 @@ export const TestSeriesFilters: React.FC<TestSeriesFiltersProps> = ({
               </button>
             );
           })}
+          {examCounts['All'] !== undefined && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedExam === 'All'}
+              className={`${styles.primaryTabBtn} ${selectedExam === 'All' ? styles.primaryTabActive : ''}`}
+              onClick={() => onSelectExam('All')}
+              title="View all tests without category filter"
+            >
+              <Layers size={16} className={styles.tabIcon} aria-hidden="true" />
+              <span className={styles.tabTitle}>All Tests</span>
+              <span className={styles.tabCountPill}>{examCounts['All']}</span>
+            </button>
+          )}
         </div>
       )}
 

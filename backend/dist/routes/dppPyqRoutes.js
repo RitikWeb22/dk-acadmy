@@ -33,7 +33,7 @@ const createDppPyqSchema = z
 })
     .passthrough();
 // 1. PDF Studio Import & Extraction Routes
-router.post('/ai-format-math', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), formatMathWithAi);
+router.post('/ai-format-math', formatMathWithAi);
 router.post('/import-pdf', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), uploadPdfMiddleware.single('file'), importPdfQuestions);
 router.get('/pdf-history', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getPdfImportHistory);
 router.get('/pdf-history/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getPdfImportById);
