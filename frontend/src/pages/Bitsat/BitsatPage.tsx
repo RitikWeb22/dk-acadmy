@@ -638,6 +638,25 @@ export const BitsatPage: React.FC = () => {
 
   const isCurrentAccessible = currentQ ? isQuestionAccessible(currentQ, activeQuestionIndex) : true;
 
+  // Dynamic subject counts for DPP-style selector tabs
+  const subjectCounts = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {
+      All: 0,
+      Physics: 0,
+      Chemistry: 0,
+      Mathematics: 0,
+      'Logical Reasoning & English': 0,
+    };
+    drills.forEach((d) => {
+      const qCount = d.questionsCount || d.questions?.length || 0;
+      counts.All += qCount;
+      if (counts[d.subject] !== undefined) {
+        counts[d.subject] += qCount;
+      }
+    });
+    return counts;
+  }, [drills]);
+
   // 3. Fixed CBT Drill Countdown Timer Hook (Non-pausable, calibrated from Admin setting)
   useEffect(() => {
     if (activeDrill) {
@@ -980,6 +999,38 @@ export const BitsatPage: React.FC = () => {
                  A. DRILL CATALOG VIEW (Direct Titles Created by Admin)
                  ═══════════════════════════════════════════════════════════════ */
               <div className={styles.catalogSection}>
+                {/* Subject Selector Tabs (DPP-Aligned) */}
+                <div className={styles.subjectSelectorWrap} role="tablist" aria-label="BITSAT Subjects">
+                  {[
+                    { key: 'All', label: 'All Drills', icon: Zap },
+                    { key: 'Mathematics', label: 'Mathematics', icon: BookOpen },
+                    { key: 'Physics', label: 'Physics', icon: Target },
+                    { key: 'Chemistry', label: 'Chemistry', icon: Award },
+                    { key: 'Logical Reasoning & English', label: 'LR & English', icon: Brain },
+                  ].map((sub) => {
+                    const Icon = sub.icon;
+                    const isActive = selectedSubject === sub.key;
+                    return (
+                      <button
+                        key={sub.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActive}
+                        className={`${styles.subjectTabBtn} ${isActive ? styles.subjectTabActive : ''}`}
+                        onClick={() => setSelectedSubject(sub.key)}
+                      >
+                        <div className={styles.subjectTabIcon}>
+                          <Icon size={16} />
+                        </div>
+                        <span className={styles.subjectTabLabel}>{sub.label}</span>
+                        <span className={styles.subjectCountPill}>
+                          {subjectCounts[sub.key] ?? 0}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Search & Multi-Subject Filters */}
                 <div className={styles.catalogFilterBar}>
                   <div className={styles.catalogSearchBox}>
@@ -1309,23 +1360,52 @@ export const BitsatPage: React.FC = () => {
                               <MathText text={currentQ.statement} />
                             </div>
 
-                            {/* Interactive Option Buttons */}
-                            <div className={styles.optionsList}>
+                            {/* Interactive Option Buttons (DPP-Aligned UI) */}
+                            <div className={styles.optionsList} role="radiogroup" aria-label={`Options for Question ${activeQuestionIndex + 1}`}>
                               {(currentQ.options || []).map((opt) => {
                                 const isSelected = responses[currentQ.id]?.selectedOption === opt.key;
+                                const targetKey = currentQ.correctKey || (currentQ as any).correctAnswer;
+                                const isCorrectKey = opt.key === targetKey;
+                                const isRevealed = Boolean(revealedSolution);
+
+                                let stateClass = styles.defaultOption;
+                                if (isRevealed) {
+                                  if (isCorrectKey) {
+                                    stateClass = styles.correctOption;
+                                  } else if (isSelected && !isCorrectKey) {
+                                    stateClass = styles.incorrectOption;
+                                  }
+                                } else if (isSelected) {
+                                  stateClass = styles.selectedOption;
+                                }
+
                                 return (
                                   <button
                                     key={opt.key}
                                     type="button"
-                                    className={`${styles.optionItemBtn} ${isSelected ? styles.optionSelected : ''}`}
+                                    role="radio"
+                                    aria-checked={isSelected}
+                                    className={`${styles.optionCard} ${stateClass}`}
                                     onClick={() => handleSelectOption(currentQ.id, opt.key)}
                                   >
-                                    <span className={`${styles.optionKeyCircle} ${isSelected ? styles.optionKeySelected : ''}`}>
-                                      {opt.key}
-                                    </span>
-                                    <span className={styles.optionTextString}>
+                                    <div className={styles.optionBadge}>
+                                      {isRevealed && isCorrectKey ? (
+                                        <Check size={18} strokeWidth={2.5} />
+                                      ) : isRevealed && isSelected && !isCorrectKey ? (
+                                        <X size={18} strokeWidth={2.5} />
+                                      ) : (
+                                        opt.key
+                                      )}
+                                    </div>
+                                    <div className={styles.optionContent}>
                                       <MathText text={opt.text} />
-                                    </span>
+                                    </div>
+                                    {isRevealed && isCorrectKey && (
+                                      <span className={styles.stateTagCorrect}>Correct Answer</span>
+                                    )}
+                                    {isRevealed && isSelected && !isCorrectKey && (
+                                      <span className={styles.stateTagIncorrect}>Your Choice</span>
+                                    )}
                                   </button>
                                 );
                               })}
@@ -1417,15 +1497,26 @@ export const BitsatPage: React.FC = () => {
                               <span>Previous</span>
                             </button>
 
-                            <button
-                              type="button"
-                              className={styles.navNextBtn}
-                              disabled={activeQuestionIndex === activeQuestions.length - 1}
-                              onClick={() => setActiveQuestionIndex((prev) => Math.min(activeQuestions.length - 1, prev + 1))}
-                            >
-                              <span>Next Question</span>
-                              <ChevronRight size={16} />
-                            </button>
+                            {activeQuestionIndex < activeQuestions.length - 1 ? (
+                              <button
+                                type="button"
+                                className={styles.nextBtn}
+                                onClick={() => setActiveQuestionIndex((prev) => Math.min(activeQuestions.length - 1, prev + 1))}
+                              >
+                                <span>Save &amp; Next</span>
+                                <ArrowRight size={16} />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className={styles.submitFinalBtn}
+                                onClick={handleSubmitDrill}
+                                title="Submit test and view All India Rank (AIR) Score Card"
+                              >
+                                <Award size={16} />
+                                <span>Finish &amp; Check AIR Score</span>
+                              </button>
+                            )}
                           </div>
 
                           <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
@@ -1468,7 +1559,46 @@ export const BitsatPage: React.FC = () => {
                   </div>
 
                   {/* Right Column: CBT Question Palette & Live Speed Metrics */}
-                  <div className={styles.sidebarPaletteCard}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Progress Summary Bento Card (DPP-Aligned) */}
+                    <div className={styles.progressSummaryCard}>
+                      <div className={styles.progressCardHeader}>
+                        <span className={styles.progressHeading}>Drill Progress</span>
+                        <span className={styles.progressCounter}>
+                          {drillStats.attempted} / {activeQuestions.length} Attempted
+                        </span>
+                      </div>
+
+                      <div className={styles.progressRingWrap}>
+                        <svg width={76} height={76} viewBox="0 0 76 76" style={{ transform: 'rotate(-90deg)' }}>
+                          <circle
+                            cx={38}
+                            cy={38}
+                            r={28}
+                            stroke="#E2E8F0"
+                            strokeWidth={6}
+                            fill="transparent"
+                          />
+                          <circle
+                            cx={38}
+                            cy={38}
+                            r={28}
+                            stroke="#2563EB"
+                            strokeWidth={6}
+                            strokeLinecap="round"
+                            fill="transparent"
+                            strokeDasharray={2 * Math.PI * 28}
+                            strokeDashoffset={2 * Math.PI * 28 - (2 * Math.PI * 28 * (drillStats.attempted || 0)) / (activeQuestions.length || 1)}
+                            style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+                          />
+                        </svg>
+                        <div className={styles.progressPercentText}>
+                          {activeQuestions.length > 0 ? Math.round((drillStats.attempted / activeQuestions.length) * 100) : 0}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={styles.sidebarPaletteCard}>
                     <div className={styles.paletteHeader}>
                       <h3 className={styles.paletteTitle}>CBT Question Palette</h3>
                       <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#2563eb' }}>
@@ -1554,6 +1684,7 @@ export const BitsatPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
             )}
           </Container>
         </section>
