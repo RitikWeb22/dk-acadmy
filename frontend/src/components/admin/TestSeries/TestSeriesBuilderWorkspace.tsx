@@ -24,6 +24,7 @@ import {
   Copy,
   Download,
   AlertTriangle,
+  AlertCircle,
   RotateCcw,
   CheckCircle,
   X,
@@ -642,6 +643,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [scorecardRelease, setScorecardRelease] = useState<'INSTANT' | 'AFTER_WINDOW' | 'MANUAL'>('INSTANT');
   const [computeNtaRank, setComputeNtaRank] = useState(true);
   const [scheduleMode, setScheduleMode] = useState<'SCHEDULED_WINDOW' | 'OPEN_PRACTICE' | 'TIME_SLOTTED'>('SCHEDULED_WINDOW');
+  const [builderStatus, setBuilderStatus] = useState<'Published' | 'Draft' | 'Scheduled'>('Published');
   const [examSlot, setExamSlot] = useState<'MORNING' | 'EVENING' | 'FLEXIBLE'>('FLEXIBLE');
   const [fullScreenLock, setFullScreenLock] = useState<boolean>(true);
   const [tabSwitchLimit, setTabSwitchLimit] = useState<number>(3);
@@ -1178,6 +1180,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       setPositiveMarks(4);
       setNegativeMarks(1);
     }
+    const initialStatus = (newInitialStatus === 'Scheduled' || newInitialStatus === 'Draft') ? newInitialStatus : 'Published';
+    setBuilderStatus(initialStatus);
+    setScheduleMode(initialStatus === 'Scheduled' ? 'SCHEDULED_WINDOW' : 'OPEN_PRACTICE');
+    if (newScheduledStartTime) setStartWindowDate(newScheduledStartTime);
+    if (newScheduledEndTime) setEndWindowDate(newScheduledEndTime);
     setCurrentStep(1);
     setCompletedSteps([1]);
     setViewMode('BUILDER');
@@ -1211,10 +1218,21 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setDrawerDuration(item.durationMinutes);
     setDrawerTotalMarks(item.totalMarks);
     setDrawerStatus(item.status);
-    setDrawerStartWindow(item.schedule?.startWindow ? new Date(item.schedule.startWindow).toISOString().slice(0, 16) : '');
-    setDrawerEndWindow(item.schedule?.endWindow ? new Date(item.schedule.endWindow).toISOString().slice(0, 16) : '');
+    const startWin = item.schedule?.startWindow ? new Date(item.schedule.startWindow).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16);
+    const endWin = item.schedule?.endWindow ? new Date(item.schedule.endWindow).toISOString().slice(0, 16) : new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16);
+    setDrawerStartWindow(startWin);
+    setDrawerEndWindow(endWin);
     setDrawerBatches([ACTIVE_ACADEMY_BATCHES[0]]);
     setIsDrawerOpen(true);
+  };
+
+  const setDrawerWindowDurationPreset = (durationHours: number) => {
+    try {
+      const start = new Date(drawerStartWindow || Date.now());
+      const end = new Date(start.getTime() + durationHours * 3600000);
+      setDrawerEndWindow(end.toISOString().slice(0, 16));
+      showToast(`Set window duration: ${durationHours < 24 ? `${durationHours} Hours` : `${durationHours / 24} Days`}`);
+    } catch {}
   };
 
   const isDrawerDirty = useMemo(() => {
@@ -1228,9 +1246,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       drawerDuration !== drawerItem.durationMinutes ||
       drawerTotalMarks !== drawerItem.totalMarks ||
       drawerStatus !== drawerItem.status ||
-      (drawerStatus === 'Scheduled' && (drawerStartWindow !== (drawerItem.schedule?.startWindow ? new Date(drawerItem.schedule.startWindow).toISOString().slice(0, 16) : '')))
+      (drawerStatus === 'Scheduled' && (
+        drawerStartWindow !== (drawerItem.schedule?.startWindow ? new Date(drawerItem.schedule.startWindow).toISOString().slice(0, 16) : '') ||
+        drawerEndWindow !== (drawerItem.schedule?.endWindow ? new Date(drawerItem.schedule.endWindow).toISOString().slice(0, 16) : '')
+      ))
     );
-  }, [drawerItem, drawerTitle, drawerSlug, drawerExamType, drawerFormat, drawerDifficulty, drawerDuration, drawerTotalMarks, drawerStatus, drawerStartWindow]);
+  }, [drawerItem, drawerTitle, drawerSlug, drawerExamType, drawerFormat, drawerDifficulty, drawerDuration, drawerTotalMarks, drawerStatus, drawerStartWindow, drawerEndWindow]);
 
   const handleSaveDrawerChanges = async () => {
     if (!drawerItem) return;
@@ -1388,6 +1409,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setQuestions(freshTemplateQuestions);
     setSelectedQuestionId(freshTemplateQuestions[0].id);
     setActiveSubjectTab('Physics');
+    setBuilderStatus('Published');
+    setScheduleMode('OPEN_PRACTICE');
 
     setCurrentStep(1);
     setCompletedSteps([1]);
@@ -1433,6 +1456,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     }
     if (item.batch) setWizardBatch(item.batch);
     if (item.accessLevel) setAccessLevel(item.accessLevel);
+
+    const initialStatus: 'Published' | 'Draft' | 'Scheduled' =
+      item.status === 'Draft'
+        ? 'Draft'
+        : (item.status === 'Scheduled' || (item.schedule as any)?.scheduleMode === 'SCHEDULED_WINDOW')
+        ? 'Scheduled'
+        : 'Published';
+    setBuilderStatus(initialStatus);
+    setScheduleMode(initialStatus === 'Scheduled' ? 'SCHEDULED_WINDOW' : 'OPEN_PRACTICE');
 
     if (item.schedule) {
       if ((item.schedule as any).scheduleMode) setScheduleMode((item.schedule as any).scheduleMode);
@@ -2296,13 +2328,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       })),
       batch: wizardBatch,
       accessLevel: accessLevel,
-      status: scheduleMode === 'SCHEDULED_WINDOW' ? 'Scheduled' : 'Published',
+      status: builderStatus,
       schedule: {
-        startWindow: scheduleMode === 'OPEN_PRACTICE' ? new Date() : (startWindowDate ? new Date(startWindowDate) : new Date()),
-        endWindow: scheduleMode === 'OPEN_PRACTICE' ? new Date(Date.now() + 365 * 86400000) : (endWindowDate ? new Date(endWindowDate) : new Date(Date.now() + 7 * 86400000)),
+        startWindow: builderStatus === 'Scheduled' ? (startWindowDate ? new Date(startWindowDate) : new Date()) : new Date(),
+        endWindow: builderStatus === 'Scheduled' ? (endWindowDate ? new Date(endWindowDate) : new Date(Date.now() + 7 * 86400000)) : new Date(Date.now() + 365 * 86400000),
         autoSubmit: autoSubmitOnExpire,
         computeRank: computeNtaRank,
-        scheduleMode,
+        scheduleMode: builderStatus === 'Scheduled' ? 'SCHEDULED_WINDOW' : 'OPEN_PRACTICE',
         examSlot,
         fullScreenLock,
         tabSwitchLimit,
@@ -2335,7 +2367,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           timestamp: Date.now(),
           unread: true
         });
-        showToast('✓ CBT Examination updated and schedule saved!');
+        showToast(builderStatus === 'Draft' ? '✓ CBT Examination saved as Draft!' : builderStatus === 'Scheduled' ? '✓ CBT Examination updated and schedule saved!' : '✓ CBT Examination updated and published live!');
       } else {
         await apiClient.post<any>('/test-series', payload);
         cmsService.saveTestSeries([payload, ...cmsService.getTestSeries().filter((t) => t.id !== payload.id)]);
@@ -2347,7 +2379,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           unread: true
         });
         window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: payload }));
-        showToast('✓ CBT Examination scheduled, proctoring armed, and published!');
+        showToast(builderStatus === 'Draft' ? '✓ CBT Examination saved as Draft!' : builderStatus === 'Scheduled' ? '✓ CBT Examination scheduled successfully!' : '✓ CBT Examination published live!');
       }
 
       // Optimistically update testSeriesList so it appears immediately on admin table
@@ -4222,288 +4254,180 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 1. Exam Delivery Mode Selector */}
-                  <div style={{ marginBottom: '18px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Step 4.1 — Select Exam Delivery Mode
-                      </span>
-                      <span style={{ fontSize: '11.5px', color: '#64748B' }}>
-                        Current Mode: <strong>{scheduleMode === 'SCHEDULED_WINDOW' ? 'Live Scheduled Window' : '24x7 Open Practice'}</strong>
+                  {/* 1. Release Publication Status & Exam Delivery Mode */}
+                  <div style={{ marginBottom: '20px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Clock size={16} color="#2563EB" />
+                        <span>Release Publication Status *</span>
+                      </label>
+                      <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', background: builderStatus === 'Published' ? '#DCFCE7' : builderStatus === 'Scheduled' ? '#EFF6FF' : '#F1F5F9', color: builderStatus === 'Published' ? '#166534' : builderStatus === 'Scheduled' ? '#1D4ED8' : '#475569' }}>
+                        {builderStatus === 'Published' ? '🟢 Live & Accessible' : builderStatus === 'Scheduled' ? '⏳ Scheduled Window' : '📝 Saved as Draft'}
                       </span>
                     </div>
 
-                    <div className={styles.modeSelectGrid} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                      <div
-                        className={`${styles.modeOptionCard} ${scheduleMode === 'SCHEDULED_WINDOW' ? styles.modeOptionCardActive : ''}`}
-                        onClick={() => setScheduleMode('SCHEDULED_WINDOW')}
-                      >
-                        <div className={styles.modeCardHeader}>
-                          <span className={`${styles.modeBadgePill} ${styles.modeBadgeScheduled}`}>Live Scheduled</span>
-                          <Calendar size={16} color={scheduleMode === 'SCHEDULED_WINDOW' ? '#2563EB' : '#94A3B8'} />
-                        </div>
-                        <h4 className={styles.modeCardTitle}>Time-Bound Live Window</h4>
-                        <p className={styles.modeCardDesc}>
-                          Candidates can only attempt within a strictly bounded start and end datetime (e.g. Sunday 09:00 AM). Emulates national exam day conditions.
-                        </p>
-                      </div>
-
-                      <div
-                        className={`${styles.modeOptionCard} ${scheduleMode === 'OPEN_PRACTICE' ? styles.modeOptionCardActive : ''}`}
-                        onClick={() => setScheduleMode('OPEN_PRACTICE')}
-                      >
-                        <div className={styles.modeCardHeader}>
-                          <span className={`${styles.modeBadgePill} ${styles.modeBadgeOpen}`}>24x7 Self Paced</span>
-                          <Globe size={16} color={scheduleMode === 'OPEN_PRACTICE' ? '#16A34A' : '#94A3B8'} />
-                        </div>
-                        <h4 className={styles.modeCardTitle}>Open Practice CBT Mock</h4>
-                        <p className={styles.modeCardDesc}>
-                          Accessible 24x7 anytime on-demand. When the student clicks "Start", their countdown timer begins with full proctoring safeguards.
-                        </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                      <div>
+                        <select
+                          value={builderStatus}
+                          onChange={(e) => {
+                            const val = e.target.value as 'Published' | 'Draft' | 'Scheduled';
+                            setBuilderStatus(val);
+                            if (val === 'Scheduled') {
+                              setScheduleMode('SCHEDULED_WINDOW');
+                            } else {
+                              setScheduleMode('OPEN_PRACTICE');
+                            }
+                          }}
+                          className={styles.primaryTextInput}
+                          style={{ fontSize: '13.5px', fontWeight: 600, padding: '10px 14px', borderRadius: '8px' }}
+                        >
+                          <option value="Published">Live Publish</option>
+                          <option value="Draft">Draft</option>
+                          <option value="Scheduled">Schedule</option>
+                        </select>
                       </div>
                     </div>
+
+                    {builderStatus === 'Scheduled' && (
+                      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed #E2E8F0' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                          {/* Opening Date & Time */}
+                          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px' }}>
+                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                              <Calendar size={14} color="#2563EB" />
+                              <span>Opening Date &amp; Time (Start Window) *</span>
+                            </label>
+                            <input
+                              type="datetime-local"
+                              value={startWindowDate}
+                              onChange={(e) => {
+                                setStartWindowDate(e.target.value);
+                                try {
+                                  const s = new Date(e.target.value);
+                                  const end = new Date(endWindowDate);
+                                  if (end <= s) {
+                                    setEndWindowDate(new Date(s.getTime() + 7 * 86400000).toISOString().slice(0, 16));
+                                  }
+                                } catch {}
+                              }}
+                              className={styles.modernDateInput}
+                              style={{ width: '100%', padding: '9px 12px', fontSize: '13px' }}
+                            />
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                className={styles.quickPillBtn}
+                                onClick={() => {
+                                  const d = new Date();
+                                  setStartWindowDate(d.toISOString().slice(0, 16));
+                                }}
+                              >
+                                Today
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.quickPillBtn}
+                                onClick={() => {
+                                  const d = new Date();
+                                  d.setDate(d.getDate() + 1);
+                                  d.setHours(9, 0, 0, 0);
+                                  setStartWindowDate(d.toISOString().slice(0, 16));
+                                }}
+                              >
+                                Tomorrow 09:00 AM
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.quickPillBtn}
+                                onClick={() => {
+                                  const d = new Date();
+                                  const day = d.getDay();
+                                  const diff = (7 - day) % 7 || 7;
+                                  d.setDate(d.getDate() + diff);
+                                  d.setHours(9, 0, 0, 0);
+                                  setStartWindowDate(d.toISOString().slice(0, 16));
+                                }}
+                              >
+                                This Sunday 09:00 AM
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Closing Date & Time / Duration Window */}
+                          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px' }}>
+                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                              <Clock size={14} color="#7C3AED" />
+                              <span>Duration Window (Closing Date &amp; Time) *</span>
+                            </label>
+                            <input
+                              type="datetime-local"
+                              value={endWindowDate}
+                              onChange={(e) => setEndWindowDate(e.target.value)}
+                              className={styles.modernDateInput}
+                              style={{ width: '100%', padding: '9px 12px', fontSize: '13px' }}
+                            />
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                className={styles.quickPillBtn}
+                                onClick={() => setWindowDurationPreset(24)}
+                              >
+                                24 Hours
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.quickPillBtn}
+                                onClick={() => setWindowDurationPreset(72)}
+                              >
+                                3 Days
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.quickPillBtn}
+                                onClick={() => setWindowDurationPreset(168)}
+                              >
+                                7 Days Window
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Live Confirmation Preview Box */}
+                        <div className={styles.liveWindowPreviewBox} style={{ marginTop: '14px' }}>
+                          <CheckCircle2 size={16} className={styles.previewIcon} />
+                          <div className={styles.previewText}>
+                            <strong>Scheduled Active Window: </strong>
+                            <span>
+                              Opens {new Date(startWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                              {' ➔ '}
+                              Closes {new Date(endWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p style={{ margin: '10px 0 0', fontSize: '12px', color: '#6D28D9', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>⏰ Students see a live real-time countdown to the start time. As soon as the end window expires, the test automatically locks with a "🔒 Closed Test" badge and candidates cannot begin attempts.</span>
+                        </p>
+                      </div>
+                    )}
+
+                    {builderStatus === 'Published' && (
+                      <div style={{ marginTop: '14px', padding: '12px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: '#15803D', fontSize: '12.5px' }}>
+                        <CheckCircle2 size={16} />
+                        <span><strong>Live Open Practice:</strong> This test is published immediately and accessible 24x7. Candidates can take it anytime with proctored timer safeguards.</span>
+                      </div>
+                    )}
+
+                    {builderStatus === 'Draft' && (
+                      <div style={{ marginTop: '14px', padding: '12px 14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '12.5px' }}>
+                        <AlertCircle size={16} />
+                        <span><strong>Saved as Draft:</strong> Visible only to admins in the dashboard. Hidden from candidate course and test series listings until published.</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* 2. Window Timings / Shift Settings Grid */}
                   <div className={styles.scheduleCardsGrid}>
-                    <div className={styles.settingsCard}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <h3 className={styles.cardHeading} style={{ margin: 0 }}>
-                          <Calendar size={15} style={{ verticalAlign: 'middle', marginRight: '6px', color: '#2563EB' }} />
-                          {scheduleMode === 'SCHEDULED_WINDOW' ? 'Live Examination Window' : 'Open Practice Settings'}
-                        </h3>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563EB', background: '#EFF6FF', padding: '3px 8px', borderRadius: '6px' }}>
-                          IST (GMT+5:30)
-                        </span>
-                      </div>
-
-                      {scheduleMode === 'SCHEDULED_WINDOW' && (() => {
-                        const startParsed = parseDateTimeLocal(startWindowDate);
-
-                        const updateStartDate = (newDateStr: string) => {
-                          const updated = buildDateTimeLocal(newDateStr, startParsed.hour12, startParsed.minute, startParsed.ampm);
-                          setStartWindowDate(updated);
-                          try {
-                            const s = new Date(updated);
-                            const e = new Date(endWindowDate);
-                            if (e <= s) {
-                              setEndWindowDate(new Date(s.getTime() + 7 * 86400000).toISOString().slice(0, 16));
-                            }
-                          } catch {}
-                        };
-
-                        const updateStartTime = (h: string, m: string, ampm: 'AM' | 'PM') => {
-                          const updated = buildDateTimeLocal(startParsed.dateStr, h, m, ampm);
-                          setStartWindowDate(updated);
-                        };
-
-                        return (
-                          <div className={styles.modernSchedulerCard}>
-                            {/* 1. Exam Date Selection */}
-                            <div className={styles.pickerSubSection}>
-                              <div className={styles.pickerSectionLabel}>
-                                <span>📅 1. Examination Opening Date *</span>
-                                <span className={styles.pickerHint}>
-                                  {new Date(startParsed.dateStr + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
-                                </span>
-                              </div>
-                              <div className={styles.datePickerRow}>
-                                <input
-                                  type="date"
-                                  value={startParsed.dateStr}
-                                  onChange={(e) => updateStartDate(e.target.value)}
-                                  className={styles.modernDateInput}
-                                />
-                                <div className={styles.quickPillsRow}>
-                                  <button
-                                    type="button"
-                                    className={styles.quickPillBtn}
-                                    onClick={() => updateStartDate(new Date().toISOString().slice(0, 10))}
-                                  >
-                                    Today
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={styles.quickPillBtn}
-                                    onClick={() => {
-                                      const d = new Date();
-                                      d.setDate(d.getDate() + 1);
-                                      updateStartDate(d.toISOString().slice(0, 10));
-                                    }}
-                                  >
-                                    Tomorrow
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={styles.quickPillBtn}
-                                    onClick={() => {
-                                      const d = new Date();
-                                      const day = d.getDay();
-                                      const diff = (7 - day) % 7 || 7;
-                                      d.setDate(d.getDate() + diff);
-                                      updateStartDate(d.toISOString().slice(0, 10));
-                                    }}
-                                  >
-                                    This Sunday
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* 2. Exam Start Time Dropdowns & Shift Presets */}
-                            <div className={styles.pickerSubSection}>
-                              <div className={styles.pickerSectionLabel}>
-                                <span>⏰ 2. Live Opening Time (IST) *</span>
-                                <span className={styles.pickerHint}>Pick starting time or select common shift</span>
-                              </div>
-                              <div className={styles.timePickerFlexRow}>
-                                {/* Hour Dropdown */}
-                                <select
-                                  value={startParsed.hour12}
-                                  onChange={(e) => updateStartTime(e.target.value, startParsed.minute, startParsed.ampm)}
-                                  className={styles.modernTimeSelect}
-                                  title="Hour"
-                                >
-                                  {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((h) => (
-                                    <option key={h} value={h}>{h}</option>
-                                  ))}
-                                </select>
-
-                                <span className={styles.timeColon}>:</span>
-
-                                {/* Minute Dropdown */}
-                                <select
-                                  value={startParsed.minute}
-                                  onChange={(e) => updateStartTime(startParsed.hour12, e.target.value, startParsed.ampm)}
-                                  className={styles.modernTimeSelect}
-                                  title="Minute"
-                                >
-                                  {['00', '15', '30', '45'].map((m) => (
-                                    <option key={m} value={m}>{m}</option>
-                                  ))}
-                                </select>
-
-                                {/* AM/PM Toggle */}
-                                <div className={styles.ampmToggleWrap}>
-                                  <button
-                                    type="button"
-                                    className={`${styles.ampmBtn} ${startParsed.ampm === 'AM' ? styles.active : ''}`}
-                                    onClick={() => updateStartTime(startParsed.hour12, startParsed.minute, 'AM')}
-                                  >
-                                    AM
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={`${styles.ampmBtn} ${startParsed.ampm === 'PM' ? styles.active : ''}`}
-                                    onClick={() => updateStartTime(startParsed.hour12, startParsed.minute, 'PM')}
-                                  >
-                                    PM
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* NTA Shift Quick Pills */}
-                              <div className={styles.quickPillsRow} style={{ marginTop: '4px' }}>
-                                <button
-                                  type="button"
-                                  className={`${styles.quickPillBtn} ${startParsed.hour12 === '09' && startParsed.minute === '00' && startParsed.ampm === 'AM' ? styles.active : ''}`}
-                                  onClick={() => updateStartTime('09', '00', 'AM')}
-                                >
-                                  🌅 Shift 1 (09:00 AM)
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`${styles.quickPillBtn} ${startParsed.hour12 === '02' && startParsed.minute === '30' && startParsed.ampm === 'PM' ? styles.active : ''}`}
-                                  onClick={() => updateStartTime('02', '30', 'PM')}
-                                >
-                                  ☀️ Shift 2 (02:30 PM)
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`${styles.quickPillBtn} ${startParsed.hour12 === '03' && startParsed.minute === '00' && startParsed.ampm === 'PM' ? styles.active : ''}`}
-                                  onClick={() => updateStartTime('03', '00', 'PM')}
-                                >
-                                  🌆 Shift 2 Std (03:00 PM)
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* 3. Window Duration (End Window Automatic Setup) */}
-                            <div className={styles.pickerSubSection}>
-                              <div className={styles.pickerSectionLabel}>
-                                <span>⌛ 3. Window Availability Duration *</span>
-                                <span className={styles.pickerHint}>How long candidates have to complete the test</span>
-                              </div>
-                              <div className={styles.quickPillsRow}>
-                                <button
-                                  type="button"
-                                  className={styles.quickPillBtn}
-                                  onClick={() => setWindowDurationPreset(3)}
-                                >
-                                  ⏱️ 3 Hours
-                                </button>
-                                <button
-                                  type="button"
-                                  className={styles.quickPillBtn}
-                                  onClick={() => setWindowDurationPreset(24)}
-                                >
-                                  ⏱️ 24 Hours (1 Day)
-                                </button>
-                                <button
-                                  type="button"
-                                  className={styles.quickPillBtn}
-                                  onClick={() => setWindowDurationPreset(72)}
-                                >
-                                  ⏱️ 3 Days
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`${styles.quickPillBtn} ${styles.active}`}
-                                  onClick={() => setWindowDurationPreset(168)}
-                                >
-                                  ⭐ 7 Days (Recommended)
-                                </button>
-                              </div>
-                              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Or Set Closing Date &amp; Time manually:</span>
-                                <input
-                                  type="datetime-local"
-                                  value={endWindowDate}
-                                  onChange={(e) => setEndWindowDate(e.target.value)}
-                                  className={styles.modernDateInput}
-                                  style={{ maxWidth: '240px', fontSize: '12.5px', padding: '6px 10px' }}
-                                />
-                              </div>
-                            </div>
-
-                            {/* 4. Live Visual Confirmation Badge */}
-                            <div className={styles.liveWindowPreviewBox}>
-                              <CheckCircle2 size={16} className={styles.previewIcon} />
-                              <div className={styles.previewText}>
-                                <strong>Active Window: </strong>
-                                <span>
-                                  Opens {new Date(startWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
-                                  {' ➔ '}
-                                  Closes {new Date(endWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {scheduleMode === 'OPEN_PRACTICE' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: 700, fontSize: '13px' }}>
-                            <CheckCircle2 size={16} />
-                            Always-On 24x7 Self-Paced Practice
-                          </div>
-                          <p style={{ margin: 0, fontSize: '12.5px', color: '#15803D', lineHeight: '1.55' }}>
-                            This CBT mock is open indefinitely. Whenever an aspirant clicks <em>"Start Test"</em>, their individual countdown timer begins immediately with active automated proctoring protection.
-                          </p>
-                        </div>
-                      )}
-                    </div>
 
                     {/* Scorecard Release & Evaluation Settings */}
                     <div className={styles.settingsCard}>
@@ -4873,10 +4797,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         {editingSeriesTitle || 'JEE Main All-India CBT Mock Test'}
                       </strong>
                       <span style={{ fontSize: '12px', color: '#CBD5E1' }}>
-                        {scheduleMode === 'SCHEDULED_WINDOW'
-                          ? `Scheduled: ${new Date(startWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })} — ${new Date(endWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}`
-                          : scheduleMode === 'TIME_SLOTTED'
-                          ? `NTA Shift: ${examSlot} (${startWindowDate.slice(0, 10)})`
+                        {builderStatus === 'Scheduled'
+                          ? `Scheduled Window: Opens ${new Date(startWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })} — Closes ${new Date(endWindowDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}`
+                          : builderStatus === 'Draft'
+                          ? 'Status: Saved as Draft (Admin Only)'
                           : 'Available 24x7 Open Practice Mock'}
                       </span>
                     </div>
@@ -4923,7 +4847,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           <div className={styles.publishBtnIconCircle}>
                             <CheckCircle2 size={15} />
                           </div>
-                          <span className={styles.publishBtnText}>Schedule &amp; Publish CBT Mock Test</span>
+                          <span className={styles.publishBtnText}>
+                            {builderStatus === 'Draft'
+                              ? 'Save Examination as Draft'
+                              : builderStatus === 'Scheduled'
+                              ? 'Schedule CBT Mock Test'
+                              : 'Publish CBT Mock Test Live'}
+                          </span>
                           <ArrowRight size={15} className={styles.publishBtnArrow} />
                         </>
                       )}
@@ -5976,39 +5906,88 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
               {/* Status Selector */}
               <div className={styles.formGroup}>
-                <label className={styles.fieldLabel}>Publishing Status</label>
+                <label className={styles.fieldLabel}>Release Publication Status</label>
                 <select
                   value={drawerStatus}
                   onChange={(e) => setDrawerStatus(e.target.value as any)}
                   className={styles.primaryTextInput}
                 >
-                  <option value="Published">Published</option>
+                  <option value="Published">Live Publish</option>
                   <option value="Draft">Draft</option>
-                  <option value="Scheduled">Scheduled</option>
+                  <option value="Scheduled">Schedule</option>
                   <option value="Archived">Archived</option>
                 </select>
               </div>
 
               {drawerStatus === 'Scheduled' && (
-                <div className={styles.twoColumnGrid} style={{ marginTop: '10px' }}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.fieldLabel}>Start Window (Open Time) *</label>
-                    <input
-                      type="datetime-local"
-                      value={drawerStartWindow}
-                      onChange={(e) => setDrawerStartWindow(e.target.value)}
-                      className={styles.primaryTextInput}
-                    />
+                <div style={{ marginTop: '12px', padding: '14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px' }}>
+                  <div className={styles.twoColumnGrid}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.fieldLabel} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Calendar size={13} color="#2563EB" />
+                        <span>Opening Date &amp; Time (Start Window) *</span>
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={drawerStartWindow}
+                        onChange={(e) => setDrawerStartWindow(e.target.value)}
+                        className={styles.primaryTextInput}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.fieldLabel} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Clock size={13} color="#7C3AED" />
+                        <span>Closing Date &amp; Time (Duration Window) *</span>
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={drawerEndWindow}
+                        onChange={(e) => setDrawerEndWindow(e.target.value)}
+                        className={styles.primaryTextInput}
+                      />
+                    </div>
                   </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.fieldLabel}>End Window (Close Time) *</label>
-                    <input
-                      type="datetime-local"
-                      value={drawerEndWindow}
-                      onChange={(e) => setDrawerEndWindow(e.target.value)}
-                      className={styles.primaryTextInput}
-                    />
+
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748B' }}>Quick Duration Presets:</span>
+                    <button
+                      type="button"
+                      className={styles.quickPillBtn}
+                      onClick={() => setDrawerWindowDurationPreset(24)}
+                    >
+                      24 Hours
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.quickPillBtn}
+                      onClick={() => setDrawerWindowDurationPreset(72)}
+                    >
+                      3 Days
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.quickPillBtn}
+                      onClick={() => setDrawerWindowDurationPreset(168)}
+                    >
+                      7 Days Window
+                    </button>
                   </div>
+
+                  <div className={styles.liveWindowPreviewBox} style={{ marginTop: '12px' }}>
+                    <CheckCircle2 size={15} className={styles.previewIcon} />
+                    <div className={styles.previewText} style={{ fontSize: '12px' }}>
+                      <strong>Active Window: </strong>
+                      <span>
+                        Opens {new Date(drawerStartWindow || Date.now()).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                        {' ➔ '}
+                        Closes {new Date(drawerEndWindow || (Date.now() + 7 * 86400000)).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p style={{ margin: '8px 0 0', fontSize: '11.5px', color: '#6D28D9', fontWeight: 600 }}>
+                    ⏰ Students see a live countdown before open time. When the end window closes, the test automatically locks with a "🔒 Closed Test" badge.
+                  </p>
                 </div>
               )}
 
