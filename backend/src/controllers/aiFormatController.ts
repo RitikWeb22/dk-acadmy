@@ -22,7 +22,7 @@ interface FormatMathRequestBody {
  */
 export const getGeminiConfig = async (_req: Request, res: Response): Promise<void> => {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   res.status(200).json({
     configured: Boolean(apiKey && apiKey.trim().length > 5),
     model,
@@ -35,12 +35,13 @@ export const getGeminiConfig = async (_req: Request, res: Response): Promise<voi
  */
 export const updateGeminiConfig = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { apiKey, model = 'gemini-3.8-flash' } = req.body;
+    const { apiKey, model = 'gemini-2.5-flash' } = req.body;
+    const cleanModel = model === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : model;
     if (apiKey !== undefined) {
       process.env.GEMINI_API_KEY = String(apiKey).trim();
     }
-    if (model) {
-      process.env.GEMINI_MODEL = String(model).trim();
+    if (cleanModel) {
+      process.env.GEMINI_MODEL = String(cleanModel).trim();
     }
 
     // Persist to backend/.env if accessible
@@ -55,11 +56,11 @@ export const updateGeminiConfig = async (req: Request, res: Response): Promise<v
             envContent += `\nGEMINI_API_KEY=${String(apiKey).trim()}`;
           }
         }
-        if (model) {
+        if (cleanModel) {
           if (/^GEMINI_MODEL=/m.test(envContent)) {
-            envContent = envContent.replace(/^GEMINI_MODEL=.*$/m, `GEMINI_MODEL=${String(model).trim()}`);
+            envContent = envContent.replace(/^GEMINI_MODEL=.*$/m, `GEMINI_MODEL=${String(cleanModel).trim()}`);
           } else {
-            envContent += `\nGEMINI_MODEL=${String(model).trim()}`;
+            envContent += `\nGEMINI_MODEL=${String(cleanModel).trim()}`;
           }
         }
         fs.writeFileSync(envPath, envContent, 'utf8');
@@ -71,7 +72,7 @@ export const updateGeminiConfig = async (req: Request, res: Response): Promise<v
     res.status(200).json({
       success: true,
       configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 5),
-      model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
       message: 'Gemini configuration updated successfully'
     });
   } catch (err: any) {
@@ -81,7 +82,7 @@ export const updateGeminiConfig = async (req: Request, res: Response): Promise<v
 
 /**
  * AI-Powered Mathematical KaTeX & LaTeX Formatter
- * Connects to Google Gemini API (gemini-3.8-flash with fallback to gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash)
+ * Connects to Google Gemini API (gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash)
  * with graceful offline fallback to high-precision deterministic regex normalizer.
  */
 export const formatMathWithAi = async (req: Request, res: Response): Promise<void> => {
@@ -106,41 +107,86 @@ export const formatMathWithAi = async (req: Request, res: Response): Promise<voi
       process.env.GEMINI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
       '';
-    const preferredModel = model || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+    const preferredModel = (model === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : model) || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-    if (apiKey) {
+    if (apiKey && apiKey.trim().length > 5) {
       try {
-        const aiResult = await callGeminiMathFormatter({
+        const { result: aiResult, modelUsed, error: geminiError } = await callGeminiMathFormatter({
           statement,
           options,
           stepSolution,
           dkSirShortcut,
           targetExam,
-          apiKey,
+          apiKey: apiKey.trim(),
           modelName: preferredModel
         });
 
         if (aiResult) {
-          const sanitizedStatement = typeof aiResult.statement === 'string'
-            ? normalizeMathInText(aiResult.statement)
-            : normalizeMathInText(statement);
+          const rawStmt = aiResult.correctedQuestion || aiResult.statement || statement;
+          const sanitizedStatement = normalizeMathInText(rawStmt);
 
-          const sanitizedOptions = Array.isArray(aiResult.options) && aiResult.options.length > 0
-            ? aiResult.options.map((o: any) => ({ key: o.key, text: normalizeMathInText(o.text || '') }))
-            : Array.isArray(options)
-            ? options.map((opt) => ({ key: opt.key, text: normalizeMathInText(opt.text || '') }))
-            : [];
+          const rawOpts = Array.isArray(aiResult.correctedOptions) && aiResult.correctedOptions.length > 0
+            ? aiResult.correctedOptions
+            : Array.isArray(aiResult.options) && aiResult.options.length > 0
+            ? aiResult.options
+            : options;
+
+          const sanitizedOptions = rawOpts.map((o: any) => ({
+            key: o.key,
+            text: normalizeMathInText(o.text || '')
+          }));
 
           res.status(200).json({
             success: true,
             aiPowered: true,
-            modelUsed: preferredModel,
+            modelUsed,
+            confidence: typeof aiResult.confidence === 'number' ? aiResult.confidence : 0.95,
+            changes: aiResult.changes || ['Reconstructed mathematical LaTeX expressions'],
+            uncertainExpressions: aiResult.uncertainExpressions || [],
+            requiresManualReview: Boolean(aiResult.requiresManualReview),
+            reason: aiResult.reason || 'KaTeX mathematical syntax verified and reconstructed',
             data: {
-              ...aiResult,
               statement: sanitizedStatement,
+              correctedQuestion: sanitizedStatement,
               options: sanitizedOptions,
+              correctedOptions: sanitizedOptions,
+              changes: aiResult.changes || ['Reconstructed mathematical LaTeX expressions'],
+              uncertainExpressions: aiResult.uncertainExpressions || [],
+              requiresManualReview: Boolean(aiResult.requiresManualReview),
+              confidence: typeof aiResult.confidence === 'number' ? aiResult.confidence : 0.95,
+              reason: aiResult.reason || 'KaTeX mathematical syntax verified and reconstructed',
               stepSolution: aiResult.stepSolution ? normalizeMathInText(aiResult.stepSolution) : (stepSolution ? normalizeMathInText(stepSolution) : ''),
               dkSirShortcut: aiResult.dkSirShortcut ? normalizeMathInText(aiResult.dkSirShortcut) : (dkSirShortcut ? normalizeMathInText(dkSirShortcut) : '')
+            }
+          });
+          return;
+        }
+
+        // Gemini returned a specific error (e.g. invalid key or quota)
+        if (geminiError) {
+          const cleanedStatement = normalizeMathInText(statement);
+          const cleanedOptions = Array.isArray(options)
+            ? options.map((opt) => ({ key: opt.key, text: normalizeMathInText(opt.text || '') }))
+            : [];
+
+          res.status(200).json({
+            success: false,
+            aiPowered: false,
+            error: geminiError.code,
+            message: geminiError.message,
+            modelUsed: 'in-engine-normalizer',
+            data: {
+              statement: cleanedStatement,
+              correctedQuestion: cleanedStatement,
+              options: cleanedOptions,
+              correctedOptions: cleanedOptions,
+              changes: ['Applied in-engine deterministic normalizer (Gemini error: ' + geminiError.message + ')'],
+              uncertainExpressions: [],
+              requiresManualReview: true,
+              confidence: 0.85,
+              reason: geminiError.message,
+              stepSolution: stepSolution ? normalizeMathInText(stepSolution) : stepSolution,
+              dkSirShortcut: dkSirShortcut ? normalizeMathInText(dkSirShortcut) : dkSirShortcut
             }
           });
           return;
@@ -150,7 +196,7 @@ export const formatMathWithAi = async (req: Request, res: Response): Promise<voi
       }
     }
 
-    // High-precision deterministic fallback when Gemini is offline or unconfigured
+    // High-precision deterministic fallback when Gemini is unconfigured
     const cleanedStatement = normalizeMathInText(statement);
     const cleanedOptions = Array.isArray(options)
       ? options.map((opt) => ({
@@ -159,13 +205,31 @@ export const formatMathWithAi = async (req: Request, res: Response): Promise<voi
         }))
       : [];
 
+    const isUnconfigured = !apiKey || apiKey.trim().length <= 5;
+
     res.status(200).json({
-      success: true,
+      success: !isUnconfigured,
       aiPowered: false,
+      error: isUnconfigured ? 'GEMINI_KEY_NOT_CONFIGURED' : undefined,
+      message: isUnconfigured
+        ? 'Gemini API key is not configured. Formatted with high-precision in-engine KaTeX normalizer. Configure API key to enable Gemini AI correction.'
+        : 'Formatted with in-engine KaTeX normalizer.',
       modelUsed: 'in-engine-normalizer',
+      confidence: 0.90,
+      changes: ['Applied high-precision KaTeX normalizer to fractions, limits, radicals, and Greek symbols'],
+      uncertainExpressions: [],
+      requiresManualReview: false,
+      reason: 'Formatted with deterministic KaTeX mathematical rules',
       data: {
         statement: cleanedStatement,
+        correctedQuestion: cleanedStatement,
         options: cleanedOptions,
+        correctedOptions: cleanedOptions,
+        changes: ['Applied high-precision KaTeX normalizer to fractions, limits, radicals, and Greek symbols'],
+        uncertainExpressions: [],
+        requiresManualReview: false,
+        confidence: 0.90,
+        reason: 'Formatted with deterministic KaTeX mathematical rules',
         stepSolution: stepSolution ? normalizeMathInText(stepSolution) : stepSolution,
         dkSirShortcut: dkSirShortcut ? normalizeMathInText(dkSirShortcut) : dkSirShortcut
       }
@@ -187,59 +251,57 @@ async function callGeminiMathFormatter(params: {
   targetExam: string;
   apiKey: string;
   modelName: string;
-}): Promise<any> {
+}): Promise<{ result: any | null; modelUsed: string; error?: { code: string; message: string } }> {
   const { statement, options, stepSolution, dkSirShortcut, targetExam, apiKey, modelName } = params;
 
-  // List of models to try in order
+  // Clean model name and build robust list of valid production models
+  const cleanModelName = modelName === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : modelName;
   const modelsToTry = [
-    modelName,
-    'gemini-3.8-flash',
+    cleanModelName,
     'gemini-2.5-flash',
     'gemini-2.0-flash',
     'gemini-1.5-flash',
     'gemini-1.5-pro'
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
-  const prompt = `You are a Senior Mathematical OCR & KaTeX LaTeX Reconstruction Specialist for competitive examination questions (${targetExam}).
-Your task is to fix, reconstruct and typeset the following examination question, options, and solution into 100% accurate, error-free KaTeX/LaTeX.
+  const prompt = `You are an expert mathematical typesetting and mathematical document reconstruction engine.
+Your task is to repair corrupted mathematical notation while preserving the original mathematical meaning.
 
-Strict Formatting & OCR Correction Rules:
-1. Reconstruct all mathematical expressions into standard LaTeX:
-   - Fractions: \\frac{a}{b} or \\dfrac{a}{b}
-   - Definite Integrals: \\int_a^b with correct lower-to-upper limits (never inverted). E.g. \\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}
-   - Piecewise functions: \\begin{cases} ... \\end{cases}
-   - Matrices / Determinants: \\begin{bmatrix} ... \\end{bmatrix} or \\begin{vmatrix} ... \\end{vmatrix}
-   - Logarithms: \\log_e(x), \\ln(x) (clean redundant double backslashes and broken parentheses like \\\\log_e(()\\sqrt{3} - 1) -> \\log_e(\\sqrt{3} - 1))
-   - Trigonometric OCR Artifacts:
-     * Fix corrupted cotangent/trig expressions from PDF/Word extractions:
-       e.g. "[cot =x - 3 ,] cot =x + 3 ,] + 1] dx" or "\\left[\\cot =x - 3" must be reconstructed to:
-       "\\left( \\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1 \\right) dx"
-     * Reconstruct angles where fractions were misread as "=x - 3" or "=x + 3" into \\left(x - \\frac{\\pi}{3}\\right) and \\left(x + \\frac{\\pi}{3}\\right)
-   - Brackets: clean, balanced \\left( ... \\right), \\left[ ... \\right]. Never output duplicated "\\left\\left[" or unclosed "\\left[" that crash KaTeX.
-2. Mixed Prose & Math:
-   - Wrap mathematical formulas in single dollar $ ... $.
-   - Keep English prose words like "If", "Let", "then", "is equal to", "find", "where", "for all" outside $ ... $ as clean English text.
-3. Multiple Choice Options (A, B, C, D):
-   - Format each option cleanly with LaTeX formulas.
+Rules:
+1. Never invent missing operators, numbers, variables, brackets, or mathematical relationships.
+2. Never silently guess an ambiguous expression.
+3. Preserve all readable original text.
+4. Correct LaTeX syntax only when the intended expression is unambiguous.
+5. Detect missing symbols and mark uncertain regions.
+6. Distinguish between a rendering problem and actual missing source information.
+7. Preserve question statements, options, diagrams, units, and answer choices.
+8. Return valid JSON only.
+9. Include confidence and uncertainty information.
+10. If the original meaning cannot be recovered, explicitly request the original DOCX or an image of the question.
 
-Input Question Data to Format:
-Statement: """${statement}"""
+Input Examination Content to Reconstruct (${targetExam}):
+Question Statement: """${statement}"""
 Options: ${JSON.stringify(options)}
 Step Solution: """${stepSolution || ''}"""
 DK Sir Shortcut: """${dkSirShortcut || ''}"""
 
-Return ONLY a valid, raw JSON object (without markdown code fences, or inside \`\`\`json \`\`\`) with this exact schema:
+Return ONLY a valid, raw JSON object (without markdown fences, or inside \`\`\`json \`\`\`) with this exact schema:
 {
-  "statement": "<reconstructed KaTeX statement>",
-  "options": [
-    { "key": "A", "text": "<formatted option A>" },
-    { "key": "B", "text": "<formatted option B>" },
-    { "key": "C", "text": "<formatted option C>" },
-    { "key": "D", "text": "<formatted option D>" }
+  "correctedQuestion": "<reconstructed KaTeX statement with $...$ for math formulas>",
+  "correctedOptions": [
+    { "key": "A", "text": "<formatted option A with $...$>" },
+    { "key": "B", "text": "<formatted option B with $...$>" },
+    { "key": "C", "text": "<formatted option C with $...$>" },
+    { "key": "D", "text": "<formatted option D with $...$>" }
   ],
-  "stepSolution": "<formatted step solution or empty>",
-  "dkSirShortcut": "<formatted shortcut or empty>"
+  "changes": ["<list of specific fixes made to mathematical expressions>"],
+  "uncertainExpressions": ["<list of unrecoverable or ambiguous expressions, if any>"],
+  "requiresManualReview": false,
+  "confidence": 0.95,
+  "reason": "<summary of reconstruction analysis>"
 }`;
+
+  let lastError: { code: string; message: string } | undefined;
 
   for (const model of modelsToTry) {
     try {
@@ -265,6 +327,15 @@ Return ONLY a valid, raw JSON object (without markdown code fences, or inside \`
       if (!response.ok) {
         const errText = await response.text();
         console.warn(`[Gemini API Model ${model} HTTP ${response.status}]:`, errText.slice(0, 200));
+
+        if (response.status === 400 && errText.includes('API key not valid')) {
+          lastError = { code: 'GEMINI_INVALID_KEY', message: 'API key not valid. Please pass a valid Google Gemini API key.' };
+          break; // Don't retry other models with an invalid key
+        } else if (response.status === 429) {
+          lastError = { code: 'GEMINI_QUOTA_EXCEEDED', message: 'Gemini API rate limit or quota exceeded. Please check Google AI Studio.' };
+        } else {
+          lastError = { code: `HTTP_${response.status}`, message: `Gemini API returned status ${response.status}` };
+        }
         continue;
       }
 
@@ -273,17 +344,17 @@ Return ONLY a valid, raw JSON object (without markdown code fences, or inside \`
       if (!candidateText) continue;
 
       const parsed = robustParseGeminiJson(candidateText);
-      if (parsed && (typeof parsed.statement === 'string' || (Array.isArray(parsed.options) && parsed.options.length > 0))) {
-        return parsed;
+      if (parsed && (typeof parsed.correctedQuestion === 'string' || typeof parsed.statement === 'string' || Array.isArray(parsed.correctedOptions) || Array.isArray(parsed.options))) {
+        return { result: parsed, modelUsed: model };
       }
     } catch (err: any) {
       console.warn(`[Gemini API Attempt failed for ${model}]:`, err.message);
+      lastError = { code: 'NETWORK_ERROR', message: err.message };
     }
   }
 
-  return null;
+  return { result: null, modelUsed: cleanModelName, error: lastError };
 }
-
 
 /**
  * Robust JSON parser designed for LLM outputs containing raw LaTeX equations
@@ -308,7 +379,7 @@ function robustParseGeminiJson(rawText: string): any {
     return JSON.parse(sanitized);
   } catch {}
 
-  // Attempt 3: Double escape common LaTeX command starters that clash with JSON control chars (\frac, \text, \right, etc.)
+  // Attempt 3: Double escape common LaTeX command starters that clash with JSON control chars
   try {
     const fixedLatex = cleanJsonStr
       .replace(/\\frac/g, '\\\\frac')
@@ -357,7 +428,7 @@ function robustParseGeminiJson(rawText: string): any {
       return cleanJsonStr.slice(startQuote + 1, endQuote).replace(/\\"/g, '"');
     };
 
-    const statement = extractField('statement');
+    const correctedQuestion = extractField('correctedQuestion') || extractField('statement');
     const options: Array<{ key: string; text: string }> = [];
     const optRegex = /\{\s*"key"\s*:\s*"([A-D])"\s*,\s*"text"\s*:\s*"([\s\S]*?)(?="[\s\n]*\})/gi;
     let optMatch;
@@ -365,10 +436,17 @@ function robustParseGeminiJson(rawText: string): any {
       options.push({ key: optMatch[1], text: optMatch[2].replace(/\\"/g, '"') });
     }
 
-    if (statement || options.length > 0) {
+    if (correctedQuestion || options.length > 0) {
       return {
-        statement,
+        correctedQuestion,
+        statement: correctedQuestion,
+        correctedOptions: options,
         options,
+        changes: ['Extracted via robust fallback parser'],
+        uncertainExpressions: [],
+        requiresManualReview: true,
+        confidence: 0.85,
+        reason: 'Extracted with regex fallback parser',
         stepSolution: extractField('stepSolution'),
         dkSirShortcut: extractField('dkSirShortcut')
       };

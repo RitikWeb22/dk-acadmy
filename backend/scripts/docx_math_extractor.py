@@ -23,8 +23,22 @@ NS = {
 def clean_latex_spacing(s: str) -> str:
     if not s:
         return ''
+    # Strip invisible characters: hair spaces, zero-width spaces, and invisible operators (U+2061..U+2064)
+    s = re.sub(r'[\u200a\u200b\u200c\u200d\u200e\u200f\ufeff\u202f\u2060\u2061\u2062\u2063\u2064\ufff9-\ufffd]', '', s)
     s = re.sub(r'\s+', ' ', s)
     s = s.replace(r'\left\left', r'\left').replace(r'\right\right', r'\right')
+    
+    # Repair operator subscript syntax: {lim}_{ -> \lim_{ (also sup, inf, max, min, etc.)
+    s = re.sub(r'\{(lim|sup|inf|max|min|limsup|liminf|log|ln|gcd)\}_\{', r'\\\1_{', s)
+    s = re.sub(r'\{(lim|sup|inf|max|min|limsup|liminf|log|ln|gcd)\}_([a-zA-Z0-9])', r'\\\1_\2', s)
+    
+    # Repair spurious parenthesis/bracket artifacts from sSup: {)}^{2} -> )^{2}
+    s = s.replace('{)}^{', ')^{').replace('{]}^{', ']^{').replace('{)}', ')')
+    
+    # Clean single-character braced bases: {r}^{2} -> r^{2}, {x}_{i} -> x_{i}
+    s = re.sub(r'\{([a-zA-Z0-9])\}\^\{', r'\1^{', s)
+    s = re.sub(r'\{([a-zA-Z0-9])\}_\{', r'\1_{', s)
+
     # Clean redundant braces
     s = s.replace('{}', '')
     return s.strip()
@@ -91,6 +105,9 @@ def omml_to_latex(elem) -> str:
         sub_el = elem.find(f'{{{OMML_NS}}}sub')
         e = omml_to_latex(e_el).strip() if e_el is not None else ''
         sub = omml_to_latex(sub_el).strip() if sub_el is not None else ''
+        clean_e = e.strip('{}\\ ')
+        if clean_e.lower() in ('lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'gcd'):
+            return f"\\{clean_e.lower()}_{{{sub}}}"
         return f"{{{e}}}_{{{sub}}}"
 
     if tag == 'sSubSup':
@@ -100,6 +117,9 @@ def omml_to_latex(elem) -> str:
         e = omml_to_latex(e_el).strip() if e_el is not None else ''
         sub = omml_to_latex(sub_el).strip() if sub_el is not None else ''
         sup = omml_to_latex(sup_el).strip() if sup_el is not None else ''
+        clean_e = e.strip('{}\\ ')
+        if clean_e.lower() in ('lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'int', 'sum', 'prod'):
+            return f"\\{clean_e.lower()}_{{{sub}}}^{{{sup}}}"
         return f"{{{e}}}_{{{sub}}}^{{{sup}}}"
 
     if tag == 'rad':
@@ -184,22 +204,76 @@ def omml_to_latex(elem) -> str:
         # Limit with lower bound
         e_el = elem.find(f'{{{OMML_NS}}}e')
         lim_el = elem.find(f'{{{OMML_NS}}}lim')
-        e = omml_to_latex(e_el).strip() if e_el is not None else r'\lim'
+        op_text = omml_to_latex(e_el).strip() if e_el is not None else 'lim'
+        op_clean = op_text.strip('{}\\ ')
+        if not op_clean:
+            op_clean = 'lim'
         lim = omml_to_latex(lim_el).strip() if lim_el is not None else ''
-        return f"\\lim_{{{lim}}} {e}"
+        return f"\\{op_clean}_{{{lim}}}"
 
     if tag == 'limUpp':
         e_el = elem.find(f'{{{OMML_NS}}}e')
         lim_el = elem.find(f'{{{OMML_NS}}}lim')
-        e = omml_to_latex(e_el).strip() if e_el is not None else r'\lim'
+        op_text = omml_to_latex(e_el).strip() if e_el is not None else 'lim'
+        op_clean = op_text.strip('{}\\ ')
+        if not op_clean:
+            op_clean = 'lim'
         lim = omml_to_latex(lim_el).strip() if lim_el is not None else ''
-        return f"\\lim^{{{lim}}} {e}"
+        return f"\\{op_clean}^{{{lim}}}"
+
+    if tag == 'acc':
+        # Accents: vector arrows, hat, bar, dot
+        accPr = elem.find(f'{{{OMML_NS}}}accPr')
+        chr_val = '⃗'
+        if accPr is not None:
+            chr_el = accPr.find(f'{{{OMML_NS}}}chr')
+            if chr_el is not None and f'{{{OMML_NS}}}val' in chr_el.attrib:
+                chr_val = chr_el.attrib[f'{{{OMML_NS}}}val']
+        e_el = elem.find(f'{{{OMML_NS}}}e')
+        e = omml_to_latex(e_el).strip() if e_el is not None else ''
+        if chr_val in ('⃗', '→'):
+            return f"\\vec{{{e}}}"
+        elif chr_val in ('̂', '^'):
+            return f"\\hat{{{e}}}"
+        elif chr_val in ('̅', '-'):
+            return f"\\bar{{{e}}}"
+        elif chr_val in ('̇', '.'):
+            return f"\\dot{{{e}}}"
+        elif chr_val in ('̈', '..'):
+            return f"\\ddot{{{e}}}"
+        return f"\\vec{{{e}}}"
+
+    if tag == 'box':
+        e_el = elem.find(f'{{{OMML_NS}}}e')
+        return omml_to_latex(e_el) if e_el is not None else ''
+
+    if tag == 'groupChr':
+        groupChrPr = elem.find(f'{{{OMML_NS}}}groupChrPr')
+        pos = 'bot'
+        if groupChrPr is not None:
+            pos_el = groupChrPr.find(f'{{{OMML_NS}}}pos')
+            if pos_el is not None and f'{{{OMML_NS}}}val' in pos_el.attrib:
+                pos = pos_el.attrib[f'{{{OMML_NS}}}val']
+        e_el = elem.find(f'{{{OMML_NS}}}e')
+        e = omml_to_latex(e_el).strip() if e_el is not None else ''
+        if pos == 'top':
+            return f"\\overbrace{{{e}}}"
+        return f"\\underbrace{{{e}}}"
 
     if tag == 'func':
         fName_el = elem.find(f'{{{OMML_NS}}}fName')
         e_el = elem.find(f'{{{OMML_NS}}}e')
         fName = omml_to_latex(fName_el).strip() if fName_el is not None else ''
         e = omml_to_latex(e_el).strip() if e_el is not None else ''
+        clean_fn = fName.strip('{}\\ ')
+        known_fns = ('sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'arcsin', 'arccos', 'arctan',
+                     'sinh', 'cosh', 'tanh', 'log', 'ln', 'exp', 'deg', 'det', 'dim')
+        if clean_fn.lower() in known_fns:
+            return f"\\{clean_fn.lower()}\\left({e}\\right)"
+        elif fName.startswith('\\'):
+            if any(fName.startswith(p) for p in ('\\lim', '\\max', '\\min', '\\sup', '\\inf')):
+                return f"{fName} {e}"
+            return f"{fName}\\left({e}\\right)"
         return f"{fName} {e}"
 
     if tag == 'm':
@@ -229,33 +303,52 @@ def extract_paragraph_content(p_node) -> str:
     for child in p_node:
         tag = child.tag.split('}')[-1]
         if tag == 'r':
-            # Text runs
+            # Text runs: check vertAlign for superscript / subscript in prose
+            rPr = child.find(f'{{{W_NS}}}rPr')
+            vert_align = ''
+            if rPr is not None:
+                va_el = rPr.find(f'{{{W_NS}}}vertAlign')
+                if va_el is not None and f'{{{W_NS}}}val' in va_el.attrib:
+                    vert_align = va_el.attrib[f'{{{W_NS}}}val']
+
             for r_child in child:
                 r_tag = r_child.tag.split('}')[-1]
                 if r_tag == 't':
-                    if r_child.text:
-                        parts.append(r_child.text)
+                    t_text = r_child.text or ''
+                    if t_text:
+                        if vert_align == 'superscript':
+                            parts.append(f"^{{{t_text}}}")
+                        elif vert_align == 'subscript':
+                            parts.append(f"_{{{t_text}}}")
+                        else:
+                            parts.append(t_text)
                 elif r_tag == 'tab':
                     parts.append("    ")
                 elif r_tag == 'br':
                     parts.append("\n")
+                elif r_tag == 'drawing':
+                    parts.append(" [Image/Diagram] ")
         elif tag == 'oMath':
             # Inline math
             latex = omml_to_latex(child).strip()
             if latex:
-                parts.append(f" ${latex}$ ")
+                cleaned = clean_latex_spacing(latex)
+                parts.append(f" ${cleaned}$ ")
         elif tag == 'oMathPara':
             # Display math paragraph
             for sub_math in child.findall(f'{{{OMML_NS}}}oMath'):
                 latex = omml_to_latex(sub_math).strip()
                 if latex:
-                    parts.append(f" $${latex}$$ ")
+                    cleaned = clean_latex_spacing(latex)
+                    parts.append(f" $${cleaned}$$ ")
         elif tag == 'hyperlink':
             # Hyperlinked run
             for sub_r in child.findall(f'{{{W_NS}}}r'):
                 for t in sub_r.findall(f'{{{W_NS}}}t'):
                     if t.text:
                         parts.append(t.text)
+        elif tag == 'drawing':
+            parts.append(" [Image/Diagram] ")
 
     line = "".join(parts).strip()
     return line

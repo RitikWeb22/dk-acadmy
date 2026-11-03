@@ -24,7 +24,10 @@ const questionSchema = new Schema({
     explanationBlocks: { type: [Schema.Types.Mixed], default: undefined },
     shortcutTrick: { type: String },
     videoSolutionUrl: { type: String, default: '' },
-    pdfSolutionUrl: { type: String, default: '' }
+    pdfSolutionUrl: { type: String, default: '' },
+    structuredContent: { type: [Schema.Types.Mixed], default: undefined },
+    originalSource: { type: Schema.Types.Mixed, default: undefined },
+    mathValidation: { type: Schema.Types.Mixed, default: undefined }
 }, { _id: false });
 const markingSchemeSchema = new Schema({
     correct: { type: Number, default: 4 },

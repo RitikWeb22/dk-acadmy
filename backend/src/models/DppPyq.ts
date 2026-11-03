@@ -22,6 +22,9 @@ export interface IProblemQuestion {
   isFree?: boolean;
   videoUrl?: string;
   pdfUrl?: string;
+  structuredContent?: Array<{ type: string; text?: string; latex?: string }>;
+  originalSource?: { type?: string; rawText?: string; preserved?: boolean };
+  mathValidation?: { status?: string; failedExpressions?: string[]; uncertainExpressions?: string[] };
 }
 
 export interface IDppPyq extends Document {
@@ -73,7 +76,10 @@ const questionSchema = new Schema<IProblemQuestion>(
     year: { type: Schema.Types.Mixed },
     isFree: { type: Boolean, default: true },
     videoUrl: { type: String, default: '' },
-    pdfUrl: { type: String, default: '' }
+    pdfUrl: { type: String, default: '' },
+    structuredContent: { type: [Schema.Types.Mixed], default: undefined },
+    originalSource: { type: Schema.Types.Mixed, default: undefined },
+    mathValidation: { type: Schema.Types.Mixed, default: undefined }
   },
   { _id: false, strict: false }
 );

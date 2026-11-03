@@ -27,6 +27,9 @@ export interface ITestQuestion {
   shortcutTrick?: string;
   videoSolutionUrl?: string;
   pdfSolutionUrl?: string;
+  structuredContent?: Array<{ type: string; text?: string; latex?: string }>;
+  originalSource?: { type?: string; rawText?: string; preserved?: boolean };
+  mathValidation?: { status?: string; failedExpressions?: string[]; uncertainExpressions?: string[] };
 }
 
 export interface IMarkingScheme {
@@ -125,7 +128,10 @@ const questionSchema = new Schema<ITestQuestion>(
     explanationBlocks: { type: [Schema.Types.Mixed], default: undefined },
     shortcutTrick: { type: String },
     videoSolutionUrl: { type: String, default: '' },
-    pdfSolutionUrl: { type: String, default: '' }
+    pdfSolutionUrl: { type: String, default: '' },
+    structuredContent: { type: [Schema.Types.Mixed], default: undefined },
+    originalSource: { type: Schema.Types.Mixed, default: undefined },
+    mathValidation: { type: Schema.Types.Mixed, default: undefined }
   },
   { _id: false }
 );

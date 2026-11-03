@@ -444,7 +444,7 @@ export function normalizeMathText(raw: string): string {
     text = text.replace(/([a-zA-Z0-9\)])#/g, '$1^3');
   }
   // 0a. Strip invisible characters, hair spaces, zero-width spaces, and placeholders
-  text = text.replace(/[\u200B\u200C\u200D\u200E\u200F\uFEFF\u200A\u2009\u202F\u2060\u2061\u2062\u2063\u2064\uFFF9-\uFFFD\u00A0]/g, ' ')
+  text = text.replace(/[\u200B\u200C\u200D\u200E\u200F\uFEFF\u2060\u2061\u2062\u2063\u2064\uFFF9-\uFFFD]/g, '').replace(/[\u200A\u2009\u202F\u00A0]/g, ' ')
              .replace(/[▒□┤├│〖〗]/g, '')
              .replace(/[\u201C\u201D]/g, '"')
              .replace(/[\u2018\u2019]/g, "'")
@@ -513,7 +513,38 @@ export function normalizeMathText(raw: string): string {
 
   // 0n. Fix OCR arrow artifacts in limit subscripts: \vec{r}x -> r \to x
   text = text.replace(/\\vec\{r\}\s*x\b/g, 'r \\to x');
+  text = text.replace(/\\vec\{([a-zA-Z])\}\s*([a-zA-Z])\b/g, '$1 \\to $2');
   text = text.replace(/\\vec\{r\}\\to/g, 'r \\to');
+
+  // 0o. Strip rogue dollar signs placed inside parentheses or brackets: [( $f(r)) -> [(f(r))
+  text = text.replace(/([\(\[\{])\s*\$\s*([a-zA-Z0-9\\])/g, '$1$2');
+  text = text.replace(/([a-zA-Z0-9\\])\s*\$\s*([\s\)\],])/g, '$1$2');
+
+  // Fix \sqrt(...) with arbitrary nested parens to \sqrt{...}
+  let sqrtIdx = text.indexOf('\\sqrt(');
+  while (sqrtIdx !== -1) {
+    let depth = 1;
+    let i = sqrtIdx + 6;
+    const startInner = i;
+    while (i < text.length && depth > 0) {
+      if (text[i] === '(') depth++;
+      else if (text[i] === ')') depth--;
+      i++;
+    }
+    if (depth === 0) {
+      const inner = text.substring(startInner, i - 1);
+      text = text.substring(0, sqrtIdx) + '\\sqrt{' + inner + '}' + text.substring(i);
+      sqrtIdx = text.indexOf('\\sqrt(', sqrtIdx + 7);
+    } else {
+      break;
+    }
+  }
+
+  // 0q. Fix common OCR equality loss: f(a) 0 -> f(a) = 0
+  text = text.replace(/\b(f\([a-zA-Z0-9]+\))\s+0\b/g, '$1 = 0');
+
+  // 0r. Fix interval union corruption e.g. \cup $10, \infty ) -> \cup (10, \infty)
+  text = text.replace(/\\cup\s*\$?([0-9]+)\s*,\s*\\infty\s*\)/g, '\\cup ($1, \\infty)');
   const lines = text.split(/\r?\n/);
   const processedLines = lines.map((line) => {
     let res = line;
