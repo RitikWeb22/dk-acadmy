@@ -495,6 +495,25 @@ export function normalizeMathText(raw: string): string {
   // 0j. Powers with single or multiple parentheses: e^((2-4x)) -> e^{2-4x}, x^(2) -> x^{2}
   text = text.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, '$1^{$2}');
 
+
+  // 0k. Fix OMML limlow artifacts: {lim}_{...} -> \lim_{...}
+  //     OMML parser sometimes wraps operator names in braces instead of backslash prefix
+  text = text.replace(/\{(lim|sup|inf|max|min|limsup|liminf)\}_\{/g, (_m, op) => `\\${op}_{`);
+  text = text.replace(/\{(lim|sup|inf|max|min|limsup|liminf)\}_([a-zA-Z0-9])/g, (_m, op, c) => `\\${op}_${c}`);
+
+  // 0l. Fix spurious {)} artifact from OMML nested function parsing: (f(r){)}^{2} -> (f(r))^{2}
+  text = text.replace(/\{\\?\)\}\^\{/g, ')^{');
+  text = text.replace(/\{\\?\)\}(?=[^a-zA-Z{]|$)/g, ')');
+
+  // 0m. Fix 'ea' prose artifact (e^a written as plain text in JEE questions)
+  text = text.replace(/\bvalue of\s+ea\b(?!\^)/gi, 'value of $e^{a}$');
+  text = text.replace(/\bsuch that\s+ea\b(?!\^)/gi, 'such that $e^{a}$');
+  text = text.replace(/\bthat ea\b(?!\^)/gi, 'that $e^{a}$');
+  text = text.replace(/([ ,])ea([ ,.])/g, (_m, pre, post) => `${pre}$e^{a}$${post}`);
+
+  // 0n. Fix OCR arrow artifacts in limit subscripts: \vec{r}x -> r \to x
+  text = text.replace(/\\vec\{r\}\s*x\b/g, 'r \\to x');
+  text = text.replace(/\\vec\{r\}\\to/g, 'r \\to');
   const lines = text.split(/\r?\n/);
   const processedLines = lines.map((line) => {
     let res = line;

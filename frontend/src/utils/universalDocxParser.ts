@@ -270,9 +270,11 @@ export function ommlNodeToLatex(node: Node): string {
       // Limit with lower condition: <m:e> 'lim', <m:lim> 'x \to 0'
       const eEl = getChildByLocalName(el, 'e');
       const limEl = getChildByLocalName(el, 'lim');
-      const opText = eEl ? ommlNodeToLatex(eEl) : 'lim';
+      const rawOpText = eEl ? ommlNodeToLatex(eEl) : 'lim';
+      // Strip outer braces that OMML sometimes wraps around operator names: {lim} -> lim
+      const opText = rawOpText.trim().replace(/^\{(.+)\}$/, '$1').trim();
       const cond = limEl ? ommlNodeToLatex(limEl) : '';
-      return `\\${opText.trim()}_{${cond.trim()}}`;
+      return `\\${opText}_{${cond.trim()}}`;
     }
 
     case 'func': {
@@ -282,7 +284,13 @@ export function ommlNodeToLatex(node: Node): string {
       const fnName = fnEl ? ommlNodeToLatex(fnEl).trim() : '';
       const arg = eEl ? ommlNodeToLatex(eEl).trim() : '';
       const cleanFn = fnName.startsWith('\\') ? fnName : `\\${fnName}`;
-      return `${cleanFn}(${arg})`;
+      // Operators like \lim, \max, \min, \sup, \inf, \limsup, \liminf do NOT take parens:
+      // their argument is the expression that follows, not enclosed in ()
+      const noParenOps = ['\\lim', '\\max', '\\min', '\\sup', '\\inf', '\\limsup', '\\liminf'];
+      if (noParenOps.some(op => cleanFn === op || cleanFn.startsWith(op + '_') || cleanFn.startsWith(op + ' '))) {
+        return `${cleanFn} ${arg}`;
+      }
+      return `${cleanFn}\\left(${arg}\\right)`;
     }
 
     case 'acc': {

@@ -160,6 +160,17 @@ export function normalizeMathInText(rawText) {
     // Fix common broken LaTeX tags like "\frac{pi}{4}" or spaces inside log_e
     text = text.replace(/log_e\s+([0-9a-zA-Z\(\)]+)/g, '\\log_e($1)');
     text = text.replace(/\\log_e\s+/g, '\\log_e ');
+    // Fix OMML/Python extractor artifacts: {lim}_{...} -> \lim_{...}
+    text = text.replace(/\{(lim|sup|inf|max|min|limsup|liminf)\}_\{/g, (_m, op) => `\\${op}_{`);
+    text = text.replace(/\{(lim|sup|inf|max|min|limsup|liminf)\}_([a-zA-Z0-9])/g, (_m, op, c) => `\\${op}_${c}`);
+    // Fix spurious {)} artifact in nested function notation: (f(r){)}^{2} -> (f(r))^{2}
+    text = text.replace(/\{\\?\)\}\^\{/g, ')^{');
+    text = text.replace(/\{\\?\)\}(?=[^a-zA-Z{]|$)/g, ')');
+    // Fix 'ea' prose artifact (e^a written as plain text in JEE questions)
+    text = text.replace(/\bvalue of\s+ea\b(?!\^)/gi, 'value of $e^{a}$');
+    text = text.replace(/\bsuch that\s+ea\b(?!\^)/gi, 'such that $e^{a}$');
+    text = text.replace(/\bthat ea\b(?!\^)/gi, 'that $e^{a}$');
+    text = text.replace(/([ ,])ea([ ,.])/g, (_m, pre, post) => `${pre}$e^{a}$${post}`);
     // Sanitize unbalanced \left and \right delimiters which crash KaTeX rendering
     const leftMatches = (text.match(/\\left\b/g) || []).length;
     const rightMatches = (text.match(/\\right\b/g) || []).length;
