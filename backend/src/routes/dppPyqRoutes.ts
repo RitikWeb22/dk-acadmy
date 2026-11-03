@@ -15,6 +15,7 @@ import {
   batchAddToQuestionBank,
   deleteQuestionBankItem
 } from '../controllers/dppPyqController.js';
+import { formatMathWithAi } from '../controllers/aiFormatController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import { uploadPdfMiddleware } from '../middlewares/uploadMiddleware.js';
@@ -49,6 +50,13 @@ const createDppPyqSchema = z
   .passthrough();
 
 // 1. PDF Studio Import & Extraction Routes
+router.post(
+  '/ai-format-math',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  formatMathWithAi
+);
+
 router.post(
   '/import-pdf',
   protect,

@@ -95,8 +95,15 @@ export const PaymentPage: React.FC = () => {
   const queryCourseId = searchParams.get('courseId') || searchParams.get('id');
   const targetId = courseId || queryCourseId || 'jee-main-advanced-2yr-ultimate';
 
-  // Guest student notification (instead of hard redirect)
-  const isGuestStudent = !isLoading && (!isAuthenticated || !student);
+  // Authentication Guard: Student must be logged in before opening checkout and payment
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !student)) {
+      showToast('Please login to your student account to access the checkout and payment portal.', 'info');
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
+    }
+  }, [isLoading, isAuthenticated, student, navigate, showToast]);
+
+  const isGuestStudent = false;
 
   // Resolve Course Data
   const course: Course = useMemo(() => {
@@ -272,8 +279,9 @@ export const PaymentPage: React.FC = () => {
         },
         onError: (err: string) => {
           setIsProcessing(false);
-          setErrorMsg(err);
-          showToast(err, 'error');
+          const msg = typeof err === 'string' && !err.includes('closed') ? `Payment failed: ${err}` : 'Payment was closed or not completed. Course remains locked.';
+          setErrorMsg(msg);
+          showToast(msg, 'error');
         }
       });
     } catch (err: any) {
@@ -285,6 +293,17 @@ export const PaymentPage: React.FC = () => {
   };
 
   const courseTag = `${(course.targetExam || 'JEE MAIN & ADVANCED').toUpperCase()} · ${(course.targetClass || 'CLASS 11TH').toUpperCase()}`;
+
+  if (isLoading || !isAuthenticated || !student) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '14px' }}>
+        <div style={{ width: '36px', height: '36px', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <p style={{ color: '#64748B', fontSize: '14px', fontWeight: 500 }}>
+          {isLoading ? 'Verifying authentication...' : 'Redirecting to login portal...'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.checkoutPageRoot}>

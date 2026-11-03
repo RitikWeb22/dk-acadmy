@@ -67,7 +67,7 @@ export const PYQPage: React.FC = () => {
   const urlSubject = searchParams.get('subject');
   const urlSetId = searchParams.get('set');
 
-  const { student } = useStudentAuth();
+  const { student, isAuthenticated } = useStudentAuth();
 
   // All PYQ sets fetched directly from MongoDB /api/v1/dpp-pyq
   const [pyqSets, setPyqSets] = useState<LiveDppPyqSet[]>([]);
@@ -350,6 +350,12 @@ export const PYQPage: React.FC = () => {
   const [modalTargetSet, setModalTargetSet] = useState<LiveDppPyqSet | null>(null);
 
   const handleEnrollCourse = async () => {
+    if (!isAuthenticated || !student) {
+      showToast('Please log in to your student account to unlock PYQ Papers.');
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
+
     const targetSet = modalTargetSet || activeSet;
     if (!targetSet) return;
     const price = targetSet.price ?? 499;
@@ -361,9 +367,9 @@ export const PYQPage: React.FC = () => {
         amount: price,
         courseId: setId,
         courseTitle: paperTitle,
-        studentName: student?.name || 'Aspirant',
-        studentEmail: student?.email || 'student@dkacademy.in',
-        studentPhone: student?.phone || '9999999999',
+        studentName: student.name || 'Aspirant',
+        studentEmail: student.email || 'student@dkacademy.in',
+        studentPhone: student.phone || '9999999999',
         onSuccess: (paymentId: string) => {
           setIsUnlockModalOpen(false);
           setUnlockedSetIds((prev) => {
@@ -386,10 +392,15 @@ export const PYQPage: React.FC = () => {
   };
 
   const handleOpenUnlockModal = (qNumber?: number, specificSet?: LiveDppPyqSet) => {
+    if (!isAuthenticated || !student) {
+      showToast('Please log in to your student account to unlock PYQ Papers.');
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
     if (specificSet) {
       setModalTargetSet(specificSet);
     } else {
-      setModalTargetSet(activeSet || null);
+      setModalTargetSet(activeSet);
     }
     setLockedTargetNumber(qNumber);
     setIsUnlockModalOpen(true);

@@ -12,6 +12,7 @@ import {
   getTestSeriesSolutionAdminOverview,
   updateTestSeriesSolutionConfig
 } from '../controllers/testSeriesController.js';
+import { formatMathWithAi } from '../controllers/aiFormatController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 
@@ -75,6 +76,13 @@ router.patch(
 );
 
 // Admin & Faculty creation/management routes
+router.post(
+  '/ai-format-math',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  formatMathWithAi
+);
+
 router.post(
   '/',
   protect,

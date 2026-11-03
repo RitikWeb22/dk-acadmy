@@ -22,7 +22,8 @@ import {
   RefreshCw,
   Sliders,
   ShieldCheck,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 import type {
   PyqPaper,
@@ -38,6 +39,7 @@ import type {
 import { SUBJECT_CHAPTERS, EXAM_YEARS } from './types';
 import { MathText } from '../../ui/MathText/MathText';
 import { apiClient } from '../../../services/apiClient';
+import { normalizeMathText } from '../../../utils/questionBulkParser';
 import styles from './PyqManagementStudio.module.scss';
 
 interface Props {
@@ -116,6 +118,35 @@ export const PyqCreateWizard: React.FC<Props> = ({
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0);
   const [isStatementPreview, setIsStatementPreview] = useState(false);
   const [isSolutionPreview, setIsSolutionPreview] = useState(false);
+  const [isAiFormattingPyq, setIsAiFormattingPyq] = useState(false);
+
+  const handleAiFormatPyqQuestion = async () => {
+    const curQ = questions[activeQuestionIndex];
+    if (!curQ) return;
+    setIsAiFormattingPyq(true);
+    try {
+      const res = await apiClient.formatMathWithAi({
+        statement: curQ.statement,
+        options: curQ.options.map((o) => ({ key: o.key, text: o.text })),
+        stepSolution: curQ.stepSolution,
+        dkSirShortcut: curQ.dkSirShortcut,
+        model: 'gemini-3.8-flash'
+      });
+      if (res?.data) {
+        updateActiveQuestion('statement', res.data.statement || normalizeMathText(curQ.statement));
+        if (Array.isArray(res.data.options) && res.data.options.length > 0) {
+          updateActiveQuestion('options', res.data.options);
+        }
+        if (res.data.stepSolution) updateActiveQuestion('stepSolution', res.data.stepSolution);
+        if (res.data.dkSirShortcut) updateActiveQuestion('dkSirShortcut', res.data.dkSirShortcut);
+      }
+    } catch {
+      updateActiveQuestion('statement', normalizeMathText(curQ.statement));
+      updateActiveQuestion('options', curQ.options.map((o) => ({ ...o, text: normalizeMathText(o.text) })));
+    } finally {
+      setIsAiFormattingPyq(false);
+    }
+  };
 
   // PDF Upload & Extraction State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1036,14 +1067,38 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 <div className={styles.formGroup}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <label>Question Statement (LaTeX / KaTeX Math Supported) <span className={styles.required}>*</span></label>
-                    <button
-                      type="button"
-                      className={styles.btnSecondary}
-                      style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
-                      onClick={() => setIsStatementPreview(!isStatementPreview)}
-                    >
-                      {isStatementPreview ? 'Edit LaTeX' : 'Preview KaTeX'}
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <button
+                        type="button"
+                        disabled={isAiFormattingPyq}
+                        style={{
+                          padding: '0.2rem 0.6rem',
+                          fontSize: '0.75rem',
+                          background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: isAiFormattingPyq ? 'not-allowed' : 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: 600
+                        }}
+                        onClick={handleAiFormatPyqQuestion}
+                        title="Reconstruct formulas with Gemini AI"
+                      >
+                        {isAiFormattingPyq ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                        <span>{isAiFormattingPyq ? 'Formatting...' : '✨ AI Auto-Format'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.btnSecondary}
+                        style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                        onClick={() => setIsStatementPreview(!isStatementPreview)}
+                      >
+                        {isStatementPreview ? 'Edit LaTeX' : 'Preview KaTeX'}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Quick Math Toolbar */}

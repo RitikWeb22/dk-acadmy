@@ -430,3 +430,4 @@ if __name__ == '__main__':
     result = extract_questions_from_docx(args.input, args.subject, args.exam)
     sys.stdout.reconfigure(encoding='utf-8')
     print(json.dumps(result, ensure_ascii=False))
+

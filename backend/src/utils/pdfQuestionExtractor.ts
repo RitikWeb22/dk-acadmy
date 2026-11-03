@@ -73,6 +73,8 @@ export function normalizeMathInText(rawText: string): string {
   text = text.replace(/F\s*[\r\n]+\s*1\s*[\r\n]+\s*3\s*[\r\n]+\s*−1\s*[\r\n]+\s*2\s*[\r\n]+\s*1\s*[\r\n]+\s*𝛼\s*[\r\n]+\s*0\s*[\r\n]+\s*1\s*[\r\n]+\s*−1\s*[\r\n]+\s*H/g, '\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}');
 
   // Comprehensive reconstruction of cotangent integral expression across raw font symbols and multiline breaks:
+  text = text.replace(/(?:\\left\s*)?[=\[]\s*(?:\\left\s*)?\\?cot\s*[=\(]?\s*x\s*[-−]\s*3[\s\S]*?\\?cot\s*[=\(]?\s*x\s*\+\s*3[\s\S]*?\+\s*1\s*\]\s*dx\b/gi,
+    '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
   text = text.replace(/[=\[]\s*\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3[\s\S]*?cot\s*[=\(]?\s*[xX]\s*[+]\s*3[\s\S]*?\+\s*1\s*[@\]]\s*(?:dx|𝑑𝑥)\b/gi,
     '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
   text = text.replace(/\[\s*\\?cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*=?\s*x\s*\+\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*dx\b/gi,
@@ -88,11 +90,13 @@ export function normalizeMathInText(rawText: string): string {
   text = text.replace(/\\log_e\s*\(\s*\(\s*\)/g, '\\log_e(');
   text = text.replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(');
   text = text.replace(/\\log_e\s*\(\s*\\sqrt/g, '\\log_e(\\sqrt');
-  text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*([\\a-zA-Z0-9])/g, '\\log_e($1');
-  text = text.replace(/\\log_e\s*\(\s*\)\s*([\\a-zA-Z0-9])/g, '\\log_e($1');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[\\a-zA-Z0-9])/g, (_m, p1) => '\\log_e(' + p1);
+  text = text.replace(/\\log_e\s*\(\s*\)\s*(\\sqrt|[\\a-zA-Z0-9])/g, (_m, p1) => '\\log_e(' + p1);
   text = text.replace(/log[7\-]/g, '\\log_e ');
   text = text.replace(/(?:\\left\s*){2,}/g, '\\left');
   text = text.replace(/(?:\\right\s*){2,}/g, '\\right');
+  text = text.replace(/\\left\s*\\left\s*([\[\(\{\|])/g, '\\left$1');
+  text = text.replace(/\\right\s*\\right\s*([\]\)\}\|])/g, '\\right$1');
   text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
   text = text.replace(/\/012/g, '-\\sin ');
   text = text.replace(/012\s*([\$x])/gi, '\\sin x');
@@ -190,6 +194,14 @@ export function normalizeMathInText(rawText: string): string {
   // Fix common broken LaTeX tags like "\frac{pi}{4}" or spaces inside log_e
   text = text.replace(/log_e\s+([0-9a-zA-Z\(\)]+)/g, '\\log_e($1)');
   text = text.replace(/\\log_e\s+/g, '\\log_e ');
+
+  // Sanitize unbalanced \left and \right delimiters which crash KaTeX rendering
+  const leftMatches = (text.match(/\\left\b/g) || []).length;
+  const rightMatches = (text.match(/\\right\b/g) || []).length;
+  if (leftMatches !== rightMatches) {
+    text = text.replace(/\\left\s*([\[\(\{\|])/g, '$1');
+    text = text.replace(/\\right\s*([\]\)\}\|])/g, '$1');
+  }
 
   return text;
 }
