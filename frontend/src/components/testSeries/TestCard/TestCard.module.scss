@@ -367,31 +367,74 @@
 
 .scheduledUpcomingBtn {
   flex: 1;
-  display: inline-flex;
+  width: 100%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  background-color: #f5f3ff;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
   color: #6d28d9;
-  border: 1px dashed #c4b5fd;
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 700;
+  border: 1.5px solid #c4b5fd;
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
-    background-color: #ede9fe;
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
     border-color: #a78bfa;
     color: #5b21b6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.15);
   }
 
   &:focus-visible {
     outline: 2px solid #7c3aed;
     outline-offset: 2px;
   }
+}
+
+.scheduledBtnInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.scheduledDateRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #6d28d9;
+}
+
+.scheduledCountdownRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: #7c3aed;
+  font-weight: 500;
+
+  strong {
+    font-weight: 800;
+    font-family: monospace;
+    letter-spacing: 0.03em;
+  }
+}
+
+.countdownTimerIcon {
+  color: #7c3aed;
+  animation: spinSlow 8s linear infinite;
+}
+
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 // "Resume Test" (Solid Amber/Warning)
@@ -503,31 +546,74 @@
 
 .scheduledUpcomingBtn {
   flex: 1;
-  display: inline-flex;
+  width: 100%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  background-color: #f5f3ff;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
   color: #6d28d9;
-  border: 1px dashed #c4b5fd;
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 700;
+  border: 1.5px solid #c4b5fd;
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
-    background-color: #ede9fe;
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
     border-color: #a78bfa;
     color: #5b21b6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.15);
   }
 
   &:focus-visible {
     outline: 2px solid #7c3aed;
     outline-offset: 2px;
   }
+}
+
+.scheduledBtnInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.scheduledDateRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #6d28d9;
+}
+
+.scheduledCountdownRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: #7c3aed;
+  font-weight: 500;
+
+  strong {
+    font-weight: 800;
+    font-family: monospace;
+    letter-spacing: 0.03em;
+  }
+}
+
+.countdownTimerIcon {
+  color: #7c3aed;
+  animation: spinSlow 8s linear infinite;
+}
+
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .retakeBtn {
@@ -588,29 +674,72 @@
 
 .scheduledUpcomingBtn {
   flex: 1;
-  display: inline-flex;
+  width: 100%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  background-color: #f5f3ff;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
   color: #6d28d9;
-  border: 1px dashed #c4b5fd;
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 700;
+  border: 1.5px solid #c4b5fd;
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
-    background-color: #ede9fe;
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
     border-color: #a78bfa;
     color: #5b21b6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.15);
   }
 
   &:focus-visible {
     outline: 2px solid #7c3aed;
     outline-offset: 2px;
   }
+}
+
+.scheduledBtnInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.scheduledDateRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #6d28d9;
+}
+
+.scheduledCountdownRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: #7c3aed;
+  font-weight: 500;
+
+  strong {
+    font-weight: 800;
+    font-family: monospace;
+    letter-spacing: 0.03em;
+  }
+}
+
+.countdownTimerIcon {
+  color: #7c3aed;
+  animation: spinSlow 8s linear infinite;
+}
+
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

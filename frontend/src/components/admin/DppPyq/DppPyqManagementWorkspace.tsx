@@ -546,6 +546,9 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
   const [newVideoUrl, setNewVideoUrl] = useState<string>('');
   const [newPdfUrl, setNewPdfUrl] = useState<string>('');
 
+  // Strip exam year from display title (e.g. "JEE Main 2026" -> "JEE Main")
+  const getTargetExamNameOnly = (target: string) => target.replace(/\s*\d{4}/g, '').trim();
+
   // Student mode interactive preview state
   const [previewCurrentQIndex, setPreviewCurrentQIndex] = useState<number>(0);
   const [previewSelectedOptions, setPreviewSelectedOptions] = useState<Record<string, string>>({});
@@ -635,7 +638,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       setNewTitle(`DPP: ${trimmed} (Speed Inspection & Concepts)`);
       setNewSlug(`/dpp-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
     } else if (newModuleType === 'PYQ') {
-      setNewTitle(`PYQ Archive: ${trimmed} (${newExamTarget})`);
+      setNewTitle(`PYQ Archive: ${trimmed} (${getTargetExamNameOnly(newExamTarget)})`);
       setNewSlug(`/pyq-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
     } else {
       setNewTitle(`BITSAT Speed Drill: ${trimmed}`);
@@ -1635,127 +1638,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
         </div>
       </div>
 
-      {/* ─── 4B. ARCHIVE YEARS MANAGEMENT STRIP ─── */}
-      <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
-        borderRadius: '12px',
-        padding: '12px 18px',
-        marginBottom: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span>📅 PYQ Archive Years ({adminPyqYears.length}):</span>
-          </span>
-          {adminPyqYears.map((yr) => (
-            <span
-              key={yr}
-              style={{
-                fontSize: '11.5px',
-                fontWeight: 700,
-                background: '#eff6ff',
-                color: '#1d4ed8',
-                border: '1px solid #bfdbfe',
-                padding: '3px 9px',
-                borderRadius: '6px'
-              }}
-            >
-              {yr}
-            </span>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isCreatingYear ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <input
-                type="number"
-                autoFocus
-                placeholder="Year (e.g. 2019, 2018)"
-                value={newYearInput}
-                onChange={(e) => setNewYearInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const y = Number(newYearInput);
-                    if (y) handleCreateYear(y);
-                  } else if (e.key === 'Escape') {
-                    setIsCreatingYear(false);
-                  }
-                }}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  border: '1.5px solid #2563eb',
-                  fontSize: '12px',
-                  width: '140px',
-                  outline: 'none'
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const y = Number(newYearInput);
-                  if (y) handleCreateYear(y);
-                }}
-                style={{
-                  background: '#2563eb',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '5px 12px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Save Year
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsCreatingYear(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#64748b',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                ✕ Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsCreatingYear(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                background: '#eff6ff',
-                color: '#2563eb',
-                border: '1px solid #bfdbfe',
-                borderRadius: '8px',
-                padding: '6px 14px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              <Plus size={14} />
-              <span>+ Add / Create Archive Year</span>
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* ─── 5. MAIN DATA TABLE ─── */}
       <div className={styles.tableCardContainer}>
         <div className={styles.tableResponsive}>
@@ -2153,127 +2035,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
         </div>
       </div>
 
-      {/* ─── 4B. ARCHIVE YEARS MANAGEMENT STRIP ─── */}
-      <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
-        borderRadius: '12px',
-        padding: '12px 18px',
-        marginBottom: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span>📅 PYQ Archive Years ({adminPyqYears.length}):</span>
-          </span>
-          {adminPyqYears.map((yr) => (
-            <span
-              key={yr}
-              style={{
-                fontSize: '11.5px',
-                fontWeight: 700,
-                background: '#eff6ff',
-                color: '#1d4ed8',
-                border: '1px solid #bfdbfe',
-                padding: '3px 9px',
-                borderRadius: '6px'
-              }}
-            >
-              {yr}
-            </span>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isCreatingYear ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <input
-                type="number"
-                autoFocus
-                placeholder="Year (e.g. 2019, 2018)"
-                value={newYearInput}
-                onChange={(e) => setNewYearInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const y = Number(newYearInput);
-                    if (y) handleCreateYear(y);
-                  } else if (e.key === 'Escape') {
-                    setIsCreatingYear(false);
-                  }
-                }}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  border: '1.5px solid #2563eb',
-                  fontSize: '12px',
-                  width: '140px',
-                  outline: 'none'
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const y = Number(newYearInput);
-                  if (y) handleCreateYear(y);
-                }}
-                style={{
-                  background: '#2563eb',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '5px 12px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Save Year
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsCreatingYear(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#64748b',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                ✕ Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsCreatingYear(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                background: '#eff6ff',
-                color: '#2563eb',
-                border: '1px solid #bfdbfe',
-                borderRadius: '8px',
-                padding: '6px 14px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              <Plus size={14} />
-              <span>+ Add / Create Archive Year</span>
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* ─── 7. CREATE PROBLEM SET MODAL (PREMIUM CURRICULUM AUTHORING STUDIO) ─── */}
       {isCreateModalOpen && (
         <div className={styles.modalOverlay} onClick={() => setIsCreateModalOpen(false)}>
@@ -2349,7 +2110,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     onClick={() => {
                       setNewModuleType('PYQ');
                       if (newChapter) {
-                        setNewTitle(`PYQ Archive: ${newChapter} (${newExamTarget})`);
+                        setNewTitle(`PYQ Archive: ${newChapter} (${getTargetExamNameOnly(newExamTarget)})`);
                         setNewSlug(`/pyq-${newChapter.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
                       }
                     }}
@@ -2427,7 +2188,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                           setNewTitle(`DPP: ${firstCh} (DK Sir Inspection)`);
                           setNewSlug(`/dpp-${firstCh.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
                         } else if (newModuleType === 'PYQ') {
-                          setNewTitle(`PYQ Archive: ${firstCh} (${newExamTarget})`);
+                          setNewTitle(`PYQ Archive: ${firstCh} (${getTargetExamNameOnly(newExamTarget)})`);
                           setNewSlug(`/pyq-${firstCh.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
                         } else {
                           setNewTitle(`BITSAT Drill: ${firstCh}`);
@@ -2479,7 +2240,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                                 handleCreateYear(y);
                                 setNewExamTarget(`JEE Main ${y}`);
                                 if (newModuleType === 'PYQ') {
-                                  setNewTitle(`PYQ Archive: ${newChapter} (JEE Main ${y})`);
+                                  setNewTitle(`PYQ Archive: ${newChapter} (JEE Main)`);
                                 }
                               }
                             } else if (e.key === 'Escape') {
@@ -2497,7 +2258,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                               handleCreateYear(y);
                               setNewExamTarget(`JEE Main ${y}`);
                               if (newModuleType === 'PYQ') {
-                                setNewTitle(`PYQ Archive: ${newChapter} (JEE Main ${y})`);
+                                setNewTitle(`PYQ Archive: ${newChapter} (JEE Main)`);
                               }
                             }
                           }}
@@ -2531,7 +2292,12 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                           if (e.target.value === '__CREATE_NEW_YEAR__') {
                             setIsCreatingYear(true);
                           } else {
-                            setNewExamTarget(e.target.value);
+                            const val = e.target.value;
+                            setNewExamTarget(val);
+                            if (newModuleType === 'PYQ') {
+                              const examOnly = getTargetExamNameOnly(val);
+                              setNewTitle(`PYQ Archive: ${newChapter} (${examOnly})`);
+                            }
                           }
                         }}
                       >
@@ -2647,7 +2413,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                             setNewTitle(`DPP: ${ch} (Speed Inspection & Concepts)`);
                             setNewSlug(`/dpp-${ch.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
                           } else if (newModuleType === 'PYQ') {
-                            setNewTitle(`PYQ Archive: ${ch} (${newExamTarget})`);
+                            setNewTitle(`PYQ Archive: ${ch} (${getTargetExamNameOnly(newExamTarget)})`);
                             setNewSlug(`/pyq-${ch.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`);
                           } else {
                             setNewTitle(`BITSAT Speed Drill: ${ch}`);
@@ -2703,100 +2469,46 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Step 4: Questions, Solution Note & Status */}
-              <div className={styles.formSectionBox}>
-                <div className={styles.fieldSectionHeading}>
-                  <span>4. Drill Parameters &amp; Release Status</span>
-                </div>
-
-                <div className={styles.formThreeColGrid}>
-                  <div className={styles.fieldItem}>
-                    <label className={styles.fieldLabel}>Questions Count (Target)</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={500}
-                      className={styles.fieldInputEnhanced}
-                      value={newQuestionsCount}
-                      onChange={(e) => {
-                        const count = Number(e.target.value);
-                        setNewQuestionsCount(count);
-                        setNewSolutionNote(`${count} with step solutions`);
-                      }}
-                    />
-                    <div style={{ marginTop: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenBulkModal(true)}
-                        style={{
-                          background: createdCustomQuestions ? '#f0fdf4' : '#eff6ff',
-                          border: createdCustomQuestions ? '1px solid #86efac' : '1px solid #bfdbfe',
-                          color: createdCustomQuestions ? '#15803d' : '#1d4ed8',
-                          padding: '6px 12px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        <Upload size={13} />
-                        <span>
-                          {createdCustomQuestions
-                            ? `✓ ${createdCustomQuestions.length} Questions Imported (Click to edit/change)`
-                            : '📄 Upload Word (.docx) / PDF (.pdf) / CSV Questions'}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className={styles.fieldItem}>
-                    <label className={styles.fieldLabel}>Fixed Timer Duration (Minutes) *</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={180}
-                      className={styles.fieldInputEnhanced}
-                      placeholder="e.g. 15 mins"
-                      value={newDurationMinutes}
-                      onChange={(e) => setNewDurationMinutes(Number(e.target.value))}
-                    />
-                  </div>
-
-                  <div className={styles.fieldItem}>
-                    <label className={styles.fieldLabel}>Solution Note</label>
-                    <input
-                      type="text"
-                      className={styles.fieldInputEnhanced}
-                      placeholder="e.g. 5 with step video solutions"
-                      value={newSolutionNote}
-                      onChange={(e) => setNewSolutionNote(e.target.value)}
-                    />
-                  </div>
-
-                  <div className={styles.fieldItem}>
-                    <label className={styles.fieldLabel}>Release Status</label>
-                    <select
-                      className={styles.fieldSelectEnhanced}
-                      value={newStatus}
-                      onChange={(e) => setNewStatus(e.target.value as ProblemStatus)}
-                    >
-                      <option value="Published">Published (Live for Students)</option>
-                      <option value="Draft">Draft (Editorial Review)</option>
-                      <option value="Scheduled">Scheduled</option>
-                    </select>
-                  </div>
+                {/* Bulk Document / PDF / Word Upload Action Button */}
+                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBulkModal(true)}
+                    style={{
+                      background: createdCustomQuestions ? '#f0fdf4' : '#eff6ff',
+                      border: createdCustomQuestions ? '1.5px solid #86efac' : '1.5px solid #bfdbfe',
+                      color: createdCustomQuestions ? '#15803d' : '#1d4ed8',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 1px 3px rgba(37,99,235,0.08)'
+                    }}
+                  >
+                    <Upload size={14} />
+                    <span>
+                      {createdCustomQuestions
+                        ? `✓ ${createdCustomQuestions.length} Questions Imported (Click to change/re-upload)`
+                        : '📄 Upload Word (.docx) / PDF (.pdf) / CSV Questions'}
+                    </span>
+                  </button>
+                  {createdCustomQuestions && (
+                    <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>
+                      ✓ {createdCustomQuestions.length} questions attached to this problem set
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Step 5: Access & Monetization Control */}
+              {/* Step 4: Access & Monetization Control */}
               <div className={styles.formSectionBox}>
                 <div className={styles.fieldSectionHeading}>
-                  <span>5. Access &amp; Monetization Control *</span>
+                  <span>4. Access &amp; Monetization Control *</span>
                   <span className={styles.requiredIndicator}>Student Access Mode</span>
                 </div>
 
@@ -3238,131 +2950,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                   </div>
 
                   <div className={styles.metaField} style={{ flex: '1 1 100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>
-                        Archive Exam Year:
-                      </label>
-                      {!isCreatingYear && (
-                        <button
-                          type="button"
-                          onClick={() => setIsCreatingYear(true)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#2563eb',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px'
-                          }}
-                        >
-                          + Create New Year
-                        </button>
-                      )}
-                    </div>
-
-                    {isCreatingYear && (
-                      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'center' }}>
-                        <input
-                          type="number"
-                          autoFocus
-                          placeholder="e.g. 2002, 2008, 2011"
-                          value={newYearInput}
-                          onChange={(e) => setNewYearInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const y = Number(newYearInput);
-                              if (y) {
-                                handleCreateYear(y);
-                                handleUpdateActiveQuestion({ examYear: `JEE ${y}` });
-                              }
-                            } else if (e.key === 'Escape') {
-                              setIsCreatingYear(false);
-                            }
-                          }}
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid #2563eb',
-                            fontSize: '12px',
-                            outline: 'none',
-                            width: '180px'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const y = Number(newYearInput);
-                            if (y) {
-                              handleCreateYear(y);
-                              handleUpdateActiveQuestion({ examYear: `JEE ${y}` });
-                            }
-                          }}
-                          style={{
-                            background: '#2563eb',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '11.5px',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Create &amp; Apply
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsCreatingYear(false)}
-                          style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '12px' }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Quick Year Selection Chips */}
-                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      {adminPyqYears.map((yr) => {
-                        const currentYearStr = String(editingItem.questions[editingQuestionIdx].examYear || '');
-                        const isSelected = currentYearStr.includes(String(yr));
-                        return (
-                          <button
-                            key={yr}
-                            type="button"
-                            onClick={() => handleUpdateActiveQuestion({ examYear: `JEE ${yr}` })}
-                            style={{
-                              padding: '3px 9px',
-                              borderRadius: '6px',
-                              fontSize: '11px',
-                              fontWeight: isSelected ? 700 : 500,
-                              cursor: 'pointer',
-                              border: isSelected ? '1px solid #2563eb' : '1px solid #cbd5e1',
-                              background: isSelected ? '#eff6ff' : '#f8fafc',
-                              color: isSelected ? '#1d4ed8' : '#334155',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            {isSelected ? '✓ ' : ''}{yr}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div style={{ marginTop: '6px' }}>
-                      <input
-                        type="text"
-                        className={styles.fieldInputSmall}
-                        placeholder="Custom label e.g. JEE Main 2002 Shift-1"
-                        value={editingItem.questions[editingQuestionIdx].examYear || ''}
-                        onChange={(e) => handleUpdateActiveQuestion({ examYear: e.target.value })}
-                        style={{ width: '100%', fontSize: '12px' }}
-                      />
-                    </div>
-
                     {/* Paper & Question Monetization Controls */}
                     <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
