@@ -353,6 +353,7 @@ export const createDppPyq = async (req: Request, res: Response): Promise<void> =
       ? `${baseSlug}-${Date.now().toString().slice(-4)}`
       : (baseSlug || `drill-${Date.now()}`);
 
+    const isPaperPaid = payload.isFree === false || payload.accessMode === 'paid';
     const sanitizedQuestions =
       Array.isArray(payload.questions) && payload.questions.length > 0
         ? payload.questions.map((q: any, idx: number) => ({
@@ -378,7 +379,11 @@ export const createDppPyq = async (req: Request, res: Response): Promise<void> =
             difficulty: ['Easy', 'Moderate', 'Challenging'].includes(q.difficulty)
               ? q.difficulty
               : 'Moderate',
-            examYear: q.examYear || ''
+            examYear: q.examYear || '',
+            // If paper is paid, question is locked (isFree = false) unless explicitly set as free preview
+            isFree: isPaperPaid ? Boolean(q.isFree === true) : (q.isFree !== false),
+            videoUrl: q.videoUrl || '',
+            pdfUrl: q.pdfUrl || ''
           }))
         : SEED_QUESTIONS;
 

@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
+import { validateQuestionLatexStructure } from './mathLatexValidator.js';
 
 export interface ExtractedQuestionResult {
   tempId: string;
@@ -386,12 +387,21 @@ function runPythonOcrPipeline(
       return;
     }
 
-    const pyProcess = spawn('python', [
-      scriptPath,
-      '--input', tempPdfPath,
-      '--subject', subject,
-      '--exam', targetExam
-    ]);
+    const pyProcess = spawn(
+      'python',
+      [
+        scriptPath,
+        '--input', tempPdfPath,
+        '--subject', subject,
+        '--exam', targetExam
+      ],
+      {
+        env: {
+          ...process.env,
+          PYTHONIOENCODING: 'utf-8'
+        }
+      }
+    );
 
     let stdout = '';
     let stderr = '';
@@ -450,6 +460,35 @@ export async function extractQuestionsFromPdfBuffer(
     try {
       const ocrSummary = await runPythonOcrPipeline(tempFile, subject, targetExam);
       if (ocrSummary && ocrSummary.totalDetected > 0) {
+        // Run mathematical LaTeX validation on all Python extracted questions
+        let needsReviewCount = 0;
+        let successfulCount = 0;
+
+        ocrSummary.questions = ocrSummary.questions.map((q: any) => {
+          const report = validateQuestionLatexStructure({
+            qNum: q.qNum,
+            statement: q.statement || q.questionText || '',
+            options: q.options || []
+          });
+
+          const needsReview = report.needsReview || q.status === 'NEEDS_REVIEW';
+          if (needsReview) {
+            needsReviewCount++;
+          } else {
+            successfulCount++;
+          }
+
+          return {
+            ...q,
+            status: needsReview ? 'NEEDS_REVIEW' : 'EXTRACTED',
+            reviewReason: report.reasons.length > 0 ? report.reasons.join('; ') : q.reviewReason,
+            confidence: report.overallConfidence,
+            uncertainRegions: report.uncertainRegions
+          };
+        });
+
+        ocrSummary.successfulCount = successfulCount;
+        ocrSummary.needsReviewCount = needsReviewCount;
         return ocrSummary;
       }
     } finally {
