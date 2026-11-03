@@ -900,13 +900,13 @@ export function normalizeMathText(raw: string): string {
       const hasMathSyntax = /\\(?:frac|dfrac|int|lim|sum|prod|sqrt|alpha|beta|pi|tan|sin|cos|log_e|log|ln|dots|to|infty|left|right|vec|hat|in|ge|le|times|cdot|forall)(?![a-zA-Z])|\^\{|\^[0-9a-zA-Z]|\\[\(\)]/.test(body);
 
       // Case C: Explicit check for "If [formula] then [formula] is equal to."
-      const ifMatch = body.match(/^(If\s+)([\s\S]+?)(,\s*(?:\\text\{then\}|then)\s+|\s+(?:\\text\{then\}|then)\s+)([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
+      const ifMatch = body.match(/^(If\s+)([\s\S]+?)(,\s*(?:\\text\{then\}|then)\s+|\s+(?:\\text\{then\}|then)\s+)([\s\S]+?)(\s+(?:is equal to(?:\s+[_.\-]+|\s*[:._\-]*)?|is(?:\s+[_.\-]+|\s*[:._\-]*)?|\.|$))$/i);
       // Case S: Explicit check for "Let [prose] satisfying [formula]. Then [formula] is equal to:"
-      const satMatch = body.match(/^(Let\s+[\s\S]+?\s+satisfying\s+)([\s\S]+?)(?:[.,]\s*|\s+)(?:Then|then)\s+([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
+      const satMatch = body.match(/^(Let\s+[\s\S]+?\s+satisfying\s+)([\s\S]+?)(?:[.,]\s*|\s+)(?:Then|then)\s+([\s\S]+?)(\s+(?:is equal to(?:\s+[_.\-]+|\s*[:._\-]*)?|is(?:\s+[_.\-]+|\s*[:._\-]*)?|\.|$))$/i);
       // Case V: Explicit check for "The value of [formula] is [equal to]" / "Find [formula] is equal to"
-      const valMatch = body.match(/^((?:The value of the integral|The value of|Find the value of the integral|Find the value of|Evaluate the integral|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?|\.|$))$/i);
+      const valMatch = body.match(/^((?:The value of the integral|The value of|Find the value of the integral|Find the value of|Evaluate the integral|Evaluate|Find)\s+)([\s\S]+?)(\s+(?:is equal to(?:\s+[_.\-]+|\s*[:._\-]*)?|is(?:\s+[_.\-]+|\s*[:._\-]*)?|\.|$))$/i);
       // Case E: Explicit check for formula ending with "is :" or "is equal to :" / "is equal to."
-      const endingIsMatch = body.match(/^([\s\S]+?)(\s+(?:is equal to\s*[:.]?|is\s*[:.]?))\s*$/i);
+      const endingIsMatch = body.match(/^([\s\S]+?)(\s+(?:is equal to(?:\s+[_.\-]+|\s*[:._\-]*)?|is(?:\s+[_.\-]+|\s*[:._\-]*)?))\s*$/i);
       const isPureMathEnding = endingIsMatch &&
         !/^\s*(?:let|if|where|given|suppose|consider|assume)\b/i.test(endingIsMatch[1]) &&
         (endingIsMatch[1].match(/\b(?:let|if|then|where|given|suppose|consider|assume|and|with|that|satisfying|find|evaluate)\b/gi) || []).length === 0 &&
