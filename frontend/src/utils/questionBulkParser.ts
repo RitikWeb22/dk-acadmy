@@ -718,10 +718,10 @@ export function normalizeMathText(raw: string): string {
     res = res.replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ");
     res = res.replace(/∅/g, '\\phi ');
 
-    // 1c. MS Word combining vector arrows: a ⃗ or OA ⃗ or (OA) ⃗ or a\u20D7
-    res = res.replace(/\(([A-Za-z]{1,3})\)\s*[\u20D7\u2192⃗]/g, '\\vec{$1}');
-    res = res.replace(/([A-Z]{2,3})\s*[\u20D7\u2192⃗]/g, '\\vec{$1}');
-    res = res.replace(/([a-zA-Z])\s*[\u20D7\u2192⃗]/g, '\\vec{$1}');
+    // 1c. MS Word combining vector arrows: a ⃗ or OA ⃗ or (OA) ⃗ or a\u20D7 (Note: \u2192 is standalone right arrow, NOT vector accent!)
+    res = res.replace(/\(([A-Za-z]{1,3})\)\s*[\u20D7⃗]/g, '\\vec{$1}');
+    res = res.replace(/([A-Z]{2,3})\s*[\u20D7⃗]/g, '\\vec{$1}');
+    res = res.replace(/([a-zA-Z])\s*[\u20D7⃗]/g, '\\vec{$1}');
     // Unit vectors: i ˆ or j ˆ or k ˆ or \u0302
     res = res.replace(/([ijk])\s*[\u0302\u02C6ˆ]/g, '\\hat{$1}');
 
@@ -824,13 +824,15 @@ export function normalizeMathText(raw: string): string {
     // Also any base^digit without braces: x^2 -> x^{2}, a^2 -> a^{2}
     res = res.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^([0-9a-zA-Z])(?![0-9a-zA-Z\{])/g, '$1^{$2}');
 
-    // 7. Limits: lim_(n→∞) or lim_(x→0)
-    res = res.replace(/lim_?\s*\(([^)]+)\)\s*/g, (_, inner) => {
-      const clean = inner.replace(/→/, '\\to ').replace(/∞/, '\\infty');
+    // 7. Limits: lim_(n→∞) or lim_(x→0) with arbitrary unicode arrows and hair spaces
+    res = res.replace(/\\?lim_?\s*[\(\{\[]\s*([^)\}\]]+)\s*[\)\}\]][\s\u200a]*/gi, (_, inner) => {
+      const clean = inner.replace(/[→\u2192]|\\to/g, ' \\to ').replace(/[∞\u221E]|\\infty/g, '\\infty');
       return `\\lim_{${clean.trim()}} `;
     });
-    res = res.replace(/lim\s*([a-zA-Z]+)\s*→\s*∞/g, '\\lim_{$1 \\to \\infty} ');
-    res = res.replace(/lim\s*([a-zA-Z]+)\s*→\s*([0-9a-zA-Z]+)/g, '\\lim_{$1 \\to $2} ');
+    res = res.replace(/\\?lim\s*([a-zA-Z]+)\s*[→\u2192]\s*([0-9a-zA-Z∞\u221E\+\-]+)[\s\u200a]*/gi, (_, v, dest) => {
+      const cleanDest = dest === '∞' || dest === '\u221E' ? '\\infty' : dest;
+      return `\\lim_{${v} \\to ${cleanDest}} `;
+    });
 
     // 8. Trig functions: tan^50 x -> \tan^{50} x
     res = res.replace(/(cot|tan|sin|cos|sec|csc)\^([0-9]+)\s*x/gi, (_, fn, p) => `\\${fn.toLowerCase()}^{${p}} x`);
