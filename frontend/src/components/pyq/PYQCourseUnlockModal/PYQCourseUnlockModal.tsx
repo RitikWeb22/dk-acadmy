@@ -1,7 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, Lock, CheckCircle2, Sparkles, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
-import { YoutubeIcon } from '../../ui/YoutubeIcon/YoutubeIcon';
+import { X, Lock, CheckCircle2, Sparkles, FileText, ArrowRight, ShieldCheck, Video } from 'lucide-react';
 import styles from './PYQCourseUnlockModal.module.scss';
 
 interface PYQCourseUnlockModalProps {
@@ -32,10 +31,21 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
       aria-label="Unlock Complete Paper"
     >
       <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
-        {/* Top Header Badge */}
-        <div className={styles.headerGraphic}>
-          <div className={styles.lockBadge}>
-            <Lock size={22} className={styles.lockIcon} />
+        {/* Top Header Row with Close */}
+        <div className={styles.modalHeader}>
+          <div className={styles.headerLeft}>
+            <div className={styles.lockBadge}>
+              <Lock size={16} className={styles.lockIcon} />
+            </div>
+            <div>
+              <span className={styles.planBadge}>
+                <Sparkles size={11} />
+                Unlock Complete Paper
+              </span>
+              <h3 className={styles.title}>
+                {paperTitle ? paperTitle : (questionNumber ? `Question ${questionNumber} • Paper Access` : 'Unlock Complete Paper')}
+              </h3>
+            </div>
           </div>
           <button
             type="button"
@@ -43,62 +53,47 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
             onClick={onClose}
             aria-label="Close modal"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Content Body */}
         <div className={styles.contentBody}>
-          <div className={styles.badgeRow}>
-            <span className={styles.planBadge}>
-              <Sparkles size={13} />
-              Unlock Complete Paper
-            </span>
-          </div>
-
-          <h2 className={styles.title}>
-            {paperTitle ? `Unlock Complete Paper: ${paperTitle}` : (questionNumber ? `Question ${questionNumber} • Unlock Complete Paper` : 'Unlock Complete Paper')}
-          </h2>
-
           <p className={styles.description}>
-            Unlock full instant access to all questions in this paper, including step-by-step mathematical derivations, DK Sir Kota speed shortcuts, video walkthroughs, and downloadable PDF solutions.
+            Instant access to all questions in this paper, complete step-by-step mathematical derivations, video solutions, and downloadable PDF keys.
           </p>
 
-          {/* Value Prop List */}
-          <div className={styles.benefitsCard}>
-            <h4 className={styles.benefitsTitle}>Everything included in this Paper:</h4>
-            <ul className={styles.benefitsList}>
-              <li>
-                <CheckCircle2 size={16} className={styles.bulletIcon} />
-                <span><strong>All Paper Questions:</strong> Complete curated archive with KaTeX mathematical formulas</span>
-              </li>
-              <li>
-                <YoutubeIcon size={16} className={styles.bulletIconYt} />
-                <span><strong>Video Walkthroughs &amp; Solutions:</strong> DK Sir 20-30s Kota inspection shortcuts</span>
-              </li>
-              <li>
-                <FileText size={16} className={styles.bulletIconPdf} />
-                <span><strong>Downloadable Solution PDFs:</strong> High-resolution full paper derivation and step keys</span>
-              </li>
-              <li>
-                <CheckCircle2 size={16} className={styles.bulletIcon} />
-                <span><strong>Complete Scoring &amp; Review:</strong> Instant evaluation, timer, and detailed accuracy analytics</span>
-              </li>
-            </ul>
+          {/* Compact Feature Grid */}
+          <div className={styles.featuresGrid}>
+            <div className={styles.featureItem}>
+              <CheckCircle2 size={13} className={styles.featureCheck} />
+              <span>All Questions with KaTeX</span>
+            </div>
+            <div className={styles.featureItem}>
+              <Video size={13} className={styles.featureVideo} />
+              <span>DK Sir Video Solutions</span>
+            </div>
+            <div className={styles.featureItem}>
+              <FileText size={13} className={styles.featurePdf} />
+              <span>High-Res Solution PDF</span>
+            </div>
+            <div className={styles.featureItem}>
+              <ShieldCheck size={13} className={styles.featureShield} />
+              <span>Instant Lifetime Access</span>
+            </div>
           </div>
 
           {/* Pricing Row */}
           <div className={styles.pricingCard}>
             <div className={styles.priceLeft}>
-              <span className={styles.pricingTag}>Paper Access Fee</span>
+              <span className={styles.pricingTag}>One-Time Paper Fee</span>
               <div className={styles.priceNums}>
                 <span className={styles.mainPrice}>₹{paperPrice}</span>
+                <span className={styles.validityText}>• All Questions Included</span>
               </div>
-              <span className={styles.validityText}>Full Lifetime Access • Instant Unlock</span>
             </div>
-
             <div className={styles.guaranteeTag}>
-              <ShieldCheck size={16} />
+              <ShieldCheck size={12} />
               <span>Instant Unlock</span>
             </div>
           </div>
@@ -114,7 +109,7 @@ export const PYQCourseUnlockModal: React.FC<PYQCourseUnlockModalProps> = ({
               }}
             >
               <span>Unlock Complete Paper (₹{paperPrice})</span>
-              <ArrowRight size={16} />
+              <ArrowRight size={15} />
             </button>
 
             <button
