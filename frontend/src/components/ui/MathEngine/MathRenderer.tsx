@@ -183,15 +183,20 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
       // If KaTeX encountered an error node, attempt auto-balancing repair
       if (html.includes('katex-error')) {
         let repaired = cleanFormula
-          .replace(/(?:\\left\s*){2,}/g, '\\left')
-          .replace(/(?:\\right\s*){2,}/g, '\\right');
-        const leftCount = (repaired.match(/\\left\b/g) || []).length;
-        const rightCount = (repaired.match(/\\right\b/g) || []).length;
+          .replace(/(?:\\left\s*)+/g, '\\left')
+          .replace(/(?:\\right\s*)+/g, '\\right')
+          .replace(/\\left\s*\\left\s*([\[\(\{\|])/g, '\\left$1')
+          .replace(/\\right\s*\\right\s*([\]\)\}\|])/g, '\\right$1')
+          .replace(/,\s*\]/g, ']');
+
+        const leftCount = (repaired.match(/\\left(?:[\[\(\{\|.]|\\\{)/g) || []).length;
+        const rightCount = (repaired.match(/\\right(?:[\]\)\}\|.]|\\\})/g) || []).length;
         if (leftCount > rightCount) {
           repaired += '\\right.'.repeat(leftCount - rightCount);
         } else if (rightCount > leftCount) {
           repaired = '\\left.'.repeat(rightCount - leftCount) + repaired;
         }
+
         try {
           const secondTry = katex.renderToString(repaired, {
             displayMode: isDisplay,
@@ -200,8 +205,26 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
             strict: false,
             trust: false
           });
+
           if (!secondTry.includes('katex-error')) {
             html = secondTry;
+          } else {
+            // Third attempt: strip problematic \left / \right delimiters while keeping interior content
+            const stripped = repaired
+              .replace(/\\left[\[\(\{\|.]/g, '[')
+              .replace(/\\right[\]\)\}\|.]/g, ']')
+              .replace(/\\left\\\{/g, '{')
+              .replace(/\\right\\\}/g, '}');
+            const thirdTry = katex.renderToString(stripped, {
+              displayMode: isDisplay,
+              throwOnError: false,
+              output: 'html',
+              strict: false,
+              trust: false
+            });
+            if (!thirdTry.includes('katex-error')) {
+              html = thirdTry;
+            }
           }
         } catch {}
       }
@@ -256,8 +279,11 @@ function sanitizeFormula(str: string): string {
     .replace(/^\\text\{\s*(?:If|Let|Then|Where|When)\s*\}\s*/i, '')
     .replace(/^(?:If|Let|Then|Where|When)\s+/i, '')
     // Normalize any duplicated \left\left or \right\right for any delimiter
-    .replace(/(?:\\left\s*){2,}/g, '\\left')
-    .replace(/(?:\\right\s*){2,}/g, '\\right')
+    .replace(/(?:\\left\s*)+/g, '\\left')
+    .replace(/(?:\\right\s*)+/g, '\\right')
+    .replace(/\\left\s*\\left\s*([\[\(\{\|])/g, '\\left$1')
+    .replace(/\\right\s*\\right\s*([\]\)\}\|])/g, '\\right$1')
+    .replace(/,\s*\]/g, ']')
     // Fix inverted definite integral limits
     .replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}')
     .replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}')

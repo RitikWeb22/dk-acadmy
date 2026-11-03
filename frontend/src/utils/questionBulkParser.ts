@@ -304,8 +304,8 @@ export function autoWrapMathDelimiters(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\(\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*(?:,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?))?\s*\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
   // 8. Wrap remaining standalone LaTeX commands / variables outside $:
-  // e.g. \vec{a}, \vec{b}, \lambda, \alpha, \beta, \hat{i}, \sqrt{10}
-  const isolatedMath = /(?<![a-zA-Z0-9_\$\\])(\\(?:vec\{[a-zA-Z0-9]+\}|hat\{[ijk]\}|sqrt\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)(?:\{[^}]*\}|_[0-9a-zA-Z\{\}]+|\^[0-9a-zA-Z\{\}]+)*)(?![a-zA-Z0-9_\{])/g;
+  // e.g. \vec{a}, \vec{b}, \lambda, \alpha, \beta, \hat{i}, \sqrt{10}, 9\alpha^2
+  const isolatedMath = /(?<![a-zA-Z0-9_\$\\])([0-9]*\s*\\(?:vec\{[a-zA-Z0-9]+\}|hat\{[ijk]\}|sqrt\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)(?:\{[^}]*\}|_[0-9a-zA-Z\{\}]+|\^[0-9a-zA-Z\{\}]+)*)(?![a-zA-Z0-9_\{])/g;
   s = s.replace(isolatedMath, (_, m) => protect(m));
 
   // 9. Restore all protected math expressions recursively
@@ -339,12 +339,47 @@ export function normalizeMathText(raw: string): string {
   // Convert all double dollar display delimiters to single dollar inline delimiters
   let text = raw.split('$$').join('$');
 
+  // Normalize mathematical italic / bold unicode characters to standard ASCII:
+  text = text.replace(/[\u{1D451}\u{1D41D}\u{1D485}]/gu, 'd')
+             .replace(/[\u{1D465}\u{1D431}\u{1D499}]/gu, 'x')
+             .replace(/[\u{1D466}\u{1D432}\u{1D49A}]/gu, 'y')
+             .replace(/[\u{1D467}\u{1D433}\u{1D49B}]/gu, 'z')
+             .replace(/[\u{1D461}\u{1D42D}\u{1D495}]/gu, 't')
+             .replace(/[\u{1D453}\u{1D41F}\u{1D487}]/gu, 'f')
+             .replace(/[\u{1D44E}\u{1D41A}\u{1D482}]/gu, 'a')
+             .replace(/[\u{1D44F}\u{1D41B}\u{1D483}]/gu, 'b')
+             .replace(/[\u{1D450}\u{1D41C}\u{1D484}]/gu, 'c')
+             .replace(/[\u{1D45B}\u{1D427}\u{1D48F}]/gu, 'n')
+             .replace(/[\u{1D45F}\u{1D42B}\u{1D493}]/gu, 'r')
+             .replace(/[\u2212\u2013\u2014]/g, '-');
+
   // 0. Global pre-pass for Word/PDF copy-paste artifacts & CambriaMath font substitutions
+  // Fix inverted integral limits for definite integral JEE Q3
+  text = text.replace(/∫\s*\u200a?\s*3\/6\s*[\r\n]+\s*3\/4/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}} ');
+  text = text.replace(/∫\s*\u200a?\s*3\/4\s*[\r\n]+\s*3\/6/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}} ');
+  text = text.replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
+  text = text.replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
+
+  // Decode Word cotangent terms with brackets (both single-line and split across newlines)
+  text = text.replace(/[=\[]\s*\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3[\s\S]*?cot\s*[=\(]?\s*[xX]\s*[+]\s*3[\s\S]*?\+\s*1\s*[@\]]\s*(?:dx|𝑑𝑥)\b/gi,
+    '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
+  text = text.replace(/\[\s*\\?cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*=?\s*x\s*\+\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*dx\b/gi,
+    '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
+  text = text.replace(/\[\s*cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*\(?\s*x\s*[-−]\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
+  text = text.replace(/(?<!\\left\s*)\[\s*\\?cot\b/gi, '\\left[\\cot ');
+  text = text.replace(/(?<!\\right\s*)\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
+
   // Decode Word Quartz / CambriaMath font artifact substitutions in formulas FIRST
   text = text.replace(/\\{2,}log_e/g, '\\log_e');
   text = text.replace(/\\log_e\s*\(\s*\(\s*\)/g, '\\log_e(');
   text = text.replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(');
   text = text.replace(/\\log_e\s*\(\s*\\sqrt/g, '\\log_e(\\sqrt');
+  text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
+  text = text.replace(/\\log_e\s*\(\s*\)\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
   text = text.replace(/log[7\-]/g, '\\log_e ');
   text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
   text = text.replace(/\/012/g, '-\\sin ');
@@ -366,29 +401,11 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/3\//g, '\\pi - ');
   text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{2}');
 
-  // Decode Word cotangent terms with brackets (both single-line and split across newlines)
-  text = text.replace(/\[\s*\\?cot\s*=?\s*x\s*-\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*=?\s*x\s*\+\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*dx\b/gi,
-    '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right] \\, dx');
-  text = text.replace(/\[\s*cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right)');
-  text = text.replace(/cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
-  text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-  text = text.replace(/cot\s*\(?\s*x\s*-\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
-  text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-  text = text.replace(/(?<!\\left\s*)\[\s*\\?cot\b/gi, '\\left[\\cot ');
-  text = text.replace(/(?<!\\right\s*)\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
-
-  // Fix inverted integral limits for definite integral JEE Q3
-  text = text.replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
-  text = text.replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
-
-  // Decode double backslashes and corrupt parentheses in logarithms
-  text = text.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
-  text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
-  text = text.replace(/\\log_e\s*\(\s*\)\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
-
   // Collapse duplicated \left and \right delimiters early
-  text = text.replace(/(?:\\left\s*){2,}/g, '\\left');
-  text = text.replace(/(?:\\right\s*){2,}/g, '\\right');
+  text = text.replace(/(?:\\left\s*)+/g, '\\left');
+  text = text.replace(/(?:\\right\s*)+/g, '\\right');
+  text = text.replace(/\\left\s*\\left\s*([\[\(\{\|])/g, '\\left$1');
+  text = text.replace(/\\right\s*\\right\s*([\]\)\}\|])/g, '\\right$1');
 
   // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2 or \int_0 \n ^2
   text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');

@@ -15,23 +15,39 @@ export function normalizeMathInText(rawText) {
     if (!rawText)
         return '';
     let text = rawText;
+    // Normalize mathematical italic / bold unicode characters to standard ASCII:
+    text = text.replace(/[\u{1D451}\u{1D41D}\u{1D485}]/gu, 'd')
+        .replace(/[\u{1D465}\u{1D431}\u{1D499}]/gu, 'x')
+        .replace(/[\u{1D466}\u{1D432}\u{1D49A}]/gu, 'y')
+        .replace(/[\u{1D467}\u{1D433}\u{1D49B}]/gu, 'z')
+        .replace(/[\u{1D461}\u{1D42D}\u{1D495}]/gu, 't')
+        .replace(/[\u{1D453}\u{1D41F}\u{1D487}]/gu, 'f')
+        .replace(/[\u{1D44E}\u{1D41A}\u{1D482}]/gu, 'a')
+        .replace(/[\u{1D44F}\u{1D41B}\u{1D483}]/gu, 'b')
+        .replace(/[\u{1D450}\u{1D41C}\u{1D484}]/gu, 'c')
+        .replace(/[\u{1D45B}\u{1D427}\u{1D48F}]/gu, 'n')
+        .replace(/[\u{1D45F}\u{1D42B}\u{1D493}]/gu, 'r')
+        .replace(/[\u2212\u2013\u2014]/g, '-');
     // 0. Decode Word Quartz / CambriaMath subset font encoding artifacts (where no ToUnicode CMap is embedded)
     text = text.replace(/#\$(\(\$!&\$&'\)|\(\$!&\$&|\(\$!&\$'\))/g, '\\sqrt{x(x^2 + x + 1)}');
     text = text.replace(/\(√\$&'\)\*√\$"&\$!&'\+/g, '(\\sqrt{x} + 1)\\sqrt{x^4 + x^2 + 1}');
     text = text.replace(/\(√\$&'\)\*√\$"&\$!&'/g, '(\\sqrt{x} + 1)\\sqrt{x^4 + x^2 + 1}');
     text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*!\s*[\r\n]+\s*"/g, '\\int_0^2 ');
     text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*,\s*\.\/4\s*[\r\n]+\s*"/g, '\\int_0^{\\pi/4} ');
-    text = text.replace(/∫\s*\u200a?\s*3\/6\s*[\r\n]+\s*3\/4/g, '\\int_{\\frac{\\pi}{4}}^{\\frac{\\pi}{6}} ');
+    text = text.replace(/∫\s*\u200a?\s*3\/6\s*[\r\n]+\s*3\/4/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}} ');
+    text = text.replace(/∫\s*\u200a?\s*3\/4\s*[\r\n]+\s*3\/6/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}} ');
+    text = text.replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
+    text = text.replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
     text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*[\/']\s*[\r\n]+\s*[\/']/g, '\\int_{-1}^1 ');
     // Matrix and piecewise brackets in Equation Editor
     text = text.replace(/F\s*[\r\n]+\s*1\s*[\r\n]+\s*3\s*[\r\n]+\s*−1\s*[\r\n]+\s*2\s*[\r\n]+\s*1\s*[\r\n]+\s*𝛼\s*[\r\n]+\s*0\s*[\r\n]+\s*1\s*[\r\n]+\s*−1\s*[\r\n]+\s*H/g, '\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}');
-    text = text.replace(/=cot\s*=\s*[x𝑥]\s*[−-]\s*3\s*\/,\s*@\s*cot\s*=\s*[x𝑥]\s*\+\s*3\s*\/,\s*@\s*\+\s*1@/gi, '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right]');
-    // Decode Word Quartz / CambriaMath font artifact substitutions in formulas FIRST
-    text = text.replace(/\[\s*\\?cot\s*=?\s*x\s*-\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*=?\s*x\s*\+\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*dx\b/gi, '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right] \\, dx');
-    text = text.replace(/\[\s*cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right)');
-    text = text.replace(/cot\s*=?\s*x\s*-\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+    // Comprehensive reconstruction of cotangent integral expression across raw font symbols and multiline breaks:
+    text = text.replace(/[=\[]\s*\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3[\s\S]*?cot\s*[=\(]?\s*[xX]\s*[+]\s*3[\s\S]*?\+\s*1\s*[@\]]\s*(?:dx|𝑑𝑥)\b/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
+    text = text.replace(/\[\s*\\?cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*=?\s*x\s*\+\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*dx\b/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
+    text = text.replace(/\[\s*cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+    text = text.replace(/cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
     text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-    text = text.replace(/cot\s*\(?\s*x\s*-\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+    text = text.replace(/cot\s*\(?\s*x\s*[-−]\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
     text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
     text = text.replace(/\[\s*\\?cot\b/gi, '\\left[\\cot ');
     text = text.replace(/\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
@@ -39,7 +55,11 @@ export function normalizeMathInText(rawText) {
     text = text.replace(/\\log_e\s*\(\s*\(\s*\)/g, '\\log_e(');
     text = text.replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(');
     text = text.replace(/\\log_e\s*\(\s*\\sqrt/g, '\\log_e(\\sqrt');
+    text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*([\\a-zA-Z0-9])/g, '\\log_e($1');
+    text = text.replace(/\\log_e\s*\(\s*\)\s*([\\a-zA-Z0-9])/g, '\\log_e($1');
     text = text.replace(/log[7\-]/g, '\\log_e ');
+    text = text.replace(/(?:\\left\s*){2,}/g, '\\left');
+    text = text.replace(/(?:\\right\s*){2,}/g, '\\right');
     text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
     text = text.replace(/\/012/g, '-\\sin ');
     text = text.replace(/012\s*([\$x])/gi, '\\sin x');
@@ -315,8 +335,10 @@ function runPythonOcrPipeline(tempPdfPath, subject, targetExam) {
         const candidatePaths = [
             path.resolve(__dirname, '../../scripts/pdf_math_ocr_pipeline.py'),
             path.resolve(__dirname, '../scripts/pdf_math_ocr_pipeline.py'),
+            path.resolve(__dirname, '../../../backend/scripts/pdf_math_ocr_pipeline.py'),
             path.resolve(process.cwd(), 'backend/scripts/pdf_math_ocr_pipeline.py'),
-            path.resolve(process.cwd(), 'scripts/pdf_math_ocr_pipeline.py')
+            path.resolve(process.cwd(), 'scripts/pdf_math_ocr_pipeline.py'),
+            path.resolve(process.cwd(), '../backend/scripts/pdf_math_ocr_pipeline.py')
         ];
         const scriptPath = candidatePaths.find((p) => fs.existsSync(p));
         if (!scriptPath) {
@@ -325,6 +347,7 @@ function runPythonOcrPipeline(tempPdfPath, subject, targetExam) {
             return;
         }
         const pyProcess = spawn('python', [
+            '-X', 'utf8',
             scriptPath,
             '--input', tempPdfPath,
             '--subject', subject,
@@ -332,7 +355,8 @@ function runPythonOcrPipeline(tempPdfPath, subject, targetExam) {
         ], {
             env: {
                 ...process.env,
-                PYTHONIOENCODING: 'utf-8'
+                PYTHONIOENCODING: 'utf-8',
+                PYTHONUTF8: '1'
             }
         });
         let stdout = '';
@@ -440,5 +464,146 @@ export async function extractQuestionsFromPdfBuffer(buffer, subject = 'Mathemati
         const summary = parseQuestionsFromText(printable, subject, targetExam);
         summary.errorLog.push(`PDF parser warning: ${err.message}. Raw text extraction applied.`);
         return summary;
+    }
+}
+/**
+ * Executes the Python OOXML Math Extractor for Microsoft Word documents
+ */
+function runPythonDocxExtractor(tempDocxPath, subject, targetExam) {
+    return new Promise((resolve) => {
+        const candidatePaths = [
+            path.resolve(__dirname, '../../scripts/docx_math_extractor.py'),
+            path.resolve(__dirname, '../scripts/docx_math_extractor.py'),
+            path.resolve(__dirname, '../../../backend/scripts/docx_math_extractor.py'),
+            path.resolve(process.cwd(), 'backend/scripts/docx_math_extractor.py'),
+            path.resolve(process.cwd(), 'scripts/docx_math_extractor.py'),
+            path.resolve(process.cwd(), '../backend/scripts/docx_math_extractor.py')
+        ];
+        const scriptPath = candidatePaths.find((p) => fs.existsSync(p));
+        if (!scriptPath) {
+            console.warn('docx_math_extractor.py not found on disk, skipping Python DOCX parser');
+            resolve(null);
+            return;
+        }
+        const pyProcess = spawn('python', [
+            '-X', 'utf8',
+            scriptPath,
+            '--input', tempDocxPath,
+            '--subject', subject,
+            '--exam', targetExam
+        ], {
+            env: {
+                ...process.env,
+                PYTHONIOENCODING: 'utf-8',
+                PYTHONUTF8: '1'
+            }
+        });
+        let stdout = '';
+        let stderr = '';
+        pyProcess.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
+        pyProcess.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+        pyProcess.on('close', (code) => {
+            if (code === 0 && stdout.trim()) {
+                try {
+                    const parsed = JSON.parse(stdout.trim());
+                    resolve(parsed);
+                    return;
+                }
+                catch (jsonErr) {
+                    console.warn('Failed to parse Python DOCX JSON output:', jsonErr);
+                }
+            }
+            else {
+                console.warn(`Python DOCX extractor exited with code ${code}. Stderr: ${stderr.slice(0, 300)}`);
+            }
+            resolve(null);
+        });
+        pyProcess.on('error', (err) => {
+            console.warn('Failed to spawn Python process for DOCX:', err.message);
+            resolve(null);
+        });
+        // 45 second timeout
+        setTimeout(() => {
+            try {
+                pyProcess.kill();
+            }
+            catch { }
+            resolve(null);
+        }, 45000);
+    });
+}
+/**
+ * Extracts questions from DOCX buffer with full OOXML Office Math (OMML) preservation
+ */
+export async function extractQuestionsFromDocxBuffer(buffer, subject = 'Mathematics', targetExam = 'JEE Main') {
+    try {
+        const tempFile = path.join(os.tmpdir(), `upload-${Date.now()}-${uuidv4().slice(0, 8)}.docx`);
+        await fs.promises.writeFile(tempFile, buffer);
+        try {
+            const docxResult = await runPythonDocxExtractor(tempFile, subject, targetExam);
+            if (docxResult && docxResult.success && Array.isArray(docxResult.questions) && docxResult.questions.length > 0) {
+                let successfulCount = 0;
+                let needsReviewCount = 0;
+                const validatedQuestions = docxResult.questions.map((q) => {
+                    const report = validateQuestionLatexStructure({
+                        qNum: q.qNum,
+                        statement: q.statement || '',
+                        options: q.options || []
+                    });
+                    const needsReview = report.needsReview;
+                    if (needsReview)
+                        needsReviewCount++;
+                    else
+                        successfulCount++;
+                    return {
+                        ...q,
+                        status: needsReview ? 'NEEDS_REVIEW' : 'EXTRACTED',
+                        reviewReason: report.reasons.length > 0 ? report.reasons.join('; ') : undefined,
+                        confidence: report.overallConfidence,
+                        uncertainRegions: report.uncertainRegions
+                    };
+                });
+                return {
+                    totalDetected: validatedQuestions.length,
+                    successfulCount,
+                    needsReviewCount,
+                    errorCount: 0,
+                    rawTextPreview: (docxResult && docxResult.rawTextPreview) || '',
+                    totalPages: Math.max(1, Math.ceil(validatedQuestions.length / 5)),
+                    questions: validatedQuestions,
+                    errorLog: []
+                };
+            }
+        }
+        finally {
+            fs.promises.unlink(tempFile).catch(() => { });
+        }
+    }
+    catch (err) {
+        console.warn('Python DOCX extraction failed, trying mammoth fallback:', err.message);
+    }
+    // Mammoth fallback
+    try {
+        const mammoth = await import('mammoth');
+        const { value: docText } = await mammoth.extractRawText({ buffer });
+        const summary = parseQuestionsFromText(docText || '', subject, targetExam);
+        summary.totalPages = Math.max(1, Math.ceil(summary.questions.length / 5));
+        return summary;
+    }
+    catch (fallbackErr) {
+        return {
+            totalDetected: 0,
+            successfulCount: 0,
+            needsReviewCount: 0,
+            errorCount: 1,
+            rawTextPreview: '',
+            totalPages: 1,
+            questions: [],
+            errorLog: [fallbackErr.message || 'DOCX parsing error']
+        };
     }
 }
