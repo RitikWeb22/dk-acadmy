@@ -224,6 +224,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
       );
 
       if (res && res.summary && Array.isArray(res.summary.questions)) {
+        const isPaperPaid = accessMode === 'paid' || initialPaper?.accessMode === 'paid' || initialPaper?.isFree === false;
         const newExtracted: PyqQuestion[] = res.summary.questions.map((q: any, idx: number) => {
           const hasOptionText = Array.isArray(q.options) && q.options.some((o: any) => o.text && o.text.trim().length > 0);
           return {
@@ -245,7 +246,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
             dkSirShortcut: q.dkSirShortcut || '',
             videoUrl: '',
             pdfUrl: '',
-            isFree: initialPaper?.accessMode === 'paid' || initialPaper?.isFree === false ? false : true,
+            isFree: isPaperPaid ? false : true,
             status: q.status || 'EXTRACTED',
             reviewReason: q.reviewReason || ''
           };
@@ -1640,7 +1641,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                             videoUrl: qbItem.videoUrl,
                             pdfUrl: qbItem.pdfUrl,
                             diagramUrl: qbItem.diagramUrl,
-                            isFree: initialPaper?.accessMode === 'paid' || initialPaper?.isFree === false ? false : true
+                            isFree: accessMode === 'paid' || initialPaper?.accessMode === 'paid' || initialPaper?.isFree === false ? false : true
                           };
                           setQuestions((prev) => [...prev, newQ]);
                           setActiveQuestionIndex(questions.length);
