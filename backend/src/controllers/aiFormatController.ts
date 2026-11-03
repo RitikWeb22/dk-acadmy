@@ -121,7 +121,10 @@ export const formatMathWithAi = async (req: Request, res: Response): Promise<voi
         });
 
         if (aiResult) {
-          const sanitizedStatement = normalizeMathInText(aiResult.statement || statement);
+          const sanitizedStatement = typeof aiResult.statement === 'string'
+            ? normalizeMathInText(aiResult.statement)
+            : normalizeMathInText(statement);
+
           const sanitizedOptions = Array.isArray(aiResult.options) && aiResult.options.length > 0
             ? aiResult.options.map((o: any) => ({ key: o.key, text: normalizeMathInText(o.text || '') }))
             : Array.isArray(options)
@@ -269,20 +272,108 @@ Return ONLY a valid, raw JSON object (without markdown code fences, or inside \`
       const candidateText = jsonResponse.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!candidateText) continue;
 
-      const cleanJsonStr = candidateText
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim();
-
-      const parsed = JSON.parse(cleanJsonStr);
-      if (parsed && typeof parsed.statement === 'string') {
+      const parsed = robustParseGeminiJson(candidateText);
+      if (parsed && (typeof parsed.statement === 'string' || (Array.isArray(parsed.options) && parsed.options.length > 0))) {
         return parsed;
       }
     } catch (err: any) {
       console.warn(`[Gemini API Attempt failed for ${model}]:`, err.message);
     }
   }
+
+  return null;
+}
+
+
+/**
+ * Robust JSON parser designed for LLM outputs containing raw LaTeX equations
+ * Safely handles unescaped backslashes, invalid JSON escape characters, and markdown wraps.
+ */
+function robustParseGeminiJson(rawText: string): any {
+  if (!rawText) return null;
+  const cleanJsonStr = rawText
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  // Attempt 1: Direct JSON parse
+  try {
+    return JSON.parse(cleanJsonStr);
+  } catch {}
+
+  // Attempt 2: Sanitize unescaped LaTeX backslashes
+  try {
+    const sanitized = cleanJsonStr.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\\\');
+    return JSON.parse(sanitized);
+  } catch {}
+
+  // Attempt 3: Double escape common LaTeX command starters that clash with JSON control chars (\frac, \text, \right, etc.)
+  try {
+    const fixedLatex = cleanJsonStr
+      .replace(/\\frac/g, '\\\\frac')
+      .replace(/\\text/g, '\\\\text')
+      .replace(/\\times/g, '\\\\times')
+      .replace(/\\tau/g, '\\\\tau')
+      .replace(/\\theta/g, '\\\\theta')
+      .replace(/\\to/g, '\\\\to')
+      .replace(/\\right/g, '\\\\right')
+      .replace(/\\rho/g, '\\\\rho')
+      .replace(/\\beta/g, '\\\\beta')
+      .replace(/\\begin/g, '\\\\begin')
+      .replace(/\\bar/g, '\\\\bar')
+      .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\\\');
+    return JSON.parse(fixedLatex);
+  } catch {}
+
+  // Attempt 4: Safe Regex Field Extraction Fallback
+  try {
+    const extractField = (fieldName: string): string => {
+      const marker = `"${fieldName}"`;
+      const idx = cleanJsonStr.indexOf(marker);
+      if (idx === -1) return '';
+      const colonIdx = cleanJsonStr.indexOf(':', idx + marker.length);
+      if (colonIdx === -1) return '';
+      const startQuote = cleanJsonStr.indexOf('"', colonIdx + 1);
+      if (startQuote === -1) return '';
+      let endQuote = -1;
+      let i = startQuote + 1;
+      while (i < cleanJsonStr.length) {
+        if (cleanJsonStr[i] === '"') {
+          let bsCount = 0;
+          let j = i - 1;
+          while (j >= startQuote && cleanJsonStr[j] === '\\') {
+            bsCount++;
+            j--;
+          }
+          if (bsCount % 2 === 0) {
+            endQuote = i;
+            break;
+          }
+        }
+        i++;
+      }
+      if (endQuote === -1) return '';
+      return cleanJsonStr.slice(startQuote + 1, endQuote).replace(/\\"/g, '"');
+    };
+
+    const statement = extractField('statement');
+    const options: Array<{ key: string; text: string }> = [];
+    const optRegex = /\{\s*"key"\s*:\s*"([A-D])"\s*,\s*"text"\s*:\s*"([\s\S]*?)(?="[\s\n]*\})/gi;
+    let optMatch;
+    while ((optMatch = optRegex.exec(cleanJsonStr)) !== null) {
+      options.push({ key: optMatch[1], text: optMatch[2].replace(/\\"/g, '"') });
+    }
+
+    if (statement || options.length > 0) {
+      return {
+        statement,
+        options,
+        stepSolution: extractField('stepSolution'),
+        dkSirShortcut: extractField('dkSirShortcut')
+      };
+    }
+  } catch {}
 
   return null;
 }

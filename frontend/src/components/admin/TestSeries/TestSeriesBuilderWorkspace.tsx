@@ -2264,6 +2264,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [parsedDocxQuestions, setParsedDocxQuestions] = useState<any[]>([]);
   const [activeDocxReviewIdx, setActiveDocxReviewIdx] = useState(0);
   const [docxReviewShowRaw, setDocxReviewShowRaw] = useState(false);
+  const [isAiFormattingActiveQStatement, setIsAiFormattingActiveQStatement] = useState(false);
+  const [isAiFormattingActiveOptions, setIsAiFormattingActiveOptions] = useState(false);
+  const [isAiFormattingSmartPaste, setIsAiFormattingSmartPaste] = useState(false);
   const [isAiFormattingActiveQTestSeries, setIsAiFormattingActiveQTestSeries] = useState(false);
   const [isAiFormattingDocxQ, setIsAiFormattingDocxQ] = useState(false);
   const [isAiFormattingDocxAll, setIsAiFormattingDocxAll] = useState(false);
@@ -2296,6 +2299,110 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       showToast(`✨ Option ${optionKey} formatted!`);
     } finally {
       setFormattingOptionKey(null);
+    }
+  };
+
+  const handleAiFormatQuestionStatementOnly = async () => {
+    if (!currentEditingQuestion) return;
+    setIsAiFormattingActiveQStatement(true);
+    try {
+      const res = await apiClient.formatMathWithAi({
+        statement: currentEditingQuestion.questionText,
+        options: [],
+        model: 'gemini-3.8-flash'
+      });
+      if (res?.data) {
+        const cleanStmt = res.data.statement || normalizeMathText(currentEditingQuestion.questionText);
+        const cleanBlocks = parseContentToBlocks(cleanStmt);
+        updateCurrentQuestion({
+          questionText: cleanStmt,
+          statementBlocks: cleanBlocks
+        });
+        showToast(res.aiPowered ? `✨ Question AI-formatted via Gemini (${res.modelUsed})!` : '✨ Question LaTeX auto-formatted!');
+      }
+    } catch {
+      const cleanStmt = normalizeMathText(currentEditingQuestion.questionText);
+      const cleanBlocks = parseContentToBlocks(cleanStmt);
+      updateCurrentQuestion({
+        questionText: cleanStmt,
+        statementBlocks: cleanBlocks
+      });
+      showToast('✨ Question LaTeX auto-formatted!');
+    } finally {
+      setIsAiFormattingActiveQStatement(false);
+    }
+  };
+
+  const handleAiFormatOptionsOnly = async () => {
+    if (!currentEditingQuestion || !currentEditingQuestion.options?.length) return;
+    setIsAiFormattingActiveOptions(true);
+    try {
+      const res = await apiClient.formatMathWithAi({
+        statement: '',
+        options: currentEditingQuestion.options.map((o) => ({ key: o.key, text: o.text })),
+        model: 'gemini-3.8-flash'
+      });
+      if (res?.data?.options?.length) {
+        const cleanOptions = res.data.options.map((o) => ({
+          key: o.key as 'A' | 'B' | 'C' | 'D',
+          text: o.text
+        }));
+        updateCurrentQuestion({ options: cleanOptions });
+        showToast(res.aiPowered ? `✨ Options AI-formatted via Gemini (${res.modelUsed})!` : '✨ Options LaTeX auto-formatted!');
+      }
+    } catch {
+      const cleanOptions = currentEditingQuestion.options.map((o) => ({
+        ...o,
+        text: normalizeMathText(o.text)
+      }));
+      updateCurrentQuestion({ options: cleanOptions });
+      showToast('✨ Options LaTeX auto-formatted!');
+    } finally {
+      setIsAiFormattingActiveOptions(false);
+    }
+  };
+
+  const handleAiFormatSmartPasteAll = async () => {
+    if (!smartPasteText.trim()) return;
+    setIsAiFormattingSmartPaste(true);
+    try {
+      const extracted = extractStatementAndOptions(smartPasteText);
+      const res = await apiClient.formatMathWithAi({
+        statement: extracted.statement || smartPasteText,
+        options: extracted.options || [],
+        stepSolution: '',
+        dkSirShortcut: '',
+        model: 'gemini-3.8-flash'
+      });
+
+      const newStatement = res?.data?.statement || normalizeMathText(extracted.statement);
+      const newOptions = (res?.data?.options && res.data.options.length > 0)
+        ? res.data.options
+        : extracted.options?.map((o) => ({ ...o, text: normalizeMathText(o.text) }));
+
+      let rebuiltText = (newStatement || '').trim();
+      if (newOptions && newOptions.length > 0) {
+        rebuiltText += '\n\n' + newOptions.map((o: any) => `(${o.key}) ${o.text}`).join('\n');
+      }
+      if (extracted.correctKey) {
+        rebuiltText += `\n\nAns: ${extracted.correctKey}`;
+      }
+
+      setSmartPasteText(rebuiltText);
+      showToast(res?.aiPowered ? `✨ AI successfully auto-fixed question & options (${res.modelUsed})!` : '✨ Mathematical LaTeX auto-formatted!');
+    } catch {
+      const extracted = extractStatementAndOptions(smartPasteText);
+      let rebuiltText = normalizeMathText(extracted.statement || '').trim();
+      if (extracted.options && extracted.options.length > 0) {
+        rebuiltText += '\n\n' + extracted.options.map((o: any) => `(${o.key}) ${normalizeMathText(o.text)}`).join('\n');
+      }
+      if (extracted.correctKey) {
+        rebuiltText += `\n\nAns: ${extracted.correctKey}`;
+      }
+      setSmartPasteText(rebuiltText);
+      showToast('✨ Mathematical LaTeX auto-formatted!');
+    } finally {
+      setIsAiFormattingSmartPaste(false);
     }
   };
 
@@ -4088,7 +4195,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             <div className={styles.sectionsSplitGrid}>
                               <div className={styles.sectionColCard}>
                                 <div className={styles.secColHeader}>
-                                  <h4>Section A: Single Correct MCQs</h4>
+                                  <h4>Section A: Single Correct MCQs ({rule.secATotal} Questions)</h4>
                                   <span className={styles.compulsoryPill}>Compulsory</span>
                                 </div>
                                 <div className={styles.secRuleInfoRow}>
@@ -4113,7 +4220,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                               <div className={styles.sectionColCard}>
                                 <div className={styles.secColHeader}>
-                                  <h4>Section B: Numerical Value Type</h4>
+                                  <h4>Section B: Numerical Value Type ({rule.secBTotal} Questions)</h4>
                                   <span className={styles.optionalPill}>
                                     {rule.secBEnforceOptional ? 'NTA 5 of 10' : 'Direct Numerical'}
                                   </span>
@@ -4329,32 +4436,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setParsedDocxQuestions([]);
-                          setDocxUploadError(null);
-                          setIsDocxModalOpen(true);
-                        }}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
-                        }}
-                        title="Upload Word (.docx) question paper to extract questions with full KaTeX math expressions"
-                      >
-                        <FileText size={14} />
-                        <span>📄 Upload Word (.docx) Paper</span>
-                      </button>
+                      
 
                       <button
                         type="button"
@@ -4382,8 +4464,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     <div className={`${styles.sectionPaletteCard} ${styles.paletteCardA}`}>
                       <div className={styles.secPaletteHeader}>
                         <div className={styles.secTitleGroup}>
-                          <span className={styles.secBadgeA}>Section A</span>
-                          <h3 className={styles.secHeaderTitle}>Single Correct MCQs</h3>
+                          <span className={styles.secBadgeA}>Section A ({secAQuestions.length} Qs)</span>
+                          <h3 className={styles.secHeaderTitle}>Single Correct MCQs ({secAQuestions.length} Questions)</h3>
                         </div>
                         <div className={styles.secStatsGroup}>
                           <span className={styles.pillFilledBadge}>✓ {secAFilledCount}/{secAQuestions.length} Filled</span>
@@ -4428,8 +4510,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     <div className={`${styles.sectionPaletteCard} ${styles.paletteCardB}`}>
                       <div className={styles.secPaletteHeader}>
                         <div className={styles.secTitleGroup}>
-                          <span className={styles.secBadgeB}>Section B</span>
-                          <h3 className={styles.secHeaderTitle}>Numerical Value Type</h3>
+                          <span className={styles.secBadgeB}>Section B ({secBQuestions.length} Qs)</span>
+                          <h3 className={styles.secHeaderTitle}>Numerical Value Type ({secBQuestions.length} Questions)</h3>
                         </div>
                         <div className={styles.secStatsGroup}>
                           <span className={styles.pillFilledBadge}>✓ {secBFilledCount}/{secBQuestions.length} Filled</span>
@@ -4575,34 +4657,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             Question Statement (LaTeX / KaTeX Syntax Supported)
                           </label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            
                             <button
                               type="button"
-                              onClick={() => setIsGeminiKeyModalOpen(true)}
+                              disabled={isAiFormattingActiveQStatement}
+                              onClick={handleAiFormatQuestionStatementOnly}
                               className={styles.smartPasteActionBtn}
-                              title="Configure Google Gemini API Key for AI math formatting"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                background: '#f8fafc',
-                                color: '#475569',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '6px',
-                                padding: '4px 9px',
-                                fontSize: '11.5px',
-                                fontWeight: 700,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <Key size={12} color="#4f46e5" />
-                              <span>Gemini Key</span>
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isAiFormattingActiveQTestSeries}
-                              onClick={handleAiFormatActiveTestSeriesQuestion}
-                              className={styles.smartPasteActionBtn}
-                              title="Auto-repair and reconstruct question statement and all 4 options with Gemini AI"
+                              title="Auto-repair and format question statement with Gemini AI"
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -4614,12 +4675,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                 padding: '5px 11px',
                                 fontSize: '12px',
                                 fontWeight: 700,
-                                cursor: isAiFormattingActiveQTestSeries ? 'not-allowed' : 'pointer',
-                                opacity: isAiFormattingActiveQTestSeries ? 0.7 : 1
+                                cursor: isAiFormattingActiveQStatement ? 'not-allowed' : 'pointer',
+                                opacity: isAiFormattingActiveQStatement ? 0.7 : 1
                               }}
                             >
-                              {isAiFormattingActiveQTestSeries ? <Loader2 size={13} className={styles.spinIcon} /> : <Sparkles size={13} />}
-                              <span>{isAiFormattingActiveQTestSeries ? 'Fixing Statement & Options...' : '✨ Auto-Fix Question & All Options (AI)'}</span>
+                              {isAiFormattingActiveQStatement ? <Loader2 size={13} className={styles.spinIcon} /> : <Sparkles size={13} />}
+                              <span>{isAiFormattingActiveQStatement ? 'Fixing Question...' : '✨ Auto-Fix Question'}</span>
                             </button>
                             <button
                               type="button"
@@ -4701,9 +4762,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             </label>
                             <button
                               type="button"
-                              disabled={isAiFormattingActiveQTestSeries}
-                              onClick={handleAiFormatActiveTestSeriesQuestion}
-                              title="Auto-Fix Question Statement and all 4 Options simultaneously with Gemini AI"
+                              disabled={isAiFormattingActiveOptions}
+                              onClick={handleAiFormatOptionsOnly}
+                              title="Auto-repair and format all 4 options with Gemini AI"
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -4715,11 +4776,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                 padding: '4px 10px',
                                 fontSize: '11.5px',
                                 fontWeight: 700,
-                                cursor: isAiFormattingActiveQTestSeries ? 'not-allowed' : 'pointer'
+                                cursor: isAiFormattingActiveOptions ? 'not-allowed' : 'pointer',
+                                opacity: isAiFormattingActiveOptions ? 0.7 : 1
                               }}
                             >
-                              <Sparkles size={12} />
-                              <span>Auto-Fix All 4 Options (AI)</span>
+                              {isAiFormattingActiveOptions ? <Loader2 size={12} className={styles.spinIcon} /> : <Sparkles size={12} />}
+                              <span>{isAiFormattingActiveOptions ? 'Fixing Options...' : '✨ Auto-Fix Options'}</span>
                             </button>
                           </div>
                           {currentEditingQuestion.options.map((opt) => {
@@ -7068,6 +7130,29 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 onClick={() => setIsSmartPasteModalOpen(false)}
               >
                 Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isAiFormattingSmartPaste || !smartPasteText.trim()}
+                onClick={handleAiFormatSmartPasteAll}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '8px 14px',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: isAiFormattingSmartPaste || !smartPasteText.trim() ? 'not-allowed' : 'pointer',
+                  opacity: isAiFormattingSmartPaste || !smartPasteText.trim() ? 0.6 : 1
+                }}
+                title="Use Gemini AI to reconstruct mathematical formulas and format question + options"
+              >
+                {isAiFormattingSmartPaste ? <Loader2 size={14} className={styles.spinIcon} /> : <Sparkles size={14} />}
+                <span>{isAiFormattingSmartPaste ? 'Auto-Fixing All...' : '✨ Auto-Fix All (AI)'}</span>
               </button>
               <button
                 type="button"

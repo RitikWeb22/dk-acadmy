@@ -162,7 +162,8 @@ def omml_to_latex(elem) -> str:
         if beg_chr == '{' and (not end_chr or end_chr == ''):
             # Piecewise cases
             rows = [omml_to_latex(e).strip() for e in e_list]
-            return f"\\begin{{cases}} {' \\\\[6pt] '.join(rows)} \\end{{cases}}"
+            cases_sep = ' \\\\[6pt] '
+            return f"\\begin{{cases}} {cases_sep.join(rows)} \\end{{cases}}"
 
         inner = " ".join(omml_to_latex(e).strip() for e in e_list)
         left_str = r'\left('
@@ -208,7 +209,8 @@ def omml_to_latex(elem) -> str:
         for mr in mr_list:
             cols = [omml_to_latex(e).strip() for e in mr.findall(f'{{{OMML_NS}}}e')]
             rows.append(" & ".join(cols))
-        return f"\\begin{{matrix}} {' \\\\ '.join(rows)} \\end{{matrix}}"
+        matrix_sep = ' \\\\ '
+        return f"\\begin{{matrix}} {matrix_sep.join(rows)} \\end{{matrix}}"
 
     if tag == 'bar':
         e_el = elem.find(f'{{{OMML_NS}}}e')
