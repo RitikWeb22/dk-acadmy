@@ -24,6 +24,7 @@ import { TestEmptyState } from '../../components/testSeries/TestEmptyState/TestE
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { requestFullScreen, exitFullScreen } from '../../utils/fullscreen';
 import { useStudentAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { apiClient } from '../../services/apiClient';
 import type { TestSeriesItem } from '../../types';
 import styles from './TestSeriesPage.module.scss';
@@ -32,6 +33,7 @@ import styles from './TestSeriesPage.module.scss';
 const TEST_STORAGE_KEY = 'dk_academy_test_attempts_v1';
 
 export const TestSeriesPage: React.FC = () => {
+  const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Read URL query params
@@ -341,17 +343,33 @@ export const TestSeriesPage: React.FC = () => {
 
   // Open instructions modal
   const handleOpenInstructions = (testId: string) => {
+    const targetTest = testSeriesList.find((t) => t.id === testId);
+    if (targetTest?.status === 'Scheduled' && targetTest.schedule?.endWindow) {
+      const endTime = new Date(targetTest.schedule.endWindow).getTime();
+      if (Date.now() > endTime) {
+        showToast('⚠️ This examination window is closed. Candidates cannot enter closed tests.');
+        return;
+      }
+    }
     setInstructionsModalTestId(testId);
   };
 
   // Start test from instructions modal
   const handleStartTest = (testId: string) => {
+    const now = Date.now();
+    const targetTest = testSeriesList.find((t) => t.id === testId);
+    if (targetTest?.status === 'Scheduled' && targetTest.schedule?.endWindow) {
+      const endTime = new Date(targetTest.schedule.endWindow).getTime();
+      if (now > endTime) {
+        showToast('⚠️ This examination window is closed. Candidates cannot enter closed tests.');
+        return;
+      }
+    }
+
     requestFullScreen().catch(() => {});
     setInstructionsModalTestId(null);
     setActiveTestId(testId);
 
-    const now = Date.now();
-    const targetTest = testSeriesList.find((t) => t.id === testId);
     const testDurationMinutes = Number(targetTest?.durationMinutes) > 0 ? Number(targetTest?.durationMinutes) : 180;
 
     // Initialize attempt with timestamp if not existing or if stale/expired

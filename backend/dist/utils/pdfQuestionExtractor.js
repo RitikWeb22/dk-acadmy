@@ -1,5 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import { PDFParse } from 'pdf-parse';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { spawn } from 'child_process';
 /**
  * Normalizes mathematical characters into standard LaTeX / KaTeX expressions
  */
@@ -245,9 +249,88 @@ export function parseQuestionsFromText(fullText, subject = 'Mathematics', target
     };
 }
 /**
+ * Executes the PyMuPDF + RapidOCR high-resolution recognition pipeline
+ */
+function runPythonOcrPipeline(tempPdfPath, subject, targetExam) {
+    return new Promise((resolve) => {
+        const candidatePaths = [
+            path.resolve(__dirname, '../../scripts/pdf_math_ocr_pipeline.py'),
+            path.resolve(__dirname, '../scripts/pdf_math_ocr_pipeline.py'),
+            path.resolve(process.cwd(), 'backend/scripts/pdf_math_ocr_pipeline.py'),
+            path.resolve(process.cwd(), 'scripts/pdf_math_ocr_pipeline.py')
+        ];
+        const scriptPath = candidatePaths.find((p) => fs.existsSync(p));
+        if (!scriptPath) {
+            console.warn('pdf_math_ocr_pipeline.py not found on disk, skipping Python OCR');
+            resolve(null);
+            return;
+        }
+        const pyProcess = spawn('python', [
+            scriptPath,
+            '--input', tempPdfPath,
+            '--subject', subject,
+            '--exam', targetExam
+        ]);
+        let stdout = '';
+        let stderr = '';
+        pyProcess.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
+        pyProcess.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+        pyProcess.on('close', (code) => {
+            if (code === 0 && stdout.trim()) {
+                try {
+                    const parsed = JSON.parse(stdout.trim());
+                    resolve(parsed);
+                    return;
+                }
+                catch (jsonErr) {
+                    console.warn('Failed to parse Python OCR JSON output:', jsonErr);
+                }
+            }
+            else {
+                console.warn(`Python OCR exited with code ${code}. Stderr: ${stderr.slice(0, 300)}`);
+            }
+            resolve(null);
+        });
+        pyProcess.on('error', (err) => {
+            console.warn('Failed to spawn Python process:', err.message);
+            resolve(null);
+        });
+        // 45 second timeout for multi-page documents
+        setTimeout(() => {
+            try {
+                pyProcess.kill();
+            }
+            catch { }
+            resolve(null);
+        }, 45000);
+    });
+}
+/**
  * Extracts and parses questions from PDF Buffer
  */
 export async function extractQuestionsFromPdfBuffer(buffer, subject = 'Mathematics', targetExam = 'JEE Main') {
+    // 1. Try PyMuPDF + RapidOCR high-resolution Math OCR Pipeline
+    try {
+        const tempFile = path.join(os.tmpdir(), `upload-${Date.now()}-${uuidv4().slice(0, 8)}.pdf`);
+        await fs.promises.writeFile(tempFile, buffer);
+        try {
+            const ocrSummary = await runPythonOcrPipeline(tempFile, subject, targetExam);
+            if (ocrSummary && ocrSummary.totalDetected > 0) {
+                return ocrSummary;
+            }
+        }
+        finally {
+            fs.promises.unlink(tempFile).catch(() => { });
+        }
+    }
+    catch (pyErr) {
+        console.warn('Python OCR pipeline notice, falling back to in-process parser:', pyErr.message);
+    }
+    // 2. Fallback to PDFParse
     try {
         const parser = new PDFParse({
             data: buffer

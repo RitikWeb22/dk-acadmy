@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2, Calendar, Timer } from 'lucide-react';
+import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2, Calendar, Timer, Lock } from 'lucide-react';
 import type { TestSeriesItem, TestAttempt } from '../../../types';
 import { requestFullScreen } from '../../../utils/fullscreen';
 import styles from './TestCard.module.scss';
@@ -41,6 +41,16 @@ export const TestCard: React.FC<TestCardProps> = ({
         minute: '2-digit',
         hour12: true
       }).format(new Date(startTime))
+    : '';
+
+  const formattedEndTime = endTime
+    ? new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }).format(new Date(endTime))
     : '';
 
   // Live Countdown Timer for Upcoming Scheduled Tests
@@ -168,8 +178,9 @@ export const TestCard: React.FC<TestCardProps> = ({
               <span>{countdownFormatted ? `Opens in ${countdownFormatted}` : `Starts ${formattedStartTime}`}</span>
             </span>
           ) : isWindowClosed ? (
-            <span className={`${styles.statusPill} ${styles.statusClosed}`}>
-              <span>Window Closed • Practice</span>
+            <span className={`${styles.statusPill} ${styles.statusClosed}`} title={`Closed on ${formattedEndTime || 'scheduled end'}`}>
+              <Lock size={12} aria-hidden="true" />
+              <span>Closed Test</span>
             </span>
           ) : (
             <span className={`${styles.statusPill} ${styles.statusNotStarted}`}>
@@ -309,6 +320,18 @@ export const TestCard: React.FC<TestCardProps> = ({
               )}
             </div>
           </button>
+        ) : isWindowClosed ? (
+          /* Closed Scheduled Test: User cannot open */
+          <button
+            type="button"
+            className={styles.closedExamBtn}
+            disabled
+            aria-label={`Exam Closed: ${test.title}`}
+            title={`This exam was closed on ${formattedEndTime || 'the scheduled date'}. Submissions are no longer accepted.`}
+          >
+            <Lock size={14} className={styles.closedLockIcon} aria-hidden="true" />
+            <span>Closed Test</span>
+          </button>
         ) : (
           /* "Start Test" (Solid Primary Blue) */
           <button
@@ -317,7 +340,7 @@ export const TestCard: React.FC<TestCardProps> = ({
             onClick={() => onOpenInstructions(test.id)}
             aria-label={`Start test: ${test.title}`}
           >
-            <span>{isWindowClosed ? 'Start Practice Test' : 'Start Test'}</span>
+            <span>Start Test</span>
             <ArrowRight size={15} aria-hidden="true" />
           </button>
         )}
