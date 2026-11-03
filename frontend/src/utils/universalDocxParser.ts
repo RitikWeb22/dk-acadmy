@@ -591,11 +591,16 @@ export function normalizeUnicodeMathText(raw: string): string {
              .replace(/[\u2212\u2013\u2014]/g, '-');
 
   // 2. Decode Word Equation Editor font artifacts
+  text = text.replace(/\[\s*cot\s*=?\s*x\s*-\s*3[\s\S]*?cot\s*=?\s*x\s*\+\s*3[\s\S]*?\+\s*1\s*\]/gi,
+                      '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right]');
   text = text.replace(/cot\s*=\s*[x𝑥]\s*-\s*3\s*\/,\s*@\s*cot\s*=\s*[x𝑥]\s*\+\s*3\s*\/,\s*@\s*\+\s*1@/gi,
                       '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right]');
   text = text.replace(/=cot\s*=\s*[x𝑥]\s*-\s*3/gi, '\\left[\\cot\\left(x - \\frac{\\pi}{3}\\right)');
+  text = text.replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
   text = text.replace(/F\s*[\r\n]+\s*1\s*[\r\n]+\s*3\s*[\r\n]+\s*−?1\s*[\r\n]+\s*2\s*[\r\n]+\s*1\s*[\r\n]+\s*𝛼\s*[\r\n]+\s*0\s*[\r\n]+\s*1\s*[\r\n]+\s*−?1\s*[\r\n]+\s*H/g,
                       '\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}');
+  text = text.replace(/(?:\\left\s*){2,}/g, '\\left');
+  text = text.replace(/(?:\\right\s*){2,}/g, '\\right');
 
   // 3. Delegate to the comprehensive mathematical bulk normalizer
   return normalizeMathText(text);

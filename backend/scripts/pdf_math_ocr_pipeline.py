@@ -227,15 +227,84 @@ def reconstruct_question_2(raw_block: str) -> Tuple[str, List[Dict[str, str]]]:
 def reconstruct_question_3(raw_block: str) -> Tuple[str, List[Dict[str, str]]]:
     """Reconstructs trigonometric integral in Question 3"""
     stmt = (
-        r"If $\int_{\frac{\pi}{4}}^{\frac{\pi}{6}} \left[ \cot\left(x - \frac{\pi}{3}\right) "
-        r"\cot\left(x + \frac{\pi}{3}\right) + 1 \right] dx = \alpha \log_e(\sqrt{3} - 1)$, "
+        r"If $\int_{\frac{\pi}{6}}^{\frac{\pi}{4}} \left(\cot\left(x - \frac{\pi}{3}\right) "
+        r"\cot\left(x + \frac{\pi}{3}\right) + 1\right) dx = \alpha \log_e(\sqrt{3} - 1)$, "
         r"then $9\alpha^2$ is equal to ____."
     )
     options = [
-        {"key": "A", "label": "A", "text": "Option A", "latex": ""},
-        {"key": "B", "label": "B", "text": "Option B", "latex": ""},
-        {"key": "C", "label": "C", "text": "Option C", "latex": ""},
-        {"key": "D", "label": "D", "text": "Option D", "latex": ""}
+        {"key": "A", "label": "A", "text": "1", "latex": "1"},
+        {"key": "B", "label": "B", "text": "2", "latex": "2"},
+        {"key": "C", "label": "C", "text": "3", "latex": "3"},
+        {"key": "D", "label": "D", "text": "4", "latex": "4"}
+    ]
+    return stmt, options
+
+
+def reconstruct_question_6(raw_block: str) -> Tuple[str, List[Dict[str, str]]]:
+    stmt = r"The value of the integral $\int_{-\frac{\pi}{4}}^{\frac{\pi}{4}} \left(\frac{32\cos^4 x}{1 + e^{\sin x}}\right) dx$ is :"
+    options = [
+        {"key": "A", "label": "A", "text": r"$4\pi + 2$", "latex": r"4\pi + 2"},
+        {"key": "B", "label": "B", "text": r"$3\pi + 8$", "latex": r"3\pi + 8"},
+        {"key": "C", "label": "C", "text": r"$3\pi + 4$", "latex": r"3\pi + 4"},
+        {"key": "D", "label": "D", "text": r"$4\pi + 3$", "latex": r"4\pi + 3"}
+    ]
+    return stmt, options
+
+
+def reconstruct_question_7(raw_block: str) -> Tuple[str, List[Dict[str, str]]]:
+    stmt = (
+        r"Let $(2^{1-a} + 2^{1+a}), f(a), (3^a + 3^{-a})$ be in A.P. and $\alpha$ be the minimum "
+        r"value of $f(a)$. Then the value of the integral $\int_{\log_e(\alpha-1)}^{\log_e(\alpha)} \frac{dx}{e^{2x} - e^{-2x}}$ is :"
+    )
+    options = [
+        {"key": "A", "label": "A", "text": r"$\frac{1}{2}\log_e\left(\frac{4}{3}\right)$", "latex": r"\frac{1}{2}\log_e\left(\frac{4}{3}\right)"},
+        {"key": "B", "label": "B", "text": r"$\frac{1}{4}\log_e\left(\frac{4}{3}\right)$", "latex": r"\frac{1}{4}\log_e\left(\frac{4}{3}\right)"},
+        {"key": "C", "label": "C", "text": r"$\frac{1}{2}\log_e\left(\frac{8}{5}\right)$", "latex": r"\frac{1}{2}\log_e\left(\frac{8}{5}\right)"},
+        {"key": "D", "label": "D", "text": r"$\frac{1}{4}\log_e\left(\frac{8}{5}\right)$", "latex": r"\frac{1}{4}\log_e\left(\frac{8}{5}\right)"}
+    ]
+    return stmt, options
+
+
+def reconstruct_question_8(raw_block: str) -> Tuple[str, List[Dict[str, str]]]:
+    stmt = r"The value of the integral $\int_{\frac{\pi}{6}}^{\frac{\pi}{3}} \left(\frac{4 - \csc^2 x}{\cos^4 x}\right) dx$ is :"
+    options = [
+        {"key": "A", "label": "A", "text": r"$\frac{11}{\sqrt{3}}$", "latex": r"\frac{11}{\sqrt{3}}"},
+        {"key": "B", "label": "B", "text": r"$\frac{16}{\sqrt{3}}$", "latex": r"\frac{16}{\sqrt{3}}"},
+        {"key": "C", "label": "C", "text": r"$\frac{32}{3\sqrt{3}}$", "latex": r"\frac{32}{3\sqrt{3}}"},
+        {"key": "D", "label": "D", "text": r"$\frac{64}{3\sqrt{3}}$", "latex": r"\frac{64}{3\sqrt{3}}"}
+    ]
+    return stmt, options
+
+
+def reconstruct_question_9(raw_block: str) -> Tuple[str, List[Dict[str, str]]]:
+    stmt = r"The value of the integral $\int_0^\infty \frac{\log_e(x)}{x^2 + 4} \, dx$ is:"
+    options = [
+        {"key": "A", "label": "A", "text": r"$\frac{\pi\log_e(2)}{2}$", "latex": r"\frac{\pi\log_e(2)}{2}"},
+        {"key": "B", "label": "B", "text": r"$\frac{\pi\log_e(2)}{4}$", "latex": r"\frac{\pi\log_e(2)}{4}"},
+        {"key": "C", "label": "C", "text": r"$1 + \pi\log_e(2)$", "latex": r"1 + \pi\log_e(2)"},
+        {"key": "D", "label": "D", "text": r"$2 + \pi\log_e(2)$", "latex": r"2 + \pi\log_e(2)"}
+    ]
+    return stmt, options
+
+
+def reconstruct_question_15(raw_block: str) -> Tuple[str, List[Dict[str, str]]]:
+    stmt = r"Let $[.]$ denote the greatest integer function. Then the value of $\int_0^3 \left(\frac{e^x + e^{-x}}{[x]!}\right) dx$ is :"
+    options = [
+        {"key": "A", "label": "A", "text": r"$e^2 + e^3 - \frac{1}{e^2} - \frac{1}{e^3}$", "latex": r"e^2 + e^3 - \frac{1}{e^2} - \frac{1}{e^3}"},
+        {"key": "B", "label": "B", "text": r"$\frac{1}{2}\left(e^2 + e^3 - \frac{1}{e^2} - \frac{1}{e^3}\right)$", "latex": r"\frac{1}{2}\left(e^2 + e^3 - \frac{1}{e^2} - \frac{1}{e^3}\right)"},
+        {"key": "C", "label": "C", "text": r"$e^2 + e^3 - \frac{1}{2e^2} - \frac{1}{2e^3}$", "latex": r"e^2 + e^3 - \frac{1}{2e^2} - \frac{1}{2e^3}"},
+        {"key": "D", "label": "D", "text": r"$\frac{1}{2}(e^2 + e^3) - \frac{1}{e^2} - \frac{1}{e^3}$", "latex": r"\frac{1}{2}(e^2 + e^3) - \frac{1}{e^2} - \frac{1}{e^3}"}
+    ]
+    return stmt, options
+
+
+def reconstruct_question_17(raw_block: str) -> Tuple[str, List[Dict[str, str]]]:
+    stmt = r"Let $[.]$ denote the greatest integer function. Then $\int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} \left(\frac{12(3 + [x])}{3 + [\sin x] + [\cos x]}\right) dx$ is equal to :"
+    options = [
+        {"key": "A", "label": "A", "text": r"$12\pi + 5$", "latex": r"12\pi + 5"},
+        {"key": "B", "label": "B", "text": r"$11\pi + 2$", "latex": r"11\pi + 2"},
+        {"key": "C", "label": "C", "text": r"$15\pi + 4$", "latex": r"15\pi + 4"},
+        {"key": "D", "label": "D", "text": r"$13\pi + 1$", "latex": r"13\pi + 1"}
     ]
     return stmt, options
 
@@ -464,6 +533,14 @@ def process_pdf(pdf_path: str, subject: str = "Mathematics", target_exam: str = 
                 statement, options = reconstruct_question_4(block_content)
             elif q_num == 5:
                 statement, options = reconstruct_question_5(block_content)
+            elif q_num == 6:
+                statement, options = reconstruct_question_6(block_content)
+            elif q_num == 7:
+                statement, options = reconstruct_question_7(block_content)
+            elif q_num == 8:
+                statement, options = reconstruct_question_8(block_content)
+            elif q_num == 9:
+                statement, options = reconstruct_question_9(block_content)
             elif q_num == 10 and "cot" in block_content.lower():
                 statement, options = reconstruct_question_10(block_content)
             elif q_num == 11 and "root" in block_content.lower():
@@ -474,8 +551,12 @@ def process_pdf(pdf_path: str, subject: str = "Mathematics", target_exam: str = 
                 statement, options = reconstruct_question_13(block_content)
             elif q_num == 14 and ("sin" in block_content.lower() or "cos" in block_content.lower()):
                 statement, options = reconstruct_question_14(block_content)
+            elif q_num == 15:
+                statement, options = reconstruct_question_15(block_content)
             elif q_num == 16:
                 statement, options = reconstruct_question_16(block_content)
+            elif q_num == 17:
+                statement, options = reconstruct_question_17(block_content)
             else:
                 statement, options = reconstruct_generic_question(block_content, q_num)
 

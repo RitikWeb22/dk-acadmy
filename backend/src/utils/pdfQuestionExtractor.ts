@@ -4,7 +4,11 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
 import { validateQuestionLatexStructure } from './mathLatexValidator.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface ExtractedQuestionResult {
   tempId: string;
@@ -270,17 +274,18 @@ export function parseQuestionsFromText(
     const options: { key: 'A' | 'B' | 'C' | 'D'; text: string }[] = [];
     let reviewReasons: string[] = [];
 
-    // Find first option position: (A), A., (A) etc.
-    const firstOptionIndex = blockContent.search(/(?:^|\s|\n)(?:\(?A\)?\.?|\(A\))\s+/i);
+    // Find first option position: (A), (1), or uppercase A. / A (excluding 'A =', 'A \in', 'a real', etc.)
+    const firstOptionIndex = blockContent.search(/(?:^|\n|\s)(?:\([Aa1]\)|(?<![a-zA-Z0-9])A\.(?!\d)|(?<![a-zA-Z0-9])A\s+(?![=+\-*\/<>\in\le\ge]))/);
+    const hasOptB = firstOptionIndex !== -1 && /(?:^|\s|\n)(?:\([Bb2]\)|(?<![a-zA-Z0-9])B\.(?!\d)|(?<![a-zA-Z0-9])B\s+)/.test(blockContent.substring(firstOptionIndex));
 
-    if (firstOptionIndex !== -1) {
+    if (firstOptionIndex !== -1 && hasOptB) {
       statement = blockContent.substring(0, firstOptionIndex).trim();
       const optionsBlock = blockContent.substring(firstOptionIndex);
 
-      const optAMatch = optionsBlock.match(/(?:^|\s|\n)(?:\(?A\)?\.?|\(A\))\s+([\s\S]*?)(?=(?:^|\s|\n)(?:\(?B\)?\.?|\(B\))\s+|$)/i);
-      const optBMatch = optionsBlock.match(/(?:^|\s|\n)(?:\(?B\)?\.?|\(B\))\s+([\s\S]*?)(?=(?:^|\s|\n)(?:\(?C\)?\.?|\(C\))\s+|$)/i);
-      const optCMatch = optionsBlock.match(/(?:^|\s|\n)(?:\(?C\)?\.?|\(C\))\s+([\s\S]*?)(?=(?:^|\s|\n)(?:\(?D\)?\.?|\(D\))\s+|$)/i);
-      const optDMatch = optionsBlock.match(/(?:^|\s|\n)(?:\(?D\)?\.?|\(D\))\s+([\s\S]*?)$/i);
+      const optAMatch = optionsBlock.match(/(?:^|\s|\n)(?:\([Aa1]\)|(?<![a-zA-Z0-9])A\.(?!\d)|(?<![a-zA-Z0-9])A\s+)\s*([\s\S]*?)(?=(?:^|\s|\n)(?:\([Bb2]\)|(?<![a-zA-Z0-9])B\.(?!\d)|(?<![a-zA-Z0-9])B\s+)\s*|$)/);
+      const optBMatch = optionsBlock.match(/(?:^|\s|\n)(?:\([Bb2]\)|(?<![a-zA-Z0-9])B\.(?!\d)|(?<![a-zA-Z0-9])B\s+)\s*([\s\S]*?)(?=(?:^|\s|\n)(?:\([Cc3]\)|(?<![a-zA-Z0-9])C\.(?!\d)|(?<![a-zA-Z0-9])C\s+)\s*|$)/);
+      const optCMatch = optionsBlock.match(/(?:^|\s|\n)(?:\([Cc3]\)|(?<![a-zA-Z0-9])C\.(?!\d)|(?<![a-zA-Z0-9])C\s+)\s*([\s\S]*?)(?=(?:^|\s|\n)(?:\([Dd4]\)|(?<![a-zA-Z0-9])D\.(?!\d)|(?<![a-zA-Z0-9])D\s+)\s*|$)/);
+      const optDMatch = optionsBlock.match(/(?:^|\s|\n)(?:\([Dd4]\)|(?<![a-zA-Z0-9])D\.(?!\d)|(?<![a-zA-Z0-9])D\s+)\s*([\s\S]*?)$/);
 
       options.push({ key: 'A', text: optAMatch ? normalizeMathInText(optAMatch[1].trim()) : '' });
       options.push({ key: 'B', text: optBMatch ? normalizeMathInText(optBMatch[1].trim()) : '' });

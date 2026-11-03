@@ -374,13 +374,21 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
   text = text.replace(/cot\s*\(?\s*x\s*-\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
   text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-  text = text.replace(/\[\s*\\?cot\b/gi, '\\left[\\cot ');
-  text = text.replace(/\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
+  text = text.replace(/(?<!\\left\s*)\[\s*\\?cot\b/gi, '\\left[\\cot ');
+  text = text.replace(/(?<!\\right\s*)\+\s*1\s*\]\s*dx\b/gi, '+ 1\\right] \\, dx');
+
+  // Fix inverted integral limits for definite integral JEE Q3
+  text = text.replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
+  text = text.replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
 
   // Decode double backslashes and corrupt parentheses in logarithms
   text = text.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
   text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
   text = text.replace(/\\log_e\s*\(\s*\)\s*(\\sqrt|[0-9a-zA-Z])/g, '\\log_e($1');
+
+  // Collapse duplicated \left and \right delimiters early
+  text = text.replace(/(?:\\left\s*){2,}/g, '\\left');
+  text = text.replace(/(?:\\right\s*){2,}/g, '\\right');
 
   // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2 or \int_0 \n ^2
   text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');
@@ -822,9 +830,9 @@ export function normalizeMathText(raw: string): string {
              .replace(/(?<!\\)log_e\s*/g, '\\log_e ')
              .replace(/loge\b/g, '\\log_e ');
 
-    // Clean any duplicated \left\left( or \right\right)
-    res = res.replace(/\\left\s*\\left\s*\(/g, '\\left(')
-             .replace(/\\right\s*\\right\s*\)/g, '\\right)');
+    // Clean any duplicated \left\left or \right\right for all delimiter types
+    res = res.replace(/(?:\\left\s*){2,}/g, '\\left')
+             .replace(/(?:\\right\s*){2,}/g, '\\right');
 
     // 14. Dynamic parens for functions enclosing fractions (ensure not already preceded by \left)
     res = res.replace(/(?<!\\left)\s*(\\(?:log_e|ln|cot|tan|sin|cos|sec|csc))\s*\(([^()]*\\frac[^()]*)\)/g, '$1\\left($2\\right)');

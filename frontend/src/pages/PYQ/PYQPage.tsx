@@ -342,7 +342,9 @@ export const PYQPage: React.FC = () => {
     if (isEnrolled) return true;
     if (q.isFree === true) return true;
     if (q.isFree === false) return false;
-    return index === 0;
+    // If the entire paper is marked locked/paid and this question is not explicitly free, lock it
+    if (activeSet?.isFree === false) return false;
+    return false;
   };
 
   const [modalTargetSet, setModalTargetSet] = useState<LiveDppPyqSet | null>(null);
