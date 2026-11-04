@@ -6,6 +6,7 @@ import os from 'os';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { validateQuestionLatexStructure } from './mathLatexValidator.js';
+import { reconstructWordEquationLinearFormat } from './wordEquationReconstructor.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 /**
@@ -28,6 +29,8 @@ export function normalizeMathInText(rawText) {
         .replace(/[\u{1D45B}\u{1D427}\u{1D48F}]/gu, 'n')
         .replace(/[\u{1D45F}\u{1D42B}\u{1D493}]/gu, 'r')
         .replace(/[\u2212\u2013\u2014]/g, '-');
+    // Reconstruct Word Equation Editor Linear Format (UnicodeMath / OMML): piecewise {█(...)┤, matrices, etc.
+    text = reconstructWordEquationLinearFormat(text);
     // 0. Decode Word Quartz / CambriaMath subset font encoding artifacts (where no ToUnicode CMap is embedded)
     text = text.replace(/#\$(\(\$!&\$&'\)|\(\$!&\$&|\(\$!&\$'\))/g, '\\sqrt{x(x^2 + x + 1)}');
     text = text.replace(/\(√\$&'\)\*√\$"&\$!&'\+/g, '(\\sqrt{x} + 1)\\sqrt{x^4 + x^2 + 1}');
@@ -90,11 +93,9 @@ export function normalizeMathInText(rawText) {
     text = text.replace(/3\/!\$/g, '(\\pi - 2x)');
     text = text.replace(/3\/!/g, '\\pi - 2');
     text = text.replace(/3\//g, '\\pi - ');
-    // Vertical stacked fractions in options: ' \n , -> 1/3; ! \n , -> 2/3
-    text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{3} ');
-    text = text.replace(/[!2]\s*[\r\n]+\s*,\s*,?/g, '\\frac{2}{3} ');
-    text = text.replace(/\b['1]\s*,\s*/g, '\\frac{1}{3} ');
-    text = text.replace(/\b[!2]\s*,\s*/g, '\\frac{2}{3} ');
+    // Vertical stacked fractions in options with Cambria Math glyphs: ' \n , -> 1/3; ! \n , -> 2/3
+    text = text.replace(/[']\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{3} ');
+    text = text.replace(/[!]\s*[\r\n]+\s*,\s*,?/g, '\\frac{2}{3} ');
     // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2
     text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');
     text = text.replace(/\\int_\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');

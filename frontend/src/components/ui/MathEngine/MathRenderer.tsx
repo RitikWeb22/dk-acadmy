@@ -216,8 +216,13 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
 function sanitizeFormula(str: string): string {
   if (!str) return '';
   let res = str.split('$$').join('$')
+    // Strip internal dollar delimiters so KaTeX never throws "Can't use function '$' in math mode"
+    .replace(/\$/g, '')
     // Clean invisible Word formatting characters & hair spaces
     .replace(/[\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
+    // Ensure infty and common Greek letters have backslash if inside math formula
+    .replace(/(?<!\\)\binfty\b/g, '\\infty')
+    .replace(/(?<!\\)\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)\b/g, '\\$1')
     // Remove argument placeholders
     .replace(/[▒□]/g, '')
     // Normalize double backslashes

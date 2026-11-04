@@ -1,4 +1,5 @@
 import type { ProblemQuestionItem } from '../components/admin/DppPyq/DppPyqManagementWorkspace';
+import { reconstructWordEquationLinearFormat } from './wordEquationReconstructor';
 
 /**
  * Strips outer enclosing parentheses only when they truly wrap the entire string.
@@ -232,7 +233,7 @@ export function autoWrapMathDelimiters(text: string): string {
     return ` ${key} `;
   };
 
-  s = s.replace(/\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$/g, (m) => {
+  s = s.replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}[\s\S]*?\\end\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}|\\\([\s\S]*?\\\)|\$[^\$\n]+?\$/g, (m) => {
     const key = `___PROT_MATH_${protectedMath.length}___`;
     protectedMath.push(m);
     return ` ${key} `;
@@ -368,6 +369,9 @@ export function normalizeMathText(raw: string): string {
              .replace(/[\u{1D45B}\u{1D427}\u{1D48F}]/gu, 'n')
              .replace(/[\u{1D45F}\u{1D42B}\u{1D493}]/gu, 'r')
              .replace(/[\u2212\u2013\u2014]/g, '-');
+
+  // Reconstruct Word Equation Editor Linear Format (UnicodeMath / OMML): piecewise {█(...)┤, matrices, etc.
+  text = reconstructWordEquationLinearFormat(text);
 
   // 0. Global pre-pass for Word/PDF copy-paste artifacts & CambriaMath font substitutions
   // Fix inverted integral limits for definite integral JEE Q3
@@ -577,6 +581,15 @@ export function normalizeMathText(raw: string): string {
 
   // 0r. Fix interval union corruption e.g. \cup $10, \infty ) -> \cup (10, \infty)
   text = text.replace(/\\cup\s*\$?([0-9]+)\s*,\s*\\infty\s*\)/g, '\\cup ($1, \\infty)');
+
+  // Protect display math blocks and cases environments from being chopped across lines
+  const protectedEnvs: string[] = [];
+  text = text.replace(/\\\[[\s\S]*?\\\]|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}[\s\S]*?\\end\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}/g, (m) => {
+    const key = `___PROT_DISPLAY_ENV_${protectedEnvs.length}___`;
+    protectedEnvs.push(m);
+    return `\n${key}\n`;
+  });
+
   const lines = text.split(/\r?\n/);
   const processedLines = lines.map((line) => {
     let res = line;
@@ -1039,6 +1052,10 @@ export function normalizeMathText(raw: string): string {
   });
 
   let finalResult = processedLines.join('\n');
+
+  for (let i = 0; i < protectedEnvs.length; i++) {
+    finalResult = finalResult.replace(`___PROT_DISPLAY_ENV_${i}___`, () => protectedEnvs[i]);
+  }
   // Sanitize unbalanced \left and \right delimiters which crash KaTeX rendering
   const leftMatches = (finalResult.match(/\\left\b/g) || []).length;
   const rightMatches = (finalResult.match(/\\right\b/g) || []).length;

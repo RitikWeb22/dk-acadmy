@@ -112,10 +112,67 @@ const testCases: TestCase[] = [
       /\\in \\mathbb\{Z\}/,
       /\\sqrt\{17\}/
     ]
+  },
+  {
+    category: '18. User Target Benchmark: 3-row piecewise function with linear format {█(...)┤, trig, fraction, abs, mapping',
+    input: '. Let f:R→R be defined as f(x)={█(&2sin(-πx/2)," if " x<-1@&|ax^2+x+b|," if " -1≤x≤1@&sin(πx)," if " x>1)┤ If f(x) is continuous on',
+    expectPatterns: [
+      /\\begin\{cases\}/,
+      /2\\sin\\left\(-\\dfrac\{\\pi x\}\{2\}\\right\)/,
+      /\\left\|ax\^2\+x\+b\\right\|/,
+      /\\sin\(\\pi x\)/,
+      /\\end\{cases\}/,
+      /f:\\mathbb\{R\}\\to\\mathbb\{R\}/
+    ]
+  },
+  {
+    category: '19. Two-row piecewise function with inequalities',
+    input: 'Let f(x)={█(&x^2+1," if " x>=0@&2x-1," if " x<0)┤ be a function.',
+    expectPatterns: [
+      /\\begin\{cases\}/,
+      /x\^2\+1, & x \\geq 0/,
+      /2x-1, & x < 0/,
+      /\\end\{cases\}/
+    ]
+  },
+  {
+    category: '20. Piecewise function with nested radicals and roots',
+    input: 'Consider g(x)={█(&\\sqrt(x+\\sqrt(x))," if " x>=1@&x^3," if " x<1)┤.',
+    expectPatterns: [
+      /\\begin\{cases\}/,
+      /\\sqrt\{x\+\\sqrt\{x\}\}/,
+      /x\^3/,
+      /\\end\{cases\}/
+    ]
+  },
+  {
+    category: '21. Piecewise function with Hindi and English text preservation',
+    input: 'यदि f(x)={█(&\\frac{1-\\cos(4x)}{x^2}," यदि " x<0@&a," यदि " x=0@&\\frac{\\sqrt{x}}{\\sqrt(16+\\sqrt{x})-4}," यदि " x>0)┤ x=0 पर संतत है, तो a का मान ज्ञात कीजिए।',
+    expectPatterns: [
+      /\\begin\{cases\}/,
+      /\\dfrac\{1-\\cos\(4x\)\}\{x\^2\}/,
+      /\\end\{cases\}/,
+      /संतत है/
+    ]
+  },
+  {
+    category: '22. Multiple piecewise equations in a single question',
+    input: 'Let f(x)={█(&x+1," if " x>0@&x-1," if " x<=0)┤ and g(x)={█(&2x," if " x>1@&x^2," if " x<=1)┤. Find (fog)(x).',
+    expectPatterns: [
+      /f\(x\)=\s*\\begin\{cases\}/,
+      /g\(x\)=\s*\\begin\{cases\}/
+    ]
+  },
+  {
+    category: '23. Word Equation linear format matrix [\\matrix(...) or [█(...)',
+    input: 'Let A = [\\matrix(1&3&-1@2&1&0@0&1&-1)].',
+    expectPatterns: [
+      /\\begin\{bmatrix\} 1 & 3 & -1 \\\\ 2 & 1 & 0 \\\\ 0 & 1 & -1 \\end\{bmatrix\}/
+    ]
   }
 ];
 
-console.log('=== RUNNING JEE MATHEMATICS 17-CATEGORY REGRESSION TEST SUITE ===\n');
+console.log('=== RUNNING JEE MATHEMATICS 23-CATEGORY REGRESSION TEST SUITE ===\n');
 
 let passed = 0;
 let failed = 0;
@@ -145,7 +202,7 @@ console.log(`\n=== RESULTS: ${passed} PASSED, ${failed} FAILED (TOTAL: ${testCas
 if (failed > 0) {
   process.exit(1);
 } else {
-  console.log('ALL 15 MATHEMATICAL REGRESSION CATEGORIES VERIFIED 100% PASS!');
+  console.log('ALL 23 MATHEMATICAL REGRESSION CATEGORIES VERIFIED 100% PASS!');
   process.exit(0);
 }
 
