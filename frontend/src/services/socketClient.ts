@@ -29,11 +29,13 @@ export const initSocketClient = (): Socket => {
 
   const serverUrl = getSocketServerUrl();
   socket = io(serverUrl, {
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     withCredentials: true,
     reconnection: true,
-    reconnectionAttempts: 15,
-    reconnectionDelay: 2000
+    reconnectionAttempts: 5,
+    reconnectionDelay: 5000,
+    reconnectionDelayMax: 20000,
+    timeout: 10000
   });
 
   // Helper to determine if current browser tab/session is Admin portal

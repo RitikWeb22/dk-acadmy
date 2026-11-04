@@ -469,21 +469,39 @@ function runPythonOcrPipeline(tempPdfPath, subject, targetExam) {
             }
             catch { }
             resolve(null);
-        }, 45000);
+        }, 20000);
     });
 }
 /**
  * Extracts and parses questions from PDF Buffer
  */
 export async function extractQuestionsFromPdfBuffer(buffer, subject = 'Mathematics', targetExam = 'JEE Main') {
-    // 1. Try PyMuPDF + RapidOCR high-resolution Math OCR Pipeline
+    // 1. Fast in-process extraction via PDFParse (<500ms for text-based PDFs)
+    try {
+        const parser = new PDFParse({
+            data: buffer
+        });
+        const parsedData = await parser.getText();
+        const fullText = (parsedData && parsedData.text) || '';
+        const totalPages = (parsedData && parsedData.total) || 1;
+        if (fullText.trim().length > 60) {
+            const summary = parseQuestionsFromText(fullText, subject, targetExam);
+            summary.totalPages = totalPages;
+            if (summary.totalDetected > 0) {
+                return summary;
+            }
+        }
+    }
+    catch (err) {
+        console.warn('In-process PDFParse notice, proceeding to OCR fallback:', err.message);
+    }
+    // 2. Fallback to PyMuPDF OCR (capped at 20s to prevent Nginx 504 Gateway Timeout)
     try {
         const tempFile = path.join(os.tmpdir(), `upload-${Date.now()}-${uuidv4().slice(0, 8)}.pdf`);
         await fs.promises.writeFile(tempFile, buffer);
         try {
             const ocrSummary = await runPythonOcrPipeline(tempFile, subject, targetExam);
             if (ocrSummary && ocrSummary.totalDetected > 0) {
-                // Run mathematical LaTeX validation on all Python extracted questions
                 let needsReviewCount = 0;
                 let successfulCount = 0;
                 ocrSummary.questions = ocrSummary.questions.map((q) => {
@@ -517,29 +535,14 @@ export async function extractQuestionsFromPdfBuffer(buffer, subject = 'Mathemati
         }
     }
     catch (pyErr) {
-        console.warn('Python OCR pipeline notice, falling back to in-process parser:', pyErr.message);
+        console.warn('Python OCR pipeline notice, proceeding to raw text fallback:', pyErr.message);
     }
-    // 2. Fallback to PDFParse
-    try {
-        const parser = new PDFParse({
-            data: buffer
-        });
-        const parsedData = await parser.getText();
-        const fullText = (parsedData && parsedData.text) || '';
-        const totalPages = (parsedData && parsedData.total) || 1;
-        const summary = parseQuestionsFromText(fullText, subject, targetExam);
-        summary.totalPages = totalPages;
-        return summary;
-    }
-    catch (err) {
-        console.error('PDFParse error, triggering OCR fallback parser:', err);
-        // OCR / Text Fallback: scan buffer strings
-        const str = buffer.toString('utf-8');
-        const printable = str.replace(/[^\x20-\x7E\n]/g, ' ');
-        const summary = parseQuestionsFromText(printable, subject, targetExam);
-        summary.errorLog.push(`PDF parser warning: ${err.message}. Raw text extraction applied.`);
-        return summary;
-    }
+    // 3. Fallback: scan printable strings from buffer
+    const str = buffer.toString('utf-8');
+    const printable = str.replace(/[^\x20-\x7E\n]/g, ' ');
+    const fallbackSummary = parseQuestionsFromText(printable, subject, targetExam);
+    fallbackSummary.errorLog.push('Standard raw extraction applied.');
+    return fallbackSummary;
 }
 /**
  * Executes the Python OOXML Math Extractor for Microsoft Word documents
@@ -608,7 +611,7 @@ function runPythonDocxExtractor(tempDocxPath, subject, targetExam) {
             }
             catch { }
             resolve(null);
-        }, 45000);
+        }, 20000);
     });
 }
 /**
