@@ -23,7 +23,7 @@ import { SUCCESS_STORIES } from '../../data/homepageRedesignData';
 import type { AchieverItem } from '../../types';
 import styles from './ResultsPage.module.scss';
 
-type FilterTab = 'All' | 'JEE Advanced' | 'JEE Main' | 'Top 1% Club' | 'Year 2024 / 2025';
+type FilterTab = 'All' | 'JEE Advanced' | 'JEE Main' | 'Top 1% Club' | 'Year 2024 - 2026';
 
 export const ResultsPage: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<FilterTab>('All');
@@ -64,7 +64,7 @@ export const ResultsPage: React.FC = () => {
           (Boolean(a.rankOrCollege) && /AIR\s*([1-9][0-9]{0,3}|[1-2][0-9]{3})\b/i.test(a.rankOrCollege || '')) ||
           /AIR\s*([1-9][0-9]{0,3}|[1-2][0-9]{3})\b/i.test(a.score)
       ).length,
-      'Year 2024 / 2025': achieversList.filter((a) => a.year === '2024' || a.year === '2025').length
+      'Year 2024 - 2026': achieversList.filter((a) => a.year === '2024' || a.year === '2025' || a.year === '2026').length
     };
   }, [achieversList]);
 
@@ -82,8 +82,8 @@ export const ResultsPage: React.FC = () => {
           item.score.includes('99.') ||
           (Boolean(item.rankOrCollege) && /AIR\s*([1-9][0-9]{0,3}|[1-2][0-9]{3})\b/i.test(item.rankOrCollege || '')) ||
           /AIR\s*([1-9][0-9]{0,3}|[1-2][0-9]{3})\b/i.test(item.score);
-      } else if (selectedFilter === 'Year 2024 / 2025') {
-        matchesTab = item.year === '2024' || item.year === '2025';
+      } else if (selectedFilter === 'Year 2024 - 2026') {
+        matchesTab = item.year === '2024' || item.year === '2025' || item.year === '2026';
       }
 
       if (!matchesTab) return false;
@@ -221,7 +221,7 @@ export const ResultsPage: React.FC = () => {
                     { id: 'JEE Advanced', label: 'JEE Advanced', icon: GraduationCap },
                     { id: 'JEE Main', label: 'JEE Main', icon: Trophy },
                     { id: 'Top 1% Club', label: 'Top 1% Club', icon: Zap },
-                    { id: 'Year 2024 / 2025', label: 'Year 2024 / 2025', icon: Calendar }
+                    { id: 'Year 2024 - 2026', label: 'Year 2024 – 2026', icon: Calendar }
                   ] as const
                 ).map((tab) => {
                   const count = tabCounts[tab.id];

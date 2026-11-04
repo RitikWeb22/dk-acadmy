@@ -7065,7 +7065,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   onPaste={(e) => {
                     const plain = e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text') || '';
                     const res = normalizePastedQuestion(e.clipboardData);
-                    const isCorrupted = !res.fullNormalizedText || res.fullNormalizedText.includes('\\frac{}{}') || (plain.trim().length > 25 && res.fullNormalizedText.trim().length < plain.trim().length * 0.4);
+                    const isCorrupted = !res.fullNormalizedText || /\\frac\{\s*\}\{\s*\}/.test(res.fullNormalizedText) || (plain.trim().length > 25 && res.fullNormalizedText.trim().length < plain.trim().length * 0.4);
                     if (!isCorrupted && res.fullNormalizedText) {
                       e.preventDefault();
                       setSmartPasteText(res.fullNormalizedText);

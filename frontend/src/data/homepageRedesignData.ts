@@ -214,6 +214,18 @@ export const TRENDING_SLIDES: TrendingSlide[] = [
 
 export const ACHIEVERS_LIST: AchieverItem[] = [
   {
+    id: 'ach-shaurya',
+    name: 'Shaurya Singh',
+    image: '/img/shaurya-singh.jpg',
+    score: '99.5 %ile in JEE Mains',
+    rankOrCollege: 'JEE Mains 99.5%ile (2026)',
+    examTag: 'JEE Main',
+    highlightTopic: 'Mathematics Master Batch (2026)',
+    year: '2026',
+    verified: true,
+    storySnippet: 'DK Sir’s conceptual shortcut techniques and rigorous problem sets helped me achieve 99.5%ile in JEE Mains.'
+  },
+  {
     id: 'ach-rishabh',
     name: 'Rishabh Anand',
     image: '/img/IMG_5099.JPG.jpeg',

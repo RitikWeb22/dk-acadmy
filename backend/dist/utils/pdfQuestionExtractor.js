@@ -167,9 +167,21 @@ export function normalizeMathInText(rawText) {
     text = text.replace(/\\vec\{r\}\s*x\b/g, 'r \\to x');
     text = text.replace(/\\vec\{([a-zA-Z])\}\s*([a-zA-Z])\b/g, '$1 \\to $2');
     text = text.replace(/\\vec\{r\}\\to/g, 'r \\to');
-    // Strip rogue dollar signs placed inside parentheses or brackets: [( $f(r)) -> [(f(r))
-    text = text.replace(/([\(\[\{])\s*\$\s*([a-zA-Z0-9\\])/g, '$1$2');
-    text = text.replace(/([a-zA-Z0-9\\])\s*\$\s*([\s\)\],])/g, '$1$2');
+    // Strip rogue dollar signs placed immediately inside parentheses, braces, or brackets:
+    text = text.replace(/([\(\[\{])\s*\$\s*/g, '$1');
+    text = text.replace(/\s*\$\s*([\)\]\}])/g, '$1');
+    // Absorb leading limit/integral/sum before $: e.g. \lim_{t \to x} $\frac{...}{...}$ -> $\lim_{t \to x} \frac{...}{...}$
+    text = text.replace(/(\\(?:lim|int|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*)\s*\$([^\$\n]+?)\$/g, (_m, op, inner) => `$${op} ${inner}$`);
+    // Absorb trailing equality after $: e.g. $\frac{...}{...}$ = 1 -> $\frac{...}{...} = 1$
+    text = text.replace(/\$([^\$\n]+?)\$\s*([=<>≤≥]|\\le\b|\\ge\b)\s*(-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+|[a-zA-Z0-9_]+(?:\^[0-9]+)?)(?=[,;.\s]|$)/g, (_m, inner, op, rhs) => `$${inner} ${op} ${rhs}$`);
+    // Normalize Greek letters and set relations
+    text = text.replace(/α/g, '\\alpha')
+        .replace(/β/g, '\\beta')
+        .replace(/γ/g, '\\gamma')
+        .replace(/(?:∈|\\in)\s*Z\b/g, '\\in \\mathbb{Z}')
+        .replace(/∈/g, '\\in ');
+    // Clean empty fraction artifacts
+    text = text.replace(/\\frac\{\s*\}\{\s*\}/g, '');
     // Fix \sqrt(...) with arbitrary nested parens to \sqrt{...}
     let sqrtIdx = text.indexOf('\\sqrt(');
     while (sqrtIdx !== -1) {

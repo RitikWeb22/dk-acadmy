@@ -275,11 +275,30 @@ export function autoWrapMathDelimiters(text: string): string {
   // 3c. Protect trigonometric equations and linear combinations:
   // e.g. \cos 2A + \cos 2B + \cos 2C \ge -\frac{3}{2}
   s = s.replace(/(?<![a-zA-Z0-9_\$])((?:-?\s*(?:[0-9]*\s*)?\\(?:sin|cos|tan|cot|sec|csc)\s*(?:[0-9]*[a-zA-Z]|\([^\)]+\))\s*[+\-−*\/]\s*)*-?\s*(?:[0-9]*\s*)?\\(?:sin|cos|tan|cot|sec|csc)\s*(?:[0-9]*[a-zA-Z]|\([^\)]+\))\s*(?:[=<>≤≥]|\\le\b|\\ge\b|\\neq\b)\s*[^,;.\n]+?)(?=\s*[,;.]|\s+(?:and|if|then|where|when|for)\b|$)/g, (fullMatch, eq) => {
-    if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where|satisfying|between|perpendicular)\b/i.test(eq)) {
+    const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
+    if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where|satisfying|between|perpendicular)\b/i.test(nonLatex)) {
       return fullMatch;
     }
     return protect(eq);
   });
+
+  // 3d. Protect full limit equations: e.g. \lim_{x \to 0} \frac{...}{...} = L or \lim_{...} ... = ...
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*[\s\S]+?=\s*[^,;.\n]+?)(?=\s*[,;.]|\s+(?:and|if|then|where|when|for)\b|$)/g, (fullMatch, eq) => {
+    const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
+    if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where|satisfying|between|perpendicular)\b/i.test(nonLatex)) {
+      return fullMatch;
+    }
+    return protect(eq);
+  });
+
+  // 3e. Protect standalone fractions with optional leading numeric coefficient: 16\frac{...}{...} or \frac{...}{...}
+  s = s.replace(/(?<![\^_{a-zA-Z_\$])((?:-?\s*[0-9]+(?:\.[0-9]+)?\s*)?\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?![\^}a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 3f. Protect set membership: e.g. \alpha, \beta \in \mathbb{Z} or x \in [0, 1]
+  s = s.replace(/(?<![a-zA-Z0-9_\$])((?:\\[a-zA-Z]+|[a-zA-Z0-9_]+)(?:\s*,\s*(?:\\[a-zA-Z]+|[a-zA-Z0-9_]+))*\s*(?:\\in\b)\s*(?:\\mathbb\{[A-Z]\}|\\mathbf\{[A-Z]\}|[A-Z]|\[[^\]\n]+\]|\([^\)\n]+\)))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 3g. Protect linear combinations of function values: e.g. 2f(2) + 3f(3)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([0-9]*\s*[a-zA-Z]\s*\([0-9a-zA-Z]+\)\s*[+\-−*\/]\s*[0-9]*\s*[a-zA-Z]\s*\([0-9a-zA-Z]+\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
   // 4. Wrap compound math expressions, equations, vector linear combinations, and polynomials:
   // Uses safe non-backtracking atoms (no nested + quantifiers)
@@ -287,15 +306,12 @@ export function autoWrapMathDelimiters(text: string): string {
   const mathOp = '(?:[=+\\-−*/×⋅<>]|\\\\in\\b|\\\\ge\\b|\\\\le\\b|\\\\neq\\b|\\\\pm\\b|\\\\cdot|\\\\times)';
   const compoundMath = new RegExp(`(?<![a-zA-Z0-9_\\$])(${singleAtom}\\s*${mathOp}\\s*${singleAtom}(?:\\s*${mathOp}\\s*${singleAtom}){0,6})(?![a-zA-Z0-9_\\$])`, 'g');
   s = s.replace(compoundMath, (_, m) => {
-    // If it contains English prose words like "is", "then", "and", "between", don't wrap entire thing
-    if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where|satisfying|between|perpendicular)\b/i.test(m)) {
+    const nonLatex = m.replace(/\\[a-zA-Z]+/g, ' ');
+    if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where|satisfying|between|perpendicular)\b/i.test(nonLatex)) {
       return m;
     }
     return protect(m);
   });
-
-  // 5. Protect standalone fractions: \frac{...}{...} (only if not preceded by ^ or _)
-  s = s.replace(/(?<![\^_{a-zA-Z0-9_\$])(\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?![\^}a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
   // 6. Protect and wrap intervals: e.g. [-1, 3] or [0, 1] or [-1,3]
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\[\s*-?[0-9]+(?:\.[0-9]+)?\s*,\s*-?[0-9]+(?:\.[0-9]+)?\s*\])(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
@@ -516,9 +532,25 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/\\vec\{([a-zA-Z])\}\s*([a-zA-Z])\b/g, '$1 \\to $2');
   text = text.replace(/\\vec\{r\}\\to/g, 'r \\to');
 
-  // 0o. Strip rogue dollar signs placed inside parentheses or brackets: [( $f(r)) -> [(f(r))
-  text = text.replace(/([\(\[\{])\s*\$\s*([a-zA-Z0-9\\])/g, '$1$2');
-  text = text.replace(/([a-zA-Z0-9\\])\s*\$\s*([\s\)\],])/g, '$1$2');
+  // 0o. Strip rogue dollar signs placed immediately inside parentheses, braces, or brackets:
+  text = text.replace(/([\(\[\{])\s*\$\s*/g, '$1');
+  text = text.replace(/\s*\$\s*([\)\]\}])/g, '$1');
+
+  // Absorb leading limit/integral/sum before $: e.g. \lim_{t \to x} $\frac{...}{...}$ -> $\lim_{t \to x} \frac{...}{...}$
+  text = text.replace(/(\\(?:lim|int|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*)\s*\$([^\$\n]+?)\$/g, (_m, op, inner) => `$${op} ${inner}$`);
+
+  // Absorb trailing equality after $: e.g. $\frac{...}{...}$ = 1 -> $\frac{...}{...} = 1$
+  text = text.replace(/\$([^\$\n]+?)\$\s*([=<>≤≥]|\\le\b|\\ge\b)\s*(-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+|[a-zA-Z0-9_]+(?:\^[0-9]+)?)(?=[,;.\s]|$)/g, (_m, inner, op, rhs) => `$${inner} ${op} ${rhs}$`);
+
+  // Normalize Greek letters and set relations
+  text = text.replace(/α/g, '\\alpha')
+             .replace(/β/g, '\\beta')
+             .replace(/γ/g, '\\gamma')
+             .replace(/∈\s*Z\b/g, '\\in \\mathbb{Z}')
+             .replace(/∈/g, '\\in ');
+
+  // Clean empty fraction artifacts
+  text = text.replace(/\\frac\{\s*\}\{\s*\}/g, '');
 
   // Fix \sqrt(...) with arbitrary nested parens to \sqrt{...}
   let sqrtIdx = text.indexOf('\\sqrt(');
@@ -826,7 +858,8 @@ export function normalizeMathText(raw: string): string {
 
     // 7. Limits: lim_(n→∞) or lim_(x→0) with arbitrary unicode arrows and hair spaces
     res = res.replace(/\\?lim_?\s*[\(\{\[]\s*([^)\}\]]+)\s*[\)\}\]][\s\u200a]*/gi, (_, inner) => {
-      const clean = inner.replace(/[→\u2192]|\\to/g, ' \\to ').replace(/[∞\u221E]|\\infty/g, '\\infty');
+      let clean = inner.replace(/[→\u2192]|\\to/g, ' \\to ').replace(/[∞\u221E]|\\infty/g, '\\infty');
+      clean = clean.replace(/([0-9a-zA-Z]+)\/([0-9a-zA-Z]+)/g, '\\frac{$1}{$2}');
       return `\\lim_{${clean.trim()}} `;
     });
     res = res.replace(/\\?lim\s*([a-zA-Z]+)\s*[→\u2192]\s*([0-9a-zA-Z∞\u221E\+\-]+)[\s\u200a]*/gi, (_, v, dest) => {
@@ -995,7 +1028,7 @@ export function normalizeMathText(raw: string): string {
         // Line already contains some '$' delimiters.
         // Check if there is still un-delimited math outside '$' that needs wrapping:
         const textOutsideDollars = res.replace(/\$[^\$\n]*\$/g, ' ');
-        const hasUnwrappedMath = /\\(?:frac|dfrac|int|sqrt|alpha|beta|gamma|theta|lambda|pi|sigma|phi|omega|vec|hat|left)(?![a-zA-Z])|\b[a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=|\|\s*[^|]+\s*\|\s*(?:\^|[=<>])|\([0-9a-zA-Z\\]+\s*,\s*[0-9a-zA-Z\\]+/.test(textOutsideDollars);
+        const hasUnwrappedMath = /\\(?:frac|dfrac|int|lim|sum|prod|sqrt|alpha|beta|gamma|theta|lambda|pi|sigma|phi|omega|vec|hat|left|mathbb)(?![a-zA-Z])|\b[a-zA-Z]\s*\([0-9a-zA-Z\\]+\)\s*=|\|\s*[^|]+\s*\|\s*(?:\^|[=<>])|\([0-9a-zA-Z\\]+\s*,\s*[0-9a-zA-Z\\]+|[0-9]*\s*[a-zA-Z]\s*\([0-9a-zA-Z]+\)\s*[+\-−*\/]\s*[0-9]*\s*[a-zA-Z]\s*\([0-9a-zA-Z]+\)/.test(textOutsideDollars);
         if (hasUnwrappedMath) {
           res = autoWrapMathDelimiters(res);
         }

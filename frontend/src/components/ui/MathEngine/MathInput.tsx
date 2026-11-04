@@ -89,7 +89,7 @@ export const MathInput: React.FC<MathInputProps> = ({
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const plain = e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text') || '';
     const result = normalizePastedQuestion(e.clipboardData);
-    const isCorrupted = !result.fullNormalizedText || result.fullNormalizedText.includes('\\frac{}{}') || (plain.trim().length > 25 && result.fullNormalizedText.trim().length < plain.trim().length * 0.4);
+    const isCorrupted = !result.fullNormalizedText || /\\frac\{\s*\}\{\s*\}/.test(result.fullNormalizedText) || (plain.trim().length > 25 && result.fullNormalizedText.trim().length < plain.trim().length * 0.4);
     if (isCorrupted && plain) {
       result.fullNormalizedText = normalizeMathText(plain);
       result.statement = result.fullNormalizedText;
