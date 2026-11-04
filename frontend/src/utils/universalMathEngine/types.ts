@@ -19,6 +19,9 @@ export interface NormalizationOptions {
   wrapMathInDollars?: boolean;
   inlineFractions?: boolean;
   maxNestingDepth?: number;
+  // Optional safe flags (non-breaking)
+  stripInvisibleChars?: boolean;
+  strictSyntaxCheck?: boolean;
 }
 
 export interface ValidationReport {
@@ -27,7 +30,7 @@ export interface ValidationReport {
   needsReview: boolean;
   errors: string[];
   warnings: string[];
-  uncertainRegions: string[];
+  uncertainRegions: string[]; // Exactly string[] as expected
 }
 
 export interface NormalizationResult {
@@ -52,13 +55,13 @@ export interface NormalizedQuestionResult {
   hasQuestionWithOptions: boolean;
   statement: string;
   options: NormalizedOption[];
-  correctKey?: 'A' | 'B' | 'C' | 'D';
-  numericalAnswer?: string;
+  correctKey?: 'A' | 'B' | 'C' | 'D'; // Intact as original
+  numericalAnswer?: string;           // Intact as string
   stepSolution?: string;
   dkSirShortcut?: string;
   warnings: string[];
   errors: string[];
   confidence: number;
   needsReview: boolean;
+  validation?: ValidationReport;      // Optional so older callers don't fail
 }
-
