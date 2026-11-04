@@ -1,7 +1,10 @@
 /**
  * OMML and MathML Structural Conversion Layer (Layer B)
- * Recursively converts W3C MathML and Microsoft OMML DOM trees into pristine KaTeX/LaTeX.
- * Completely eliminates the Node.js stripHtmlTags() structural loss.
+ *
+ * Converts Microsoft Word OMML and W3C MathML DOM trees into
+ * KaTeX-compatible LaTeX while preserving mathematical structure.
+ *
+ * This layer reconstructs notation only. It never evaluates expressions.
  */
 
 import {
@@ -12,6 +15,133 @@ import {
 } from './domAdapter';
 import { reconstructUnicodeMath } from './unicodeMathReconstructor';
 
+type DomNode = any;
+
+const ELEMENT_NODE = 1;
+const TEXT_NODE = 3;
+const CDATA_SECTION_NODE = 4;
+const MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
+const OMML_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/math';
+
+function localNameOf(node: DomNode): string {
+  if (!node) return '';
+  const value = node.localName || node.nodeName || '';
+  return String(value).replace(/^.*:/, '').toLowerCase();
+}
+
+function childElements(node: DomNode): DomNode[] {
+  if (!node?.childNodes) return [];
+  const result: DomNode[] = [];
+  for (let i = 0; i < node.childNodes.length; i++) {
+    if (node.childNodes[i]?.nodeType === ELEMENT_NODE) result.push(node.childNodes[i]);
+  }
+  return result;
+}
+
+function childByTag(node: DomNode, name: string): DomNode | null {
+  // Prefer the project's namespace-aware/direct-child adapter.
+  try {
+    const found = getChildByLocalTag(node, name);
+    if (found) return found;
+  } catch {
+    // Fall through to the local direct-child implementation.
+  }
+  const wanted = name.toLowerCase();
+  return childElements(node).find(child => localNameOf(child) === wanted) || null;
+}
+
+function childrenByTag(node: DomNode, name: string): DomNode[] {
+  try {
+    const found = getAllChildrenByLocalTag(node, name);
+    if (Array.isArray(found)) return found;
+  } catch {
+    // Fall through.
+  }
+  const wanted = name.toLowerCase();
+  return childElements(node).filter(child => localNameOf(child) === wanted);
+}
+
+function attr(node: DomNode, name: string, namespace?: string): string | null {
+  if (!node?.getAttribute) return null;
+  try {
+    if (namespace && typeof node.getAttributeNS === 'function') {
+      const value = node.getAttributeNS(namespace, name);
+      if (value !== null && value !== undefined) return String(value);
+    }
+  } catch {
+    // Continue with qualified and unqualified lookups.
+  }
+  try {
+    const qualified = node.getAttribute(`m:${name}`);
+    if (qualified !== null && qualified !== undefined) return String(qualified);
+  } catch {
+    // Ignore unsupported DOM implementations.
+  }
+  try {
+    const value = node.getAttribute(name);
+    return value === null || value === undefined ? null : String(value);
+  } catch {
+    return null;
+  }
+}
+
+function nodeText(node: DomNode): string {
+  if (!node) return '';
+  try {
+    const value = getNodeText(node);
+    if (typeof value === 'string') return value;
+  } catch {
+    // Use a safe fallback.
+  }
+  if (node.nodeType === TEXT_NODE || node.nodeType === CDATA_SECTION_NODE) {
+    return String(node.nodeValue || '');
+  }
+  let result = '';
+  if (node.childNodes) {
+    for (let i = 0; i < node.childNodes.length; i++) result += nodeText(node.childNodes[i]);
+  }
+  return result;
+}
+
+function convertText(value: string): string {
+  return reconstructUnicodeMath(value || '');
+}
+
+function hasMeaningfulContent(value: string): boolean {
+  return Boolean(value && value.trim().length);
+}
+
+function escapeLatexDelimiter(value: string, side: 'left' | 'right'): string {
+  const delimiter = (value || '').trim();
+  if (!delimiter || delimiter === '∅' || delimiter === ' ') return side === 'left' ? '\\left.' : '\\right.';
+  const map: Record<string, string> = {
+    '(': side === 'left' ? '\\left(' : '\\right)',
+    ')': side === 'left' ? '\\left)' : '\\right)',
+    '[': side === 'left' ? '\\left[' : '\\right[',
+    ']': side === 'left' ? '\\left]' : '\\right]',
+    '{': side === 'left' ? '\\left\\{' : '\\right\\{',
+    '}': side === 'left' ? '\\left\\}' : '\\right\\}',
+    '|': side === 'left' ? '\\left|' : '\\right|',
+    '‖': side === 'left' ? '\\left\\|' : '\\right\\|',
+    '⌈': side === 'left' ? '\\left\\lceil' : '\\right\\lceil',
+    '⌉': side === 'left' ? '\\left\\rceil' : '\\right\\rceil',
+    '⌊': side === 'left' ? '\\left\\lfloor' : '\\right\\lfloor',
+    '⌋': side === 'left' ? '\\left\\rfloor' : '\\right\\rfloor',
+    '⟨': side === 'left' ? '\\left\\langle' : '\\right\\langle',
+    '⟩': side === 'left' ? '\\left\\rangle' : '\\right\\rangle',
+    '.': side === 'left' ? '\\left.' : '\\right.'
+  };
+  return map[delimiter] || (side === 'left' ? '\\left.' : '\\right.');
+}
+
+function wrapGroup(value: string): string {
+  return `{${value || ''}}`;
+}
+
+function normalizeOperatorName(value: string): string {
+  return (value || '').trim().replace(/^\\/, '').toLowerCase();
+}
+
 // ============================================================================
 // 1. OMML TO LATEX CONVERSION
 // ============================================================================
@@ -19,644 +149,552 @@ import { reconstructUnicodeMath } from './unicodeMathReconstructor';
 export function ommlNodeToLatex(node: any): string {
   if (!node) return '';
 
-  // Text node
-  if (node.nodeType === 3) {
-    const val = node.nodeValue || '';
-    if (!val.trim()) return '';
-    return reconstructUnicodeMath(val);
+  if (node.nodeType === TEXT_NODE || node.nodeType === CDATA_SECTION_NODE) {
+    const value = String(node.nodeValue || '');
+    return value.trim() ? convertText(value) : '';
   }
+  if (node.nodeType !== ELEMENT_NODE) return '';
 
-  // Not an element
-  if (node.nodeType !== 1) return '';
+  const name = localNameOf(node);
 
-  const localName = (node.localName || node.nodeName || '')
-    .replace(/^m:/i, '')
-    .toLowerCase();
-
-  switch (localName) {
+  switch (name) {
     case 'omath':
-    case 'omathpara': {
-      let inner = '';
-      if (node.childNodes) {
-        for (let i = 0; i < node.childNodes.length; i++) {
-          inner += ommlNodeToLatex(node.childNodes[i]);
-        }
+    case 'omathpara':
+    case 'e':
+    case 'num':
+    case 'den':
+    case 'sup':
+    case 'sub':
+    case 'deg':
+    case 'lim':
+    case 'fname':
+    case 'mr':
+    case 't':
+    case 'r': {
+      let result = '';
+      for (const child of Array.from(node.childNodes || []) as DomNode[]) {
+        if (name === 'r' && localNameOf(child) === 'rpr') continue;
+        result += ommlNodeToLatex(child);
       }
-      return inner.trim();
+      return result;
     }
 
     case 'f': {
-      // Fraction: <m:num> and <m:den>
-      const numEl = getChildByLocalTag(node, 'num');
-      const denEl = getChildByLocalTag(node, 'den');
-      const numLatex = numEl ? ommlNodeToLatex(numEl).trim() : '1';
-      const denLatex = denEl ? ommlNodeToLatex(denEl).trim() : '1';
-      return `\\frac{${numLatex || '1'}}{${denLatex || '1'}}`;
+      const numerator = childByTag(node, 'num');
+      const denominator = childByTag(node, 'den');
+      const num = numerator ? ommlNodeToLatex(numerator).trim() : '';
+      const den = denominator ? ommlNodeToLatex(denominator).trim() : '';
+      if (!num || !den) return num || den || '';
+      return `\\frac{${num}}{${den}}`;
     }
 
     case 'ssup': {
-      // Superscript: <m:e> base, <m:sup> exponent
-      const baseEl = getChildByLocalTag(node, 'e');
-      const supEl = getChildByLocalTag(node, 'sup');
-      const baseLatex = baseEl ? ommlNodeToLatex(baseEl).trim() : '';
-      const supLatex = supEl ? ommlNodeToLatex(supEl).trim() : '';
-      const cleanBase = baseLatex.replace(/^\{|\}$/g, '').trim();
-      if (/^[a-zA-Z0-9]$/.test(cleanBase) || /^\\[a-zA-Z]+$/.test(cleanBase)) {
-        return `${cleanBase}^{${supLatex}}`;
-      }
-      return `{${baseLatex}}^{${supLatex}}`;
+      const base = childByTag(node, 'e');
+      const exponent = childByTag(node, 'sup');
+      const baseLatex = base ? ommlNodeToLatex(base).trim() : '';
+      const supLatex = exponent ? ommlNodeToLatex(exponent).trim() : '';
+      if (!baseLatex || !supLatex) return baseLatex;
+      return `${baseLatex.length === 1 || /^\\[a-zA-Z]+$/.test(baseLatex) ? baseLatex : wrapGroup(baseLatex)}^{${supLatex}}`;
     }
 
     case 'ssub': {
-      // Subscript: <m:e> base, <m:sub> subscript
-      const baseEl = getChildByLocalTag(node, 'e');
-      const subEl = getChildByLocalTag(node, 'sub');
-      const baseLatex = baseEl ? ommlNodeToLatex(baseEl).trim() : '';
-      const subLatex = subEl ? ommlNodeToLatex(subEl).trim() : '';
-      const cleanBase = baseLatex.replace(/^\{|\}$/g, '').trim();
-      const mathOps = ['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'gcd'];
-      if (mathOps.includes(cleanBase.toLowerCase())) {
-        return `\\${cleanBase.toLowerCase()}_{${subLatex}}`;
-      }
-      if (/^[a-zA-Z0-9]$/.test(cleanBase) || /^\\[a-zA-Z]+$/.test(cleanBase)) {
-        return `${cleanBase}_{${subLatex}}`;
-      }
-      return `{${baseLatex}}_{${subLatex}}`;
+      const base = childByTag(node, 'e');
+      const subscript = childByTag(node, 'sub');
+      const baseLatex = base ? ommlNodeToLatex(base).trim() : '';
+      const subLatex = subscript ? ommlNodeToLatex(subscript).trim() : '';
+      if (!baseLatex || !subLatex) return baseLatex;
+      const op = normalizeOperatorName(baseLatex);
+      const limitOperators = new Set(['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'gcd']);
+      if (limitOperators.has(op)) return `\\${op}_{${subLatex}}`;
+      return `${baseLatex.length === 1 || /^\\[a-zA-Z]+$/.test(baseLatex) ? baseLatex : wrapGroup(baseLatex)}_{${subLatex}}`;
     }
 
     case 'ssubsup': {
-      // Subscript and Superscript: <m:e>, <m:sub>, <m:sup>
-      const baseEl = getChildByLocalTag(node, 'e');
-      const subEl = getChildByLocalTag(node, 'sub');
-      const supEl = getChildByLocalTag(node, 'sup');
-      const baseLatex = baseEl ? ommlNodeToLatex(baseEl).trim() : '';
-      const subLatex = subEl ? ommlNodeToLatex(subEl).trim() : '';
-      const supLatex = supEl ? ommlNodeToLatex(supEl).trim() : '';
-      const cleanBase = baseLatex.replace(/^\{|\}$/g, '').trim();
-      const mathOps = ['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'int', 'sum', 'prod'];
-      if (mathOps.includes(cleanBase.toLowerCase())) {
-        return `\\${cleanBase.toLowerCase()}_{${subLatex}}^{${supLatex}}`;
-      }
-      return `{${baseLatex}}_{${subLatex}}^{${supLatex}}`;
+      const base = childByTag(node, 'e');
+      const subscript = childByTag(node, 'sub');
+      const exponent = childByTag(node, 'sup');
+      const baseLatex = base ? ommlNodeToLatex(base).trim() : '';
+      const subLatex = subscript ? ommlNodeToLatex(subscript).trim() : '';
+      const supLatex = exponent ? ommlNodeToLatex(exponent).trim() : '';
+      if (!baseLatex) return '';
+      const op = normalizeOperatorName(baseLatex);
+      const limitOperators = new Set(['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'int', 'sum', 'prod']);
+      const renderedBase = limitOperators.has(op) ? `\\${op}` : (baseLatex.length === 1 || /^\\[a-zA-Z]+$/.test(baseLatex) ? baseLatex : wrapGroup(baseLatex));
+      return `${renderedBase}${subLatex ? `_{${subLatex}}` : ''}${supLatex ? `^{${supLatex}}` : ''}`;
     }
 
     case 'rad': {
-      // Radical: <m:e> radicand, optional <m:deg> degree
-      const eEl = getChildByLocalTag(node, 'e');
-      const degEl = getChildByLocalTag(node, 'deg');
-      const radicand = eEl ? ommlNodeToLatex(eEl).trim() : '';
-      const degree = degEl ? ommlNodeToLatex(degEl).trim() : '';
-      if (degree) {
-        return `\\sqrt[${degree}]{${radicand}}`;
-      }
-      return `\\sqrt{${radicand}}`;
+      const radicandNode = childByTag(node, 'e');
+      const degreeNode = childByTag(node, 'deg');
+      const radicand = radicandNode ? ommlNodeToLatex(radicandNode).trim() : '';
+      const degree = degreeNode ? ommlNodeToLatex(degreeNode).trim() : '';
+      if (!radicand) return '';
+      return degree ? `\\sqrt[${degree}]{${radicand}}` : `\\sqrt{${radicand}}`;
     }
 
     case 'nary': {
-      // N-ary: Integrals, Summations, Products
-      const naryPr = getChildByLocalTag(node, 'narypr');
-      let chr = '∫';
-      if (naryPr) {
-        const chrEl = getChildByLocalTag(naryPr, 'chr');
-        if (chrEl && chrEl.getAttribute) {
-          chr = chrEl.getAttribute('m:val') || chrEl.getAttribute('val') || '∫';
-        }
-      }
+      const properties = childByTag(node, 'narypr');
+      const characterNode = properties ? childByTag(properties, 'chr') : null;
+      const rawCharacter = characterNode ? attr(characterNode, 'val', OMML_NS) : null;
+      const character = (rawCharacter || nodeText(characterNode) || '').trim();
+      const normalized = character.toLowerCase();
+      let operator = '';
+      if (character === '∑' || normalized.includes('sum')) operator = '\\sum';
+      else if (character === '∏' || normalized.includes('prod')) operator = '\\prod';
+      else if (character === '∫' || normalized.includes('int')) operator = '\\int';
+      else if (character === '∮') operator = '\\oint';
+      else if (character === '∬') operator = '\\iint';
+      else if (character === '∭') operator = '\\iiint';
+      else if (character === '∯') operator = '\\oiint';
+      else if (character === '∰') operator = '\\oiiint';
+      else if (character === '⋃') operator = '\\bigcup';
+      else if (character === '⋂') operator = '\\bigcap';
+      else return ommlChildrenToLatex(node);
 
-      const subEl = getChildByLocalTag(node, 'sub');
-      const supEl = getChildByLocalTag(node, 'sup');
-      const eEl = getChildByLocalTag(node, 'e');
-
-      const subLatex = subEl ? ommlNodeToLatex(subEl).trim() : '';
-      const supLatex = supEl ? ommlNodeToLatex(supEl).trim() : '';
-      const eLatex = eEl ? ommlNodeToLatex(eEl).trim() : '';
-
-      let opCmd = '\\int';
-      if (chr === '∑' || chr.toLowerCase().includes('sum')) opCmd = '\\sum';
-      else if (chr === '∏' || chr.toLowerCase().includes('prod')) opCmd = '\\prod';
-
-      let bounds = '';
-      if (subLatex && supLatex) bounds = `_{${subLatex}}^{${supLatex}}`;
-      else if (subLatex) bounds = `_{${subLatex}}`;
-      else if (supLatex) bounds = `^{${supLatex}}`;
-
-      return `${opCmd}${bounds} ${eLatex}`;
+      const subNode = childByTag(node, 'sub');
+      const supNode = childByTag(node, 'sup');
+      const bodyNode = childByTag(node, 'e');
+      const sub = subNode ? ommlNodeToLatex(subNode).trim() : '';
+      const sup = supNode ? ommlNodeToLatex(supNode).trim() : '';
+      const body = bodyNode ? ommlNodeToLatex(bodyNode).trim() : '';
+      const bounds = `${sub ? `_{${sub}}` : ''}${sup ? `^{${sup}}` : ''}`;
+      return `${operator}${bounds}${body ? ` ${body}` : ''}`;
     }
 
     case 'd': {
-      // Delimiters: parentheses, brackets, or piecewise braces
-      const dPr = getChildByLocalTag(node, 'dpr');
-      let begChr = '(';
-      let endChr = ')';
-      if (dPr) {
-        const b = getChildByLocalTag(dPr, 'begchr');
-        const e = getChildByLocalTag(dPr, 'endchr');
-        if (b && b.getAttribute) begChr = b.getAttribute('m:val') ?? b.getAttribute('val') ?? '(';
-        if (e && e.getAttribute) endChr = e.getAttribute('m:val') ?? e.getAttribute('val') ?? ')';
+      const properties = childByTag(node, 'dpr');
+      const beginNode = properties ? childByTag(properties, 'begchr') : null;
+      const endNode = properties ? childByTag(properties, 'endchr') : null;
+      const begin = beginNode ? (attr(beginNode, 'val', OMML_NS) ?? nodeText(beginNode)) : '(';
+      const end = endNode ? (attr(endNode, 'val', OMML_NS) ?? nodeText(endNode)) : ')';
+      const expressions = childrenByTag(node, 'e');
+      const content = expressions.map(item => ommlNodeToLatex(item).trim()).filter(Boolean).join(' ');
+
+      // Only classify as cases when the source has multiple explicit entries
+      // and an invisible closing delimiter. A single grouped expression is not cases.
+      const isCases = begin === '{' && (!end || end === '∅') && expressions.length > 1 &&
+        expressions.every(item => childElements(item).length > 0);
+      if (isCases) {
+        return `\\begin{cases}${expressions.map(item => ommlNodeToLatex(item).trim()).filter(Boolean).join(' \\\\[6pt] ')}\\end{cases}`;
       }
 
-      const eChildren = getAllChildrenByLocalTag(node, 'e');
-
-      // Check for Piecewise function: begChr="{" and endChr=""
-      if (begChr === '{' && (!endChr || endChr === '')) {
-        const rows = eChildren.map(c => ommlNodeToLatex(c).trim());
-        return `\\begin{cases} ${rows.join(' \\\\[6pt] ')} \\end{cases}`;
-      }
-
-      const content = eChildren.map(c => ommlNodeToLatex(c).trim()).join(' ');
-      let leftTag = '\\left(';
-      let rightTag = '\\right)';
-
-      if (begChr === '[') leftTag = '\\left[';
-      else if (begChr === '{') leftTag = '\\left\\{';
-      else if (begChr === '|') leftTag = '\\left|';
-      else if (!begChr) leftTag = '\\left.';
-
-      if (endChr === ']') rightTag = '\\right]';
-      else if (endChr === '}') rightTag = '\\right\\}';
-      else if (endChr === '|') rightTag = '\\right|';
-      else if (!endChr) rightTag = '\\right.';
-
-      return `${leftTag}${content}${rightTag}`;
+      return `${escapeLatexDelimiter(begin, 'left')}${content}${escapeLatexDelimiter(end, 'right')}`;
     }
 
     case 'm': {
-      // Matrix: <m:mr> rows, each containing <m:e> columns
-      const rowEls = getAllChildrenByLocalTag(node, 'mr');
-      const rows: string[] = [];
-      for (const r of rowEls) {
-        const colEls = getAllChildrenByLocalTag(r, 'e');
-        const cols = colEls.map(c => ommlNodeToLatex(c).trim());
-        rows.push(cols.join(' & '));
-      }
-      return `\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}`;
+      const rowNodes = childrenByTag(node, 'mr');
+      if (!rowNodes.length) return ommlChildrenToLatex(node);
+      const rows = rowNodes.map(row => {
+        const cells = childrenByTag(row, 'e').map(cell => ommlNodeToLatex(cell).trim());
+        return cells.join(' & ');
+      });
+      return `\\begin{bmatrix}${rows.join(' \\\\ ')}\\end{bmatrix}`;
     }
 
-    case 'limlow': {
-      // Limit with lower condition: <m:e> 'lim', <m:lim> 'x \to 0'
-      const eEl = getChildByLocalTag(node, 'e');
-      const limEl = getChildByLocalTag(node, 'lim');
-      const rawOpText = eEl ? ommlNodeToLatex(eEl) : 'lim';
-      const opText = rawOpText.trim().replace(/^\{(.+)\}$/, '$1').trim();
-      const cond = limEl ? ommlNodeToLatex(limEl).trim() : '';
-      return `\\${opText}_{${cond}}`;
-    }
-
+    case 'limlow':
     case 'limupp': {
-      // Limit with upper condition
-      const eEl = getChildByLocalTag(node, 'e');
-      const limEl = getChildByLocalTag(node, 'lim');
-      const rawOpText = eEl ? ommlNodeToLatex(eEl) : 'lim';
-      const opText = rawOpText.trim().replace(/^\{(.+)\}$/, '$1').trim();
-      const cond = limEl ? ommlNodeToLatex(limEl).trim() : '';
-      return `\\${opText}^{${cond}}`;
+      const expression = childByTag(node, 'e');
+      const limit = childByTag(node, 'lim');
+      const rawOperator = expression ? ommlNodeToLatex(expression).trim() : 'lim';
+      const operator = rawOperator.replace(/^\\?([a-zA-Z]+)$/, '$1');
+      const condition = limit ? ommlNodeToLatex(limit).trim() : '';
+      if (!condition) return `\\${operator}`;
+      return name === 'limlow' ? `\\${operator}_{${condition}}` : `\\${operator}^{${condition}}`;
     }
 
     case 'func': {
-      // Function: <m:fname> 'sin', <m:e> 'x'
-      const fnEl = getChildByLocalTag(node, 'fname');
-      const eEl = getChildByLocalTag(node, 'e');
-      const fnName = fnEl ? ommlNodeToLatex(fnEl).trim() : '';
-      const arg = eEl ? ommlNodeToLatex(eEl).trim() : '';
-      const cleanFn = fnName.startsWith('\\') ? fnName : `\\${fnName}`;
-      const noParenOps = ['\\lim', '\\max', '\\min', '\\sup', '\\inf', '\\limsup', '\\liminf'];
-      if (noParenOps.some(op => cleanFn === op || cleanFn.startsWith(op + '_') || cleanFn.startsWith(op + ' '))) {
-        return `${cleanFn} ${arg}`;
-      }
-      return `${cleanFn}\\left(${arg}\\right)`;
+      const functionNode = childByTag(node, 'fname');
+      const argumentNode = childByTag(node, 'e');
+      const functionName = functionNode ? ommlNodeToLatex(functionNode).trim() : '';
+      const argument = argumentNode ? ommlNodeToLatex(argumentNode).trim() : '';
+      if (!functionName) return argument;
+      const command = functionName.startsWith('\\') ? functionName : `\\${functionName}`;
+      const noParentheses = new Set(['\\lim', '\\max', '\\min', '\\sup', '\\inf', '\\limsup', '\\liminf']);
+      return noParentheses.has(command) ? `${command}${argument ? ` ${argument}` : ''}` : `${command}${argument ? `\\left(${argument}\\right)` : ''}`;
     }
 
     case 'acc': {
-      // Accent: vector arrow, bar, hat, dot, ddot
-      const accPr = getChildByLocalTag(node, 'accpr');
-      let chr = '⃗';
-      if (accPr) {
-        const c = getChildByLocalTag(accPr, 'chr');
-        if (c && c.getAttribute) chr = c.getAttribute('m:val') ?? c.getAttribute('val') ?? '⃗';
-      }
-      const eEl = getChildByLocalTag(node, 'e');
-      const base = eEl ? ommlNodeToLatex(eEl).trim() : '';
-      if (chr === '⃗' || chr === '→') return `\\vec{${base}}`;
-      if (chr === '̂' || chr === '^') return `\\hat{${base}}`;
-      if (chr === '̅' || chr === '-') return `\\bar{${base}}`;
-      if (chr === '̇' || chr === '.') return `\\dot{${base}}`;
-      if (chr === '̈' || chr === '..') return `\\ddot{${base}}`;
-      return `\\vec{${base}}`;
+      const properties = childByTag(node, 'accpr');
+      const characterNode = properties ? childByTag(properties, 'chr') : null;
+      const character = characterNode ? (attr(characterNode, 'val', OMML_NS) ?? nodeText(characterNode)) : '⃗';
+      const expression = childByTag(node, 'e');
+      const base = expression ? ommlNodeToLatex(expression).trim() : '';
+      if (!base) return '';
+      if (character === '⃗' || character === '→') return `\\vec{${base}}`;
+      if (character === '̂' || character === '^') return `\\hat{${base}}`;
+      if (character === '̅' || character === '¯' || character === '-') return `\\bar{${base}}`;
+      if (character === '̇' || character === '.') return `\\dot{${base}}`;
+      if (character === '̈' || character === '..') return `\\ddot{${base}}`;
+      if (character === '̃' || character === '~') return `\\tilde{${base}}`;
+      return `\\overset{${convertText(character)}}{${base}}`;
     }
 
     case 'box': {
-      const eEl = getChildByLocalTag(node, 'e');
-      return eEl ? ommlNodeToLatex(eEl) : '';
+      const expression = childByTag(node, 'e');
+      return expression ? ommlNodeToLatex(expression) : ommlChildrenToLatex(node);
     }
 
     case 'groupchr': {
-      const groupChrPr = getChildByLocalTag(node, 'groupchrpr');
-      let pos = 'bot';
-      if (groupChrPr) {
-        const posEl = getChildByLocalTag(groupChrPr, 'pos');
-        if (posEl && posEl.getAttribute) pos = posEl.getAttribute('m:val') ?? posEl.getAttribute('val') ?? 'bot';
-      }
-      const eEl = getChildByLocalTag(node, 'e');
-      const base = eEl ? ommlNodeToLatex(eEl).trim() : '';
-      return pos === 'top' ? `\\overbrace{${base}}` : `\\underbrace{${base}}`;
+      const properties = childByTag(node, 'groupchrpr');
+      const positionNode = properties ? childByTag(properties, 'pos') : null;
+      const position = positionNode ? (attr(positionNode, 'val', OMML_NS) || nodeText(positionNode)).trim() : 'bot';
+      const expression = childByTag(node, 'e');
+      const base = expression ? ommlNodeToLatex(expression).trim() : '';
+      if (!base) return '';
+      return position === 'top' ? `\\overbrace{${base}}` : `\\underbrace{${base}}`;
     }
 
-    case 'r': {
-      // Run: contains <m:t> text
-      let runText = '';
-      if (node.childNodes) {
-        for (let i = 0; i < node.childNodes.length; i++) {
-          const child = node.childNodes[i];
-          const cLocal = (child.localName || child.nodeName || '').replace(/^m:/i, '').toLowerCase();
-          if (cLocal === 't') {
-            runText += getNodeText(child);
-          } else {
-            runText += ommlNodeToLatex(child);
-          }
-        }
-      }
-      return reconstructUnicodeMath(runText);
-    }
-
-    case 't': {
-      return reconstructUnicodeMath(getNodeText(node));
-    }
-
-    default: {
-      let res = '';
-      if (node.childNodes) {
-        for (let i = 0; i < node.childNodes.length; i++) {
-          res += ommlNodeToLatex(node.childNodes[i]);
-        }
-      }
-      return res;
-    }
+    default:
+      return ommlChildrenToLatex(node);
   }
+}
+
+function ommlChildrenToLatex(node: DomNode): string {
+  let result = '';
+  for (const child of Array.from(node?.childNodes || []) as DomNode[]) {
+    result += ommlNodeToLatex(child);
+  }
+  return result;
 }
 
 // ============================================================================
 // 2. MATHML TO LATEX CONVERSION
 // ============================================================================
 
+function mathChildren(node: DomNode): DomNode[] {
+  return childElements(node);
+}
+
+function mathChild(node: DomNode, index: number): DomNode | null {
+  return mathChildren(node)[index] || null;
+}
+
+function mathText(node: DomNode): string {
+  return convertText(nodeText(node).trim());
+}
+
+function mathSpace(node: DomNode): string {
+  const width = (attr(node, 'width') || '').trim();
+  if (!width) return '\\;';
+  if (/^-?0(?:em|ex|px|pt|%)?$/.test(width)) return '';
+  const numeric = Number.parseFloat(width);
+  if (!Number.isFinite(numeric)) return '\\;';
+  if (numeric < 0) return '\\!';
+  if (numeric <= 0.2) return '\\,';
+  if (numeric <= 0.5) return '\\:';
+  if (numeric <= 1) return '\\;';
+  return '\\quad';
+}
+
+function serializeMathRow(node: DomNode): string {
+  let result = '';
+  for (const child of Array.from(node?.childNodes || []) as DomNode[]) {
+    const piece = mathMLNodeToLatex(child);
+    if (piece) result += piece;
+  }
+  return result;
+}
+
 export function mathMLNodeToLatex(node: any): string {
   if (!node) return '';
-
-  if (node.nodeType === 3) {
-    const val = node.nodeValue || '';
-    if (!val.trim()) return '';
-    return reconstructUnicodeMath(val);
+  if (node.nodeType === TEXT_NODE || node.nodeType === CDATA_SECTION_NODE) {
+    const value = String(node.nodeValue || '');
+    return value.trim() ? convertText(value) : '';
   }
+  if (node.nodeType !== ELEMENT_NODE) return '';
 
-  if (node.nodeType !== 1) return '';
-
-  const tag = (node.localName || node.nodeName || '').replace(/^[a-z]+:/i, '').toLowerCase();
+  const tag = localNameOf(node);
 
   switch (tag) {
     case 'math':
-    case 'mrow': {
-      let res = '';
-      if (node.childNodes) {
-        for (let i = 0; i < node.childNodes.length; i++) {
-          const piece = mathMLNodeToLatex(node.childNodes[i]);
-          if (piece) {
-            const isUnarySign = res === '-' || res === '+';
-            const needsSpace = res &&
-              !res.endsWith('{') &&
-              !res.endsWith('\\') &&
-              !isUnarySign &&
-              !piece.startsWith('^') &&
-              !piece.startsWith('_');
-            res += (needsSpace ? ' ' : '') + piece;
-          }
-        }
-      }
-      return res.replace(/\s+/g, ' ').trim();
-    }
+    case 'mrow':
+      return serializeMathRow(node);
 
     case 'mfrac': {
-      const children = getElementChildren(node);
-      const num = children[0] ? mathMLNodeToLatex(children[0]).trim() : '1';
-      const den = children[1] ? mathMLNodeToLatex(children[1]).trim() : '1';
-      return `\\frac{${num || '1'}}{${den || '1'}}`;
+      const numerator = mathChild(node, 0);
+      const denominator = mathChild(node, 1);
+      if (!numerator || !denominator) return serializeMathRow(node);
+      const num = mathMLNodeToLatex(numerator).trim();
+      const den = mathMLNodeToLatex(denominator).trim();
+      if (!num || !den) return serializeMathRow(node);
+      const linethickness = (attr(node, 'linethickness') || '').trim();
+      if (linethickness === '0' || linethickness === '0px') {
+        return `\\binom{${num}}{${den}}`;
+      }
+      return `\\frac{${num}}{${den}}`;
     }
 
-    case 'msup': {
-      const children = getElementChildren(node);
-      const base = children[0] ? mathMLNodeToLatex(children[0]).trim() : '';
-      const sup = children[1] ? mathMLNodeToLatex(children[1]).trim() : '';
-      const cleanBase = base.replace(/^\{|\}$/g, '').trim();
-      if (/^[a-zA-Z0-9]$/.test(cleanBase) || /^\\[a-zA-Z]+$/.test(cleanBase)) {
-        return `${cleanBase}^{${sup}}`;
-      }
-      return `{${base}}^{${sup}}`;
-    }
-
-    case 'msub': {
-      const children = getElementChildren(node);
-      const base = children[0] ? mathMLNodeToLatex(children[0]).trim() : '';
-      const sub = children[1] ? mathMLNodeToLatex(children[1]).trim() : '';
-      const cleanBase = base.replace(/^\{|\}$/g, '').trim();
-      const mathOps = ['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'gcd'];
-      if (mathOps.includes(cleanBase.toLowerCase())) {
-        return `\\${cleanBase.toLowerCase()}_{${sub}}`;
-      }
-      if (/^[a-zA-Z0-9]$/.test(cleanBase) || /^\\[a-zA-Z]+$/.test(cleanBase)) {
-        return `${cleanBase}_{${sub}}`;
-      }
-      return `{${base}}_{${sub}}`;
-    }
-
+    case 'msup':
+    case 'msub':
     case 'msubsup': {
-      const children = getElementChildren(node);
-      const base = children[0] ? mathMLNodeToLatex(children[0]).trim() : '';
-      const sub = children[1] ? mathMLNodeToLatex(children[1]).trim() : '';
-      const sup = children[2] ? mathMLNodeToLatex(children[2]).trim() : '';
-      const cleanBase = base.replace(/^\{|\}$/g, '').trim();
-      const mathOps = ['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'int', 'sum', 'prod'];
-      if (mathOps.includes(cleanBase.toLowerCase())) {
-        return `\\${cleanBase.toLowerCase()}_{${sub}}^{${sup}}`;
+      const baseNode = mathChild(node, 0);
+      const subNode = tag === 'msub' || tag === 'msubsup' ? mathChild(node, 1) : null;
+      const supNode = tag === 'msup' ? mathChild(node, 1) : tag === 'msubsup' ? mathChild(node, 2) : null;
+      if (!baseNode || (tag === 'msup' && !supNode) || (tag === 'msub' && !subNode) || (tag === 'msubsup' && (!subNode || !supNode))) {
+        return serializeMathRow(node);
       }
-      return `{${base}}_{${sub}}^{${sup}}`;
+      const base = mathMLNodeToLatex(baseNode).trim();
+      const sub = subNode ? mathMLNodeToLatex(subNode).trim() : '';
+      const sup = supNode ? mathMLNodeToLatex(supNode).trim() : '';
+      if (!base) return '';
+      const commandName = normalizeOperatorName(base);
+      const limitOps = new Set(['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'gcd', 'int', 'sum', 'prod']);
+      const renderedBase = limitOps.has(commandName) ? `\\${commandName}` :
+        (base.length === 1 || /^\\[a-zA-Z]+$/.test(base) ? base : wrapGroup(base));
+      return `${renderedBase}${sub ? `_{${sub}}` : ''}${sup ? `^{${sup}}` : ''}`;
     }
 
     case 'msqrt': {
-      let content = '';
-      if (node.childNodes) {
-        for (let i = 0; i < node.childNodes.length; i++) {
-          content += mathMLNodeToLatex(node.childNodes[i]);
-        }
-      }
-      return `\\sqrt{${content.trim()}}`;
+      const content = serializeMathRow(node).trim();
+      return content ? `\\sqrt{${content}}` : '';
     }
 
     case 'mroot': {
-      const children = getElementChildren(node);
-      const base = children[0] ? mathMLNodeToLatex(children[0]).trim() : '';
-      const deg = children[1] ? mathMLNodeToLatex(children[1]).trim() : '';
-      return `\\sqrt[${deg}]{${base}}`;
+      const radicandNode = mathChild(node, 0);
+      const degreeNode = mathChild(node, 1);
+      if (!radicandNode || !degreeNode) return serializeMathRow(node);
+      const radicand = mathMLNodeToLatex(radicandNode).trim();
+      const degree = mathMLNodeToLatex(degreeNode).trim();
+      return radicand && degree ? `\\sqrt[${degree}]{${radicand}}` : '';
     }
 
-    case 'munderover': {
-      const children = getElementChildren(node);
-      const op = children[0] ? mathMLNodeToLatex(children[0]).trim() : '';
-      const under = children[1] ? mathMLNodeToLatex(children[1]).trim() : '';
-      const over = children[2] ? mathMLNodeToLatex(children[2]).trim() : '';
-      return `${op}_{${under}}^{${over}} `;
-    }
-
-    case 'munder': {
-      const children = getElementChildren(node);
-      const op = children[0] ? mathMLNodeToLatex(children[0]).trim() : '';
-      const under = children[1] ? mathMLNodeToLatex(children[1]).trim() : '';
-      return `${op}_{${under}} `;
-    }
-
+    case 'munderover':
+    case 'munder':
     case 'mover': {
-      const children = getElementChildren(node);
-      const base = children[0] ? mathMLNodeToLatex(children[0]).trim() : '';
-      const over = children[1] ? mathMLNodeToLatex(children[1]).trim() : '';
-      if (over === '→' || over === '⃗') return `\\vec{${base}}`;
-      if (over === '^' || over === '̂') return `\\hat{${base}}`;
-      if (over === '¯' || over === '‾') return `\\bar{${base}}`;
-      return `{${base}}^{${over}}`;
+      const baseNode = mathChild(node, 0);
+      if (!baseNode) return serializeMathRow(node);
+      const base = mathMLNodeToLatex(baseNode).trim();
+      const underNode = tag === 'munder' || tag === 'munderover' ? mathChild(node, 1) : null;
+      const overNode = tag === 'mover' ? mathChild(node, 1) : tag === 'munderover' ? mathChild(node, 2) : null;
+      const under = underNode ? mathMLNodeToLatex(underNode).trim() : '';
+      const over = overNode ? mathMLNodeToLatex(overNode).trim() : '';
+      const accent = attr(node, tag === 'mover' ? 'accent' : 'accentunder');
+      if (tag === 'mover' && (over === '→' || over === '⃗')) return `\\vec{${base}}`;
+      if (tag === 'mover' && (over === '^' || over === '̂')) return `\\hat{${base}}`;
+      if (tag === 'mover' && (over === '¯' || over === '‾' || over === '̅')) return `\\bar{${base}}`;
+      if (tag === 'mover' && (over === '˙' || over === '̇')) return `\\dot{${base}}`;
+      if (tag === 'mover' && (over === '¨' || over === '̈')) return `\\ddot{${base}}`;
+      if (tag === 'mover' && (over === '~' || over === '̃')) return `\\tilde{${base}}`;
+      if (tag === 'mover' && accent !== 'false' && over) return `\\overset{${over}}{${base}}`;
+      if (tag === 'munder' && accent === 'true' && under) return `\\underset{${under}}{${base}}`;
+      if (tag === 'munder') return `${base}_{${under}}`;
+      if (tag === 'mover') return `${base}^{${over}}`;
+      return `${base}${under ? `_{${under}}` : ''}${over ? `^{${over}}` : ''}`;
     }
 
     case 'mtable': {
-      const rows: string[] = [];
-      const trs = getAllChildrenByLocalTag(node, 'mtr');
-      for (const r of trs) {
-        const cols = getAllChildrenByLocalTag(r, 'mtd').map(c => mathMLNodeToLatex(c).trim());
-        rows.push(cols.join(' & '));
+      const rows = childElements(node).filter(row => ['mtr', 'mlabeledtr'].includes(localNameOf(row)));
+      if (!rows.length) return '';
+      const renderedRows = rows.map(row => {
+        const cells = childElements(row).filter(cell => localNameOf(cell) === 'mtd');
+        return cells.map(cell => mathMLNodeToLatex(cell).trim()).join(' & ');
+      });
+      const environment = (attr(node, 'columnalign') || '').toLowerCase().includes('left') ? 'array' : 'matrix';
+      if (environment === 'array') {
+        const count = Math.max(1, ...renderedRows.map(row => row.split('&').length));
+        return `\\begin{array}{${'l'.repeat(count)}}${renderedRows.join(' \\\\ ')}\\end{array}`;
       }
-      return `\\begin{matrix} ${rows.join(' \\\\ ')} \\end{matrix}`;
+      return `\\begin{matrix}${renderedRows.join(' \\\\ ')}\\end{matrix}`;
     }
 
     case 'mfenced': {
-      let open = '(';
-      let close = ')';
-      if (node.getAttribute) {
-        if (node.getAttribute('open') !== null) open = node.getAttribute('open');
-        if (node.getAttribute('close') !== null) close = node.getAttribute('close');
-      }
-      let inner = '';
-      if (node.childNodes) {
-        for (let i = 0; i < node.childNodes.length; i++) {
-          inner += mathMLNodeToLatex(node.childNodes[i]);
-        }
-      }
-      return `\\left${open}${inner.trim()}\\right${close}`;
+      const open = attr(node, 'open') ?? '(';
+      const close = attr(node, 'close') ?? ')';
+      const separators = attr(node, 'separators') ?? ',';
+      const children = mathChildren(node);
+      const rendered = children.map(child => mathMLNodeToLatex(child).trim());
+      const separatorChars = Array.from(separators.replace(/\s/g, ''));
+      const body = rendered.map((part, index) => {
+        if (index === 0) return part;
+        return `${separatorChars[Math.min(index - 1, Math.max(0, separatorChars.length - 1))] || ','}${part}`;
+      }).join('');
+      return `${escapeLatexDelimiter(open, 'left')}${body}${escapeLatexDelimiter(close, 'right')}`;
     }
 
     case 'mi':
     case 'mn':
     case 'mo':
-    case 'mtext': {
-      const txt = getNodeText(node).trim();
-      return reconstructUnicodeMath(txt);
+      return mathText(node);
+
+    case 'mtext':
+      return `\\text{${mathText(node).replace(/[{}]/g, '')}}`;
+
+    case 'mspace':
+      return mathSpace(node);
+
+    case 'mstyle':
+    case 'mpadded':
+    case 'mphantom':
+      return tag === 'mphantom' ? `\\phantom{${serializeMathRow(node)}}` : serializeMathRow(node);
+
+    case 'menclose': {
+      const notation = (attr(node, 'notation') || 'longdiv').split(/\s+/);
+      const content = serializeMathRow(node);
+      if (notation.includes('box')) return `\\boxed{${content}}`;
+      if (notation.includes('roundedbox')) return `\\boxed{${content}}`;
+      if (notation.includes('circle')) return `\\boxed{${content}}`;
+      if (notation.includes('updiagonalstrike')) return `\\cancel{${content}}`;
+      return content;
     }
 
-    default: {
-      let res = '';
-      if (node.childNodes) {
-        for (let i = 0; i < node.childNodes.length; i++) {
-          res += mathMLNodeToLatex(node.childNodes[i]);
-        }
-      }
-      return res;
+    case 'semantics': {
+      const children = childElements(node);
+      const presentation = children.find(child => !['annotation', 'annotation-xml'].includes(localNameOf(child)));
+      return presentation ? mathMLNodeToLatex(presentation) : '';
     }
+
+    case 'annotation':
+    case 'annotation-xml':
+      return '';
+
+    default:
+      return serializeMathRow(node);
   }
-}
-
-function getElementChildren(node: any): any[] {
-  if (!node || !node.childNodes) return [];
-  const list: any[] = [];
-  for (let i = 0; i < node.childNodes.length; i++) {
-    if (node.childNodes[i].nodeType === 1) {
-      list.push(node.childNodes[i]);
-    }
-  }
-  return list;
-}
-
-function decodeHtmlMathEntities(html: string): string {
-  return html
-    .replace(/&alpha;/gi, 'α')
-    .replace(/&beta;/gi, 'β')
-    .replace(/&gamma;/gi, 'γ')
-    .replace(/&delta;/gi, 'δ')
-    .replace(/&epsilon;/gi, 'ε')
-    .replace(/&theta;/gi, 'θ')
-    .replace(/&lambda;/gi, 'λ')
-    .replace(/&mu;/gi, 'μ')
-    .replace(/&pi;/gi, 'π')
-    .replace(/&sigma;/gi, 'σ')
-    .replace(/&phi;/gi, 'φ')
-    .replace(/&omega;/gi, 'ω')
-    .replace(/&le;/gi, '≤')
-    .replace(/&ge;/gi, '≥')
-    .replace(/&ne;/gi, '≠')
-    .replace(/&approx;/gi, '≈')
-    .replace(/&plusmn;/gi, '±')
-    .replace(/&times;/gi, '×')
-    .replace(/&divide;/gi, '÷')
-    .replace(/&infin;/gi, '∞')
-    .replace(/&sum;/gi, '∑')
-    .replace(/&prod;/gi, '∏')
-    .replace(/&int;/gi, '∫')
-    .replace(/&part;/gi, '∂')
-    .replace(/&radic;/gi, '√')
-    .replace(/&cup;/gi, '∪')
-    .replace(/&cap;/gi, '∩')
-    .replace(/&isin;/gi, '∈')
-    .replace(/&notin;/gi, '∉')
-    .replace(/&rarr;/gi, '→')
-    .replace(/&larr;/gi, '←')
-    .replace(/&harr;/gi, '↔')
-    .replace(/&rArr;/gi, '⇒')
-    .replace(/&lArr;/gi, '⇐')
-    .replace(/&hArr;/gi, '⇔')
-    .replace(/&sdot;/gi, '⋅')
-    .replace(/&middot;/gi, '·')
-    .replace(/&dd;/gi, 'd')
-    .replace(/&nbsp;/gi, ' ');
 }
 
 // ============================================================================
 // 3. HTML DOCUMENT MATH EXTRACTOR
 // ============================================================================
 
-export function convertHtmlWithMath(htmlString: string): string {
-  if (!htmlString || !htmlString.trim()) return '';
-
-  let html = decodeHtmlMathEntities(htmlString);
-
-  // 1. Unwrap Word math inside conditional comments instead of deleting it
-  html = html.replace(/<!--\[if[^\]]*\]>([\s\S]*?<m:oMath[\s\S]*?)<!\[endif\]-->/gi, '$1');
-  html = html.replace(/<!--\[if[^\]]*\]>([\s\S]*?<math[\s\S]*?)<!\[endif\]-->/gi, '$1');
-  html = html.replace(/<!--\[if[\s\S]*?<!\[endif\]-->/gi, '');
-  html = html.replace(/<style[\s\S]*?<\/style>/gi, '');
-  html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
-
-  // 2. Process MathML blocks with dedicated XML DOM parser
-  html = html.replace(/<math\b[\s\S]*?<\/math>/gi, (match) => {
-    let xmlStr = match;
-    if (!xmlStr.includes('xmlns')) {
-      xmlStr = xmlStr.replace(/<math/i, '<math xmlns="http://www.w3.org/1998/Math/MathML"');
-    }
-    const xmlDoc = parseMarkupToDoc(xmlStr, 'xml');
-    if (xmlDoc && (xmlDoc.documentElement || xmlDoc)) {
-      const latex = mathMLNodeToLatex(xmlDoc.documentElement || xmlDoc).replace(/\s+/g, ' ').trim();
-      return ` $${latex}$ `;
-    }
-    return match;
-  });
-
-  // 3. Process OMML blocks with dedicated XML DOM parser
-  html = html.replace(/<(?:m:)?oMathPara\b[\s\S]*?<\/(?:m:)?oMathPara>/gi, (match) => {
-    let xmlStr = match;
-    if (!xmlStr.includes('xmlns:m')) {
-      xmlStr = xmlStr.replace(/<(?:m:)?oMathPara/i, '<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"');
-    }
-    const xmlDoc = parseMarkupToDoc(xmlStr, 'xml');
-    if (xmlDoc && (xmlDoc.documentElement || xmlDoc)) {
-      const latex = ommlNodeToLatex(xmlDoc.documentElement || xmlDoc).replace(/\s+/g, ' ').trim();
-      return ` $${latex}$ `;
-    }
-    return match;
-  });
-
-  html = html.replace(/<(?:m:)?oMath\b[\s\S]*?<\/(?:m:)?oMath>/gi, (match) => {
-    let xmlStr = match;
-    if (!xmlStr.includes('xmlns:m')) {
-      xmlStr = xmlStr.replace(/<(?:m:)?oMath/i, '<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"');
-    }
-    const xmlDoc = parseMarkupToDoc(xmlStr, 'xml');
-    if (xmlDoc && (xmlDoc.documentElement || xmlDoc)) {
-      const latex = ommlNodeToLatex(xmlDoc.documentElement || xmlDoc).replace(/\s+/g, ' ').trim();
-      return ` $${latex}$ `;
-    }
-    return match;
-  });
-
-  // 4. Process HTML sup and sub tags, stripping inner spans or whitespace
-  html = html.replace(/<sup>([\s\S]*?)<\/sup>/gi, (_m, content) => {
-    const cleanContent = content.replace(/<[^>]+>/g, '').trim();
-    return `^{${cleanContent}}`;
-  });
-  html = html.replace(/<sub>([\s\S]*?)<\/sub>/gi, (_m, content) => {
-    const cleanContent = content.replace(/<[^>]+>/g, '').trim();
-    return `_{${cleanContent}}`;
-  });
-
-  // 5. Clean remaining HTML tags while preserving line breaks and table cells
-  html = html.replace(/<br\s*\/?>/gi, '\n');
-  html = html.replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, '\n\n');
-  html = html.replace(/<(?:td|th)\b[^>]*>/gi, ' ');
-  // Strip inline formatting tags without introducing spaces
-  html = html.replace(/<\/?(?:span|b|strong|i|em|u|font|a|code|mark|small)\b[^>]*>/gi, '');
-  html = html.replace(/<[^>]+>/g, ' ');
-
-  // Clean unintended whitespace before exponents and subscripts
-  html = html.replace(/\s+(\^\{[^{}]+\}|_\{[^{}]+\})/g, '$1');
-
-  return reconstructUnicodeMath(html).replace(/\u00A0/g, ' ').replace(/[ \t]+/g, ' ').trim();
+function isMathMlElement(node: DomNode): boolean {
+  if (!node || node.nodeType !== ELEMENT_NODE) return false;
+  const name = localNameOf(node);
+  if (name !== 'math') return false;
+  const namespace = node.namespaceURI || '';
+  return namespace === MATHML_NS || !namespace || String(node.nodeName || '').toLowerCase() === 'math';
 }
 
-function findElementsMatching(root: any, targetTags: string[]): any[] {
-  const result: any[] = [];
-  const lowerTargets = new Set(targetTags.map(t => t.toLowerCase()));
+function isOmmlElement(node: DomNode): boolean {
+  if (!node || node.nodeType !== ELEMENT_NODE) return false;
+  const name = localNameOf(node);
+  if (name !== 'omath' && name !== 'omathpara') return false;
+  const namespace = node.namespaceURI || '';
+  const nodeName = String(node.nodeName || '').toLowerCase();
+  return namespace === OMML_NS || nodeName.startsWith('m:') || !namespace;
+}
 
-  function traverse(node: any) {
+function collectMathRoots(root: DomNode): DomNode[] {
+  const found: DomNode[] = [];
+  const visit = (node: DomNode) => {
     if (!node) return;
-    if (node.nodeType === 1) {
-      const local = (node.localName || node.nodeName || '').replace(/^[a-z0-9_-]+:/i, '').toLowerCase();
-      if (lowerTargets.has(local)) {
-        result.push(node);
-        return; // Don't traverse into converted math subtrees
-      }
+    if (isMathMlElement(node) || isOmmlElement(node)) {
+      found.push(node);
+      return;
     }
     if (node.childNodes) {
-      for (let i = 0; i < node.childNodes.length; i++) {
-        traverse(node.childNodes[i]);
-      }
+      for (let i = 0; i < node.childNodes.length; i++) visit(node.childNodes[i]);
+    }
+  };
+  visit(root);
+  return found;
+}
+
+function convertMathDomNode(node: DomNode): string | null {
+  try {
+    const latex = isMathMlElement(node) ? mathMLNodeToLatex(node) : ommlNodeToLatex(node);
+    const clean = String(latex || '').trim();
+    return clean ? ` $${clean}$ ` : null;
+  } catch {
+    return null;
+  }
+}
+
+function htmlDomToText(node: DomNode): string {
+  if (!node) return '';
+  if (node.nodeType === TEXT_NODE || node.nodeType === CDATA_SECTION_NODE) return String(node.nodeValue || '');
+  if (node.nodeType !== ELEMENT_NODE && node.nodeType !== 9 && node.nodeType !== 11) return '';
+
+  const tag = localNameOf(node);
+  if (tag === 'script' || tag === 'style' || tag === 'noscript') return '';
+  if (tag === 'br') return '\n';
+  if (tag === 'sup' || tag === 'sub') {
+    const content = Array.from(node.childNodes || []).map((child: DomNode) => htmlDomToText(child)).join('').trim();
+    return content ? (tag === 'sup' ? `^{${content}}` : `_{${content}}`) : '';
+  }
+
+  let content = '';
+  if (node.childNodes) {
+    for (let i = 0; i < node.childNodes.length; i++) content += htmlDomToText(node.childNodes[i]);
+  }
+  if (['p', 'div', 'tr', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)) return `${content}\n\n`;
+  if (tag === 'td' || tag === 'th') return `${content} `;
+  return content;
+}
+
+function getBrowserDOMParser(): any {
+  const root: any = typeof globalThis !== 'undefined' ? globalThis : {};
+  const candidates = [root.DOMParser, root.window?.DOMParser, root.self?.DOMParser];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'function') return candidate;
+  }
+  return null;
+}
+
+function parseHtmlDocument(html: string): DomNode | null {
+  const Parser = getBrowserDOMParser();
+  if (!Parser) return null;
+  try {
+    const doc = new Parser().parseFromString(html, 'text/html');
+    return doc?.documentElement ? doc : null;
+  } catch {
+    return null;
+  }
+}
+
+function fallbackRegexHtmlToLatex(html: string): string {
+  let result = html;
+  // This fallback is intentionally conservative and is only used without an HTML DOM parser.
+  result = result.replace(/<math\b[\s\S]*?<\/math>/gi, match => {
+    const doc = parseMarkupToDoc(match, 'xml');
+    if (!doc) return match;
+    const latex = mathMLNodeToLatex(doc.documentElement || doc).trim();
+    return latex ? ` $${latex}$ ` : match;
+  });
+  result = result.replace(/<(?:m:)?oMathPara\b[\s\S]*?<\/(?:m:)?oMathPara>/gi, match => {
+    const doc = parseMarkupToDoc(match, 'xml');
+    if (!doc) return match;
+    const latex = ommlNodeToLatex(doc.documentElement || doc).trim();
+    return latex ? ` $${latex}$ ` : match;
+  });
+  result = result.replace(/<(?:m:)?oMath\b[\s\S]*?<\/(?:m:)?oMath>/gi, match => {
+    const doc = parseMarkupToDoc(match, 'xml');
+    if (!doc) return match;
+    const latex = ommlNodeToLatex(doc.documentElement || doc).trim();
+    return latex ? ` $${latex}$ ` : match;
+  });
+  return result.replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, '\n\n')
+    .replace(/<[^>]*>/g, ' ');
+}
+
+export function convertHtmlWithMath(htmlString: string): string {
+  if (typeof htmlString !== 'string' || !htmlString.trim()) return '';
+
+  const doc = parseHtmlDocument(htmlString);
+  if (!doc) {
+    return reconstructUnicodeMath(fallbackRegexHtmlToLatex(htmlString))
+      .replace(/\u00A0/g, ' ')
+      .replace(/[ \t]+/g, ' ')
+      .trim();
+  }
+
+  const mathRoots = collectMathRoots(doc);
+  for (const mathNode of mathRoots) {
+    const converted = convertMathDomNode(mathNode);
+    if (!converted || !mathNode.parentNode) continue;
+    try {
+      const textNode = (mathNode.ownerDocument || doc).createTextNode(converted);
+      mathNode.parentNode.replaceChild(textNode, mathNode);
+    } catch {
+      // Leave the original node untouched if replacement fails.
     }
   }
 
-  traverse(root);
-  return result;
+  const extracted = htmlDomToText(doc);
+  return reconstructUnicodeMath(extracted)
+    .replace(/\u00A0/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/[ \t]*\n[ \t]*/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
-
-function replaceElementWithText(el: any, text: string) {
-  if (!el.parentNode) return;
-  const owner = el.ownerDocument || el;
-  if (owner && owner.createTextNode) {
-    const textNode = owner.createTextNode(text);
-    el.parentNode.replaceChild(textNode, el);
-  } else {
-    el.nodeValue = text;
-  }
-}
-
-/**
- * Fallback regex extractor if DOMParser is somehow not available
- */
-function fallbackRegexHtmlToLatex(html: string): string {
-  let s = html;
-  // Replace <math>...</math>
-  s = s.replace(/<math[\s\S]*?<\/math>/gi, (match) => {
-    const xmlDoc = parseMarkupToDoc(match, 'xml');
-    if (xmlDoc) return ` $${mathMLNodeToLatex(xmlDoc.documentElement || xmlDoc)}$ `;
-    return match;
-  });
-  // Replace <m:oMath>...</m:oMath>
-  s = s.replace(/<(?:m:)?oMath[\s\S]*?<\/(?:m:)?oMath>/gi, (match) => {
-    const xmlDoc = parseMarkupToDoc(match, 'xml');
-    if (xmlDoc) return ` $${ommlNodeToLatex(xmlDoc.documentElement || xmlDoc)}$ `;
-    return match;
-  });
-
-  // Strip remaining HTML tags
-  s = s.replace(/<[^>]+>/g, ' ');
-  return reconstructUnicodeMath(s);
-}
-
