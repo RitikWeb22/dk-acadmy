@@ -76,6 +76,8 @@ export function validateMathLatex(input: string): MathValidationReport {
   // 4. Detect unparsed font artifacts or equation editor corruptions
   const artifactPatterns = [
     { pattern: /#\$|\$!|\$"|\$&|\$'/g, label: 'Unmapped Equation Editor polynomial variables ($!, $", $\')' },
+    { pattern: /[█┤]/g, label: 'Unconverted Word Equation linear-format token (█, ┤)' },
+    { pattern: /@&/g, label: 'Unconverted Word Equation alignment separator (@&)' },
     { pattern: /\/012|012(?!\d)/g, label: 'Unmapped Cambria Math sine glyph (/012)' },
     { pattern: /9:0/g, label: 'Unmapped Cambria Math cosine glyph (9:0)' },
     { pattern: /<:=/g, label: 'Unmapped Cambria Math logarithm/limit symbol' },
@@ -93,15 +95,12 @@ export function validateMathLatex(input: string): MathValidationReport {
   }
 
   // 5. Check for valid fraction structure
-  const fracMatches = [...text.matchAll(/\\frac\{([^}]*)\}\{([^}]*)\}/g)];
+  const fracMatches = [...text.matchAll(/\\(?:frac|dfrac)\{([^}]*)\}\{([^}]*)\}/g)];
   for (const match of fracMatches) {
     const num = match[1].trim();
     const den = match[2].trim();
-    if (!num) {
-      warnings.push('Fraction has empty numerator');
-    }
-    if (!den) {
-      errors.push('Fraction has empty denominator');
+    if (!num || !den) {
+      errors.push(`Incomplete empty fraction \\frac{${num}}{${den}}`);
     }
   }
 
