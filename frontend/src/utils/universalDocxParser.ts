@@ -722,7 +722,7 @@ export function normalizePastedQuestion(
   }
 
   // Fallback to plain text if HTML conversion collapsed text or produced empty fraction artifacts
-  if (normalizedText.includes('\\frac{}{}') || (plain.trim().length > 25 && normalizedText.trim().length < plain.trim().length * 0.4)) {
+  if (/\\frac\{\s*\}\{\s*\}/.test(normalizedText) || (plain.trim().length > 25 && normalizedText.trim().length < plain.trim().length * 0.4)) {
     normalizedText = normalizeUnicodeMathText(plain);
   }
 
