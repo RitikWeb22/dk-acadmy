@@ -260,8 +260,9 @@ export function normalizePastedQuestionContent(clipboardOrText: PastedContent): 
   const { html, plain } = readClipboard(clipboardOrText);
 
   const sourceType = detectInputFormat(html || plain);
+  const hasRawMathMarkup = Boolean(html && /<(?:m:)?(?:oMath|oMathPara|math)\b/i.test(html));
   const isMathHtml =
-    sourceType === 'omml-xml' || sourceType === 'mathml-xml' || sourceType === 'html-math';
+    sourceType === 'omml-xml' || sourceType === 'mathml-xml' || sourceType === 'html-math' || hasRawMathMarkup;
 
   // Prefer the structured HTML conversion when math markup is present;
   // fall back to the plain text if it produced nothing.

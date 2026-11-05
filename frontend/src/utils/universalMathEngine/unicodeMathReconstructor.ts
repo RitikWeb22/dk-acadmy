@@ -334,7 +334,7 @@ const RADICAL_INDEX = new Map<string, string>([['√', ''], ['∛', '[3]'], ['�
 const RADICAL_TOKEN = /\\[A-Za-z]+(?:\{[^{}]*\})?|\d+(?:\.\d+)?|[A-Za-z]/y;
 
 /** √(x+1) -> \sqrt{x+1}, √x -> \sqrt{x}, ∛8 -> \sqrt[3]{8} */
-export function reconstructRadicals(text: string): string {
+function reconstructRadicals(text: string): string {
   if (!text || !/[√∛∜]/.test(text)) return text || '';
 
   let out = '';
