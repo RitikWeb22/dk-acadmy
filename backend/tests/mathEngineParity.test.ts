@@ -74,4 +74,3 @@ describe('Math Engine Frontend-Backend Step A Parity Suite', () => {
     assert.equal(fResult.correctKey, bResult.correctKey);
   });
 });
-

@@ -195,6 +195,7 @@ export function ommlNodeToLatex(node: any): string {
       const baseLatex = base ? ommlNodeToLatex(base).trim() : '';
       const supLatex = exponent ? ommlNodeToLatex(exponent).trim() : '';
       if (!baseLatex || !supLatex) return baseLatex;
+      if (/^(?:['′]|\\prime)$/.test(supLatex)) return `${baseLatex}'`;
       return `${baseLatex.length === 1 || /^\\[a-zA-Z]+$/.test(baseLatex) ? baseLatex : wrapGroup(baseLatex)}^{${supLatex}}`;
     }
 
@@ -651,7 +652,7 @@ function convertRawOmmlSnippetToLatex(snippet: string): string {
   const withNs = snippet.includes('xmlns:m')
     ? snippet
     : snippet.replace(
-        /^<([a-zA-Z0-9_-]+:)?(oMath|oMathPara)/i,
+        /^<([a-zA-Z0-9_-]+:)?(oMathPara|oMath)\b/i,
         '<$1$2 xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
       );
   const doc = parseMarkupToDoc(withNs, 'xml');
@@ -671,7 +672,7 @@ function validateWithKaTeX(latex: string): { isValid: boolean; error?: string } 
     let katexModule: any = (katex as any)?.default || katex;
     if (!katexModule || typeof katexModule.renderToString !== 'function') {
       const g: any = typeof globalThis !== 'undefined' ? globalThis : {};
-      katexModule = g.katex || (typeof window !== 'undefined' ? (window as any).katex : null);
+      katexModule = g.katex || (typeof (globalThis as any).window !== 'undefined' ? (globalThis as any).window.katex : null);
     }
 
     if (katexModule && typeof katexModule.renderToString === 'function') {
@@ -681,6 +682,59 @@ function validateWithKaTeX(latex: string): { isValid: boolean; error?: string } 
   } catch (err: any) {
     return { isValid: false, error: err?.message || 'KaTeX validation failed' };
   }
+}
+
+function fallbackPlainText(rawFallback: string | undefined): string {
+  if (!rawFallback) return '';
+  return rawFallback.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * One Word equation is the conditional comment that contains <m:oMath> plus the
+ * following <![if !msEquation]> fallback. The LaTeX replaces that whole unit,
+ * so it is not left inside an HTML comment. The fallback is removed only after
+ * KaTeX accepts the LaTeX.
+ */
+function replaceWordEquationUnits(rawHtml: string): HtmlMathPreprocessResult {
+  const warnings: string[] = [];
+  let needsReview = false;
+  const unitRe = /<!--\[if\s+gte\s+(?:msEquation|mso)\s+\d+\]>([\s\S]*?)<!\[endif\]-->(\s*<!\[if\s+!msEquation\]>([\s\S]*?)<!\[endif\]>)?/gi;
+
+  let html = rawHtml.replace(unitRe, (full, inner: string, _fallbackBlock: string | undefined, rawFallback: string | undefined) => {
+    if (!/<(?:m:)?(?:oMath|oMathPara)\b/i.test(inner)) return full;
+    return replaceOneEquation(inner, rawFallback, warnings, (flag) => {
+      needsReview = needsReview || flag;
+    });
+  });
+
+  html = html.replace(/<(?:m:)?(oMathPara|oMath)\b[\s\S]*?<\/(?:m:)?\1>/gi, (full, tag: string) => {
+    return replaceOneEquation(full, undefined, warnings, (flag) => {
+      needsReview = needsReview || flag;
+    }, /oMathPara/i.test(tag));
+  });
+
+  return { html, warnings, needsReview };
+}
+
+function replaceOneEquation(
+  container: string,
+  rawFallback: string | undefined,
+  warnings: string[],
+  markReview: (flag: boolean) => void,
+  forceDisplay?: boolean
+): string {
+  const snippet = container.match(/<(?:m:)?(oMathPara|oMath)\b[\s\S]*?<\/(?:m:)?\1>/i);
+  const isDisplay = forceDisplay ?? /<(?:m:)?oMathPara\b/i.test(container);
+  const latex = snippet ? convertRawOmmlSnippetToLatex(snippet[0]) : '';
+  const validation = validateWithKaTeX(latex);
+  if (latex && validation.isValid) {
+    return isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `;
+  }
+  markReview(true);
+  warnings.push(`[KaTeX Validation Warning]: Failed to validate equation "${latex}": ${validation.error || 'conversion failed'}. Retained Word fallback text.`);
+  const fallback = fallbackPlainText(rawFallback);
+  if (fallback) return ` ${fallback} `;
+  return latex ? ` ${latex} ` : ' ';
 }
 
 export interface HtmlMathPreprocessResult {
@@ -706,34 +760,10 @@ export function preprocessRawHtmlMathDetailed(rawHtml: string): HtmlMathPreproce
 
   const hasOmml = /<(?:m:)?(?:oMath|oMathPara)\b/i.test(result);
   if (hasOmml) {
-    // Match an equation block (oMath or oMathPara) optionally followed by <![if !msEquation]> fallback
-    const ommlWithFallbackRegex = /(?:<!--\[if gte mso 9\]><xml>)?\s*<(?:m:)?(oMath|oMathPara)\b[\s\S]*?<\/(?:m:)?\1>\s*(?:<\/xml><!\[endif\]-->)?(?:\s*<!\[if !msEquation\]>([\s\S]*?)<!\[endif\]>)?/gi;
-
-    result = result.replace(ommlWithFallbackRegex, (fullMatch, tag, rawFallback) => {
-      const isDisplay = /oMathPara/i.test(tag);
-      const innerMatch = fullMatch.match(/<(?:m:)?(?:oMath|oMathPara)\b[\s\S]*?<\/(?:m:)?(?:oMath|oMathPara)>/i);
-      if (!innerMatch) return fullMatch;
-
-      const latex = convertRawOmmlSnippetToLatex(innerMatch[0]);
-      const validation = validateWithKaTeX(latex);
-
-      if (latex && validation.isValid) {
-        // Equation converted AND passed KaTeX validation: drop fallback text!
-        return isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `;
-      } else {
-        // Conversion or KaTeX validation failed: keep fallback text!
-        needsReview = true;
-        warnings.push(`[KaTeX Validation Warning]: Failed to validate equation "${latex}": ${validation.error}. Retained Word fallback text.`);
-
-        if (rawFallback) {
-          const cleanFallback = rawFallback.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-          return ` ${cleanFallback} `;
-        }
-        return ` ${latex || ''} `;
-      }
-    });
-
-    result = result.replace(/<!\[if !msEquation\]>[\s\S]*?<!\[endif\]>/gi, '');
+    const replaced = replaceWordEquationUnits(result);
+    result = replaced.html;
+    warnings.push(...replaced.warnings);
+    needsReview = needsReview || replaced.needsReview;
     result = result.replace(/<!--\[if supportFields\]>[\s\S]*?field-separator[\s\S]*?<!\[endif\]>[\s\S]*?<!--\[if supportFields\]>[\s\S]*?field-end[\s\S]*?<!\[endif\]>/gi, '');
     result = result.replace(/<!--\[if supportFields\]>[\s\S]*?<!\[endif\]>/gi, '');
   }

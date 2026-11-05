@@ -47,9 +47,6 @@ export function sanitizeFormula(str: string): string {
       '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx')
     .replace(/\\log_e\s*\(\s*\(\s*\)\s*/g, '\\log_e(')
     .replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(')
-    // Clean triple braces on exponents and subscripts e.g. ^{\frac{\pi}{6}}} -> ^{\frac{\pi}{6}}
-    .replace(/(\^\{[^{}]+(?:\{[^{}]*\}[^{}]*)*)\}\}/g, '$1}')
-    .replace(/(\_\{[^{}]+(?:\{[^{}]*\}[^{}]*)*)\}\}/g, '$1}')
     // Normalize prime derivatives: ϕ^' (t) -> \phi'(t)
     .replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ")
     // Normalize empty set phi

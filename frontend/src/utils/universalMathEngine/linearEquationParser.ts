@@ -112,7 +112,7 @@ export function reconstructNaryOperators(input: string): string {
   text = text.replace(/[∑\u2211]\s*_\s*([({])([^(){}]+)([)}])(?:\s*\^\s*([({]?)([0-9a-zA-Z_+-\\^]+)([)}]?))?/g, (_m, _o1, lower, _c1, _o2, upper) => {
     const bLower = `_{${lower.trim()}}`;
     const bUpper = upper ? `^{${stripOuterParensSafe(upper.trim())}}` : '';
-    return `\\sum${bLower}${bUpper} `;
+    return `\\sum${bLower}${bUpper}`;
   });
 
   text = text.replace(/[∑\u2211]/g, '\\sum ');
@@ -121,7 +121,7 @@ export function reconstructNaryOperators(input: string): string {
   text = text.replace(/[∏\u220F]\s*_\s*([({])([^(){}]+)([)}])(?:\s*\^\s*([({]?)([0-9a-zA-Z_+-\\^]+)([)}]?))?/g, (_m, _o1, lower, _c1, _o2, upper) => {
     const bLower = `_{${lower.trim()}}`;
     const bUpper = upper ? `^{${stripOuterParensSafe(upper.trim())}}` : '';
-    return `\\prod${bLower}${bUpper} `;
+    return `\\prod${bLower}${bUpper}`;
   });
 
   text = text.replace(/[∏\u220F]/g, '\\prod ');
@@ -430,7 +430,10 @@ export function reconstructFractions(input: string): string {
       const proseWords = /^(?:and|or|true|false|if|then|where|when|in|on|at|to|for|is|are|of|by|not)$/i;
       if (proseWords.test(cleanNum) || proseWords.test(cleanDen)) continue;
 
-      const frac = `\\frac{${cleanNum}}{${cleanDen}}`;
+      // Recursively convert inner fractions within numerator and denominator
+      const innerNum = reconstructFractions(cleanNum);
+      const innerDen = reconstructFractions(cleanDen);
+      const frac = `\\frac{${innerNum}}{${innerDen}}`;
       str = str.substring(0, leftStart) + frac + str.substring(rightEnd + 1);
       changed = true;
       break;
@@ -629,8 +632,32 @@ export function reconstructAbsoluteValues(input: string): string {
 /**
  * Master Linear Equation Reconstructor
  */
+
+/**
+ * Real LaTeX command tokens: these indicate the string has already been
+ * converted to LaTeX and must not be re-processed through the linear/Unicode
+ * pipeline. Word linear-notation tokens like \matrix and \eqarray are
+ * intentionally excluded from this set so they are still converted.
+ */
+const REAL_LATEX_COMMAND = /\\(?:frac|dfrac|tfrac|sqrt|lim|sum|prod|int|infty|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|pi|sigma|phi|omega|Gamma|Delta|Theta|Lambda|Sigma|Phi|Omega|sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|sinh|cosh|tanh|ln|log|exp|vec|hat|bar|dot|ddot|tilde|overset|underset|mathbb|mathrm|mathbf|text|begin|end|left|right|leq|geq|neq|approx|times|div|pm|mp|cdot|to|rightarrow|leftarrow|Rightarrow|Leftarrow|in|subset|supset|cup|cap|partial|nabla|hbar|binom|boxed|cancel|phantom|quad|qquad)(?![a-zA-Z])/;
+
 export function reconstructLinearEquation(input: string): string {
   if (!input) return '';
+  const already = input.trim();
+
+  // If the text already contains real LaTeX commands (output of ommlNodeToLatex / convertHtmlWithMath),
+  // skip the linear and Unicode conversion steps that would corrupt existing LaTeX.
+  // We still run paren-exponent normalisation and strip leftover Word tokens,
+  // but we do NOT skip matrix/piecewise reconstruction (\matrix, \eqarray are Word linear artifacts).
+  if (REAL_LATEX_COMMAND.test(already)) {
+    let text = input;
+    // Normalise parenthesized exponents/subscripts that may survive OMML conversion
+    text = text.replace(/\^\s*\(([^()]+)\)/g, '^{$1}');
+    text = text.replace(/_\s*\(([^()]+)\)/g, '_{$1}');
+    // Strip leftover Word linear formatting tokens
+    text = text.replace(/[█┤]/g, '');
+    return text.trim();
+  }
 
   let text = input;
 

@@ -561,7 +561,9 @@ function validateLeftRightDelimiters(
 
   while (stack.length > 0) {
     const unclosed = stack.pop()!;
-    errors.push(`Unmatched \\left delimiter "${unclosed.delimiter}"`);
+    const msg = `Unmatched \\left delimiter "${unclosed.delimiter}"`;
+    errors.push(msg);
+    warnings.push(msg);
     uncertainRegions.push(
       rawText.slice(unclosed.index, Math.min(rawText.length, unclosed.index + 15)).trim()
     );
@@ -591,7 +593,7 @@ function validateFractions(
     if (!numArg) {
       const nextCharPos = skipWhitespace(maskedText, startPos);
       if (nextCharPos < maskedText.length && maskedText[nextCharPos] === '{') {
-        errors.push(`Unclosed numerator brace in ${match[0]}`);
+        // Brace parity already reports this unclosed "{".
       } else {
         errors.push(`Incomplete ${match[0]} lacking numerator`);
       }
@@ -605,7 +607,7 @@ function validateFractions(
     if (!denArg) {
       const nextCharPos = skipWhitespace(maskedText, numArg.end);
       if (nextCharPos < maskedText.length && maskedText[nextCharPos] === '{') {
-        errors.push(`Unclosed denominator brace in ${match[0]}`);
+        // Brace parity already reports this unclosed "{".
       } else {
         errors.push(`Incomplete ${match[0]} lacking denominator`);
       }
@@ -621,10 +623,10 @@ function validateFractions(
     const rawDen = rawText.slice(denArg.start + 1, denArg.end - 1).trim();
 
     if (num.length === 0 && den.length === 0) {
-      errors.push(`Empty fraction ${match[0]}{}{}`);
+      errors.push(`empty fraction ${match[0]}{}{}`);
       uncertainRegions.push(rawText.slice(match.index, denArg.end));
     } else if (num.length === 0) {
-      errors.push(`Incomplete fraction with empty numerator ${match[0]}{}{${rawDen}}`);
+      errors.push(`empty fraction with empty numerator ${match[0]}{}{${rawDen}}`);
       uncertainRegions.push(rawText.slice(match.index, denArg.end));
     } else if (den.length === 0) {
       errors.push(`Incomplete fraction with empty denominator ${match[0]}{${rawNum}}{}`);

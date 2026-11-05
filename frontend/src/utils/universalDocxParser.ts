@@ -34,6 +34,7 @@ export interface NormalizedQuestionResult {
   dkSirShortcut?: string;
   warnings: string[];
   confidence: number;
+  needsReview?: boolean;
 }
 
 export const GREEK_MATH_MAP: Record<string, string> = GREEK_LATEX_MAP;
@@ -127,7 +128,8 @@ export function normalizePastedQuestion(
     stepSolution: result.stepSolution,
     dkSirShortcut: result.dkSirShortcut,
     warnings: result.warnings || [],
-    confidence: typeof result.confidence === 'number' ? result.confidence : 1
+    confidence: typeof result.confidence === 'number' ? result.confidence : 1,
+    needsReview: Boolean(result.needsReview)
   };
 }
 
