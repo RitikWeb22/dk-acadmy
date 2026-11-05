@@ -171,13 +171,10 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
             if (!thirdTry.includes('katex-error')) {
               html = thirdTry;
             } else {
-              // Final fallback: clean error markup and display readable symbols safely without red syntax error
-              const safeText = stripped
-                .replace(/\\left\b/g, '')
-                .replace(/\\right\b/g, '')
-                .replace(/\\text\{\s*(?:If|Let|Then)\s*\}\s*/gi, '')
-                .replace(/\\/g, '');
-              html = `<span>${safeText}</span>`;
+              // Final fallback: KaTeX could not render even after all repairs.
+              // Show the original cleanFormula in a monospace span so the user
+              // still sees readable LaTeX instead of backslash-stripped garbage.
+              html = `<span class="katex-fallback" style="font-family:monospace;font-size:0.9em;color:#b45309">${cleanFormula.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
             }
           }
         } catch {}
