@@ -40,6 +40,7 @@ import { SUBJECT_CHAPTERS, EXAM_YEARS } from './types';
 import { MathText } from '../../ui/MathText/MathText';
 import { apiClient } from '../../../services/apiClient';
 import { normalizeMathText } from '../../../utils/questionBulkParser';
+import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
 import styles from './PyqManagementStudio.module.scss';
 
 interface Props {
@@ -145,6 +146,36 @@ export const PyqCreateWizard: React.FC<Props> = ({
       updateActiveQuestion('options', curQ.options.map((o) => ({ ...o, text: normalizeMathText(o.text) })));
     } finally {
       setIsAiFormattingPyq(false);
+    }
+  };
+
+  // ── Paste Handlers (Step D) ─────────────────────────────────────────────────
+  const handleStatementPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const result = normalizePastedQuestion(e.clipboardData);
+    if (!result.fullNormalizedText) return;
+    e.preventDefault();
+    if (result.hasQuestionWithOptions) {
+      // Full question pasted: fill statement + all 4 options + answer key at once
+      updateActiveQuestion('statement', result.statement);
+      updateActiveQuestion('options', result.options);
+      if (result.correctKey) updateActiveQuestion('correctKey', result.correctKey);
+      if (result.stepSolution) updateActiveQuestion('stepSolution', result.stepSolution);
+      if (result.dkSirShortcut) updateActiveQuestion('dkSirShortcut', result.dkSirShortcut);
+    } else {
+      // Statement-only paste: insert at cursor
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart ?? 0;
+      const end = textarea.selectionEnd ?? 0;
+      const current = questions[activeQuestionIndex]?.statement || '';
+      updateActiveQuestion('statement', current.substring(0, start) + result.fullNormalizedText + current.substring(end));
+    }
+  };
+
+  const handleOptionPaste = (optKey: 'A' | 'B' | 'C' | 'D', e: React.ClipboardEvent<HTMLInputElement>) => {
+    const result = normalizePastedQuestion(e.clipboardData);
+    if (result.fullNormalizedText) {
+      e.preventDefault();
+      updateActiveOption(optKey, result.fullNormalizedText);
     }
   };
 
@@ -1141,6 +1172,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                       placeholder="Enter question statement with LaTeX math (e.g. \int_0^1 x^2 dx)..."
                       value={activeQ.statement}
                       onChange={(e) => updateActiveQuestion('statement', e.target.value)}
+                      onPaste={handleStatementPaste}
                     />
                   ) : (
                     <div className={styles.mathPreviewBox}>
@@ -1207,6 +1239,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                               placeholder={`Option ${key} text / LaTeX...`}
                               value={opt.text}
                               onChange={(e) => updateActiveOption(key, e.target.value)}
+                              onPaste={(e) => handleOptionPaste(key, e)}
                             />
                           </div>
                         );
