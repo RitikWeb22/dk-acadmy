@@ -43,13 +43,14 @@ export function parseMarkupToDoc(markup: string, type: 'xml' | 'html'): any | nu
   if (!ParserClass) return null;
 
   try {
-    const parser = new ParserClass({
-      errorHandler: {
-        warning: () => {},
-        error: () => {},
-        fatalError: () => {}
-      }
-    });
+    // @xmldom/xmldom ≥0.9 uses onError; ≤0.8 used errorHandler object.
+    // Try the new API first; fall back to old API if constructor throws.
+    let parser: any;
+    try {
+      parser = new ParserClass({ onError: () => {} });
+    } catch {
+      parser = new ParserClass({ errorHandler: { warning: () => {}, error: () => {}, fatalError: () => {} } });
+    }
 
     const mime = type === 'xml' ? 'text/xml' : 'text/html';
     return parser.parseFromString(markup, mime);

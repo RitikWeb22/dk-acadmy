@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { validateQuestionLatexStructure } from './mathLatexValidator.js';
 import { reconstructWordEquationLinearFormat } from './wordEquationReconstructor.js';
 import { normalizeMathematicalText } from './universalMathEngine/index.js';
+import { extractDocxMath } from './docxMathExtractor.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -422,152 +423,23 @@ export async function extractQuestionsFromPdfBuffer(
 }
 
 /**
- * Executes the Python OOXML Math Extractor for Microsoft Word documents
- */
-function runPythonDocxExtractor(
-  tempDocxPath: string,
-  subject: string,
-  targetExam: string
-): Promise<any> {
-  return new Promise((resolve) => {
-    const candidatePaths = [
-      path.resolve(__dirname, '../../scripts/docx_math_extractor.py'),
-      path.resolve(__dirname, '../scripts/docx_math_extractor.py'),
-      path.resolve(__dirname, '../../../backend/scripts/docx_math_extractor.py'),
-      path.resolve(process.cwd(), 'backend/scripts/docx_math_extractor.py'),
-      path.resolve(process.cwd(), 'scripts/docx_math_extractor.py'),
-      path.resolve(process.cwd(), '../backend/scripts/docx_math_extractor.py')
-    ];
-    const scriptPath = candidatePaths.find((p) => fs.existsSync(p));
-    if (!scriptPath) {
-      console.warn('docx_math_extractor.py not found on disk, skipping Python DOCX parser');
-      resolve(null);
-      return;
-    }
-
-    const pyProcess = spawn(
-      'python',
-      [
-        '-X', 'utf8',
-        scriptPath,
-        '--input', tempDocxPath,
-        '--subject', subject,
-        '--exam', targetExam
-      ],
-      {
-        env: {
-          ...process.env,
-          PYTHONIOENCODING: 'utf-8',
-          PYTHONUTF8: '1'
-        }
-      }
-    );
-
-    let stdout = '';
-    let stderr = '';
-
-    pyProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    pyProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    pyProcess.on('close', (code) => {
-      if (code === 0 && stdout.trim()) {
-        try {
-          const parsed = JSON.parse(stdout.trim());
-          resolve(parsed);
-          return;
-        } catch (jsonErr) {
-          console.warn('Failed to parse Python DOCX JSON output:', jsonErr);
-        }
-      } else {
-        console.warn(`Python DOCX extractor exited with code ${code}. Stderr: ${stderr.slice(0, 300)}`);
-      }
-      resolve(null);
-    });
-
-    pyProcess.on('error', (err) => {
-      console.warn('Failed to spawn Python process for DOCX:', err.message);
-      resolve(null);
-    });
-
-    // 45 second timeout
-    setTimeout(() => {
-      try {
-        pyProcess.kill();
-      } catch {}
-      resolve(null);
-    }, 20000);
-  });
-}
-
-/**
- * Extracts questions from DOCX buffer with full OOXML Office Math (OMML) preservation
+ * Extracts questions from DOCX buffer using pure Node.js (jszip + xmldom + ommlNodeToLatex).
+ * No Python, no Pandoc, no mammoth. Works on Hostinger shared hosting.
+ *
+ * Safety: magic-bytes check, 25 MB size limit, zip-bomb protection,
+ * sanitized media filenames. Covers equations in table cells and text boxes.
  */
 export async function extractQuestionsFromDocxBuffer(
   buffer: Buffer,
   subject: string = 'Mathematics',
   targetExam: string = 'JEE Main'
 ): Promise<PdfExtractionSummary> {
-  try {
-    const tempFile = path.join(os.tmpdir(), `upload-${Date.now()}-${uuidv4().slice(0, 8)}.docx`);
-    await fs.promises.writeFile(tempFile, buffer);
+  const warnings: string[] = [];
+  const errorLog: string[] = [];
 
-    try {
-      const docxResult = await runPythonDocxExtractor(tempFile, subject, targetExam);
-      if (docxResult && docxResult.success && Array.isArray(docxResult.questions) && docxResult.questions.length > 0) {
-        let successfulCount = 0;
-        let needsReviewCount = 0;
+  const result = await extractDocxMath(buffer, warnings, errorLog);
 
-        const validatedQuestions = docxResult.questions.map((q: any) => {
-          const report = validateQuestionLatexStructure({
-            qNum: q.qNum,
-            statement: q.statement || '',
-            options: q.options || []
-          });
-
-          const needsReview = report.needsReview;
-          if (needsReview) needsReviewCount++;
-          else successfulCount++;
-
-          return {
-            ...q,
-            status: needsReview ? 'NEEDS_REVIEW' : 'EXTRACTED',
-            reviewReason: report.reasons.length > 0 ? report.reasons.join('; ') : undefined,
-            confidence: report.overallConfidence,
-            uncertainRegions: report.uncertainRegions
-          };
-        });
-
-        return {
-          totalDetected: validatedQuestions.length,
-          successfulCount,
-          needsReviewCount,
-          errorCount: 0,
-          rawTextPreview: (docxResult && docxResult.rawTextPreview) || '',
-          totalPages: Math.max(1, Math.ceil(validatedQuestions.length / 5)),
-          questions: validatedQuestions,
-          errorLog: []
-        };
-      }
-    } finally {
-      fs.promises.unlink(tempFile).catch(() => {});
-    }
-  } catch (err: any) {
-    console.warn('Python DOCX extraction failed, trying mammoth fallback:', err.message);
-  }
-
-  // Mammoth fallback
-  try {
-    const mammoth = await import('mammoth');
-    const { value: docText } = await mammoth.extractRawText({ buffer });
-    const summary = parseQuestionsFromText(docText || '', subject, targetExam);
-    summary.totalPages = Math.max(1, Math.ceil(summary.questions.length / 5));
-    return summary;
-  } catch (fallbackErr: any) {
+  if (!result.success || result.paragraphs.length === 0) {
     return {
       totalDetected: 0,
       successfulCount: 0,
@@ -576,8 +448,47 @@ export async function extractQuestionsFromDocxBuffer(
       rawTextPreview: '',
       totalPages: 1,
       questions: [],
-      errorLog: [fallbackErr.message || 'DOCX parsing error']
+      errorLog: errorLog.length > 0 ? errorLog : ['DOCX contained no extractable text.']
     };
   }
+
+  // Warnings from the extractor are appended to the error log for visibility
+  if (warnings.length > 0) {
+    errorLog.push(...warnings);
+  }
+
+  // Parse the extracted raw text into structured questions
+  const summary = parseQuestionsFromText(result.rawText, subject, targetExam);
+  summary.totalPages = Math.max(1, Math.ceil(summary.questions.length / 5));
+  summary.errorLog.push(...errorLog);
+
+  // Validate LaTeX in each question
+  let validatedSuccessful = 0;
+  let validatedNeedsReview = 0;
+
+  summary.questions = summary.questions.map((q) => {
+    const report = validateQuestionLatexStructure({
+      qNum: q.qNum,
+      statement: q.statement || '',
+      options: q.options || []
+    });
+
+    const needsReview = report.needsReview || q.status === 'NEEDS_REVIEW';
+    if (needsReview) validatedNeedsReview++;
+    else validatedSuccessful++;
+
+    return {
+      ...q,
+      status: (needsReview ? 'NEEDS_REVIEW' : 'EXTRACTED') as 'EXTRACTED' | 'NEEDS_REVIEW' | 'VERIFIED',
+      reviewReason: report.reasons.length > 0
+        ? report.reasons.join('; ')
+        : (q.reviewReason || undefined as unknown as string)
+    };
+  });
+
+  summary.successfulCount = validatedSuccessful;
+  summary.needsReviewCount = validatedNeedsReview;
+
+  return summary;
 }
 
