@@ -1,6 +1,7 @@
 import { TestSeries } from '../models/TestSeries.js';
 import { TestSubmission } from '../models/TestSubmission.js';
 import { PART_TESTS_DATA } from '../data/partTestsData.js';
+import { normalizeMathematicalText } from '../utils/universalMathEngine/index.js';
 import { broadcastTestSeriesCreated, broadcastTestSeriesUpdated, broadcastTestSeriesDeleted } from '../sockets/socket.js';
 // Default starter dataset if DB is empty
 const BASE_SEED_TEST_SERIES = [
@@ -496,35 +497,43 @@ export const createTestSeries = async (req, res) => {
         }
         // Normalize questions array
         if (Array.isArray(payload.questions)) {
-            payload.questions = payload.questions.map((q, idx) => ({
-                id: q.id || `q-${idx + 1}-${Date.now()}`,
-                questionNumber: q.questionNumber || q.index || idx + 1,
-                subject: q.subject || 'Mathematics',
-                chapter: q.chapter || q.topicTag || 'General',
-                section: q.section || (idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A'),
-                type: q.type || (q.section === 'B' || idx >= 20 ? 'NUMERICAL' : 'SINGLE_CORRECT'),
-                statement: q.statement || q.questionText || '',
-                statementBlocks: q.statementBlocks,
-                explanationBlocks: q.explanationBlocks,
-                imageUrl: q.imageUrl,
-                options: Array.isArray(q.options)
-                    ? q.options.map((opt, optIdx) => ({
-                        id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
-                        key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                        text: opt.text || '',
-                        imageUrl: opt.imageUrl
-                    }))
-                    : [],
-                correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
-                numericalAnswer: q.numericalAnswer || (q.section === 'B' ? q.correctKey || q.correctAnswer : undefined),
-                marks: q.marks || 4,
-                negativeMarks: q.negativeMarks ?? 1,
-                formulaKey: q.formulaKey || q.topicTag,
-                explanation: q.explanation || q.stepSolution || q.solutionDerivation || '',
-                shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
-                videoSolutionUrl: q.videoSolutionUrl || '',
-                pdfSolutionUrl: q.pdfSolutionUrl || ''
-            }));
+            payload.questions = payload.questions.map((q, idx) => {
+                const rawStatement = q.statement || q.questionText || '';
+                const normStatement = rawStatement ? normalizeMathematicalText(rawStatement).normalizedText : '';
+                const cleanExplanation = q.explanation || q.stepSolution || q.solutionDerivation || '';
+                const normExplanation = cleanExplanation ? normalizeMathematicalText(cleanExplanation).normalizedText : '';
+                const cleanShortcut = q.shortcutTrick || q.dkSirShortcut || '';
+                const normShortcut = cleanShortcut ? normalizeMathematicalText(cleanShortcut).normalizedText : '';
+                return {
+                    id: q.id || `q-${idx + 1}-${Date.now()}`,
+                    questionNumber: q.questionNumber || q.index || idx + 1,
+                    subject: q.subject || 'Mathematics',
+                    chapter: q.chapter || q.topicTag || 'General',
+                    section: q.section || (idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A'),
+                    type: q.type || (q.section === 'B' || idx >= 20 ? 'NUMERICAL' : 'SINGLE_CORRECT'),
+                    statement: normStatement,
+                    statementBlocks: q.statementBlocks,
+                    explanationBlocks: q.explanationBlocks,
+                    imageUrl: q.imageUrl,
+                    options: Array.isArray(q.options)
+                        ? q.options.map((opt, optIdx) => ({
+                            id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
+                            key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
+                            text: opt.text ? normalizeMathematicalText(opt.text).normalizedText : '',
+                            imageUrl: opt.imageUrl
+                        }))
+                        : [],
+                    correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
+                    numericalAnswer: q.numericalAnswer || (q.section === 'B' ? q.correctKey || q.correctAnswer : undefined),
+                    marks: q.marks || 4,
+                    negativeMarks: q.negativeMarks ?? 1,
+                    formulaKey: q.formulaKey || q.topicTag,
+                    explanation: normExplanation,
+                    shortcutTrick: normShortcut,
+                    videoSolutionUrl: q.videoSolutionUrl || '',
+                    pdfSolutionUrl: q.pdfSolutionUrl || ''
+                };
+            });
             payload.totalQuestions = payload.questions.length;
             if (!payload.totalMarks || payload.totalMarks === 0) {
                 const posMark = payload.markingScheme?.correct || 4;
@@ -587,35 +596,43 @@ export const updateTestSeries = async (req, res) => {
         }
         // Normalize questions array if updated
         if (Array.isArray(updates.questions)) {
-            updates.questions = updates.questions.map((q, idx) => ({
-                id: q.id || `q-${idx + 1}-${Date.now()}`,
-                questionNumber: q.questionNumber || q.index || idx + 1,
-                subject: q.subject || 'Mathematics',
-                chapter: q.chapter || q.topicTag || 'General',
-                section: q.section || (idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A'),
-                type: q.type || (q.section === 'B' || idx >= 20 ? 'NUMERICAL' : 'SINGLE_CORRECT'),
-                statement: q.statement || q.questionText || '',
-                statementBlocks: q.statementBlocks,
-                explanationBlocks: q.explanationBlocks,
-                imageUrl: q.imageUrl,
-                options: Array.isArray(q.options)
-                    ? q.options.map((opt, optIdx) => ({
-                        id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
-                        key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                        text: opt.text || '',
-                        imageUrl: opt.imageUrl
-                    }))
-                    : [],
-                correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
-                numericalAnswer: q.numericalAnswer || (q.section === 'B' ? q.correctKey || q.correctAnswer : undefined),
-                marks: q.marks || 4,
-                negativeMarks: q.negativeMarks ?? 1,
-                formulaKey: q.formulaKey || q.topicTag,
-                explanation: q.explanation || q.stepSolution || q.solutionDerivation || '',
-                shortcutTrick: q.shortcutTrick || q.dkSirShortcut || '',
-                videoSolutionUrl: q.videoSolutionUrl || '',
-                pdfSolutionUrl: q.pdfSolutionUrl || ''
-            }));
+            updates.questions = updates.questions.map((q, idx) => {
+                const rawStatement = q.statement || q.questionText || '';
+                const normStatement = rawStatement ? normalizeMathematicalText(rawStatement).normalizedText : '';
+                const cleanExplanation = q.explanation || q.stepSolution || q.solutionDerivation || '';
+                const normExplanation = cleanExplanation ? normalizeMathematicalText(cleanExplanation).normalizedText : '';
+                const cleanShortcut = q.shortcutTrick || q.dkSirShortcut || '';
+                const normShortcut = cleanShortcut ? normalizeMathematicalText(cleanShortcut).normalizedText : '';
+                return {
+                    id: q.id || `q-${idx + 1}-${Date.now()}`,
+                    questionNumber: q.questionNumber || q.index || idx + 1,
+                    subject: q.subject || 'Mathematics',
+                    chapter: q.chapter || q.topicTag || 'General',
+                    section: q.section || (idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A'),
+                    type: q.type || (q.section === 'B' || idx >= 20 ? 'NUMERICAL' : 'SINGLE_CORRECT'),
+                    statement: normStatement,
+                    statementBlocks: q.statementBlocks,
+                    explanationBlocks: q.explanationBlocks,
+                    imageUrl: q.imageUrl,
+                    options: Array.isArray(q.options)
+                        ? q.options.map((opt, optIdx) => ({
+                            id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
+                            key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
+                            text: opt.text ? normalizeMathematicalText(opt.text).normalizedText : '',
+                            imageUrl: opt.imageUrl
+                        }))
+                        : [],
+                    correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
+                    numericalAnswer: q.numericalAnswer || (q.section === 'B' ? q.correctKey || q.correctAnswer : undefined),
+                    marks: q.marks || 4,
+                    negativeMarks: q.negativeMarks ?? 1,
+                    formulaKey: q.formulaKey || q.topicTag,
+                    explanation: normExplanation,
+                    shortcutTrick: normShortcut,
+                    videoSolutionUrl: q.videoSolutionUrl || '',
+                    pdfSolutionUrl: q.pdfSolutionUrl || ''
+                };
+            });
             updates.totalQuestions = updates.questions.length;
         }
         const updated = await TestSeries.findOneAndUpdate({

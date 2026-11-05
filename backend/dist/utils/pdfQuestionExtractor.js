@@ -6,226 +6,19 @@ import os from 'os';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { validateQuestionLatexStructure } from './mathLatexValidator.js';
-import { reconstructWordEquationLinearFormat } from './wordEquationReconstructor.js';
+import { normalizeMathematicalText } from './universalMathEngine/index.js';
+import { extractDocxMath } from './docxMathExtractor.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 /**
  * Normalizes mathematical characters into standard LaTeX / KaTeX expressions
+ * Powered by the Universal Mathematical Normalization Engine.
  */
 export function normalizeMathInText(rawText) {
     if (!rawText)
         return '';
-    let text = rawText;
-    // Normalize mathematical italic / bold unicode characters to standard ASCII:
-    text = text.replace(/[\u{1D451}\u{1D41D}\u{1D485}]/gu, 'd')
-        .replace(/[\u{1D465}\u{1D431}\u{1D499}]/gu, 'x')
-        .replace(/[\u{1D466}\u{1D432}\u{1D49A}]/gu, 'y')
-        .replace(/[\u{1D467}\u{1D433}\u{1D49B}]/gu, 'z')
-        .replace(/[\u{1D461}\u{1D42D}\u{1D495}]/gu, 't')
-        .replace(/[\u{1D453}\u{1D41F}\u{1D487}]/gu, 'f')
-        .replace(/[\u{1D44E}\u{1D41A}\u{1D482}]/gu, 'a')
-        .replace(/[\u{1D44F}\u{1D41B}\u{1D483}]/gu, 'b')
-        .replace(/[\u{1D450}\u{1D41C}\u{1D484}]/gu, 'c')
-        .replace(/[\u{1D45B}\u{1D427}\u{1D48F}]/gu, 'n')
-        .replace(/[\u{1D45F}\u{1D42B}\u{1D493}]/gu, 'r')
-        .replace(/[\u2212\u2013\u2014]/g, '-');
-    // Reconstruct Word Equation Editor Linear Format (UnicodeMath / OMML): piecewise {█(...)┤, matrices, etc.
-    text = reconstructWordEquationLinearFormat(text);
-    // 0. Decode Word Quartz / CambriaMath subset font encoding artifacts (where no ToUnicode CMap is embedded)
-    text = text.replace(/#\$(\(\$!&\$&'\)|\(\$!&\$&|\(\$!&\$'\))/g, '\\sqrt{x(x^2 + x + 1)}');
-    text = text.replace(/\(√\$&'\)\*√\$"&\$!&'\+/g, '(\\sqrt{x} + 1)\\sqrt{x^4 + x^2 + 1}');
-    text = text.replace(/\(√\$&'\)\*√\$"&\$!&'/g, '(\\sqrt{x} + 1)\\sqrt{x^4 + x^2 + 1}');
-    text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*!\s*[\r\n]+\s*"/g, '\\int_0^2 ');
-    text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*,\s*\.\/4\s*[\r\n]+\s*"/g, '\\int_0^{\\pi/4} ');
-    text = text.replace(/∫\s*\u200a?\s*3\/6\s*[\r\n]+\s*3\/4/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}} ');
-    text = text.replace(/∫\s*\u200a?\s*3\/4\s*[\r\n]+\s*3\/6/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}} ');
-    text = text.replace(/\\int_\{?\\frac\{\\pi\}\{4\}\}?\^\{?\\frac\{\\pi\}\{6\}\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
-    text = text.replace(/\\int_\{?\\pi\/4\}?\^\{?\\pi\/6\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
-    text = text.replace(/\\int\s*_\s*\{?\s*(?:\\frac\{\\pi\}\{4\}|\\pi\/4)\s*\}?\s*\^\s*\{?\s*(?:\\frac\{\\pi\}\{6\}|\\pi\/6)\s*\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
-    text = text.replace(/\\int\s*\^\s*\{?\s*(?:\\frac\{\\pi\}\{6\}|\\pi\/6)\s*\}?\s*_\s*\{?\s*(?:\\frac\{\\pi\}\{4\}|\\pi\/4)\s*\}?/g, '\\int_{\\frac{\\pi}{6}}^{\\frac{\\pi}{4}}');
-    text = text.replace(/∫\s*\u200a?\s*[\r\n]+\s*[\/']\s*[\r\n]+\s*[\/']/g, '\\int_{-1}^1 ');
-    // Matrix and piecewise brackets in Equation Editor
-    text = text.replace(/F\s*[\r\n]+\s*1\s*[\r\n]+\s*3\s*[\r\n]+\s*−1\s*[\r\n]+\s*2\s*[\r\n]+\s*1\s*[\r\n]+\s*𝛼\s*[\r\n]+\s*0\s*[\r\n]+\s*1\s*[\r\n]+\s*−1\s*[\r\n]+\s*H/g, '\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}');
-    // Comprehensive reconstruction of cotangent integral expression across raw font symbols and multiline breaks:
-    text = text.replace(/\[\s*\\?cot\s*=?\s*x\s*[-−]\s*3[\s\S]*?\\?cot\s*=?\s*x\s*[\+]\s*3[\s\S]*?\+\s*1\s*\]\s*(?:dx|𝑑𝑥)?\b/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
-    text = text.replace(/(?:\\left\s*)?[=\[]\s*(?:\\left\s*)?\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3[\s\S]*?\\?cot\s*[=\(]?\s*[xX]\s*[\+]\s*3[\s\S]*?\+\s*1\s*\]\s*(?:dx|𝑑𝑥)?\b/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
-    text = text.replace(/\[\s*\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*[=\(]?\s*[xX]\s*[\+]\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*(?:dx|𝑑𝑥)?\b/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
-    text = text.replace(/[=\[]\s*\\?cot\s*[=\(]?\s*[xX]\s*[-−]\s*3[\s\S]*?cot\s*[=\(]?\s*[xX]\s*[+]\s*3[\s\S]*?\+\s*1\s*[@\]]\s*(?:dx|𝑑𝑥)\b/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
-    text = text.replace(/\[\s*\\?cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n\s]*,?\s*\]?\s*\\?cot\s*=?\s*x\s*\+\s*3\s*[\r\n\s]*,?\s*\]?\s*\+\s*1\s*\]\s*dx\b/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx');
-    text = text.replace(/\[\s*cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right)');
-    text = text.replace(/cot\s*=?\s*x\s*[-−]\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
-    text = text.replace(/cot\s*=?\s*x\s*\+\s*3\s*[\r\n]+\s*,\s*\]/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-    text = text.replace(/cot\s*\(?\s*x\s*[-−]\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)');
-    text = text.replace(/cot\s*\(?\s*x\s*\+\s*3\s*[\r\n\/,]+\s*3\s*\)?/gi, '\\cot\\left(x + \\frac{\\pi}{3}\\right)');
-    text = text.replace(/\[\s*\\?cot\b/gi, '\\cot ');
-    text = text.replace(/,\s*\]/g, ']');
-    text = text.replace(/\+\s*1\s*\]\s*(?:dx|𝑑𝑥)?\b/gi, '+ 1 \\, dx');
-    text = text.replace(/\\\\+([a-zA-Z]+)/g, '\\$1');
-    text = text.replace(/\\{2,}log_e/g, '\\log_e');
-    text = text.replace(/\\log_e\s*\(\s*\(\s*\)\s*/g, '\\log_e(');
-    text = text.replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(');
-    text = text.replace(/\\log_e\s*\(\s*\\sqrt/g, '\\log_e(\\sqrt');
-    text = text.replace(/\\log_e\s*\(\s*\(\s*\)?\s*(\\sqrt|[\\a-zA-Z0-9])/g, (_m, p1) => '\\log_e(' + p1);
-    text = text.replace(/\\log_e\s*\(\s*\)\s*(\\sqrt|[\\a-zA-Z0-9])/g, (_m, p1) => '\\log_e(' + p1);
-    text = text.replace(/log[7\-]/g, '\\log_e ');
-    text = text.replace(/(?:\\left\s*){2,}/g, '\\left');
-    text = text.replace(/(?:\\right\s*){2,}/g, '\\right');
-    text = text.replace(/\\left\s*\\left\s*([\[\(\{\|])/g, '\\left$1');
-    text = text.replace(/\\right\s*\\right\s*([\]\)\}\|])/g, '\\right$1');
-    text = text.replace(/\\left\s*\\left/g, '\\left');
-    text = text.replace(/\\right\s*\\right/g, '\\right');
-    text = text.replace(/\/012\s*([\$x])/gi, '-\\sin x');
-    text = text.replace(/\/012/g, '-\\sin ');
-    text = text.replace(/012\s*([\$x])/gi, '\\sin x');
-    text = text.replace(/012/g, '\\sin ');
-    text = text.replace(/!9:0\s*[\$x]?/gi, '\\cos^2 x');
-    text = text.replace(/9:0\s*[\$x]?["!]?\s*([\$x])/gi, '\\cos^2 x');
-    text = text.replace(/9:0/g, '\\cos ');
-    // Standard fraction markers
-    text = text.replace(/\\pi\/4/g, '\\frac{\\pi}{4}');
-    text = text.replace(/\\pi\/6/g, '\\frac{\\pi}{6}');
-    text = text.replace(/\\pi\/3/g, '\\frac{\\pi}{3}');
-    text = text.replace(/\\pi\/2/g, '\\frac{\\pi}{2}');
-    text = text.replace(/3\/6/g, '\\frac{\\pi}{6}');
-    text = text.replace(/3\/4/g, '\\frac{\\pi}{4}');
-    text = text.replace(/3\/2/g, '\\frac{\\pi}{2}');
-    text = text.replace(/3\/,/g, '\\frac{\\pi}{3}');
-    text = text.replace(/3\/!\$/g, '(\\pi - 2x)');
-    text = text.replace(/3\/!/g, '\\pi - 2');
-    text = text.replace(/3\//g, '\\pi - ');
-    // Vertical stacked fractions in options with Cambria Math glyphs: ' \n , -> 1/3; ! \n , -> 2/3
-    text = text.replace(/[']\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{3} ');
-    text = text.replace(/[!]\s*[\r\n]+\s*,\s*,?/g, '\\frac{2}{3} ');
-    // Stitch multiline integrals: \int ^2 \n 0 or \int \n 0 \n ^2
-    text = text.replace(/\\int\s*\^\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$2}^{$1} ');
-    text = text.replace(/\\int_\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
-    text = text.replace(/\\int\s*\r?\n+\s*\{?([0-9a-zA-Z\\/]+)\}?\s*\r?\n+\s*\^\{?([0-9a-zA-Z\\/]+)\}?/g, '\\int_{$1}^{$2} ');
-    // Stitch stacked fractions where numerator is on one line and denominator is on the next line (with dx, dt, etc. and optional trailing words)
-    text = text.replace(/((?:The value of the integral\s*)?\\int[^\r\n]*?)\s*\r?\n+([^\r\n]+?)\r?\n+([^\r\n]+?\b(?:dx|dt|dy|d\theta)\b)([\s\S]*?)(?=\r?\n|$)/gi, (match, intPart, num, den, trail) => {
-        if (/\\cot\b|\\left\[|\[/.test(num))
-            return match;
-        const diffMatch = den.match(/\b(dx|dt|dy|d\theta)\b/i);
-        const diffVar = diffMatch ? diffMatch[0] : 'dx';
-        const cleanDen = den.replace(new RegExp(`\\s*\\b${diffVar}\\b`, 'i'), '').trim();
-        return `${intPart} \\frac{${num.trim()}}{${cleanDen}} \\, ${diffVar}${trail}`;
-    });
-    // Also catch generic multiline fraction where numerator is on one line and denominator has dx on the next line
-    text = text.replace(/(\\int[^\n]+?)\s*\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s_]+?)\r?\n+([\\a-zA-Z0-9\(\)\{\}\+\-\*\^\s_]+?\s*dx\b)([\s\S]*?)(?=\r?\n|$)/gi, (match, intPart, num, den, trail) => {
-        if (/\\cot\b|\\left\[|\[/.test(num))
-            return match;
-        return `${intPart} \\frac{${num.trim()}}{${den.replace(/\s*dx\b/i, '').trim()}} \\, dx${trail}`;
-    });
-    // Only perform legacy font glyph substitutions if specifically unencoded font artifacts are present and no LaTeX tags exist
-    const hasDollarMath = /\$[^\$\n]+\$/.test(text);
-    const hasStructuredLatex = text.includes('\\frac') || text.includes('\\int') || text.includes('\\sqrt') || text.includes('\\lim');
-    if (!hasDollarMath && !hasStructuredLatex && /[!#'"&]/.test(text)) {
-        text = text.replace(/\$"/g, 'x^4');
-        text = text.replace(/\$!/g, 'x^2');
-        text = text.replace(/\$([!#'"&+\-/*])/g, 'x$1');
-        text = text.replace(/([!#'"&+\-/*\(])\$/g, '$1x');
-        text = text.replace(/([a-zA-Z0-9\)])!/g, '$1^2');
-        text = text.replace(/#(?=[a-zA-Z0-9\(\\])/g, '\\sqrt');
-        text = text.replace(/#/g, '^3');
-        text = text.replace(/(^|[\s\+\-\*/\^\=,\(\$x])'(?=[0-9])/g, '$1');
-    }
-    // Normalize common math unicode symbols to LaTeX equivalents
-    text = text.replace(/∫/g, '\\int ');
-    text = text.replace(/√\s*(\([^\)]+\)|[a-zA-Z0-9]+)/g, '\\sqrt{$1}');
-    text = text.replace(/√/g, '\\sqrt');
-    text = text.replace(/α/g, '\\alpha');
-    text = text.replace(/β/g, '\\beta');
-    text = text.replace(/θ/g, '\\theta');
-    text = text.replace(/λ/g, '\\lambda');
-    text = text.replace(/π/g, '\\pi');
-    text = text.replace(/ϕ/g, '\\phi');
-    text = text.replace(/Ø/g, "\\phi'");
-    text = text.replace(/Ø'/g, "\\phi'");
-    text = text.replace(/→/g, '\\to ');
-    text = text.replace(/∈/g, '\\in ');
-    text = text.replace(/≥/g, '\\ge ');
-    text = text.replace(/≤/g, '\\le ');
-    text = text.replace(/≠/g, '\\ne ');
-    text = text.replace(/±/g, '\\pm ');
-    text = text.replace(/×/g, '\\times ');
-    text = text.replace(/÷/g, '\\div ');
-    text = text.replace(/·/g, '\\cdot ');
-    text = text.replace(/∞/g, '\\infty ');
-    // Fix common broken LaTeX tags like "\frac{pi}{4}" or spaces inside log_e
-    text = text.replace(/log_e\s+([0-9a-zA-Z\(\)]+)/g, '\\log_e($1)');
-    text = text.replace(/\\log_e\s+/g, '\\log_e ');
-    // Fix OMML/Python extractor artifacts: {lim}_{...} -> \lim_{...}
-    text = text.replace(/\{(lim|sup|inf|max|min|limsup|liminf)\}_\{/g, (_m, op) => `\\${op}_{`);
-    text = text.replace(/\{(lim|sup|inf|max|min|limsup|liminf)\}_([a-zA-Z0-9])/g, (_m, op, c) => `\\${op}_${c}`);
-    // Fix spurious {)} artifact in nested function notation: (f(r){)}^{2} -> (f(r))^{2}
-    text = text.replace(/\{\\?\)\}\^\{/g, ')^{');
-    text = text.replace(/\{\\?\)\}(?=[^a-zA-Z{]|$)/g, ')');
-    // Fix 'ea' prose artifact (e^a written as plain text in JEE questions)
-    text = text.replace(/\bvalue of\s+ea\b(?!\^)/gi, 'value of $e^{a}$');
-    text = text.replace(/\bsuch that\s+ea\b(?!\^)/gi, 'such that $e^{a}$');
-    text = text.replace(/\bthat ea\b(?!\^)/gi, 'that $e^{a}$');
-    text = text.replace(/([ ,])ea([ ,.])/g, (_m, pre, post) => `${pre}$e^{a}$${post}`);
-    // Fix vector arrow artifacts in limit subscripts: \vec{r}x -> r \to x
-    text = text.replace(/\\vec\{r\}\s*x\b/g, 'r \\to x');
-    text = text.replace(/\\vec\{([a-zA-Z])\}\s*([a-zA-Z])\b/g, '$1 \\to $2');
-    text = text.replace(/\\vec\{r\}\\to/g, 'r \\to');
-    // Strip rogue dollar signs placed immediately inside parentheses, braces, or brackets:
-    text = text.replace(/([\(\[\{])\s*\$\s*/g, '$1');
-    text = text.replace(/\s*\$\s*([\)\]\}])/g, '$1');
-    // Absorb leading limit/integral/sum before $: e.g. \lim_{t \to x} $\frac{...}{...}$ -> $\lim_{t \to x} \frac{...}{...}$
-    text = text.replace(/(\\(?:lim|int|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*)\s*\$([^\$\n]+?)\$/g, (_m, op, inner) => `$${op} ${inner}$`);
-    // Absorb trailing equality after $: e.g. $\frac{...}{...}$ = 1 -> $\frac{...}{...} = 1$
-    text = text.replace(/\$([^\$\n]+?)\$\s*([=<>≤≥]|\\le\b|\\ge\b)\s*(-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+|[a-zA-Z0-9_]+(?:\^[0-9]+)?)(?=[,;.\s]|$)/g, (_m, inner, op, rhs) => `$${inner} ${op} ${rhs}$`);
-    // Normalize Greek letters and set relations
-    text = text.replace(/α/g, '\\alpha')
-        .replace(/β/g, '\\beta')
-        .replace(/γ/g, '\\gamma')
-        .replace(/(?:∈|\\in)\s*Z\b/g, '\\in \\mathbb{Z}')
-        .replace(/∈/g, '\\in ');
-    // Clean empty fraction artifacts
-    text = text.replace(/\\frac\{\s*\}\{\s*\}/g, '');
-    // Fix \sqrt(...) with arbitrary nested parens to \sqrt{...}
-    let sqrtIdx = text.indexOf('\\sqrt(');
-    while (sqrtIdx !== -1) {
-        let depth = 1;
-        let i = sqrtIdx + 6;
-        const startInner = i;
-        while (i < text.length && depth > 0) {
-            if (text[i] === '(')
-                depth++;
-            else if (text[i] === ')')
-                depth--;
-            i++;
-        }
-        if (depth === 0) {
-            const inner = text.substring(startInner, i - 1);
-            text = text.substring(0, sqrtIdx) + '\\sqrt{' + inner + '}' + text.substring(i);
-            sqrtIdx = text.indexOf('\\sqrt(', sqrtIdx + 7);
-        }
-        else {
-            break;
-        }
-    }
-    // Fix exponents with parens: e^(...) -> e^{...}
-    text = text.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, '$1^{$2}');
-    // Fix common OCR equality loss: f(a) 0 -> f(a) = 0
-    text = text.replace(/\b(f\([a-zA-Z0-9]+\))\s+0\b/g, '$1 = 0');
-    // Fix interval union corruption e.g. \cup $10, \infty ) -> \cup (10, \infty)
-    text = text.replace(/\\cup\s*\$?([0-9]+)\s*,\s*\\infty\s*\)/g, '\\cup ($1, \\infty)');
-    // Sanitize unbalanced \left and \right delimiters which crash KaTeX rendering
-    const leftMatches = (text.match(/\\left\b/g) || []).length;
-    const rightMatches = (text.match(/\\right\b/g) || []).length;
-    if (leftMatches !== rightMatches) {
-        text = text.replace(/\\left\s*([\[\(\{\|])/g, '$1');
-        text = text.replace(/\\right\s*([\]\)\}\|])/g, '$1');
-    }
-    // Wrap math expressions in $ delimiters if unwrapped to prevent prose collision in KaTeX
-    if (!text.includes('$')) {
-        const ifM = text.match(/^(If\s+)([\s\S]+?)(,\s*then\s+|\s+then\s+)([\s\S]+?)(\s+(?:is equal to(?:\s+[_.\-]+|\s*[:._\-]*)?|is(?:\s+[_.\-]+|\s*[:._\-]*)?|\.|$))$/i);
-        if (ifM && !/\b(?:let|where|given|satisfying|passing|point|plane|line|foot)\b/i.test(ifM[2])) {
-            text = `${ifM[1]}$ ${ifM[2].trim()} $ then $ ${ifM[4].trim()} $${ifM[5]}`;
-        }
-    }
-    return text;
+    const result = normalizeMathematicalText(rawText);
+    return result.normalizedText;
 }
 /**
  * Parses raw text extracted from PDF into structured questions with validation
@@ -546,134 +339,17 @@ export async function extractQuestionsFromPdfBuffer(buffer, subject = 'Mathemati
     return fallbackSummary;
 }
 /**
- * Executes the Python OOXML Math Extractor for Microsoft Word documents
- */
-function runPythonDocxExtractor(tempDocxPath, subject, targetExam) {
-    return new Promise((resolve) => {
-        const candidatePaths = [
-            path.resolve(__dirname, '../../scripts/docx_math_extractor.py'),
-            path.resolve(__dirname, '../scripts/docx_math_extractor.py'),
-            path.resolve(__dirname, '../../../backend/scripts/docx_math_extractor.py'),
-            path.resolve(process.cwd(), 'backend/scripts/docx_math_extractor.py'),
-            path.resolve(process.cwd(), 'scripts/docx_math_extractor.py'),
-            path.resolve(process.cwd(), '../backend/scripts/docx_math_extractor.py')
-        ];
-        const scriptPath = candidatePaths.find((p) => fs.existsSync(p));
-        if (!scriptPath) {
-            console.warn('docx_math_extractor.py not found on disk, skipping Python DOCX parser');
-            resolve(null);
-            return;
-        }
-        const pyProcess = spawn('python', [
-            '-X', 'utf8',
-            scriptPath,
-            '--input', tempDocxPath,
-            '--subject', subject,
-            '--exam', targetExam
-        ], {
-            env: {
-                ...process.env,
-                PYTHONIOENCODING: 'utf-8',
-                PYTHONUTF8: '1'
-            }
-        });
-        let stdout = '';
-        let stderr = '';
-        pyProcess.stdout.on('data', (data) => {
-            stdout += data.toString();
-        });
-        pyProcess.stderr.on('data', (data) => {
-            stderr += data.toString();
-        });
-        pyProcess.on('close', (code) => {
-            if (code === 0 && stdout.trim()) {
-                try {
-                    const parsed = JSON.parse(stdout.trim());
-                    resolve(parsed);
-                    return;
-                }
-                catch (jsonErr) {
-                    console.warn('Failed to parse Python DOCX JSON output:', jsonErr);
-                }
-            }
-            else {
-                console.warn(`Python DOCX extractor exited with code ${code}. Stderr: ${stderr.slice(0, 300)}`);
-            }
-            resolve(null);
-        });
-        pyProcess.on('error', (err) => {
-            console.warn('Failed to spawn Python process for DOCX:', err.message);
-            resolve(null);
-        });
-        // 45 second timeout
-        setTimeout(() => {
-            try {
-                pyProcess.kill();
-            }
-            catch { }
-            resolve(null);
-        }, 20000);
-    });
-}
-/**
- * Extracts questions from DOCX buffer with full OOXML Office Math (OMML) preservation
+ * Extracts questions from DOCX buffer using pure Node.js (jszip + xmldom + ommlNodeToLatex).
+ * No Python, no Pandoc, no mammoth. Works on Hostinger shared hosting.
+ *
+ * Safety: magic-bytes check, 25 MB size limit, zip-bomb protection,
+ * sanitized media filenames. Covers equations in table cells and text boxes.
  */
 export async function extractQuestionsFromDocxBuffer(buffer, subject = 'Mathematics', targetExam = 'JEE Main') {
-    try {
-        const tempFile = path.join(os.tmpdir(), `upload-${Date.now()}-${uuidv4().slice(0, 8)}.docx`);
-        await fs.promises.writeFile(tempFile, buffer);
-        try {
-            const docxResult = await runPythonDocxExtractor(tempFile, subject, targetExam);
-            if (docxResult && docxResult.success && Array.isArray(docxResult.questions) && docxResult.questions.length > 0) {
-                let successfulCount = 0;
-                let needsReviewCount = 0;
-                const validatedQuestions = docxResult.questions.map((q) => {
-                    const report = validateQuestionLatexStructure({
-                        qNum: q.qNum,
-                        statement: q.statement || '',
-                        options: q.options || []
-                    });
-                    const needsReview = report.needsReview;
-                    if (needsReview)
-                        needsReviewCount++;
-                    else
-                        successfulCount++;
-                    return {
-                        ...q,
-                        status: needsReview ? 'NEEDS_REVIEW' : 'EXTRACTED',
-                        reviewReason: report.reasons.length > 0 ? report.reasons.join('; ') : undefined,
-                        confidence: report.overallConfidence,
-                        uncertainRegions: report.uncertainRegions
-                    };
-                });
-                return {
-                    totalDetected: validatedQuestions.length,
-                    successfulCount,
-                    needsReviewCount,
-                    errorCount: 0,
-                    rawTextPreview: (docxResult && docxResult.rawTextPreview) || '',
-                    totalPages: Math.max(1, Math.ceil(validatedQuestions.length / 5)),
-                    questions: validatedQuestions,
-                    errorLog: []
-                };
-            }
-        }
-        finally {
-            fs.promises.unlink(tempFile).catch(() => { });
-        }
-    }
-    catch (err) {
-        console.warn('Python DOCX extraction failed, trying mammoth fallback:', err.message);
-    }
-    // Mammoth fallback
-    try {
-        const mammoth = await import('mammoth');
-        const { value: docText } = await mammoth.extractRawText({ buffer });
-        const summary = parseQuestionsFromText(docText || '', subject, targetExam);
-        summary.totalPages = Math.max(1, Math.ceil(summary.questions.length / 5));
-        return summary;
-    }
-    catch (fallbackErr) {
+    const warnings = [];
+    const errorLog = [];
+    const result = await extractDocxMath(buffer, warnings, errorLog);
+    if (!result.success || result.paragraphs.length === 0) {
         return {
             totalDetected: 0,
             successfulCount: 0,
@@ -682,7 +358,40 @@ export async function extractQuestionsFromDocxBuffer(buffer, subject = 'Mathemat
             rawTextPreview: '',
             totalPages: 1,
             questions: [],
-            errorLog: [fallbackErr.message || 'DOCX parsing error']
+            errorLog: errorLog.length > 0 ? errorLog : ['DOCX contained no extractable text.']
         };
     }
+    // Warnings from the extractor are appended to the error log for visibility
+    if (warnings.length > 0) {
+        errorLog.push(...warnings);
+    }
+    // Parse the extracted raw text into structured questions
+    const summary = parseQuestionsFromText(result.rawText, subject, targetExam);
+    summary.totalPages = Math.max(1, Math.ceil(summary.questions.length / 5));
+    summary.errorLog.push(...errorLog);
+    // Validate LaTeX in each question
+    let validatedSuccessful = 0;
+    let validatedNeedsReview = 0;
+    summary.questions = summary.questions.map((q) => {
+        const report = validateQuestionLatexStructure({
+            qNum: q.qNum,
+            statement: q.statement || '',
+            options: q.options || []
+        });
+        const needsReview = report.needsReview || q.status === 'NEEDS_REVIEW';
+        if (needsReview)
+            validatedNeedsReview++;
+        else
+            validatedSuccessful++;
+        return {
+            ...q,
+            status: (needsReview ? 'NEEDS_REVIEW' : 'EXTRACTED'),
+            reviewReason: report.reasons.length > 0
+                ? report.reasons.join('; ')
+                : (q.reviewReason || undefined)
+        };
+    });
+    summary.successfulCount = validatedSuccessful;
+    summary.needsReviewCount = validatedNeedsReview;
+    return summary;
 }
