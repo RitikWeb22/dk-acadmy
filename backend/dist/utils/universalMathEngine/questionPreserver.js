@@ -216,7 +216,7 @@ function readClipboard(input) {
         };
     }
     const obj = input;
-    return { html: obj.html || '', plain: obj.text || '' };
+    return { html: obj.html || '', plain: obj.text || obj.plain || '' };
 }
 export function normalizePastedQuestionContent(clipboardOrText) {
     const { html, plain } = readClipboard(clipboardOrText);

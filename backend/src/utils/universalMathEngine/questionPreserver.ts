@@ -253,8 +253,8 @@ function readClipboard(input: PastedContent): { html: string; plain: string } {
     };
   }
 
-  const obj = input as { html?: string; text?: string };
-  return { html: obj.html || '', plain: obj.text || '' };
+  const obj = input as { html?: string; text?: string; plain?: string };
+  return { html: obj.html || '', plain: obj.text || obj.plain || '' };
 }
 
 export function normalizePastedQuestionContent(clipboardOrText: PastedContent): NormalizedQuestionResult {

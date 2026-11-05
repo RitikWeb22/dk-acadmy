@@ -89,6 +89,8 @@ function clipboard(html: string, plain: string) {
 function wordTokens(text: string): string[] {
   const unfolded = text
     .replace(/\\([a-zA-Z]+)/g, ' $1 ')
+    .replace(/([0-9])([a-zA-Z])/g, '$1 $2')
+    .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
     .replace(/([a-zA-Z0-9])(?=(?:sin|cos|tan|cot|sec|csc|log|ln|lim)\b)/gi, '$1 ');
   return (unfolded.match(/[A-Za-z0-9]+/g) || []).map((token) => token.toLowerCase());
 }
@@ -141,6 +143,17 @@ describe('MathInput paste harness (happy-dom, frontend path)', () => {
 
     // Both render to identical KaTeX HTML
     assert.equal(katexHtml(`$${res1}$`), katexHtml(`$${res2}$`));
+  });
+
+  test('ensureMathDelimiters cleanly wraps limits with tall brackets and nested radicals', () => {
+    const input = 'The value of \\lim_{x \\to 0} 2\\left(\\frac{1-\\cos x\\sqrt{\\cos 2x}\\cdot\\cos 3x\\cdots\\sqrt{\\cos 10x}}{x^2}\\right) is ( ).';
+    const trace = traceMathInputPaste(clipboard('', input));
+    assert.equal(
+      trace.mathInputOnChange,
+      'The value of $\\lim_{x \\to 0} 2\\left(\\frac{1-\\cos x\\sqrt{\\cos 2x}\\cdot\\cos 3x\\cdots\\sqrt{\\cos 10x}}{x^2}\\right)$ is ( ).'
+    );
+    assert.equal(trace.blocks.some((b) => b.type === 'text' && b.content.includes('\\frac')), false);
+    assert.equal(trace.blocks.every((b) => b.type === 'text' || b.katexOk), true);
   });
 
   for (const fixture of loadFixtures()) {
