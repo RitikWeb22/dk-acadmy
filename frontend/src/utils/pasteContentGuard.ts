@@ -8,6 +8,7 @@ const MATH_WORDS = new Set([
   'infty', 'inf', 'sum', 'prod', 'int', 'left', 'right', 'begin', 'end', 'to', 'cdot',
   'times', 'leq', 'geq', 'neq', 'alpha', 'beta', 'gamma', 'pi', 'theta', 'lambda', 'mu',
   'sigma', 'phi', 'omega', 'text', 'mathrm', 'mathbb', 'max', 'min', 'sup', 'exp',
+  'aes', 'ea', 'ax', 'bx', 'cx', 'dx', 'dy', 'dt', 'dz', 'ab', 'bc', 'ca', 'xy', 'yz', 'zx',
 ]);
 
 const PROSE_SPLIT = /\b(?:suppose|is|are|was|were|differentiable|equals|equal|then|and|where|when|given|find|the|that|this|function|following|value|let|if|for|with|from|into|such|which|what|evaluate|compute|question|statement|limit|answer|ans|option|primary|cell|following)\b/gi;

@@ -108,11 +108,27 @@ export function reconstructNaryOperators(input: string): string {
     return `\\prod_{${stripOuterParensSafe(lower)}}^{${stripOuterParensSafe(upper)}}`;
   });
 
+  // Quoted subscript summation: ∑_"aes " -> \sum_{a \in S}
+  text = text.replace(/[∑\u2211]\s*_\s*"([^"]+)"/g, (_m, lower) => {
+    const cleanLower = lower.trim();
+    const normLower = /^aes$/i.test(cleanLower) ? 'a \\in S' : cleanLower;
+    return `\\sum_{${normLower}} `;
+  });
+
   // Linear subscript/superscript summation: ∑_(i=1)^n or ∑_{i=1}^{n}
   text = text.replace(/[∑\u2211]\s*_\s*([({])([^(){}]+)([)}])(?:\s*\^\s*([({]?)([0-9a-zA-Z_+-\\^]+)([)}]?))?/g, (_m, _o1, lower, _c1, _o2, upper) => {
-    const bLower = `_{${lower.trim()}}`;
+    const cleanLower = lower.trim();
+    const normLower = /^"?aes"?$/i.test(cleanLower) ? 'a \\in S' : cleanLower;
+    const bLower = `_{${normLower}}`;
     const bUpper = upper ? `^{${stripOuterParensSafe(upper.trim())}}` : '';
     return `\\sum${bLower}${bUpper}`;
+  });
+
+  // Bare token subscript summation: ∑_aes or ∑_i
+  text = text.replace(/[∑\u2211]\s*_\s*([a-zA-Z0-9]+)(?:\s*\^\s*([a-zA-Z0-9]+))?/g, (_m, lower, upper) => {
+    const normLower = /^aes$/i.test(lower) ? 'a \\in S' : lower;
+    const bUpper = upper ? `^{${upper}}` : '';
+    return `\\sum_{${normLower}}${bUpper} `;
   });
 
   text = text.replace(/[∑\u2211]/g, '\\sum ');
@@ -266,13 +282,17 @@ export function reconstructFractions(input: string): string {
       // Skip escaped slash or comments
       if (i > 0 && str[i - 1] === '\\') continue;
 
-      // Verify we are not inside existing macro arguments like \frac{...}{...}
-      let leftBraceDepth = 0;
+      // Skip slashes inside text macros like \text{...} or \mathrm{...}
+      const openStack: number[] = [];
       for (let k = 0; k < i; k++) {
-        if (str[k] === '{') leftBraceDepth++;
-        else if (str[k] === '}') leftBraceDepth = Math.max(0, leftBraceDepth - 1);
+        if (str[k] === '{' && (k === 0 || str[k - 1] !== '\\')) openStack.push(k);
+        else if (str[k] === '}' && (k === 0 || str[k - 1] !== '\\')) openStack.pop();
       }
-      if (leftBraceDepth > 0) continue;
+      if (openStack.length > 0) {
+        const innerOpen = openStack[openStack.length - 1];
+        const beforeBrace = str.slice(Math.max(0, innerOpen - 16), innerOpen);
+        if (/\\(?:text|mathrm|operatorname)\s*$/.test(beforeBrace)) continue;
+      }
 
       // 1. Scan Left: boundary of numerator
       let leftEnd = i - 1;
@@ -306,6 +326,10 @@ export function reconstructFractions(input: string): string {
             }
           }
         }
+      } else if (str[leftEnd] === '|') {
+        let p = leftEnd - 1;
+        while (p >= 0 && str[p] !== '|') p--;
+        if (p >= 0) leftStart = p;
       } else if (str[leftEnd] === '}') {
         let depth = 1;
         let p = leftEnd - 1;
@@ -330,12 +354,29 @@ export function reconstructFractions(input: string): string {
                   q--;
                 }
                 if (bDepth === 0) preEnd = q;
+              } else if (str[preEnd] === '|') {
+                let q = preEnd - 1;
+                while (q >= 0 && str[q] !== '|') q--;
+                if (q >= 0) preEnd = q - 1;
               } else {
                 while (preEnd >= 0 && /[a-zA-Z0-9_\\]/.test(str[preEnd])) preEnd--;
               }
               leftStart = preEnd + 1;
             }
           } else {
+            while (preEnd >= 0 && (str[preEnd] === '}' || str[preEnd] === ']')) {
+              const closeCh = str[preEnd];
+              const openCh = closeCh === '}' ? '{' : '[';
+              let d2 = 1;
+              let q = preEnd - 1;
+              while (q >= 0 && d2 > 0) {
+                if (str[q] === closeCh) d2++;
+                else if (str[q] === openCh) d2--;
+                q--;
+              }
+              if (d2 === 0) preEnd = q;
+              else break;
+            }
             while (preEnd >= 0 && /[a-zA-Z\\]/.test(str[preEnd])) preEnd--;
             leftStart = preEnd + 1;
           }
@@ -344,6 +385,11 @@ export function reconstructFractions(input: string): string {
         let p = leftEnd;
         while (p >= 0 && /[a-zA-Z0-9_\\^!]/.test(str[p])) p--;
         leftStart = p + 1;
+        if (leftStart <= leftEnd && str[leftStart] === '^' && leftStart > 0 && str[leftStart - 1] === '|') {
+          let q = leftStart - 2;
+          while (q >= 0 && str[q] !== '|') q--;
+          if (q >= 0) leftStart = q;
+        }
 
         const currentToken = str.substring(leftStart, leftEnd + 1);
         if (currentToken.length === 1 && /^[a-zA-Z]$/.test(currentToken)) {
@@ -386,31 +432,81 @@ export function reconstructFractions(input: string): string {
             }
           }
         }
+      } else if (str[rightStart] === '|') {
+        let p = rightStart + 1;
+        while (p < str.length && str[p] !== '|') p++;
+        if (p < str.length) {
+          rightEnd = p;
+          let nextP = rightEnd + 1;
+          while (nextP < str.length && /\s/.test(str[nextP])) nextP++;
+          if (nextP < str.length && str[nextP] === '^') {
+            nextP++;
+            while (nextP < str.length && /\s/.test(str[nextP])) nextP++;
+            if (nextP < str.length && str[nextP] === '{') {
+              const closeBrace = findMatchingDelimiter(str, nextP);
+              if (closeBrace !== -1) rightEnd = closeBrace;
+            } else if (nextP < str.length && /[a-zA-Z0-9]/.test(str[nextP])) {
+              while (nextP < str.length && /[a-zA-Z0-9]/.test(str[nextP])) nextP++;
+              rightEnd = nextP - 1;
+            }
+          }
+        }
       } else if (str[rightStart] === '{') {
         const closeBrace = findMatchingDelimiter(str, rightStart);
         if (closeBrace !== -1) rightEnd = closeBrace;
       } else {
         let p = rightStart;
         if (str[p] === '\\') {
-          p++;
-          while (p < str.length && /[a-zA-Z]/.test(str[p])) p++;
-          while (p < str.length && /\s/.test(str[p])) p++;
-          if (p < str.length && str[p] === '[') {
-            const cb = findMatchingDelimiter(str, p);
-            if (cb !== -1) p = cb + 1;
-          }
-          while (p < str.length && /\s/.test(str[p])) p++;
-          while (p < str.length && str[p] === '{') {
-            const cb = findMatchingDelimiter(str, p);
-            if (cb !== -1) {
-              p = cb + 1;
-              while (p < str.length && /\s/.test(str[p])) p++;
-            } else {
-              break;
+          let cmdEnd = p + 1;
+          while (cmdEnd < str.length && /[a-zA-Z]/.test(str[cmdEnd])) cmdEnd++;
+          const cmdName = str.substring(p + 1, cmdEnd);
+          let afterCmd = cmdEnd;
+          while (afterCmd < str.length && /\s/.test(str[afterCmd])) afterCmd++;
+          if (afterCmd < str.length && (str[afterCmd] === '[' || str[afterCmd] === '{')) {
+            p = afterCmd;
+            if (p < str.length && str[p] === '[') {
+              const cb = findMatchingDelimiter(str, p);
+              if (cb !== -1) p = cb + 1;
+            }
+            while (p < str.length) {
+              let ws = p;
+              while (ws < str.length && /\s/.test(str[ws])) ws++;
+              if (ws < str.length && str[ws] === '{') {
+                const cb = findMatchingDelimiter(str, ws);
+                if (cb !== -1) {
+                  p = cb + 1;
+                } else {
+                  break;
+                }
+              } else {
+                break;
+              }
+            }
+          } else {
+            while (p < str.length && /[a-zA-Z0-9_\\^!]/.test(str[p])) p++;
+            if (/^(?:partial|Delta|nabla)$/.test(cmdName)) {
+              let q = p;
+              while (q < str.length && /\s/.test(str[q])) q++;
+              if (q < str.length && /[a-zA-Z0-9_^]/.test(str[q])) {
+                while (q < str.length && /[a-zA-Z0-9_\\^!]/.test(str[q])) q++;
+                p = q;
+              }
             }
           }
         } else {
           while (p < str.length && /[a-zA-Z0-9_\\^!]/.test(str[p])) p++;
+          const fnToken = str.substring(rightStart, p);
+          if (
+            p > rightStart &&
+            p < str.length &&
+            str[p] === '(' &&
+            !/^d(?:[a-zA-Z]|\\[a-zA-Z]+)(?:\^[0-9a-zA-Z{}]+)?$/.test(fnToken)
+          ) {
+            const closeParen = findMatchingDelimiter(str, p);
+            if (closeParen !== -1) {
+              p = closeParen + 1;
+            }
+          }
         }
         rightEnd = p - 1;
       }
@@ -641,6 +737,30 @@ export function reconstructAbsoluteValues(input: string): string {
  */
 const REAL_LATEX_COMMAND = /\\(?:frac|dfrac|tfrac|sqrt|lim|sum|prod|int|infty|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|pi|sigma|phi|omega|Gamma|Delta|Theta|Lambda|Sigma|Phi|Omega|sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|sinh|cosh|tanh|ln|log|exp|vec|hat|bar|dot|ddot|tilde|overset|underset|mathbb|mathrm|mathbf|text|begin|end|left|right|leq|geq|neq|approx|times|div|pm|mp|cdot|to|rightarrow|leftarrow|Rightarrow|Leftarrow|in|subset|supset|cup|cap|partial|nabla|hbar|binom|boxed|cancel|phantom|quad|qquad)(?![a-zA-Z])/;
 
+function normalizeParenthesizedScripts(input: string): string {
+  let str = input;
+  let i = 0;
+  while (i < str.length) {
+    if (str[i] === '^' || str[i] === '_') {
+      const op = str[i];
+      let j = i + 1;
+      while (j < str.length && /\s/.test(str[j])) j++;
+      if (j < str.length && str[j] === '(') {
+        const closeParen = findMatchingDelimiter(str, j);
+        if (closeParen !== -1) {
+          const inner = stripOuterParensSafe(str.substring(j + 1, closeParen));
+          const replacement = `${op}{${inner}}`;
+          str = str.substring(0, i) + replacement + str.substring(closeParen + 1);
+          i += replacement.length;
+          continue;
+        }
+      }
+    }
+    i++;
+  }
+  return str;
+}
+
 export function reconstructLinearEquation(input: string): string {
   if (!input) return '';
   const already = input.trim();
@@ -651,26 +771,46 @@ export function reconstructLinearEquation(input: string): string {
   // but we do NOT skip matrix/piecewise reconstruction (\matrix, \eqarray are Word linear artifacts).
   if (REAL_LATEX_COMMAND.test(already)) {
     let text = input;
+    // Remove leading numbering/dot artifacts
+    text = text.replace(/^\s*(?:\d+\.|\.)\s*(?=[A-Za-z\u0900-\u097F])/g, '');
+    // Strip empty Word answer-box placeholder □( )
+    text = text.replace(/□\s*\(\s*\)/g, '');
+    // Repair 'ea' OCR artifact for e^a in JEE questions
+    text = text.replace(/\bvalue of\s+\$?ea\$?(?![a-zA-Z^])/gi, 'value of $e^{a}$');
+    // Convert any remaining raw Unicode n-ary operators (∑, ∏, ∫)
+    if (/[∑∏∫\u2211\u220F\u222B]/.test(text)) {
+      text = reconstructNaryOperators(text);
+    }
+    // Convert standalone numeric fractions in options like (A) 1/3 outside LaTeX braces
+    text = text.replace(/(\([A-Da-d1-4]\)\s*)(-?\d+)\s*\/\s*(\d+)\b/g, '$1\\frac{$2}{$3}');
     // Normalise parenthesized exponents/subscripts that may survive OMML conversion
-    text = text.replace(/\^\s*\(([^()]+)\)/g, '^{$1}');
-    text = text.replace(/_\s*\(([^()]+)\)/g, '_{$1}');
+    text = normalizeParenthesizedScripts(text);
+    // Brace unbraced \sqrt or \frac in superscripts/subscripts
+    text = text.replace(/([\^_])\s*(\\sqrt(?:\[[^\]]*\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
+    text = text.replace(/([\^_])\s*(\\(?:d?frac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
     // Strip leftover Word linear formatting tokens
-    text = text.replace(/[█┤]/g, '');
+    text = text.replace(/[█┤□▒]/g, '');
     return text.trim();
   }
 
   let text = input;
 
-  // 1. Remove leading numbering/dot artifacts
+  // 1. Remove leading numbering/dot artifacts and empty answer-box placeholders
   text = text.replace(/^\s*(?:\d+\.|\.)\s*(?=[A-Za-z\u0900-\u097F])/g, '');
+  text = text.replace(/□\s*\(\s*\)/g, '');
+  text = text.replace(/\bvalue of\s+ea\b(?!\^)/gi, 'value of e^{a}');
 
   // 2. Clean invisible chars
   text = cleanInvisibleCharacters(text);
 
-  // 3. Domain mappings: f:R→R -> \(f:\mathbb{R}\to\mathbb{R}\)
+  // 3. Domain mappings: f:R→R -> \(f:\mathbb{R}\to\mathbb{R}\) and f:[0,∞)→R
   text = text.replace(
     /\b([a-zA-Z])\s*:\s*(?:\\mathbb\{R\}|\bR\b)\s*(?:→|->|\\to)\s*(?:\\mathbb\{R\}|\bR\b)\b/g,
     '\\($1:\\mathbb{R}\\to\\mathbb{R}\\)'
+  );
+  text = text.replace(
+    /\b([a-zA-Z])\s*:\s*([(\[][0-9a-zA-Z∞\-\+,\s\\]+[)\]]|\b(?:R|Z|N|Q|C)\b)\s*(?:→|->|\\to)\s*\b(R|Z|N|Q|C)\b/g,
+    '$1:$2 \\to \\mathbb{$3}'
   );
 
   // 4. Reconstruct Limits
@@ -688,24 +828,40 @@ export function reconstructLinearEquation(input: string): string {
   // 8. Reconstruct Radicals & Nested Square Roots
   text = reconstructRadicals(text);
 
-  // 8.5 Standard function commands
-  text = text.replace(/(?<![\\a-zA-Z])(sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|sinh|cosh|tanh|ln|log|exp)\b(?=\s*[\^_{|\\0-9a-zA-Z\u0370-\u03FF(])/g, '\\$1');
+  // 8.5 Standard function commands (do not use \b after name so log_e and sin^2 match)
+  text = text.replace(/(?<![\\a-zA-Z])(sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|sinh|cosh|tanh|ln|log|exp)(?![a-zA-Z])(?=\s*[\^_{|\\0-9a-zA-Z\u0370-\u03FF(])/g, '\\$1');
 
   // 9. Unicode characters & symbols
   text = reconstructUnicodeMath(text);
 
-  // 9.5 Parenthesized exponents and subscripts
-  text = text.replace(/\^\s*\(([^()]+)\)/g, '^{$1}');
-  text = text.replace(/_\s*\(([^()]+)\)/g, '_{$1}');
+  // 9.5 Parenthesized exponents and subscripts (supports nested parens like e^((f(r))/r))
+  text = normalizeParenthesizedScripts(text);
 
   // 10. Fractions
   text = reconstructFractions(text);
+
+  // 10.5 Ensure \sqrt and \frac in superscripts/subscripts are braced
+  text = text.replace(/([\^_])\s*(\\sqrt(?:\[[^\]]*\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
+  text = text.replace(/([\^_])\s*(\\(?:d?frac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
+
+  // 10.6 Convert literal curly braces immediately following \lim_{...} into \left\{ ... \right\}
+  const limBraceMatch = /(\\lim_\{[^{}]+\}\s*)\{/g;
+  let lbMatch: RegExpExecArray | null;
+  while ((lbMatch = limBraceMatch.exec(text)) !== null) {
+    const openBraceIdx = lbMatch.index + lbMatch[1].length;
+    const closeBraceIdx = findMatchingDelimiter(text, openBraceIdx);
+    if (closeBraceIdx !== -1) {
+      const inner = text.substring(openBraceIdx + 1, closeBraceIdx).trim();
+      text = text.substring(0, openBraceIdx) + `\\left\\{${inner}\\right\\}` + text.substring(closeBraceIdx + 1);
+      limBraceMatch.lastIndex = openBraceIdx + 7;
+    }
+  }
 
   // 11. Absolute Values
   text = reconstructAbsoluteValues(text);
 
   // 12. Strip leftover Word linear formatting tokens
-  text = text.replace(/[█┤]/g, '');
+  text = text.replace(/[█┤□▒]/g, '');
 
   return text.trim();
 }

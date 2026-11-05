@@ -132,5 +132,35 @@ xmlns="http://www.w3.org/TR/REC-html40">
     assert.ok(detailed.warnings.length > 0, 'Should record a warning message');
     assert.ok(detailed.html.includes('1/fallback_denominator'), 'Must retain fallback text when KaTeX fails');
   });
+
+  test('Handles Word 15/16 unquoted HTML wrapper tags inside OMML (<span lang=EN-US>, <i>) and summation subscript', () => {
+    const word15OmmlHtml = `
+<html xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+<body>
+<p class=MsoNormal>Let <!--[if gte msEquation 12]><m:oMath><m:d><m:dPr><m:begChr m:val="["/><m:endChr m:val="]"/></m:dPr><m:e><i style='mso-bidi-font-style:normal'><span lang=EN-US style='font-family:"Cambria Math",serif'>t</span></i></m:e></m:d></m:oMath><![endif]--><![if !msEquation]><span>[t]</span><![endif]> denote the greatest integer. Then <!--[if gte msEquation 12]><m:oMath><m:sSub><m:e><m:r><span lang=EN-US style='font-family:"Cambria Math",serif'><m:t>∑</m:t></span></m:r></m:e><m:sub><m:r><i style='mso-bidi-font-style:normal'><span lang=EN-US style='font-family:"Cambria Math",serif'><m:t>aes </m:t></span></i></m:r></m:sub></m:sSub><m:r><i style='mso-bidi-font-style:normal'><span lang=EN-US style='font-family:"Cambria Math",serif'><m:t>a</m:t></span></i></m:r></m:oMath><![endif]--><![if !msEquation]><span>∑_"aes " a</span><![endif]> is equal to _.</p>
+</body>
+</html>
+    `.trim();
+
+    const detailed = preprocessRawHtmlMathDetailed(word15OmmlHtml);
+    assert.equal(detailed.warnings.length, 0, 'Should have 0 OMML validation warnings');
+    assert.equal(detailed.needsReview, false, 'Should not flag needsReview');
+    assert.ok(detailed.html.includes('\\sum_{a \\in S} a'), 'Should convert summation with subscript and space before operand');
+  });
+
+  test('Reconstructs complex JEE plain-text linear equations with nested radical limits and parenthesized exponents', () => {
+    const cap4Plain = '. If α = (lim)┬(x→0^+ ) ((e^√(tan x) -e^√x)/(√(tan x) -√x)) and β = (lim)┬(x→0) (1+sin x)^(1/2 cot x) are the roots of the quadratic equation ax^2+bx-√e=0, then 12 log_e (a+b) is equal to';
+    const res4 = normalizePastedQuestion(cap4Plain);
+    assert.ok(res4.statement.includes('\\alpha = \\lim_{x \\to 0^+}'), 'Should reconstruct alpha limit');
+    assert.ok(res4.statement.includes('e^{\\sqrt{\\tan x}}'), 'Should brace radical exponent on e');
+    assert.ok(res4.statement.includes('12\\log_e(a+b)') || res4.statement.includes('12 \\log_e (a+b)'), 'Should convert log_e');
+
+    const cap5Plain = '. Let f(x)=√((lim)┬(r→x) {(2r^2 [(f(r))^2-f(x)f(r)])/(r^2-x^2 )-r^3 e^((f(r))/r) } ) be differentiable in (-∞,0)∪(0,∞) and f(1)=1. Then the value of ea, such that f(a)=0, is equal to □( ).';
+    const res5 = normalizePastedQuestion(cap5Plain);
+    assert.ok(res5.statement.includes('\\sqrt{\\lim_{r \\to x} \\left\\{'), 'Should reconstruct outer sqrt around limit and curly braces');
+    assert.ok(res5.statement.includes('e^{\\frac{f(r)}{r}}'), 'Should reconstruct nested parenthesized fraction exponent');
+    assert.ok(res5.statement.includes('e^{a}'), 'Should repair ea OCR artifact');
+    assert.ok(!res5.statement.includes('□'), 'Should strip empty answer box placeholder');
+  });
 });
 

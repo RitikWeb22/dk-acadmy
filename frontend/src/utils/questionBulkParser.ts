@@ -197,10 +197,11 @@ export function autoWrapMathDelimiters(text: string): string {
 
   if (!hasLaTeX) return text;
 
-  // Comprehensive mathematical English prose detection
+  // Comprehensive mathematical English prose detection (strip LaTeX commands first so \to and \in are not matched as prose words)
   const mathProseKeywords = /\b(?:let|if|then|find|given|suppose|consider|assume|where|when|what|which|whether|statement|following|function|continuous|satisfying|satisfies|value|values|equal|points?|line|lines|plane|planes|circle|circles|arc|arcs|triangle|matrix|matrices|vector|vectors|unit|angle|angles|between|perpendicular|parallel|number|numbers|area|parallelogram|diagonals?|integers?|ordered|pair|ratio|internally|externally|origin|magnitude|length|centre|center|subtend|divides?|roots?|equation|equations|system|set|subset|true|false|correct|incorrect|both|neither|only|because|since|such|that|with|respect|satisfy|defined|at|is|are|was|were|be|been|has|have|had|for|all|any|every|each|to|from|by|on|in|of|and|or|two|three|four)\b/gi;
-  const englishWords = trimmed.match(mathProseKeywords) || [];
-  const generalWords = (trimmed.replace(/\\[a-zA-Z]+/g, ' ').match(/\b[a-zA-Z]{3,}\b/g) || []).filter(w => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w));
+  const strippedTrimmed = trimmed.replace(/\\[a-zA-Z]+/g, ' ');
+  const englishWords = strippedTrimmed.match(mathProseKeywords) || [];
+  const generalWords = (strippedTrimmed.match(/\b[a-zA-Z]{3,}\b/g) || []).filter(w => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w));
   const isProse = englishWords.length >= 2 || generalWords.length >= 3;
 
   // If the whole text is predominantly a math formula without prose words
@@ -301,9 +302,15 @@ export function autoWrapMathDelimiters(text: string): string {
   // 3g. Protect linear combinations of function values: e.g. 2f(2) + 3f(3)
   s = s.replace(/(?<![a-zA-Z0-9_\$])([0-9]*\s*[a-zA-Z]\s*\([0-9a-zA-Z]+\)\s*[+\-−*\/]\s*[0-9]*\s*[a-zA-Z]\s*\([0-9a-zA-Z]+\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
+  // 3h. Protect logarithmic and trig expressions with optional leading coefficients: e.g. 12\log_e(a+b)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])((?:[0-9]+\s*)?\\(?:log_e|log|ln|sin|cos|tan|cot|sec|csc|exp)(?:_\{?[0-9a-zA-Z]+\}?|\^\{?[0-9a-zA-Z+\-]+\}?)*\s*(?:\([^()\n]+\)|\\left\([^\n]+?\\right\)|[0-9a-zA-Z]+))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 3i. Protect domain mappings: e.g. f:[0, \infty) \to \mathbb{R}
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*:\s*(?:\[[^\]\n]+\]|\([^)\n]+\)|\\mathbb\{[A-Z]\}|[A-Z])\s*\\to\s*(?:\\mathbb\{[A-Z]\}|[A-Z]))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
   // 4. Wrap compound math expressions, equations, vector linear combinations, and polynomials:
   // Uses safe non-backtracking atoms (no nested + quantifiers)
-  const singleAtom = '(?:-?\\s*(?:[0-9]*\\s*\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*(?:\\s*[0-9a-zA-Z])?|(?<![a-zA-Z])[0-9]*\\s*[a-zA-Z](?![a-zA-Z])(?:_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*|\\([^()\\n]{1,80}\\)|\\[[^\\[\\]\\n]{1,80}\\]|\\|[^|\\n]{1,80}\\|(?:\\^[0-9a-zA-Z]+|\\^\\{[^}]+\\})?|[0-9]+(?:\\.[0-9]+)?))';
+  const singleAtom = '(?:-?\\s*(?:[0-9]*\\s*\\\\[a-zA-Z]+(?:\\{[^}]*\\}|_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*(?:\\s*[0-9a-zA-Z])?|(?<![a-zA-Z])[0-9]*\\s*(?:[a-zA-Z](?:_(?:\\{[^}]*\\}|[0-9a-zA-Z]+)|\\^(?:\\{[^}]*\\}|[0-9a-zA-Z]+))*){1,2}(?![a-zA-Z])|\\([^()\\n]{1,80}\\)|\\[[^\\[\\]\\n]{1,80}\\]|\\|[^|\\n]{1,80}\\|(?:\\^[0-9a-zA-Z]+|\\^\\{[^}]+\\})?|[0-9]+(?:\\.[0-9]+)?))';
   const mathOp = '(?:[=+\\-−*/×⋅<>]|\\\\in\\b|\\\\ge\\b|\\\\le\\b|\\\\neq\\b|\\\\pm\\b|\\\\cdot|\\\\times)';
   const compoundMath = new RegExp(`(?<![a-zA-Z0-9_\\$])(${singleAtom}\\s*${mathOp}\\s*${singleAtom}(?:\\s*${mathOp}\\s*${singleAtom}){0,6})(?![a-zA-Z0-9_\\$])`, 'g');
   s = s.replace(compoundMath, (_, m) => {
@@ -512,8 +519,9 @@ export function normalizeMathText(raw: string): string {
   // 0i. If fraction in integral is followed by factor in denominator: \frac{1}{5+2x-2x^2} (1+e^{2-4x})\,dx
   text = text.replace(/\\frac\{1\}\{([^}]+)\}\s*\((1\+e\^\{[^}]+\}\\,dx)/g, '\\frac{1}{($1)$2}');
 
-  // 0j. Powers with single or multiple parentheses: e^((2-4x)) -> e^{2-4x}, x^(2) -> x^{2}
-  text = text.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, '$1^{$2}');
+  // 0j. Powers with balanced single or double parentheses: e^((2-4x)) -> e^{2-4x}, x^(2) -> x^{2}
+  text = text.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(\(([^()]+)\)\)/g, '$1^{$2}');
+  text = text.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(([^()]+)\)/g, '$1^{$2}');
 
 
   // 0k. Fix OMML limlow artifacts: {lim}_{...} -> \lim_{...}
@@ -525,10 +533,10 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/\{\\?\)\}\^\{/g, ')^{');
   text = text.replace(/\{\\?\)\}(?=[^a-zA-Z{]|$)/g, ')');
 
-  // 0m. Fix 'ea' prose artifact (e^a written as plain text in JEE questions)
-  text = text.replace(/\bvalue of\s+ea\b(?!\^)/gi, 'value of $e^{a}$');
-  text = text.replace(/\bsuch that\s+ea\b(?!\^)/gi, 'such that $e^{a}$');
-  text = text.replace(/\bthat ea\b(?!\^)/gi, 'that $e^{a}$');
+  // 0m. Fix 'ea' prose artifact (e^a written as plain text or $ea$ in JEE questions)
+  text = text.replace(/\bvalue of\s+\$?ea\$?(?![a-zA-Z^])/gi, 'value of $e^{a}$');
+  text = text.replace(/\bsuch that\s+\$?ea\$?(?![a-zA-Z^])/gi, 'such that $e^{a}$');
+  text = text.replace(/\bthat\s+\$?ea\$?(?![a-zA-Z^])/gi, 'that $e^{a}$');
   text = text.replace(/([ ,])ea([ ,.])/g, (_m, pre, post) => `${pre}$e^{a}$${post}`);
 
   // 0n. Fix OCR arrow artifacts in limit subscripts: \vec{r}x -> r \to x
@@ -683,8 +691,9 @@ export function normalizeMathText(raw: string): string {
     // 0a. Unwrap any $...$ block that mistakenly encloses English prose
     // e.g. "If $ the foot of the perpendicular drawn from the point (1,0,3) ... $ then $ \alpha $ is equal to"
     res = res.replace(/\$([^\$\n]+)\$/g, (wholeMatch, inner) => {
-      const proseWords = inner.match(/\b(?:the|foot|of|perpendicular|drawn|from|point|points|line|lines|plane|planes|internally|externally|origin|angle|angles|triangle|circle|ratio|distance|coordinates?|satisfying|continuous|function|integral|value|values|equal|then|where|when|such|that|with|respect|to|let|find|evaluate|between|among|number|numbers|statement|correct|incorrect|true|false)\b/gi) || [];
-      const regularSpacedWords = (inner.replace(/\\[a-zA-Z]+/g, ' ').match(/\b[a-zA-Z]{3,}\b/g) || []).filter(
+      const strippedInner = inner.replace(/\\text\{[^{}]*\}/g, ' ').replace(/\\[a-zA-Z]+/g, ' ');
+      const proseWords = strippedInner.match(/\b(?:the|foot|of|perpendicular|drawn|from|point|points|line|lines|plane|planes|internally|externally|origin|angle|angles|triangle|circle|ratio|distance|coordinates?|satisfying|continuous|function|integral|value|values|equal|then|where|when|such|that|with|respect|to|let|find|evaluate|between|among|number|numbers|statement|correct|incorrect|true|false)\b/gi) || [];
+      const regularSpacedWords = (strippedInner.match(/\b[a-zA-Z]{3,}\b/g) || []).filter(
         (w: string) => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w)
       );
       if (proseWords.length >= 2 || regularSpacedWords.length >= 3) {
@@ -862,9 +871,15 @@ export function normalizeMathText(raw: string): string {
       return `\\int \\frac{d${v}}{${den}} `;
     });
 
-    // 6. Exponential powers and arbitrary base powers with single or double parentheses:
+    // 6. Exponential powers and arbitrary base powers with balanced single or double parentheses:
     // e.g. e^((2-4x)) -> e^{2-4x}, e^(2-4x) -> e^{2-4x}, e^(-x) -> e^{-x}, x^(n+1) -> x^{n+1}, t^(50) -> t^{50}
-    res = res.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, (_, base, p) => {
+    res = res.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(\(([^()]+)\)\)/g, (_, base, p) => {
+      let cleanP = p.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
+                    .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
+                    .replace(/π/, '\\pi');
+      return `${base}^{${cleanP.trim()}}`;
+    });
+    res = res.replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(([^()]+)\)/g, (_, base, p) => {
       let cleanP = p.replace(/π\/4|\\pi\/4/, '\\frac{\\pi}{4}')
                     .replace(/π\/2|\\pi\/2/, '\\frac{\\pi}{2}')
                     .replace(/π/, '\\pi');
@@ -887,7 +902,7 @@ export function normalizeMathText(raw: string): string {
 
     // 8. Trig functions: tan^50 x -> \tan^{50} x
     res = res.replace(/(cot|tan|sin|cos|sec|csc)\^([0-9]+)\s*x/gi, (_, fn, p) => `\\${fn.toLowerCase()}^{${p}} x`);
-    res = res.replace(/(?<!\\)(cot|tan|sin|cos|sec|csc)\b/gi, (match) => `\\${match.toLowerCase()} `);
+    res = res.replace(/(?<![\\a-zA-Z])(cot|tan|sin|cos|sec|csc)(?![a-zA-Z])/gi, (match) => `\\${match.toLowerCase()} `);
     res = res.replace(/\\?\b(tan|cot|sin|cos|sec|csc)\s*[\^⁻]\s*\(?\s*(-1|1|¹)\s*\)?\s*\(([^)]+)\)/gi, (_, fn, _p, arg) => `\\${fn.toLowerCase()}^{-1}\\left(${arg.trim()}\\right)`);
     res = res.replace(/\\?\b(tan|cot|sin|cos|sec|csc)\s*[\^⁻]\s*\(?\s*(-1|1|¹)\s*\)?/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
     res = res.replace(/\\?\b(cot|tan|sin|cos|sec|csc)\s*[\^⁻](\-?1|¹)\b/gi, (_, fn) => `\\${fn.toLowerCase()}^{-1}`);
@@ -907,11 +922,12 @@ export function normalizeMathText(raw: string): string {
     // 10. Universal Fractions: converts all quotients A/B into \frac{A}{B}
     res = convertAllFractions(res);
 
-    // 10b. Normalize powers with unbraced fractions: x^\frac{1}{2} -> x^{\frac{1}{2}} (careful: never corrupt already-braced ^{\frac{...}{...}})
+    // 10b. Normalize powers with unbraced fractions or radicals: x^\frac{1}{2} -> x^{\frac{1}{2}}, e^\sqrt{x} -> e^{\sqrt{x}}
     res = res.replace(/\^\{\{\\frac\{([^}]+)\}\}\{([^}]+)\}\}/g, '^{\\frac{$1}{$2}}')
              .replace(/\^(?!\{)\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}')
              .replace(/\^(?!\{)\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}')
-             .replace(/\^(?!\{)(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '^{$1}');
+             .replace(/\^(?!\{)(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '^{$1}')
+             .replace(/([\^_])\s*(\\sqrt(?:\[[^\]]*\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
 
     // 11. Multi-digit exponents without braces: 1^15 -> 1^{15}, n^16 -> n^{16} (run after fractions!)
     res = res.replace(/([a-zA-Z0-9_\)\]\}])\^([0-9]{2,})\b/g, '$1^{$2}');
@@ -1026,8 +1042,9 @@ export function normalizeMathText(raw: string): string {
           res = `${prefix}$ ${endingIsMatch[1].trim()} $ ${endingIsMatch[2].trim()}`;
         } else {
           const mathProseKeywords = /\b(?:let|if|then|find|given|suppose|consider|assume|where|when|what|which|whether|statement|following|function|continuous|satisfying|satisfies|value|values|equal|points?|line|lines|plane|planes|circle|circles|arc|arcs|triangle|matrix|matrices|vector|vectors|unit|angle|angles|between|perpendicular|parallel|number|numbers|area|parallelogram|diagonals?|integers?|ordered|pair|ratio|internally|externally|origin|magnitude|length|centre|center|subtend|divides?|roots?|equation|equations|system|set|subset|true|false|correct|incorrect|both|neither|only|because|since|such|that|with|respect|satisfy|defined|at|is|are|was|were|be|been|has|have|had|for|all|any|every|each|to|from|by|on|in|of|and|or|two|three|four)\b/gi;
-          const englishProseWords = body.match(mathProseKeywords) || [];
-          const generalWords = (body.replace(/\\[a-zA-Z]+/g, ' ').match(/\b[a-zA-Z]{3,}\b/g) || []).filter(w => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w));
+          const strippedBody = body.replace(/\\[a-zA-Z]+/g, ' ');
+          const englishProseWords = strippedBody.match(mathProseKeywords) || [];
+          const generalWords = (strippedBody.match(/\b[a-zA-Z]{3,}\b/g) || []).filter(w => !/^(?:sin|cos|tan|cot|sec|csc|log|ln|lim|det|min|max|exp|deg|mod|dim|ker|arg|gcd|lcm|vec|hat|bar|dot|int|sum|prod|frac|dfrac|sqrt|left|right)$/i.test(w));
           const isProse = englishProseWords.length >= 2 || generalWords.length >= 3;
 
           if (hasMathSyntax && !isProse) {
