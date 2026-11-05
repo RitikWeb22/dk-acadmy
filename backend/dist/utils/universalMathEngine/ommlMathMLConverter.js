@@ -346,7 +346,7 @@ export function ommlNodeToLatex(node) {
                 return '';
             if (character === '⃗' || character === '→')
                 return `\\vec{${base}}`;
-            if (character === '̂' || character === '^')
+            if (character === '̂' || character === '^' || character === 'ˆ')
                 return `\\hat{${base}}`;
             if (character === '̅' || character === '¯' || character === '-')
                 return `\\bar{${base}}`;
@@ -499,7 +499,7 @@ export function mathMLNodeToLatex(node) {
             const accent = attr(node, tag === 'mover' ? 'accent' : 'accentunder');
             if (tag === 'mover' && (over === '→' || over === '⃗'))
                 return `\\vec{${base}}`;
-            if (tag === 'mover' && (over === '^' || over === '̂'))
+            if (tag === 'mover' && (over === '^' || over === '̂' || over === 'ˆ'))
                 return `\\hat{${base}}`;
             if (tag === 'mover' && (over === '¯' || over === '‾' || over === '̅'))
                 return `\\bar{${base}}`;

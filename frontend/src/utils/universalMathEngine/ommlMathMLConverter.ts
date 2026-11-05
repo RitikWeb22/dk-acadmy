@@ -339,7 +339,7 @@ export function ommlNodeToLatex(node: any): string {
       const base = expression ? ommlNodeToLatex(expression).trim() : '';
       if (!base) return '';
       if (character === '⃗' || character === '→') return `\\vec{${base}}`;
-      if (character === '̂' || character === '^') return `\\hat{${base}}`;
+      if (character === '̂' || character === '^' || character === 'ˆ') return `\\hat{${base}}`;
       if (character === '̅' || character === '¯' || character === '-') return `\\bar{${base}}`;
       if (character === '̇' || character === '.') return `\\dot{${base}}`;
       if (character === '̈' || character === '..') return `\\ddot{${base}}`;
@@ -488,7 +488,7 @@ export function mathMLNodeToLatex(node: any): string {
       const over = overNode ? mathMLNodeToLatex(overNode).trim() : '';
       const accent = attr(node, tag === 'mover' ? 'accent' : 'accentunder');
       if (tag === 'mover' && (over === '→' || over === '⃗')) return `\\vec{${base}}`;
-      if (tag === 'mover' && (over === '^' || over === '̂')) return `\\hat{${base}}`;
+      if (tag === 'mover' && (over === '^' || over === '̂' || over === 'ˆ')) return `\\hat{${base}}`;
       if (tag === 'mover' && (over === '¯' || over === '‾' || over === '̅')) return `\\bar{${base}}`;
       if (tag === 'mover' && (over === '˙' || over === '̇')) return `\\dot{${base}}`;
       if (tag === 'mover' && (over === '¨' || over === '̈')) return `\\ddot{${base}}`;

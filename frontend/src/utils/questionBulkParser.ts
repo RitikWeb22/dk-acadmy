@@ -729,7 +729,12 @@ export function normalizeMathText(raw: string): string {
     // 0f. Absorb math functions or trailing terms immediately following closing $:
     // e.g. $12 + 7$ \log_e 7 -> $12 + 7 \log_e 7$
     // e.g. $\alpha + 7$ \log_e -> $\alpha + 7 \log_e$
-    res = res.replace(/\$\s*([^$,;.\s][^$]*?)\s*\$\s*(?!\$|[,;.]\s*\$)(\\(?:log_e|ln|log|sqrt|sin|cos|tan)\b\s*(?:[0-9a-zA-Z\\]+|\([^)]+\))?)/g, (_, p1, p2) => `$ ${p1} ${p2} $`);
+    res = res.replace(/\$\s*([^$,;.\s][^$]*?)\s*\$\s*(?!\$|[,;.]\s*\$)(\\(?:log_e|ln|log|sqrt|sin|cos|tan)\b\s*(?:[0-9a-zA-Z\\]+|\([^)]+\))?)/g, (match, p1, p2) => {
+      if (/\b(?:is|of|the|and|in|on|at|to|for|with|magnitude|value|satisfying|let|then|if|which|where)\b/i.test(p1) || p1.split(/\s+/).length > 4) {
+        return match;
+      }
+      return `$ ${p1} ${p2} $`;
+    });
 
     // 0g. Absorb LHS variable assignment before $: e.g. I(x)= $\int...$ or I(9)= $12...$
     res = res.replace(/\b([a-zA-Z]\s*\([^)]*\))\s*=\s*\$\s*([^$]+)\s*\$/g, (_, p1, p2) => `$ ${p1} = ${p2} $`);
