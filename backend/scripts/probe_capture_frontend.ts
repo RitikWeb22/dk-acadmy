@@ -55,3 +55,4 @@ console.log(JSON.stringify(trace.mathInputOnChange));
 console.log('');
 console.log('=== BLOCKS ===');
 trace.blocks.forEach((b: any, i: number) => console.log(`  [${i}] type=${b.type} katexOk=${b.katexOk} content=${JSON.stringify(b.content)}`));
+
