@@ -212,6 +212,11 @@ export function autoWrapMathDelimiters(text: string): string {
   // Smart wrap all mathematical formulas within mixed prose:
   let s = text;
 
+  // Pre-normalize spacing quotes and rogue spacing backslash-commas: 8" "m or " " -> normal space
+  s = s.replace(/([0-9]+)\s*["']\s*["']\s*([a-zA-Z])/g, '$1 $2');
+  s = s.replace(/["']\s*["']/g, ' ');
+  s = s.replace(/([0-9a-zA-Z])\s*\\,\s*(?=[0-9a-zA-Z])/g, (m, a) => `${a} `);
+
   // Pre-normalize differentials after integrals if missing \,
   s = s.replace(/(\\(?:int|iint|iiint)(?!\s*\\frac)[^,\n]+?)\s*d([txyz]|\\theta)\b/g, '$1\\,d$2');
   // Spacing for Greek letters before vectors: \lambda\vec{a} -> \lambda \vec{a}
@@ -717,9 +722,14 @@ export function normalizeMathText(raw: string): string {
     // Normalize parenthesized math condition: ( $r > 0$ ) -> ($r > 0$)
     res = res.replace(/\(\s*\$([^\$\n]+?)\$\s*\)/g, (_, m) => `($${m.trim()}$)`);
 
-    // 0d. Quotes in math: e.g. " "\,dx or "" -> \,
-    res = res.replace(/["']\s*["']/g, '\\,');
-    res = res.replace(/\\,\s*\\,/g, '\\,');
+    // 0d. Quotes used for spacing: e.g. 8" "m or " " -> normal space
+    res = res.replace(/([0-9]+)\s*["']\s*["']\s*([a-zA-Z])/g, '$1 $2');
+    res = res.replace(/["']\s*["']/g, ' ');
+    // Clean up rogue \, in prose (e.g. 8\, m -> 8 m, except differentials like \,dx)
+    res = res.replace(/([0-9a-zA-Z])\s*\\,\s*(?=[0-9a-zA-Z])/g, (m, a) => {
+      return `${a} `;
+    });
+    res = res.replace(/\\,\s*\\,/g, ' ');
 
     // 0e. Absorb vector norm exponent: | $\vec{OP} \times \vec{OA}$ |^ $2 -> |\vec{OP} \times \vec{OA}|^2
     res = res.replace(/\|\s*\$?\s*([^$]+?)\s*\$?\s*\|\s*\^\s*\$?\s*([0-9a-zA-Z]+|\{[^}]+\})\s*\$?/g, (_, p1, p2) => `|${p1.trim()}|^{${p2.trim()}}`);

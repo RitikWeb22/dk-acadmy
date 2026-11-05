@@ -101,21 +101,28 @@ export function sanitizeFormula(str: string): string {
 
   // Auto-balance curly braces { and } (excluding escaped \{ and \})
   let openBraces = 0;
+  let balanced = '';
   for (let i = 0; i < res.length; i++) {
-    if (res[i] === '{' && (i === 0 || res[i - 1] !== '\\')) openBraces++;
-    else if (res[i] === '}' && (i === 0 || res[i - 1] !== '\\')) openBraces--;
-  }
-  while (openBraces < 0) {
-    const lastClose = res.lastIndexOf('}');
-    if (lastClose !== -1) {
-      res = res.slice(0, lastClose) + res.slice(lastClose + 1);
+    const ch = res[i];
+    const prev = i > 0 ? res[i - 1] : '';
+    if (ch === '{' && prev !== '\\') {
       openBraces++;
-    } else break;
+      balanced += ch;
+    } else if (ch === '}' && prev !== '\\') {
+      if (openBraces > 0) {
+        openBraces--;
+        balanced += ch;
+      }
+      // Drop unmatched closing brace that has no opening partner
+    } else {
+      balanced += ch;
+    }
   }
   while (openBraces > 0) {
-    res += '}';
+    balanced += '}';
     openBraces--;
   }
+  res = balanced;
 
   return res;
 }

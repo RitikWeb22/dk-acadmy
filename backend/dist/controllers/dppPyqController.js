@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DppPyq } from '../models/DppPyq.js';
 import { QuestionBank } from '../models/QuestionBank.js';
 import { PdfImportHistory } from '../models/PdfImportHistory.js';
-import { extractQuestionsFromPdfBuffer, extractQuestionsFromDocxBuffer } from '../utils/pdfQuestionExtractor.js';
+import { extractQuestionsFromPdfBuffer, extractQuestionsFromDocxBuffer, parseQuestionsFromText } from '../utils/pdfQuestionExtractor.js';
 import { broadcastDppPyqCreated, broadcastDppPyqUpdated, broadcastDppPyqDeleted } from '../sockets/socket.js';
 const SEED_QUESTIONS = [
     {
@@ -494,6 +494,149 @@ export const importPdfQuestions = async (req, res) => {
     catch (err) {
         console.error('Error importing PDF questions:', err);
         res.status(500).json({ error: 'Failed to process PDF', details: err.message });
+    }
+};
+/**
+ * Bulk Upload Orchestrator for Multi-Document Ingestion (Phase 5 & Phase 7)
+ * Accepts multiple files (DOCX, PDF, TXT, JSON), classifies each file,
+ * dispatches to independent pipelines, preserves partial progress, and deduplicates.
+ */
+export const bulkUploadDppPyqDocuments = async (req, res) => {
+    try {
+        const rawFiles = req.files;
+        const singleFile = req.file;
+        const files = [];
+        if (rawFiles && Array.isArray(rawFiles) && rawFiles.length > 0) {
+            files.push(...rawFiles);
+        }
+        else if (singleFile) {
+            files.push(singleFile);
+        }
+        if (files.length === 0) {
+            res.status(400).json({ error: 'No documents uploaded. Please attach at least one DOCX, PDF, or TXT file.' });
+            return;
+        }
+        const { subject = 'Mathematics', exam = 'JEE Main', year = 2026, moduleType = 'PYQ', chapter = '', topic = '' } = req.body;
+        const fileSummaries = [];
+        const allQuestions = [];
+        const seenHashes = new Set();
+        let totalPages = 0;
+        let successfulCount = 0;
+        let needsReviewCount = 0;
+        const failedFiles = [];
+        for (const file of files) {
+            const originalName = (file.originalname || '').toLowerCase();
+            let fileType = 'UNKNOWN';
+            try {
+                let summary;
+                if (originalName.endsWith('.docx') || originalName.endsWith('.doc')) {
+                    fileType = 'DOCX';
+                    summary = await extractQuestionsFromDocxBuffer(file.buffer, String(subject), String(exam));
+                }
+                else if (originalName.endsWith('.pdf')) {
+                    fileType = 'PDF';
+                    summary = await extractQuestionsFromPdfBuffer(file.buffer, String(subject), String(exam));
+                }
+                else if (originalName.endsWith('.txt')) {
+                    fileType = 'TXT';
+                    const text = file.buffer.toString('utf-8');
+                    summary = parseQuestionsFromText(text, String(subject), String(exam));
+                }
+                else if (originalName.endsWith('.json')) {
+                    fileType = 'JSON';
+                    const text = file.buffer.toString('utf-8');
+                    const parsed = JSON.parse(text);
+                    const qList = Array.isArray(parsed) ? parsed : parsed.questions || [];
+                    summary = {
+                        totalDetected: qList.length,
+                        successfulCount: qList.length,
+                        needsReviewCount: 0,
+                        errorCount: 0,
+                        questions: qList,
+                        totalPages: 1,
+                        errorLog: []
+                    };
+                }
+                else {
+                    // Attempt generic buffer inspection
+                    fileType = 'GENERIC';
+                    summary = await extractQuestionsFromPdfBuffer(file.buffer, String(subject), String(exam));
+                }
+                totalPages += summary.totalPages || 1;
+                // Deduplicate and collect questions
+                let fileExtracted = 0;
+                let fileReviewNeeded = 0;
+                for (const q of summary.questions || []) {
+                    // Normalize text fingerprint for deduplication
+                    const normKey = (q.statement || '')
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]/g, '')
+                        .slice(0, 100);
+                    if (normKey && seenHashes.has(normKey)) {
+                        continue; // Skip duplicate question
+                    }
+                    if (normKey)
+                        seenHashes.add(normKey);
+                    const isReview = q.status === 'NEEDS_REVIEW';
+                    if (isReview) {
+                        needsReviewCount++;
+                        fileReviewNeeded++;
+                    }
+                    else {
+                        successfulCount++;
+                    }
+                    allQuestions.push({
+                        ...q,
+                        subject: String(subject),
+                        chapter: chapter || q.chapter || '',
+                        topic: topic || q.topic || `${subject} Drill`,
+                        examYear: String(year),
+                        year,
+                        sourceDocument: file.originalname
+                    });
+                    fileExtracted++;
+                }
+                fileSummaries.push({
+                    fileName: file.originalname,
+                    fileType,
+                    status: fileReviewNeeded > 0 ? 'PARTIAL' : 'SUCCESS',
+                    detectedCount: fileExtracted,
+                    needsReviewCount: fileReviewNeeded
+                });
+            }
+            catch (fileErr) {
+                console.error(`[Bulk Upload Error on ${file.originalname}]:`, fileErr);
+                failedFiles.push({ fileName: file.originalname, error: fileErr.message || 'Extraction failed' });
+                fileSummaries.push({
+                    fileName: file.originalname,
+                    fileType,
+                    status: 'FAILED',
+                    detectedCount: 0,
+                    needsReviewCount: 0,
+                    error: fileErr.message
+                });
+            }
+        }
+        // Renumber sequential question numbering
+        allQuestions.forEach((q, idx) => {
+            q.qNum = idx + 1;
+        });
+        res.status(200).json({
+            success: allQuestions.length > 0 || failedFiles.length === 0,
+            totalFiles: files.length,
+            processedFiles: files.length - failedFiles.length,
+            failedFiles,
+            totalPages,
+            totalQuestions: allQuestions.length,
+            successfulCount,
+            needsReviewCount,
+            fileSummaries,
+            questions: allQuestions
+        });
+    }
+    catch (err) {
+        console.error('Fatal error in bulkUploadDppPyqDocuments:', err);
+        res.status(500).json({ error: 'Failed to process bulk documents', details: err.message });
     }
 };
 export const getPdfImportHistory = async (_req, res) => {

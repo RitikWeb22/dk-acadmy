@@ -298,14 +298,38 @@ export function ommlNodeToLatex(node) {
             const begin = beginNode ? (attr(beginNode, 'val', OMML_NS) ?? nodeText(beginNode)) : '(';
             const end = endNode ? (attr(endNode, 'val', OMML_NS) ?? nodeText(endNode)) : ')';
             const expressions = childrenByTag(node, 'e');
-            const content = expressions.map(item => ommlNodeToLatex(item).trim()).filter(Boolean).join(' ');
+            // Check if expression contains an inner matrix element <m:m>
+            const matrixChild = expressions.length === 1 ? childByTag(expressions[0], 'm') : null;
+            if (matrixChild) {
+                const rowNodes = childrenByTag(matrixChild, 'mr');
+                const rows = rowNodes.map(row => {
+                    const cells = childrenByTag(row, 'e').map(cell => ommlNodeToLatex(cell).trim());
+                    return cells.join(' & ');
+                });
+                if (begin === '{' && (!end || end === '∅' || end === '.' || end === ' ' || !end.trim())) {
+                    return `\\begin{cases}${rows.join(' \\\\[6pt] ')}\\end{cases}`;
+                }
+                if (begin === '[' && end === ']') {
+                    return `\\begin{bmatrix}${rows.join(' \\\\ ')}\\end{bmatrix}`;
+                }
+                if (begin === '(' && end === ')') {
+                    return `\\begin{pmatrix}${rows.join(' \\\\ ')}\\end{pmatrix}`;
+                }
+                if (begin === '|' && end === '|') {
+                    return `\\begin{vmatrix}${rows.join(' \\\\ ')}\\end{vmatrix}`;
+                }
+                if (begin === '‖' && end === '‖') {
+                    return `\\begin{Vmatrix}${rows.join(' \\\\ ')}\\end{Vmatrix}`;
+                }
+            }
             // Only classify as cases when the source has multiple explicit entries
             // and an invisible closing delimiter. A single grouped expression is not cases.
-            const isCases = begin === '{' && (!end || end === '∅') && expressions.length > 1 &&
+            const isCases = begin === '{' && (!end || end === '∅' || end === '.' || end === ' ' || !end.trim()) && expressions.length > 1 &&
                 expressions.every(item => childElements(item).length > 0);
             if (isCases) {
                 return `\\begin{cases}${expressions.map(item => ommlNodeToLatex(item).trim()).filter(Boolean).join(' \\\\[6pt] ')}\\end{cases}`;
             }
+            const content = expressions.map(item => ommlNodeToLatex(item).trim()).filter(Boolean).join(' ');
             return `${escapeLatexDelimiter(begin, 'left')}${content}${escapeLatexDelimiter(end, 'right')}`;
         }
         case 'm': {
@@ -752,6 +776,18 @@ function convertRawOmmlSnippetToLatex(snippet) {
     latex = latex.replace(/:\s*(Z|R|N|Q|C)\s*\\(to|rightarrow|mapsto)\b/g, ': \\mathbb{$1} \\$2');
     // Ensure space between big operator with subscript/superscript and following alphanumeric token
     latex = latex.replace(/(\\(?:sum|prod|int|lim)_(?:\{[^{}]*\}|[a-zA-Z0-9])(?:\^(?:\{[^{}]*\}|[a-zA-Z0-9]))?)(?=[a-zA-Z0-9])/g, '$1 ');
+    // Corrupted floor bracket paired with closing brace: e.g. \lfloor f(t)} -> \{f(t)\}
+    latex = latex.replace(/\\lfloor\s*([^{\n\r}]+?)\}/g, '\\{$1\\}');
+    latex = latex.replace(/\\lfloor\s*\\left\(\s*([^()]+)\s*\\right\)\s*\}/g, '\\{\\left($1\\right)\\}');
+    // Math operators
+    latex = latex.replace(/(?<![\\a-zA-Z])(min|max|sup|inf|gcd|lcm|det)\b(?![a-zA-Z])/g, '\\$1');
+    // Normal English words inside math conditions
+    latex = latex.replace(/(?<=[0-9a-zA-Z\s>≤<≥=])\b(and|if|for|when|where|or)\b(?=[0-9a-zA-Z\s>≤<≥=])/g, '\\text{ $1 }');
+    latex = latex.replace(/([0-9a-zA-Z])and([0-9a-zA-Z])/g, '$1 \\text{ and } $2');
+    latex = latex.replace(/\\text\{\s*([a-zA-Z]+)\s*\}\s*\\text\{\s*([a-zA-Z]+)\s*\}/g, '\\text{ $1 $2 }');
+    // Quotes used for spacing inside math: e.g. " " -> ' '
+    latex = latex.replace(/["']\s*["']/g, ' ');
+    latex = latex.replace(/"\s*([a-zA-Z\s]+?)\s*"/g, '\\text{ $1 }');
     return latex;
 }
 /**
@@ -835,7 +871,7 @@ function replaceOneEquation(container, rawFallback, warnings, markReview, forceD
     const fallback = fallbackPlainText(rawFallback);
     if (fallback)
         return ` ${fallback} `;
-    return latex ? ` ${latex} ` : ' ';
+    return latex ? (isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `) : ' ';
 }
 /**
  * Preprocesses raw HTML strings to locate Word OMML (<m:oMath>, <m:oMathPara>)
@@ -934,7 +970,11 @@ function decodeHtmlMathEntities(text) {
     return text.replace(/&[a-zA-Z]+;/g, (ent) => entityMap[ent] ?? ent);
 }
 function fallbackRegexHtmlToLatex(html) {
-    let result = html;
+    let result = html
+        .replace(/<head\b[\s\S]*?<\/head>/gi, '')
+        .replace(/<style\b[\s\S]*?<\/style>/gi, '')
+        .replace(/<xml\b[\s\S]*?<\/xml>/gi, '')
+        .replace(/<script\b[\s\S]*?<\/script>/gi, '');
     // This fallback is intentionally conservative and is only used without an HTML DOM parser.
     result = result.replace(/<math\b[\s\S]*?<\/math>/gi, match => {
         const doc = parseMarkupToDoc(sanitizeOmmlHtmlSnippet(match).replace(/&dd;/gi, '&#8518;'), 'xml');
@@ -965,10 +1005,17 @@ function fallbackRegexHtmlToLatex(html) {
         const content = decodeHtmlMathEntities(inner.replace(/<[^>]*>/g, '').trim());
         return content ? `_{${content}}` : '';
     });
+    const stashed = [];
+    result = result.replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}[\s\S]*?\\end\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}|\\\([\s\S]*?\\\)|\$[^\$\n]+?\$/g, m => {
+        const tok = `___FALLBACK_MATH_${stashed.length}___`;
+        stashed.push(m);
+        return tok;
+    });
     result = result.replace(/<\/?(?:span|b|strong|i|em|u|font|meta|a)\b[^>]*>/gi, '');
     result = result.replace(/<br\s*\/?>/gi, '\n')
         .replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, '\n\n')
         .replace(/<[^>]*>/g, ' ');
+    result = result.replace(/___FALLBACK_MATH_(\d+)___/g, (_, i) => stashed[Number(i)] || '');
     return decodeHtmlMathEntities(result);
 }
 export function convertHtmlWithMath(htmlString) {
@@ -976,11 +1023,23 @@ export function convertHtmlWithMath(htmlString) {
         return '';
     // Preprocess raw HTML string: search for OMML in conditional comments and strip fallbacks
     const preprocessed = preprocessRawHtmlMath(htmlString);
-    const doc = parseHtmlDocument(preprocessed);
+    // Stash already-converted LaTeX expressions ($...$, $$...$$, display environments)
+    // so that relational operators like '<' and '>' inside math are never mistaken for HTML tags.
+    const stashedMath = [];
+    const protectedHtml = preprocessed.replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}[\s\S]*?\\end\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}|\\\([\s\S]*?\\\)|\$[^\$\n]+?\$/g, (m) => {
+        const token = `___HTML_MATH_STASH_${stashedMath.length}___`;
+        stashedMath.push(m);
+        return token;
+    });
+    const doc = parseHtmlDocument(protectedHtml);
     if (!doc) {
-        return reconstructUnicodeMath(fallbackRegexHtmlToLatex(preprocessed))
+        const rawResult = fallbackRegexHtmlToLatex(protectedHtml);
+        const restored = rawResult.replace(/___HTML_MATH_STASH_(\d+)___/g, (_, idx) => stashedMath[Number(idx)] || '');
+        return reconstructUnicodeMath(restored)
             .replace(/\u00A0/g, ' ')
             .replace(/[ \t]+/g, ' ')
+            .replace(/[ \t]*\n[ \t]*/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
             .trim();
     }
     const mathRoots = collectMathRoots(doc);
@@ -997,7 +1056,8 @@ export function convertHtmlWithMath(htmlString) {
         }
     }
     const extracted = htmlDomToText(doc);
-    return reconstructUnicodeMath(extracted)
+    const restored = extracted.replace(/___HTML_MATH_STASH_(\d+)___/g, (_, idx) => stashedMath[Number(idx)] || '');
+    return reconstructUnicodeMath(restored)
         .replace(/\u00A0/g, ' ')
         .replace(/[ \t]+/g, ' ')
         .replace(/[ \t]*\n[ \t]*/g, '\n')

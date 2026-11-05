@@ -8,8 +8,8 @@ const MATH_WORD = new Set([
     'infty', 'left', 'right', 'begin', 'cases', 'text', 'sum', 'prod', 'int',
 ]);
 function hasLooseLatex(text) {
-    const withoutDelimited = text.replace(/\$\$[\s\S]*?\$\$|\$[^$\n]*?\$/g, ' ');
-    return /\\[a-zA-Z]+|√|\blim\b/.test(withoutDelimited);
+    const withoutDelimited = text.replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}[\s\S]*?\\end\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}|\\\([\s\S]*?\\\)|\$[^$\n]*?\$/g, ' ');
+    return /\\[a-zA-Z]+|√|\blim\b|\b(?:gcd|lcm)\b|[0-9]*\s*[a-zA-Z]\s*[+\-−*\/]\s*[0-9]*\s*[a-zA-Z]/.test(withoutDelimited);
 }
 function isPureMath(text) {
     const words = text.replace(/\\[a-zA-Z]+/g, ' ').match(PROSE_WORD) || [];
@@ -218,12 +218,29 @@ function wrapLooseMath(text) {
         return `${lead}${stashMath(atom)}`;
     });
     result = result.replace(/(^|[^$\\A-Za-z0-9_\u0000\u0001])([A-Za-z]\s*=\s*-?\d+(?:\.\d+)?)/g, (_match, lead, atom) => `${lead}${stashMath(atom)}`);
+    // Wrap gcd / lcm equations: e.g. gcd(m,n)=1
+    result = result.replace(/(?<![A-Za-z0-9_$\u0000\u0001])((?:\\?(?:gcd|lcm))\s*\([^()\n]{1,24}\)\s*=\s*[0-9a-zA-Z+\-*\/\\]+)/g, (m) => {
+        const norm = m.replace(/^(?<!\\)(gcd|lcm)\b/, '\\$1');
+        return stashMath(norm);
+    });
+    // Wrap algebraic expressions like 8m+12n or 8 m + 12n or ax+by
+    result = result.replace(/(?<![A-Za-z0-9_$\u0000\u0001])([0-9]*\s*[a-zA-Z]\s*[+\-−*\/]\s*[0-9]*\s*[a-zA-Z](?:\s*[+\-−*\/]\s*[0-9]*\s*[a-zA-Z0-9]+)*)(?![A-Za-z0-9_$\u0000\u0001])/g, (fullMatch, expr) => {
+        const words = expr.match(/\b[A-Za-z]{2,}\b/g) || [];
+        if (words.some((w) => PROSE_WORDS_SET.has(w.toLowerCase())))
+            return fullMatch;
+        return stashMath(expr);
+    });
     result = result.replace(/\u0001(\d+)\u0001/g, (_m, idx) => localProtected[Number(idx)] || '');
     return result.replace(/\$\s+,/g, '$,');
 }
 export function ensureMathDelimiters(text) {
     if (!text)
         return '';
+    // Pre-normalize spacing quotes and rogue backslash-commas: 8" "m or " " -> normal space
+    text = text.replace(/([0-9]+)\s*["']\s*["']\s*([a-zA-Z])/g, '$1 $2');
+    text = text.replace(/([a-zA-Z])\s*["']\s*["']\s*([0-9a-zA-Z])/g, '$1 $2');
+    text = text.replace(/["']\s*["']/g, ' ');
+    text = text.replace(/([0-9a-zA-Z])\s*\\,\s*(?=[0-9a-zA-Z])/g, '$1 ');
     if (!hasLooseLatex(text) && !isPureMath(text))
         return text;
     if (!hasLooseLatex(text))
@@ -232,7 +249,7 @@ export function ensureMathDelimiters(text) {
         return `$${text.trim()}$`;
     }
     const protectedMath = [];
-    let body = text.replace(/\$\$[\s\S]*?\$\$|\$[^$\n]*?\$/g, (match) => {
+    let body = text.replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}[\s\S]*?\\end\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}|\\\([\s\S]*?\\\)|\$[^$\n]*?\$/g, (match) => {
         const token = `\u0000${protectedMath.length}\u0000`;
         protectedMath.push(match.trim());
         return token;

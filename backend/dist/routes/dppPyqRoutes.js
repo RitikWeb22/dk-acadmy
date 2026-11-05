@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getAllDppPyq, getDppPyqByIdOrSlug, createDppPyq, updateDppPyq, deleteDppPyq, importPdfQuestions, getPdfImportHistory, getPdfImportById, updateExtractedQuestionInStaging, getQuestionBank, createOrUpdateQuestionBankItem, batchAddToQuestionBank, deleteQuestionBankItem } from '../controllers/dppPyqController.js';
+import { getAllDppPyq, getDppPyqByIdOrSlug, createDppPyq, updateDppPyq, deleteDppPyq, importPdfQuestions, bulkUploadDppPyqDocuments, getPdfImportHistory, getPdfImportById, updateExtractedQuestionInStaging, getQuestionBank, createOrUpdateQuestionBankItem, batchAddToQuestionBank, deleteQuestionBankItem } from '../controllers/dppPyqController.js';
 import { formatMathWithAi } from '../controllers/aiFormatController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
@@ -35,6 +35,7 @@ const createDppPyqSchema = z
 // 1. PDF Studio Import & Extraction Routes
 router.post('/ai-format-math', formatMathWithAi);
 router.post('/import-pdf', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), uploadPdfMiddleware.single('file'), importPdfQuestions);
+router.post('/bulk-upload', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), uploadPdfMiddleware.array('files', 15), bulkUploadDppPyqDocuments);
 router.get('/pdf-history', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getPdfImportHistory);
 router.get('/pdf-history/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getPdfImportById);
 router.patch('/pdf-history/:importId/questions/:tempId', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateExtractedQuestionInStaging);
