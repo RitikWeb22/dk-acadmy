@@ -558,7 +558,7 @@ function validateWithKaTeX(latex: string): { isValid: boolean; error?: string } 
     let katexModule: any = (katex as any)?.default || katex;
     if (!katexModule || typeof katexModule.renderToString !== 'function') {
       const g: any = typeof globalThis !== 'undefined' ? globalThis : {};
-      katexModule = g.katex || (typeof window !== 'undefined' ? (window as any).katex : null);
+      katexModule = g.katex ?? null;
     }
 
     if (katexModule && typeof katexModule.renderToString === 'function') {
