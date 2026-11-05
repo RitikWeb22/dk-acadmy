@@ -51,6 +51,32 @@ export function getDOMParser(): any {
     }
   }
 
+  // Node.js fallback (tests / server-side runtime): dynamically probe @xmldom/xmldom if available
+  try {
+    const g: any = typeof globalThis !== 'undefined' ? globalThis : {};
+    const proc = g.process;
+    if (proc?.versions?.node) {
+      if (typeof g.DOMParser === 'function') {
+        cachedDOMParser = g.DOMParser;
+        return cachedDOMParser;
+      }
+      const nodeRequire = typeof g.require === 'function' ? g.require : null;
+      if (nodeRequire) {
+        const xmldom = nodeRequire('@xmldom/xmldom');
+        if (xmldom?.DOMParser) {
+          cachedDOMParser = class SilentDOMParser extends xmldom.DOMParser {
+            constructor() {
+              super({ errorHandler: { warning: () => {}, error: () => {}, fatalError: () => {} } });
+            }
+          };
+          return cachedDOMParser;
+        }
+      }
+    }
+  } catch {
+    // xmldom not installed or unreachable
+  }
+
   return null;
 }
 

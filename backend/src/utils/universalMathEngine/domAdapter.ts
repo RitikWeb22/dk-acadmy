@@ -10,6 +10,10 @@ import { DOMParser as NodeDOMParser } from '@xmldom/xmldom';
 // Dynamically obtain a DOMParser implementation
 let cachedDOMParser: any = null;
 
+if (typeof globalThis !== 'undefined' && !(globalThis as any).DOMParser && NodeDOMParser) {
+  (globalThis as any).DOMParser = NodeDOMParser;
+}
+
 export function getDOMParser(): any {
   if (cachedDOMParser) return cachedDOMParser;
 

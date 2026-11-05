@@ -149,7 +149,8 @@ export function normalizePastedQuestionContent(clipboardOrText: any): Normalized
   const sourceType = detectInputFormat(html || plain);
 
   let reconstructed = '';
-  if (html && (sourceType === 'omml-xml' || sourceType === 'mathml-xml' || sourceType === 'html-math')) {
+  const hasRawMathMarkup = Boolean(html && /<(?:m:)?(?:oMath|oMathPara|math)\b/i.test(html));
+  if (html && (sourceType === 'omml-xml' || sourceType === 'mathml-xml' || sourceType === 'html-math' || hasRawMathMarkup)) {
     reconstructed = convertHtmlWithMath(html);
   }
 

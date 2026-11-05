@@ -14,6 +14,7 @@ import {
   getNodeText
 } from './domAdapter';
 import { reconstructUnicodeMath } from './unicodeMathReconstructor';
+import katex from 'katex';
 
 type DomNode = any;
 
@@ -641,6 +642,130 @@ function parseHtmlDocument(html: string): DomNode | null {
   }
 }
 
+/**
+ * Converts a raw OMML XML element string directly to LaTeX.
+ * Injects required OpenXML math and word namespaces if omitted.
+ */
+function convertRawOmmlSnippetToLatex(snippet: string): string {
+  if (!snippet) return '';
+  const withNs = snippet.includes('xmlns:m')
+    ? snippet
+    : snippet.replace(
+        /^<([a-zA-Z0-9_-]+:)?(oMath|oMathPara)/i,
+        '<$1$2 xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+      );
+  const doc = parseMarkupToDoc(withNs, 'xml');
+  if (!doc) return '';
+  return ommlNodeToLatex(doc.documentElement || doc).trim();
+}
+
+/**
+ * Validates LaTeX expression with KaTeX without throwing.
+ */
+function validateWithKaTeX(latex: string): { isValid: boolean; error?: string } {
+  if (!latex || !latex.trim()) return { isValid: false, error: 'Empty formula' };
+  if (/\\frac\{\s*\}\{\s*\}/.test(latex) || /\\frac\{\s*\}\{/.test(latex) || /\\frac\{[^{}]*\}\{\s*\}/.test(latex)) {
+    return { isValid: false, error: 'Empty fraction structure' };
+  }
+  try {
+    let katexModule: any = (katex as any)?.default || katex;
+    if (!katexModule || typeof katexModule.renderToString !== 'function') {
+      const g: any = typeof globalThis !== 'undefined' ? globalThis : {};
+      katexModule = g.katex || (typeof window !== 'undefined' ? (window as any).katex : null);
+    }
+
+    if (katexModule && typeof katexModule.renderToString === 'function') {
+      katexModule.renderToString(latex, { throwOnError: true, strict: false });
+    }
+    return { isValid: true };
+  } catch (err: any) {
+    return { isValid: false, error: err?.message || 'KaTeX validation failed' };
+  }
+}
+
+export interface HtmlMathPreprocessResult {
+  html: string;
+  warnings: string[];
+  needsReview: boolean;
+}
+
+/**
+ * Preprocesses raw HTML strings to locate Word OMML (<m:oMath>, <m:oMathPara>)
+ * even when nested inside Microsoft Office conditional comments (<!--[if gte mso 9]><xml>...).
+ * Only drops Word's fallback text (<![if !msEquation]>...) if the equation converts AND passes
+ * KaTeX validation. If conversion or validation fails, keeps the fallback text and flags needsReview.
+ */
+export function preprocessRawHtmlMathDetailed(rawHtml: string): HtmlMathPreprocessResult {
+  if (!rawHtml || typeof rawHtml !== 'string') {
+    return { html: '', warnings: [], needsReview: false };
+  }
+
+  let result = rawHtml;
+  const warnings: string[] = [];
+  let needsReview = false;
+
+  const hasOmml = /<(?:m:)?(?:oMath|oMathPara)\b/i.test(result);
+  if (hasOmml) {
+    // Match an equation block (oMath or oMathPara) optionally followed by <![if !msEquation]> fallback
+    const ommlWithFallbackRegex = /(?:<!--\[if gte mso 9\]><xml>)?\s*<(?:m:)?(oMath|oMathPara)\b[\s\S]*?<\/(?:m:)?\1>\s*(?:<\/xml><!\[endif\]-->)?(?:\s*<!\[if !msEquation\]>([\s\S]*?)<!\[endif\]>)?/gi;
+
+    result = result.replace(ommlWithFallbackRegex, (fullMatch, tag, rawFallback) => {
+      const isDisplay = /oMathPara/i.test(tag);
+      const innerMatch = fullMatch.match(/<(?:m:)?(?:oMath|oMathPara)\b[\s\S]*?<\/(?:m:)?(?:oMath|oMathPara)>/i);
+      if (!innerMatch) return fullMatch;
+
+      const latex = convertRawOmmlSnippetToLatex(innerMatch[0]);
+      const validation = validateWithKaTeX(latex);
+
+      if (latex && validation.isValid) {
+        // Equation converted AND passed KaTeX validation: drop fallback text!
+        return isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `;
+      } else {
+        // Conversion or KaTeX validation failed: keep fallback text!
+        needsReview = true;
+        warnings.push(`[KaTeX Validation Warning]: Failed to validate equation "${latex}": ${validation.error}. Retained Word fallback text.`);
+
+        if (rawFallback) {
+          const cleanFallback = rawFallback.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          return ` ${cleanFallback} `;
+        }
+        return ` ${latex || ''} `;
+      }
+    });
+
+    result = result.replace(/<!\[if !msEquation\]>[\s\S]*?<!\[endif\]>/gi, '');
+    result = result.replace(/<!--\[if supportFields\]>[\s\S]*?field-separator[\s\S]*?<!\[endif\]>[\s\S]*?<!--\[if supportFields\]>[\s\S]*?field-end[\s\S]*?<!\[endif\]>/gi, '');
+    result = result.replace(/<!--\[if supportFields\]>[\s\S]*?<!\[endif\]>/gi, '');
+  }
+
+  // Convert MathML <math> tags if present in the raw markup
+  if (/<math\b/i.test(result)) {
+    result = result.replace(/<math\b[\s\S]*?<\/math>/gi, (match) => {
+      let xmlStr = match;
+      if (!xmlStr.includes('xmlns')) {
+        xmlStr = xmlStr.replace(/<math/i, '<math xmlns="http://www.w3.org/1998/Math/MathML"');
+      }
+      const doc = parseMarkupToDoc(xmlStr, 'xml');
+      if (!doc) return match;
+      const isDisplay = /display=["']block["']/i.test(match);
+      const latex = mathMLNodeToLatex(doc.documentElement || doc).trim();
+      if (!latex) return match;
+      const validation = validateWithKaTeX(latex);
+      if (!validation.isValid) {
+        needsReview = true;
+        warnings.push(`[KaTeX Validation Warning]: MathML expression "${latex}" failed validation: ${validation.error}`);
+      }
+      return isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `;
+    });
+  }
+
+  return { html: result, warnings, needsReview };
+}
+
+export function preprocessRawHtmlMath(rawHtml: string): string {
+  return preprocessRawHtmlMathDetailed(rawHtml).html;
+}
+
 function fallbackRegexHtmlToLatex(html: string): string {
   let result = html;
   // This fallback is intentionally conservative and is only used without an HTML DOM parser.
@@ -670,9 +795,12 @@ function fallbackRegexHtmlToLatex(html: string): string {
 export function convertHtmlWithMath(htmlString: string): string {
   if (typeof htmlString !== 'string' || !htmlString.trim()) return '';
 
-  const doc = parseHtmlDocument(htmlString);
+  // Preprocess raw HTML string: search for OMML in conditional comments and strip fallbacks
+  const preprocessed = preprocessRawHtmlMath(htmlString);
+
+  const doc = parseHtmlDocument(preprocessed);
   if (!doc) {
-    return reconstructUnicodeMath(fallbackRegexHtmlToLatex(htmlString))
+    return reconstructUnicodeMath(fallbackRegexHtmlToLatex(preprocessed))
       .replace(/\u00A0/g, ' ')
       .replace(/[ \t]+/g, ' ')
       .trim();
