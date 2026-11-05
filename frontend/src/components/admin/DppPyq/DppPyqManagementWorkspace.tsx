@@ -3106,7 +3106,9 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                       {q.examYear && <span className={styles.qYearTag}>{q.examYear}</span>}
                     </div>
 
-                    <p className={styles.qStatementText}>{q.statement}</p>
+                    <div className={styles.qStatementText}>
+                      <MathText text={q.statement} />
+                    </div>
 
                     <div className={styles.optionsGridTwoCol}>
                       {q.options.map((opt) => (
@@ -3117,7 +3119,9 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                           }`}
                         >
                           <span className={styles.optKeyBadge}>{opt.key}</span>
-                          <span className={styles.optText}>{opt.text}</span>
+                          <span className={styles.optText}>
+                            <MathText text={opt.text} />
+                          </span>
                           {opt.key === q.correctKey && (
                             <span className={styles.correctKeyIndicator}>✓ Correct Key</span>
                           )}
@@ -3129,13 +3133,13 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                       <div className={styles.dkSirTrickStrip}>
                         <Flame size={16} className={styles.flameIcon} />
                         <div>
-                          <strong>Kota Pedagogy Speed Shortcut:</strong> {q.dkSirShortcut}
+                          <strong>Kota Pedagogy Speed Shortcut:</strong> <MathText text={q.dkSirShortcut} />
                         </div>
                       </div>
                     )}
 
                     <div className={styles.solutionTextStrip}>
-                      <strong>Step Solution:</strong> {q.stepSolution}
+                      <strong>Step Solution:</strong> <MathText text={q.stepSolution} />
                     </div>
                   </div>
                 ))}

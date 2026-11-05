@@ -87,7 +87,9 @@ function clipboard(html: string, plain: string) {
 }
 
 function wordTokens(text: string): string[] {
-  const unfolded = text.replace(/\\([a-zA-Z]+)/g, ' $1 ');
+  const unfolded = text
+    .replace(/\\([a-zA-Z]+)/g, ' $1 ')
+    .replace(/([a-zA-Z0-9])(?=(?:sin|cos|tan|cot|sec|csc|log|ln|lim)\b)/gi, '$1 ');
   return (unfolded.match(/[A-Za-z0-9]+/g) || []).map((token) => token.toLowerCase());
 }
 

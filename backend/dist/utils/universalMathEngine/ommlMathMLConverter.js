@@ -140,6 +140,20 @@ function wrapGroup(value) {
 function normalizeOperatorName(value) {
     return (value || '').trim().replace(/^\\/, '').toLowerCase();
 }
+/**
+ * Safely concatenates LaTeX tokens, ensuring a command name (like \gamma or \in)
+ * does not accidentally fuse with an adjacent alphanumeric character (like x -> \gammax).
+ */
+function joinLatexChunks(prev, next) {
+    if (!prev)
+        return next;
+    if (!next)
+        return prev;
+    if (/\\[a-zA-Z]+$/.test(prev) && /^[a-zA-Z0-9]/.test(next)) {
+        return `${prev} ${next}`;
+    }
+    return prev + next;
+}
 // ============================================================================
 // 1. OMML TO LATEX CONVERSION
 // ============================================================================
@@ -171,7 +185,7 @@ export function ommlNodeToLatex(node) {
             for (const child of Array.from(node.childNodes || [])) {
                 if (name === 'r' && localNameOf(child) === 'rpr')
                     continue;
-                result += ommlNodeToLatex(child);
+                result = joinLatexChunks(result, ommlNodeToLatex(child));
             }
             return result;
         }
@@ -193,6 +207,10 @@ export function ommlNodeToLatex(node) {
                 return baseLatex;
             if (/^(?:['′]|\\prime)$/.test(supLatex))
                 return `${baseLatex}'`;
+            const op = normalizeOperatorName(baseLatex);
+            const trigOperators = new Set(['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'sinh', 'cosh', 'tanh', 'log', 'ln']);
+            if (trigOperators.has(op))
+                return `\\${op}^{${supLatex}}`;
             return `${baseLatex.length === 1 || /^\\[a-zA-Z]+$/.test(baseLatex) ? baseLatex : wrapGroup(baseLatex)}^{${supLatex}}`;
         }
         case 'ssub': {
@@ -361,7 +379,7 @@ export function ommlNodeToLatex(node) {
 function ommlChildrenToLatex(node) {
     let result = '';
     for (const child of Array.from(node?.childNodes || [])) {
-        result += ommlNodeToLatex(child);
+        result = joinLatexChunks(result, ommlNodeToLatex(child));
     }
     return result;
 }
@@ -401,7 +419,7 @@ function serializeMathRow(node) {
     for (const child of Array.from(node?.childNodes || [])) {
         const piece = mathMLNodeToLatex(child);
         if (piece)
-            result += piece;
+            result = joinLatexChunks(result, piece);
     }
     return result;
 }
@@ -677,7 +695,10 @@ function convertRawOmmlSnippetToLatex(snippet) {
     const doc = parseMarkupToDoc(withNs, 'xml');
     if (!doc)
         return '';
-    return ommlNodeToLatex(doc.documentElement || doc).trim();
+    let latex = ommlNodeToLatex(doc.documentElement || doc).trim();
+    // Post-clean: number sets like \in R -> \in \mathbb{R}
+    latex = latex.replace(/\\(in|notin|subseteq|subset)(?![A-Za-z])\s*(Z|R|N|Q|C)\b/g, '\\$1 \\mathbb{$2}');
+    return latex;
 }
 /**
  * Validates LaTeX expression with KaTeX without throwing.

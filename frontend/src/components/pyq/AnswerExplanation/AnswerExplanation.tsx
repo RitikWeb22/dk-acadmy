@@ -50,7 +50,9 @@ export const AnswerExplanation: React.FC<AnswerExplanationProps> = ({
             <Calculator size={16} className={styles.formulaIcon} />
             <span className={styles.formulaTitle}>Key Formula / Core Principle</span>
           </div>
-          <code className={styles.formulaCode}>{question.formulaKey}</code>
+          <div className={styles.formulaCode}>
+            <MathText text={question.formulaKey} />
+          </div>
         </div>
       )}
 

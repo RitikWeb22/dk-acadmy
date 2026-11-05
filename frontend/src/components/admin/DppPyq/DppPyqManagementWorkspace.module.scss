@@ -1931,6 +1931,8 @@
   color: #0F172A;
   line-height: 1.55;
   margin: 0 0 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .optionsGridTwoCol {
@@ -2020,6 +2022,8 @@
   padding: 10px 14px;
   border-radius: 8px;
   line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* ─── 8. CBT STUDENT PREVIEW MODAL ─── */

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
 import type { PYQOption } from '../../../types';
+import { MathText } from '../../ui/MathText/MathText';
 import styles from './AnswerOptions.module.scss';
 
 interface AnswerOptionsProps {
@@ -54,7 +55,9 @@ export const AnswerOptions: React.FC<AnswerOptionsProps> = ({
               <span className={styles.optionLetter}>{opt.id}</span>
             </div>
 
-            <div className={styles.optionText}>{opt.text}</div>
+            <div className={styles.optionText}>
+              <MathText text={opt.text} />
+            </div>
 
             {isEvaluated && (
               <div className={styles.feedbackIconWrap}>

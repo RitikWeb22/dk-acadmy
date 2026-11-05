@@ -34,11 +34,26 @@ function isPureLatexFormula(text: string): boolean {
   return proseWords.length < 2;
 }
 
+/**
+ * Normalizes line endings: converts \r\n to \n, handles literal \n strings
+ * (not part of known LaTeX commands), and converts user /n newline shortcuts.
+ */
+export function normalizeNewlines(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\\n(?!(?:abla|atural|earrow|eg|eq|e|ewcommand|ewenvironment|ewline|i|oindent|olimits|ormalsize|ot|otin|prec|succ|sim|subset|supset|subseteq|supseteq|u|warrow)\b)/g, '\n')
+    .replace(/(^|[\s.,;:!?)\]])\/n(?=[\s.,;:!?(\[]|$)/gi, '$1\n');
+}
+
 export function parseContentToBlocks(rawText: string): MathContentBlock[] {
   if (!rawText) return [];
 
+  const cleanRawText = normalizeNewlines(rawText);
+
   // Convert any double dollar display delimiters to single dollar inline delimiters
-  const singleDollarText = rawText.split('$$').join('$');
+  const singleDollarText = cleanRawText.split('$$').join('$');
 
   let text: string;
   if (isPureLatexFormula(singleDollarText.trim())) {
