@@ -299,7 +299,7 @@ export const PyqStudentPreviewModal: React.FC<Props> = ({ paper, onClose }) => {
                           fontSize: '0.85rem'
                         }}
                       >
-                        <strong>DK Sir Kota Speed Shortcut: </strong> {currentQ.dkSirShortcut}
+                        <strong>DK Sir Kota Speed Shortcut: </strong> <MathText text={currentQ.dkSirShortcut} />
                       </div>
                     )}
 
