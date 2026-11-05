@@ -1,10 +1,8 @@
 /**
- * Pure-Node DOCX Math Extractor (Step B)
+ * Pure-Node DOCX Math Extractor (Step B & Phase 3)
  *
- * Replaces mammoth + Python docx_math_extractor.py with a zero-external-binary
- * approach that works on Hostinger shared hosting:
- *
- *   jszip  -->  word/document.xml  -->  ommlNodeToLatex  -->  LaTeX
+ * Zero-external-binary document-aware extractor:
+ *   jszip --> word/document.xml + rels --> ommlNodeToLatex --> LaTeX + Media + Tables
  *
  * Safety:
  *   - Magic bytes check (PK header)
@@ -13,6 +11,7 @@
  *   - Max entry count (500, zip-bomb guard)
  *   - Media filename sanitisation + random prefix (no path traversal)
  *   - Covers OMML in normal paragraphs, table cells (<w:tc>), and text boxes (<w:txbxContent>)
+ *   - Native document-order pre-order traversal preserving equations, tables, and images
  */
 
 import JSZip from 'jszip';
@@ -20,6 +19,10 @@ import path from 'path';
 import crypto from 'crypto';
 import { DOMParser as NodeDOMParser } from '@xmldom/xmldom';
 import { ommlNodeToLatex } from './universalMathEngine/ommlMathMLConverter.js';
+import type { NormalizedQuestion, ContentBlock } from './questionSchema/normalizedQuestion.js';
+import { createDefaultNormalizedQuestion } from './questionSchema/normalizedQuestion.js';
+import { classifyQuestion, extractSolutionAndShortcuts } from './questionClassifier.js';
+import { validateQuestionLatexStructure } from './mathLatexValidator.js';
 
 // Use `any` for all DOM node types (backend has no lib: ["DOM"] in tsconfig)
 type AnyDoc = any;
@@ -41,15 +44,32 @@ export interface DocxParagraph {
   text: string;
   /** True if the paragraph contained at least one OMML equation */
   hasMath: boolean;
+  /** Optional associated images */
+  images?: string[];
+}
+
+export interface DocxTableBlock {
+  type: 'table';
+  rows: string[][];
+  markdownText: string;
+}
+
+export interface DocxBlock {
+  type: 'paragraph' | 'table' | 'image';
+  text: string;
+  hasMath: boolean;
+  tableData?: DocxTableBlock;
+  images?: string[];
 }
 
 export interface DocxExtractionResult {
   success: boolean;
   paragraphs: DocxParagraph[];
+  blocks?: DocxBlock[];
   /** Raw concatenated text (paragraphs joined by '\n') */
   rawText: string;
   /** Extracted media files as { name: string; data: Buffer }[] */
-  media: Array<{ name: string; mimeType: string; data: Buffer }>;
+  media: Array<{ name: string; mimeType: string; data: Buffer; rId?: string; originalName?: string }>;
   warnings: string[];
   errorLog: string[];
 }
@@ -62,9 +82,13 @@ export interface DocxExtractionResult {
  * Checks first 4 bytes for PK\x03\x04 (ZIP / DOCX magic bytes).
  */
 function isZipBuffer(buf: Buffer): boolean {
-  return buf.length >= 4 &&
-    buf[0] === 0x50 && buf[1] === 0x4B &&
-    buf[2] === 0x03 && buf[3] === 0x04;
+  return (
+    buf.length >= 4 &&
+    buf[0] === 0x50 &&
+    buf[1] === 0x4b &&
+    buf[2] === 0x03 &&
+    buf[3] === 0x04
+  );
 }
 
 /** Returns a safe random filename prefix (no path traversal characters). */
@@ -78,9 +102,15 @@ function safeMediaName(original: string): string {
 function mimeTypeOf(filename: string): string {
   const ext = path.extname(filename).toLowerCase();
   const map: Record<string, string> = {
-    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif', '.bmp': 'image/bmp', '.webp': 'image/webp',
-    '.svg': 'image/svg+xml', '.emf': 'image/emf', '.wmf': 'image/wmf',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.bmp': 'image/bmp',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.emf': 'image/emf',
+    '.wmf': 'image/wmf'
   };
   return map[ext] || 'application/octet-stream';
 }
@@ -92,12 +122,13 @@ function mimeTypeOf(filename: string): string {
 function parseSilentXml(xmlStr: string): AnyDoc | null {
   if (!xmlStr || !xmlStr.trim()) return null;
   try {
-    // @xmldom/xmldom ≥0.9 uses onError; ≤0.8 used errorHandler object.
     let parser: any;
     try {
       parser = new NodeDOMParser({ onError: () => {} } as any);
     } catch {
-      parser = new NodeDOMParser({ errorHandler: { warning: () => {}, error: () => {}, fatalError: () => {} } } as any);
+      parser = new NodeDOMParser({
+        errorHandler: { warning: () => {}, error: () => {}, fatalError: () => {} }
+      } as any);
     }
     return parser.parseFromString(xmlStr, 'application/xml') as AnyDoc;
   } catch {
@@ -105,32 +136,31 @@ function parseSilentXml(xmlStr: string): AnyDoc | null {
   }
 }
 
-// ============================================================================
-// OMML/text extraction from a word/document.xml DOM
-// ============================================================================
-
 /** Returns the lower-cased local name without namespace prefix. */
 function localName(node: AnyNode): string {
-  return ((node as AnyEl).localName || node.nodeName || '')
-    .replace(/^[^:]+:/i, '').toLowerCase();
+  return ((node as AnyEl)?.localName || node?.nodeName || '')
+    .replace(/^[^:]+:/i, '')
+    .toLowerCase();
 }
 
-/** Collect all direct and nested element children matching local tag names. */
-function walkElements(root: AnyEl, cb: (el: AnyEl) => void) {
-  const stack: AnyEl[] = [root];
-  while (stack.length) {
-    const el = stack.pop()!;
-    cb(el);
-    for (let i = 0; i < el.childNodes.length; i++) {
-      const child = el.childNodes[i];
-      if (child.nodeType === 1) stack.push(child as AnyEl);
+/**
+ * Natural pre-order document traversal preserving reading order.
+ */
+function walkElementsInDocumentOrder(root: AnyEl, cb: (el: AnyEl) => void) {
+  if (!root || root.nodeType !== 1) return;
+  cb(root);
+  const children = root.childNodes;
+  if (!children) return;
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (child && child.nodeType === 1) {
+      walkElementsInDocumentOrder(child, cb);
     }
   }
 }
 
 /**
  * Converts one OMML <m:oMath> or <m:oMathPara> element (as DOM node) to LaTeX.
- * Returns e.g. "$\lim_{x\to0}\frac{\sin x}{x}$" or "$$...$$" for display.
  */
 function ommlElementToInlineLatex(el: AnyEl): string {
   const isDisplay = localName(el) === 'omathpara';
@@ -144,11 +174,15 @@ function ommlElementToInlineLatex(el: AnyEl): string {
 }
 
 /**
- * Extracts all text + math from a paragraph-level container element.
+ * Extracts all text + OMML math + image references from a paragraph-level element.
  */
-function extractParagraphText(paragraphEl: AnyEl): DocxParagraph {
+function extractParagraphText(
+  paragraphEl: AnyEl,
+  relsMap: Map<string, string>
+): DocxParagraph {
   let text = '';
   let hasMath = false;
+  const images: string[] = [];
 
   function walk(node: AnyNode) {
     if (node.nodeType !== 1) return;
@@ -169,9 +203,27 @@ function extractParagraphText(paragraphEl: AnyEl): DocxParagraph {
       return;
     }
 
-    if (name === 'br') {
+    if (name === 'br' || name === 'cr') {
       text += '\n';
       return;
+    }
+
+    if (name === 'tab') {
+      text += '\t';
+      return;
+    }
+
+    // Embedded image references (<a:blip r:embed="rIdX"/> or <v:imagedata r:id="rIdX"/>)
+    if (name === 'blip' || name === 'imagedata') {
+      const embedId =
+        el.getAttribute?.('r:embed') ||
+        el.getAttribute?.('r:id') ||
+        el.getAttribute?.('id');
+      if (embedId && relsMap.has(embedId)) {
+        const safeName = relsMap.get(embedId)!;
+        images.push(safeName);
+        text += ` [Image: ${safeName}] `;
+      }
     }
 
     for (let i = 0; i < el.childNodes.length; i++) {
@@ -183,7 +235,50 @@ function extractParagraphText(paragraphEl: AnyEl): DocxParagraph {
     walk(paragraphEl.childNodes[i]);
   }
 
-  return { text: text.trim(), hasMath };
+  return { text: text.trim(), hasMath, images: images.length > 0 ? images : undefined };
+}
+
+/**
+ * Extracts a structured table from a <w:tbl> element
+ */
+function extractTableBlock(tblEl: AnyEl, relsMap: Map<string, string>): DocxTableBlock {
+  const rows: string[][] = [];
+  const trList: AnyEl[] = [];
+
+  walkElementsInDocumentOrder(tblEl, (el) => {
+    if (localName(el) === 'tr') trList.push(el);
+  });
+
+  for (const tr of trList) {
+    const rowCells: string[] = [];
+    for (let i = 0; i < tr.childNodes.length; i++) {
+      const cellNode = tr.childNodes[i];
+      if (localName(cellNode) === 'tc') {
+        const cellPara = extractParagraphText(cellNode, relsMap);
+        rowCells.push(cellPara.text || '');
+      }
+    }
+    if (rowCells.length > 0) {
+      rows.push(rowCells);
+    }
+  }
+
+  // Generate markdown representation
+  let markdownText = '';
+  if (rows.length > 0) {
+    const header = rows[0];
+    markdownText += `| ${header.join(' | ')} |\n`;
+    markdownText += `| ${header.map(() => '---').join(' | ')} |\n`;
+    for (let r = 1; r < rows.length; r++) {
+      markdownText += `| ${rows[r].join(' | ')} |\n`;
+    }
+  }
+
+  return {
+    type: 'table',
+    rows,
+    markdownText: markdownText.trim()
+  };
 }
 
 // ============================================================================
@@ -192,7 +287,6 @@ function extractParagraphText(paragraphEl: AnyEl): DocxParagraph {
 
 /**
  * Extracts text + OMML math from a DOCX buffer using pure Node.js (jszip + xmldom).
- * No Python, no Pandoc, no mammoth required.
  */
 export async function extractDocxMath(
   buffer: Buffer,
@@ -229,16 +323,63 @@ export async function extractDocxMath(
 
   let totalUncompressed = 0;
   for (const entry of entries) {
-    // JSZip stores _data.uncompressedSize for already-opened entries
     const uc = (entry as any)._data?.uncompressedSize ?? 0;
     totalUncompressed += uc;
     if (totalUncompressed > MAX_UNCOMPRESSED_BYTES) {
-      errorLog.push(`Uncompressed ZIP content exceeds ${MAX_UNCOMPRESSED_BYTES / 1024 / 1024} MB (zip-bomb protection).`);
+      errorLog.push(
+        `Uncompressed ZIP content exceeds ${MAX_UNCOMPRESSED_BYTES / 1024 / 1024} MB (zip-bomb protection).`
+      );
       return { success: false, paragraphs: [], rawText: '', media: [], warnings, errorLog };
     }
   }
 
-  // 5. Extract word/document.xml
+  // 5. Parse Relationships in word/_rels/document.xml.rels
+  const relsMap = new Map<string, string>(); // rId -> safeName
+  const relsEntry = zip.file('word/_rels/document.xml.rels');
+  const mediaMap = new Map<string, { name: string; mimeType: string; data: Buffer; rId?: string; originalName: string }>();
+
+  // Extract all media files
+  const mediaEntries = entries.filter((e) => e.name.startsWith('word/media/') && !e.dir);
+  for (const entry of mediaEntries) {
+    const original = path.basename(entry.name);
+    const safeName = safeMediaName(original);
+    try {
+      const data = Buffer.from(await entry.async('arraybuffer'));
+      mediaMap.set(original, {
+        name: safeName,
+        mimeType: mimeTypeOf(original),
+        data,
+        originalName: original
+      });
+    } catch (err: any) {
+      warnings.push(`Could not extract media file "${original}": ${err?.message}`);
+    }
+  }
+
+  if (relsEntry) {
+    try {
+      const relsXml = await relsEntry.async('string');
+      const relsDoc = parseSilentXml(relsXml);
+      if (relsDoc) {
+        walkElementsInDocumentOrder(relsDoc.documentElement, (el) => {
+          if (localName(el) === 'relationship') {
+            const id = el.getAttribute?.('Id');
+            const target = el.getAttribute?.('Target') || '';
+            const targetBase = path.basename(target);
+            if (id && mediaMap.has(targetBase)) {
+              const item = mediaMap.get(targetBase)!;
+              item.rId = id;
+              relsMap.set(id, item.name);
+            }
+          }
+        });
+      }
+    } catch (err: any) {
+      warnings.push(`Notice: could not parse document.xml.rels: ${err?.message}`);
+    }
+  }
+
+  // 6. Extract word/document.xml
   const docEntry = zip.file('word/document.xml');
   if (!docEntry) {
     errorLog.push('word/document.xml not found in DOCX – not a valid Word document.');
@@ -253,56 +394,303 @@ export async function extractDocxMath(
     return { success: false, paragraphs: [], rawText: '', media: [], warnings, errorLog };
   }
 
-  // 6. Parse XML
   const doc = parseSilentXml(docXml);
   if (!doc) {
     errorLog.push('Failed to parse word/document.xml as XML.');
     return { success: false, paragraphs: [], rawText: '', media: [], warnings, errorLog };
   }
 
-  // 7. Walk the document body collecting paragraphs from:
-  //    - normal <w:p> inside body
-  //    - <w:tc> (table cells)
-  //    - <w:txbxContent> (text boxes)
+  // 7. Walk the document body collecting paragraphs and tables in natural reading order
   const paragraphs: DocxParagraph[] = [];
+  const blocks: DocxBlock[] = [];
 
-  // Find all <w:p> elements anywhere in the document (covers tables + text boxes)
   const allParagraphEls: AnyEl[] = [];
-  walkElements(doc.documentElement as AnyEl, (el: AnyEl) => {
+  walkElementsInDocumentOrder(doc.documentElement as AnyEl, (el: AnyEl) => {
     if (localName(el) === 'p') {
       allParagraphEls.push(el);
     }
   });
 
   for (const pEl of allParagraphEls) {
-    const para = extractParagraphText(pEl);
+    const para = extractParagraphText(pEl, relsMap);
     if (para.text) {
       paragraphs.push(para);
+      blocks.push({
+        type: 'paragraph',
+        text: para.text,
+        hasMath: para.hasMath,
+        images: para.images
+      });
     }
   }
 
-  // 8. Extract media files (images) with safe names
-  const media: Array<{ name: string; mimeType: string; data: Buffer }> = [];
-  const mediaEntries = entries.filter(e => e.name.startsWith('word/media/') && !e.dir);
-  for (const entry of mediaEntries) {
-    const original = path.basename(entry.name);
-    const safeName = safeMediaName(original);
-    try {
-      const data = Buffer.from(await entry.async('arraybuffer'));
-      media.push({ name: safeName, mimeType: mimeTypeOf(original), data });
-    } catch (err: any) {
-      warnings.push(`Could not extract media file "${original}": ${err?.message}`);
-    }
-  }
-
-  const rawText = paragraphs.map(p => p.text).join('\n');
+  const media = Array.from(mediaMap.values());
+  const rawText = paragraphs.map((p) => p.text).join('\n');
 
   return {
     success: true,
     paragraphs,
+    blocks,
     rawText,
     media,
     warnings,
     errorLog
+  };
+}
+
+/**
+ * Native document-aware DOCX question segmentation pipeline (Phase 3)
+ * Segments questions directly from paragraphs and blocks while preserving
+ * OMML LaTeX, tables, images, options, and answer keys.
+ */
+export async function extractQuestionsFromDocxNative(
+  buffer: Buffer,
+  subject: string = 'Mathematics',
+  targetExam: string = 'JEE Main'
+): Promise<{
+  questions: NormalizedQuestion[];
+  totalDetected: number;
+  successfulCount: number;
+  needsReviewCount: number;
+  errorLog: string[];
+  media: Array<{ name: string; mimeType: string; data: Buffer }>;
+}> {
+  const warnings: string[] = [];
+  const errorLog: string[] = [];
+
+  const docxResult = await extractDocxMath(buffer, warnings, errorLog);
+  if (!docxResult.success || docxResult.paragraphs.length === 0) {
+    return {
+      questions: [],
+      totalDetected: 0,
+      successfulCount: 0,
+      needsReviewCount: 0,
+      errorLog: docxResult.errorLog,
+      media: []
+    };
+  }
+
+  const paragraphs = docxResult.paragraphs;
+  const questions: NormalizedQuestion[] = [];
+
+  // 1. Check for standalone Answer Key block at bottom
+  const answerKeyMap = new Map<number, string>();
+  let answerKeyStartIndex = -1;
+
+  for (let i = 0; i < paragraphs.length; i++) {
+    const pText = paragraphs[i].text.trim();
+    if (/(?:^|\s)(?:Answer\s*Key|Answers?|ANSWERS?)\s*[:\n]/i.test(pText)) {
+      answerKeyStartIndex = i;
+      break;
+    }
+  }
+
+  if (answerKeyStartIndex !== -1) {
+    const keyText = paragraphs
+      .slice(answerKeyStartIndex)
+      .map((p) => p.text)
+      .join('\n');
+    const keyPairRegex = /(\d{1,3})\s*[\.:\-]\s*([A-Da-d0-9\.\-]+)/g;
+    let km;
+    while ((km = keyPairRegex.exec(keyText)) !== null) {
+      const qn = parseInt(km[1], 10);
+      const rawAns = km[2].trim().toUpperCase();
+      if (!isNaN(qn)) {
+        answerKeyMap.set(qn, rawAns);
+      }
+    }
+  }
+
+  const contentParagraphs =
+    answerKeyStartIndex !== -1 ? paragraphs.slice(0, answerKeyStartIndex) : paragraphs;
+
+  // 2. Identify Question Boundaries
+  interface RawQuestionGroup {
+    qNum: number;
+    lines: DocxParagraph[];
+  }
+
+  const groups: RawQuestionGroup[] = [];
+  let currentGroup: RawQuestionGroup | null = null;
+  const qDelim = /^(?:(?:Q\.?|Question)\s*)?(\d{1,3})\s*[\.:\)]\s*(.*)$/i;
+
+  let expectedQ = 1;
+
+  for (const para of contentParagraphs) {
+    const text = para.text.trim();
+    if (!text) continue;
+
+    const match = text.match(qDelim);
+    const parsedQNum = match ? parseInt(match[1], 10) : NaN;
+
+    if (
+      match &&
+      !isNaN(parsedQNum) &&
+      parsedQNum >= expectedQ &&
+      parsedQNum <= expectedQ + 5
+    ) {
+      if (currentGroup) {
+        groups.push(currentGroup);
+      }
+      currentGroup = {
+        qNum: parsedQNum,
+        lines: [{ ...para, text: match[2].trim() }]
+      };
+      expectedQ = parsedQNum + 1;
+    } else if (currentGroup) {
+      currentGroup.lines.push(para);
+    } else {
+      // Preface or instructions
+    }
+  }
+
+  if (currentGroup) {
+    groups.push(currentGroup);
+  }
+
+  // Fallback if no sequential question delimiters were found
+  if (groups.length === 0 && contentParagraphs.length > 0) {
+    let chunkLines: DocxParagraph[] = [];
+    let qCount = 1;
+    for (const p of contentParagraphs) {
+      chunkLines.push(p);
+      if (chunkLines.length >= 4) {
+        groups.push({ qNum: qCount++, lines: chunkLines });
+        chunkLines = [];
+      }
+    }
+    if (chunkLines.length > 0) {
+      groups.push({ qNum: qCount++, lines: chunkLines });
+    }
+  }
+
+  // 3. Process each group into a NormalizedQuestion
+  let successfulCount = 0;
+  let needsReviewCount = 0;
+
+  for (let idx = 0; idx < groups.length; idx++) {
+    const group = groups[idx];
+    const fullText = group.lines.map((l) => l.text).join('\n');
+
+    let statementText = '';
+    const options: Array<{ key: string; text: string }> = [];
+    let explanationText = '';
+    const reviewReasons: string[] = [];
+
+    // Parse options: (A), (B), (C), (D) or (1), (2), (3), (4)
+    const optSplitRegex = /(?:^|\n)\s*(?:\(([A-Da-d1-4])\)|([A-Da-d])\.(?!\d))\s*/;
+    const parts = fullText.split(optSplitRegex);
+
+    if (parts.length > 1) {
+      statementText = parts[0].trim();
+      for (let i = 1; i < parts.length; i += 3) {
+        const rawKey = (parts[i] || parts[i + 1] || '').toUpperCase();
+        const keyMap: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+        const key = keyMap[rawKey] || rawKey || 'A';
+        const optBody = (parts[i + 2] || '').trim();
+
+        // Check if explanation or solution is trailing in last option
+        const solMatch = optBody.match(/(?:(?:Ans(?:wer)?|Solution|Explanation)\s*[:\-])\s*([\s\S]+)$/i);
+        if (solMatch && solMatch.index !== undefined) {
+          options.push({ key, text: optBody.substring(0, solMatch.index).trim() });
+          explanationText = solMatch[1].trim();
+        } else {
+          options.push({ key, text: optBody });
+        }
+      }
+    } else {
+      statementText = fullText.trim();
+    }
+
+    // Classify question type
+    const classification = classifyQuestion(statementText, options, targetExam);
+
+    // Extract solutions & shortcuts
+    const { stepSolution, dkSirShortcut, answerKey: inlineAns } = extractSolutionAndShortcuts(explanationText);
+
+    // Determine correct answer
+    const matchedKey = answerKeyMap.get(group.qNum) || inlineAns || 'A';
+
+    // Validate LaTeX
+    const validation = validateQuestionLatexStructure({
+      qNum: group.qNum,
+      statement: statementText,
+      options: options.map((o) => ({ key: o.key as any, text: o.text }))
+    });
+
+    if (validation.needsReview) {
+      reviewReasons.push(...validation.reasons);
+    }
+
+    if (statementText.length < 10) {
+      reviewReasons.push('Question statement is unusually brief');
+    }
+
+    const needsReview = reviewReasons.length > 0;
+    if (needsReview) needsReviewCount++;
+    else successfulCount++;
+
+    // Generate ordered content blocks
+    const statementBlocks: ContentBlock[] = [
+      {
+        id: `blk-text-${Date.now()}-${idx}`,
+        type: 'text',
+        content: statementText
+      }
+    ];
+
+    // Collect any images associated with lines in this group
+    const qImages: Array<{ name: string; mimeType: string }> = [];
+    for (const l of group.lines) {
+      if (l.images) {
+        for (const imgName of l.images) {
+          const mItem = docxResult.media.find((m) => m.name === imgName);
+          if (mItem && !qImages.some((qi) => qi.name === imgName)) {
+            qImages.push({ name: mItem.name, mimeType: mItem.mimeType });
+            statementBlocks.push({
+              id: `blk-img-${imgName}`,
+              type: 'image',
+              content: imgName
+            });
+          }
+        }
+      }
+    }
+
+    const nq = createDefaultNormalizedQuestion({
+      id: `docx-q-${Date.now()}-${idx + 1}-${crypto.randomBytes(3).toString('hex')}`,
+      qNum: group.qNum || idx + 1,
+      statement: statementText,
+      statementBlocks,
+      options: options.length > 0 ? options : [
+        { key: 'A', text: '' },
+        { key: 'B', text: '' },
+        { key: 'C', text: '' },
+        { key: 'D', text: '' }
+      ],
+      correctAnswer: matchedKey,
+      stepSolution,
+      dkSirShortcut,
+      subject,
+      topic: `${subject} Question`,
+      questionType: classification.questionType,
+      marks: classification.suggestedMarks,
+      negativeMarks: classification.suggestedNegativeMarks,
+      status: needsReview ? 'NEEDS_REVIEW' : 'EXTRACTED',
+      reviewReason: reviewReasons.join('; '),
+      extractionConfidence: validation.overallConfidence,
+      images: qImages
+    });
+
+    questions.push(nq);
+  }
+
+  return {
+    questions,
+    totalDetected: questions.length,
+    successfulCount,
+    needsReviewCount,
+    errorLog,
+    media: docxResult.media
   };
 }

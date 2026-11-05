@@ -67,9 +67,17 @@ export interface ProblemQuestionItem {
   stepSolution: string;
   difficulty: 'Easy' | 'Moderate' | 'Challenging';
   examYear?: string;
+  year?: number | string;
   isFree?: boolean;
   videoUrl?: string;
   pdfUrl?: string;
+  questionType?: string;
+  marks?: number | string;
+  negativeMarks?: number | string;
+  status?: 'EXTRACTED' | 'NEEDS_REVIEW' | 'VERIFIED';
+  reviewReason?: string;
+  extractionConfidence?: number;
+  sourceDocument?: string;
 }
 
 export interface DppPyqItem {
@@ -664,6 +672,16 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
   const [isBulkForCreateModal, setIsBulkForCreateModal] = useState<boolean>(false);
   const [createdCustomQuestions, setCreatedCustomQuestions] = useState<ProblemQuestionItem[] | null>(null);
   const [activeBulkReviewIdx, setActiveBulkReviewIdx] = useState<number>(0);
+  const [bulkReviewFilter, setBulkReviewFilter] = useState<'ALL' | 'NEEDS_REVIEW' | 'VERIFIED'>('ALL');
+  const [bulkBatchStats, setBulkBatchStats] = useState<{
+    totalFiles: number;
+    totalPages: number;
+    totalQuestions: number;
+    successfulCount: number;
+    needsReviewCount: number;
+    failedFiles: Array<{ fileName: string; error: string }>;
+    fileSummaries: Array<{ fileName: string; fileType: string; status: string; detectedCount: number }>;
+  } | null>(null);
   const [bulkReviewShowRaw, setBulkReviewShowRaw] = useState<boolean>(false);
   const [isAiFormattingBulk, setIsAiFormattingBulk] = useState<boolean>(false);
   const [aiFormattingBulkIdx, setAiFormattingBulkIdx] = useState<number | null>(null);
@@ -811,14 +829,17 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
     setIsBulkModalOpen(true);
   };
 
-  const handleUploadDocument = async (file: File) => {
-    const name = file.name.toLowerCase();
-    const isDoc = name.endsWith('.docx') || name.endsWith('.doc');
-    const isPdf = name.endsWith('.pdf');
-    if (!isDoc && !isPdf && !name.endsWith('.txt') && !name.endsWith('.csv')) {
-      showToast('Please upload a valid Word (.docx, .doc) or PDF (.pdf) file.');
-      return;
+  const handleUploadDocument = async (input: File | File[] | FileList) => {
+    let files: File[] = [];
+    if (input instanceof File) {
+      files = [input];
+    } else if (Array.isArray(input)) {
+      files = input;
+    } else if (input && typeof (input as any).length === 'number') {
+      files = Array.from(input as FileList);
     }
+
+    if (files.length === 0) return;
 
     setIsDocUploading(true);
     setDocUploadProgress(15);
@@ -829,21 +850,40 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
     const activeTitle = isBulkForCreateModal ? newTitle : (editingItem?.title || '');
 
     try {
-      const res = await apiClient.uploadPdfForExtraction(
-        file,
-        {
-          subject: activeSub,
-          exam: activeExam,
-          paperTitle: activeTitle
-        },
-        (progress) => setDocUploadProgress(progress)
-      );
+      let res: any;
+      if (files.length > 1) {
+        res = await apiClient.uploadBulkDocumentsForExtraction(
+          files,
+          {
+            subject: activeSub,
+            exam: activeExam,
+            moduleType: newModuleType,
+            chapter: newChapter
+          },
+          (progress) => setDocUploadProgress(progress)
+        );
+      } else {
+        res = await apiClient.uploadPdfForExtraction(
+          files[0],
+          {
+            subject: activeSub,
+            exam: activeExam,
+            paperTitle: activeTitle
+          },
+          (progress) => setDocUploadProgress(progress)
+        );
+      }
 
-      if (res && res.summary && Array.isArray(res.summary.questions) && res.summary.questions.length > 0) {
-        const mappedQuestions: ProblemQuestionItem[] = res.summary.questions.map((q: any, idx: number) => ({
-          id: q.tempId || `q-${Date.now()}-${idx + 1}`,
-          examYear: q.topic || activeExam || 'JEE Main 2026',
-          marks: '+4 / -1',
+      const questionsList = res?.questions || res?.summary?.questions || [];
+      if (Array.isArray(questionsList) && questionsList.length > 0) {
+        const mappedQuestions: ProblemQuestionItem[] = questionsList.map((q: any, idx: number) => ({
+          id: q.id || q.tempId || `q-${Date.now()}-${idx + 1}`,
+          qNum: idx + 1,
+          topic: q.topic || activeExam || `${activeSub} Drill`,
+          examYear: q.examYear || q.topic || activeExam || 'JEE Main 2026',
+          marks: q.marks ? (typeof q.marks === 'number' ? `+${q.marks} / -${q.negativeMarks ?? 1}` : q.marks) : '+4 / -1',
+          negativeMarks: q.negativeMarks ?? 1,
+          questionType: q.questionType || 'SINGLE_CORRECT',
           statement: q.statement || '',
           options: Array.isArray(q.options) && q.options.length > 0 ? q.options : [
             { key: 'A', text: '' },
@@ -851,9 +891,14 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
             { key: 'C', text: '' },
             { key: 'D', text: '' }
           ],
-          correctKey: q.suggestedAnswer || 'A',
+          correctKey: (q.correctAnswer || q.correctKey || q.suggestedAnswer || 'A') as 'A' | 'B' | 'C' | 'D',
           dkSirShortcut: q.dkSirShortcut || '',
           stepSolution: q.stepSolution || '',
+          difficulty: q.difficulty || 'Moderate',
+          status: q.status || 'EXTRACTED',
+          reviewReason: q.reviewReason || '',
+          extractionConfidence: q.extractionConfidence ?? 100,
+          sourceDocument: q.sourceDocument || (files.length === 1 ? files[0].name : undefined),
           isFree: isBulkForCreateModal ? newIsFree : (editingItem?.isFree !== false),
           videoUrl: '',
           pdfUrl: ''
@@ -862,14 +907,27 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
         setBulkParsedQuestions(mappedQuestions);
         setActiveBulkReviewIdx(0);
         setBulkParseErrors([]);
-        showToast(`✓ Extracted ${mappedQuestions.length} questions from ${file.name}!`);
+
+        if (res.totalFiles || files.length > 1) {
+          setBulkBatchStats({
+            totalFiles: res.totalFiles || files.length,
+            totalPages: res.totalPages || 1,
+            totalQuestions: mappedQuestions.length,
+            successfulCount: res.successfulCount ?? mappedQuestions.filter(q => q.status !== 'NEEDS_REVIEW').length,
+            needsReviewCount: res.needsReviewCount ?? mappedQuestions.filter(q => q.status === 'NEEDS_REVIEW').length,
+            failedFiles: res.failedFiles || [],
+            fileSummaries: res.fileSummaries || []
+          });
+        }
+
+        showToast(`✓ Extracted ${mappedQuestions.length} questions from ${files.length > 1 ? `${files.length} documents` : files[0].name}!`);
 
         if (isBulkForCreateModal && !newTitle.trim()) {
-          const guessedName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ');
+          const guessedName = files[0].name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ');
           setNewTitle(`${activeSub} ${newModuleType}: ${guessedName}`);
         }
       } else {
-        setDocUploadError(res?.error || 'No questions could be extracted from this document.');
+        setDocUploadError(res?.error || 'No questions could be extracted from the uploaded document(s).');
       }
     } catch (err: any) {
       console.error('Document extraction failed:', err);
@@ -3618,31 +3676,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     <label className={styles.sectionSmallLabel} style={{ margin: 0 }}>
                       Problem Statement (KaTeX LaTeX formulas supported):
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button
-                        type="button"
-                        disabled={isAiFormattingActiveQStatement}
-                        onClick={handleAiFormatActiveQuestionStatement}
-                        style={{
-                          background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '5px 12px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: isAiFormattingActiveQStatement ? 'not-allowed' : 'pointer',
-                          opacity: isAiFormattingActiveQStatement ? 0.7 : 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px'
-                        }}
-                        title="Auto-repair question statement with Gemini AI"
-                      >
-                        {isAiFormattingActiveQStatement ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                        <span>{isAiFormattingActiveQStatement ? 'Fixing Question...' : '✨ Auto-Fix Question'}</span>
-                      </button>
-                    </div>
                   </div>
                   <textarea
                     rows={4}
@@ -3666,29 +3699,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     <label className={styles.sectionSmallLabel} style={{ margin: 0 }}>
                       Answer Choices &amp; Answer Key (Select the correct option):
                     </label>
-                    <button
-                      type="button"
-                      disabled={isAiFormattingActiveOptions}
-                      onClick={handleAiFormatActiveOptions}
-                      style={{
-                        background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '4px 10px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: isAiFormattingActiveOptions ? 'not-allowed' : 'pointer',
-                        opacity: isAiFormattingActiveOptions ? 0.7 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                      title="Auto-repair all 4 options with Gemini AI"
-                    >
-                      {isAiFormattingActiveOptions ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                      <span>{isAiFormattingActiveOptions ? 'Fixing Options...' : '✨ Auto-Fix Options'}</span>
-                    </button>
                   </div>
                   <div className={styles.optionsStack}>
                     {editingItem.questions[editingQuestionIdx].options.map((opt) => {
@@ -3720,33 +3730,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                               onPaste={(e) => handleOptionPaste(opt.key, e)}
                               placeholder={`Enter Option ${opt.key} value or LaTeX equation ($...$)...`}
                             />
-                            <button
-                              type="button"
-                              disabled={formattingDppOptionKey === opt.key}
-                              onClick={() => handleAiFormatSingleDppOption(opt.key)}
-                              style={{
-                                background: '#f8fafc',
-                                border: '1px solid #cbd5e1',
-                                color: '#475569',
-                                borderRadius: '6px',
-                                padding: '4px 8px',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                whiteSpace: 'nowrap'
-                              }}
-                              title={`Auto-Fix Option ${opt.key} with AI`}
-                            >
-                              {formattingDppOptionKey === opt.key ? (
-                                <Loader2 size={11} className="animate-spin" />
-                              ) : (
-                                <Sparkles size={11} color="#4f46e5" />
-                              )}
-                              <span>Fix {opt.key}</span>
-                            </button>
                             {isCorrect && (
                               <span className={styles.answerKeyTag}>✓ Correct Key</span>
                             )}
@@ -4316,26 +4299,31 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     </button>
                     <button
                       type="button"
-                      disabled={isAiFormattingBulk}
-                      onClick={handleAiFormatAllBulkQuestions}
+                      onClick={() => {
+                        setBulkParsedQuestions((prev) =>
+                          prev.map((q) => ({
+                            ...q,
+                            status: 'VERIFIED'
+                          }))
+                        );
+                        showToast('✓ All questions marked as Verified!');
+                      }}
                       style={{
                         padding: '5px 10px',
                         borderRadius: '6px',
-                        border: 'none',
-                        background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                        color: '#ffffff',
+                        border: '1.5px solid #16a34a',
+                        background: '#f0fdf4',
+                        color: '#15803d',
                         fontSize: '11.5px',
                         fontWeight: 700,
-                        cursor: isAiFormattingBulk ? 'not-allowed' : 'pointer',
-                        opacity: isAiFormattingBulk ? 0.7 : 1,
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px'
                       }}
-                      title="Auto-repair formulas, integrals, and limits for all extracted questions with Gemini AI"
+                      title="Mark all extracted questions as Verified"
                     >
-                      {isAiFormattingBulk ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                      {isAiFormattingBulk ? 'Formatting All (AI)...' : '✨ Auto-Format All (AI)'}
+                      ✓ Verify All
                     </button>
                   </div>
                 )}
@@ -4379,10 +4367,12 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                 >
                   <input
                     type="file"
-                    accept=".docx,.doc,.pdf"
+                    multiple
+                    accept=".docx,.doc,.pdf,.txt,.json"
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleUploadDocument(file);
+                      if (e.target.files && e.target.files.length > 0) {
+                        handleUploadDocument(e.target.files);
+                      }
                     }}
                     disabled={isDocUploading}
                     style={{
@@ -4410,10 +4400,10 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     {isDocUploading ? <Loader2 size={26} className="animate-spin" /> : <Upload size={26} />}
                   </div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                    {isDocUploading ? 'Extracting & Parsing Document...' : 'Click to Upload Word (.docx) or PDF (.pdf) or Drag & Drop'}
+                    {isDocUploading ? 'Extracting & Parsing Documents...' : 'Click to Upload Word (.docx), PDF (.pdf), or Select Multiple Files'}
                   </div>
                   <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '6px', maxWidth: '560px', margin: '6px auto 0' }}>
-                    AI-powered extraction parses Question Statements, 4 Options, Answer Keys, Step Solutions &amp; DK Sir Shortcuts with KaTeX Math support.
+                    Native document-aware pipelines for Word OMML equations, tables, images and independent PDF mathematical extraction.
                   </div>
                   {isDocUploading && (
                     <div style={{ marginTop: '16px', maxWidth: '360px', margin: '16px auto 0' }}>
@@ -4442,161 +4432,271 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
               </div>
             ) : (
               /* Two-Column Question Review Studio */
-              <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                {/* Left Questions Palette */}
-                <div
-                  style={{
-                    width: '300px',
-                    borderRight: '1px solid #e2e8f0',
-                    background: '#f8fafc',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    flexShrink: 0
-                  }}
-                >
-                  <div style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.04em' }}>
-                    Questions ({bulkParsedQuestions.length})
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                {/* Batch Stats Banner */}
+                {bulkBatchStats && (
+                  <div style={{ padding: '8px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                      <span><strong>Files:</strong> {bulkBatchStats.totalFiles}</span>
+                      <span><strong>Pages:</strong> {bulkBatchStats.totalPages}</span>
+                      <span><strong>Questions:</strong> {bulkBatchStats.totalQuestions}</span>
+                      <span style={{ color: '#16a34a' }}><strong>✓ Extracted:</strong> {bulkBatchStats.successfulCount}</span>
+                      {bulkBatchStats.needsReviewCount > 0 && (
+                        <span style={{ color: '#d97706' }}><strong>⚠️ Needs Review:</strong> {bulkBatchStats.needsReviewCount}</span>
+                      )}
+                    </div>
+                    {bulkBatchStats.failedFiles.length > 0 && (
+                      <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                        Failed Files ({bulkBatchStats.failedFiles.length}): {bulkBatchStats.failedFiles.map(f => f.fileName).join(', ')}
+                      </span>
+                    )}
                   </div>
-                  <div style={{ overflowY: 'auto', flex: 1, padding: '8px' }}>
-                    {bulkParsedQuestions.map((q, idx) => {
-                      const isSelected = idx === activeBulkReviewIdx;
-                      return (
-                        <div
-                          key={q.id || idx}
-                          onClick={() => setActiveBulkReviewIdx(idx)}
-                          style={{
-                            padding: '10px 12px',
-                            borderRadius: '8px',
-                            background: isSelected ? '#eff6ff' : '#ffffff',
-                            border: isSelected ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
-                            marginBottom: '6px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '12px', fontWeight: 800, color: isSelected ? '#1e40af' : '#0f172a' }}>
-                              Q{idx + 1}
-                            </span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <span style={{ fontSize: '10px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', background: '#dcfce7', color: '#166534' }}>
-                                Key: {q.correctKey}
-                              </span>
-                              <span style={{ fontSize: '10px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', background: q.isFree !== false ? '#e0f2fe' : '#ede9fe', color: q.isFree !== false ? '#0369a1' : '#6d28d9' }}>
-                                {q.isFree !== false ? '✓ Free' : '🔒 Paid'}
-                              </span>
-                            </div>
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {q.statement ? q.statement.slice(0, 45) + '...' : '(Empty Statement)'}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                )}
 
-                {/* Right Interactive Question Review Canvas */}
-                {(() => {
-                  const currentQ = bulkParsedQuestions[activeBulkReviewIdx] || bulkParsedQuestions[0];
-                  if (!currentQ) return null;
-                  return (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: '20px 24px', gap: '16px' }}>
-                      {/* Question Toolbar */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '14px', fontWeight: 800, color: '#1e40af', background: '#dbeafe', padding: '4px 10px', borderRadius: '6px' }}>
-                            Q{activeBulkReviewIdx + 1} of {bulkParsedQuestions.length} • Single Choice MCQ
-                          </span>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Marks: +4 / -1</span>
-                        </div>
+                <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                  {/* Left Questions Palette */}
+                  <div
+                    style={{
+                      width: '320px',
+                      borderRight: '1px solid #e2e8f0',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      flexShrink: 0
+                    }}
+                  >
+                    <div style={{ padding: '8px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.04em' }}>
+                        Questions ({bulkParsedQuestions.length})
+                      </span>
+                    </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {/* Access Mode for this Question */}
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 4px', background: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateBulkQuestion(activeBulkReviewIdx, { isFree: true })}
-                              style={{
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                border: currentQ.isFree !== false ? '1.5px solid #16a34a' : '1px solid transparent',
-                                background: currentQ.isFree !== false ? '#dcfce7' : 'transparent',
-                                color: currentQ.isFree !== false ? '#15803d' : '#64748b'
-                              }}
-                            >
-                              ✓ Free Preview
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateBulkQuestion(activeBulkReviewIdx, { isFree: false })}
-                              style={{
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                border: currentQ.isFree === false ? '1.5px solid #7c3aed' : '1px solid transparent',
-                                background: currentQ.isFree === false ? '#ede9fe' : 'transparent',
-                                color: currentQ.isFree === false ? '#6d28d9' : '#64748b'
-                              }}
-                            >
-                              🔒 Locked (Paid)
-                            </button>
-                          </div>
-
+                    {/* Filter Tabs: All, Needs Review, Verified */}
+                    <div style={{ padding: '6px 10px', display: 'flex', gap: '4px', borderBottom: '1px solid #e2e8f0', background: '#f1f5f9' }}>
+                      {(['ALL', 'NEEDS_REVIEW', 'VERIFIED'] as const).map((f) => {
+                        const count =
+                          f === 'ALL'
+                            ? bulkParsedQuestions.length
+                            : f === 'NEEDS_REVIEW'
+                            ? bulkParsedQuestions.filter((q) => q.status === 'NEEDS_REVIEW').length
+                            : bulkParsedQuestions.filter((q) => q.status === 'VERIFIED').length;
+                        const isAct = bulkReviewFilter === f;
+                        const label = f === 'ALL' ? 'All' : f === 'NEEDS_REVIEW' ? 'Review' : 'Verified';
+                        return (
                           <button
+                            key={f}
                             type="button"
-                            disabled={aiFormattingBulkIdx === activeBulkReviewIdx}
-                            onClick={() => handleAiFormatSingleBulkQuestion(activeBulkReviewIdx)}
+                            onClick={() => setBulkReviewFilter(f)}
                             style={{
-                              padding: '4px 10px',
-                              borderRadius: '6px',
+                              flex: 1,
+                              padding: '4px 2px',
+                              borderRadius: '4px',
                               border: 'none',
-                              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                              color: '#ffffff',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              cursor: aiFormattingBulkIdx === activeBulkReviewIdx ? 'not-allowed' : 'pointer',
-                              opacity: aiFormattingBulkIdx === activeBulkReviewIdx ? 0.7 : 1,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                            title="Format this question with Gemini AI mathematical LaTeX engine"
-                          >
-                            {aiFormattingBulkIdx === activeBulkReviewIdx ? (
-                              <Loader2 size={11} className="animate-spin" />
-                            ) : (
-                              <Sparkles size={11} />
-                            )}
-                            {aiFormattingBulkIdx === activeBulkReviewIdx ? 'Formatting...' : 'Auto-Format Q (AI)'}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setBulkReviewShowRaw(!bulkReviewShowRaw)}
-                            style={{
-                              padding: '4px 8px',
-                              borderRadius: '6px',
-                              border: '1px solid #cbd5e1',
-                              background: '#ffffff',
-                              color: '#475569',
-                              fontSize: '11px',
+                              background: isAct ? '#2563eb' : 'transparent',
+                              color: isAct ? '#ffffff' : '#64748b',
+                              fontSize: '10.5px',
                               fontWeight: 700,
                               cursor: 'pointer'
                             }}
                           >
-                            {bulkReviewShowRaw ? 'Show Preview' : 'Edit Raw LaTeX'}
+                            {label} ({count})
                           </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ overflowY: 'auto', flex: 1, padding: '8px' }}>
+                      {bulkParsedQuestions.map((q, idx) => {
+                        if (bulkReviewFilter === 'NEEDS_REVIEW' && q.status !== 'NEEDS_REVIEW') return null;
+                        if (bulkReviewFilter === 'VERIFIED' && q.status !== 'VERIFIED') return null;
+
+                        const isSelected = idx === activeBulkReviewIdx;
+                        const isNeedsReview = q.status === 'NEEDS_REVIEW';
+                        const isVerified = q.status === 'VERIFIED';
+
+                        return (
+                          <div
+                            key={q.id || idx}
+                            onClick={() => setActiveBulkReviewIdx(idx)}
+                            style={{
+                              padding: '10px 12px',
+                              borderRadius: '8px',
+                              background: isSelected ? '#eff6ff' : '#ffffff',
+                              border: isSelected
+                                ? '1.5px solid #3b82f6'
+                                : isNeedsReview
+                                ? '1px solid #fde68a'
+                                : '1px solid #e2e8f0',
+                              marginBottom: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '4px',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 800, color: isSelected ? '#1e40af' : '#0f172a' }}>
+                                Q{idx + 1}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {isNeedsReview && (
+                                  <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', background: '#fef3c7', color: '#b45309' }}>
+                                    Review
+                                  </span>
+                                )}
+                                {isVerified && (
+                                  <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', background: '#dcfce7', color: '#15803d' }}>
+                                    ✓ Verified
+                                  </span>
+                                )}
+                                <span style={{ fontSize: '10px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', background: '#f1f5f9', color: '#334155' }}>
+                                  Key: {q.correctKey}
+                                </span>
+                              </div>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {q.statement ? q.statement.slice(0, 45) + '...' : '(Empty Statement)'}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right Interactive Question Review Canvas */}
+                  {(() => {
+                    const currentQ = bulkParsedQuestions[activeBulkReviewIdx] || bulkParsedQuestions[0];
+                    if (!currentQ) return null;
+                    return (
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: '20px 24px', gap: '16px' }}>
+                        {/* Question Toolbar */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 800, color: '#1e40af', background: '#dbeafe', padding: '4px 10px', borderRadius: '6px' }}>
+                              Q{activeBulkReviewIdx + 1} of {bulkParsedQuestions.length}
+                            </span>
+                            {/* Question Type Selector */}
+                            <select
+                              value={currentQ.questionType || 'SINGLE_CORRECT'}
+                              onChange={(e) => handleUpdateBulkQuestion(activeBulkReviewIdx, { questionType: e.target.value })}
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                background: '#ffffff',
+                                color: '#0f172a',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <option value="SINGLE_CORRECT">Single Choice MCQ</option>
+                              <option value="MULTIPLE_CORRECT">Multiple Correct</option>
+                              <option value="NUMERICAL">Numerical Answer</option>
+                              <option value="INTEGER">Integer Type</option>
+                              <option value="ASSERTION_REASON">Assertion-Reason</option>
+                              <option value="PASSAGE">Passage Based</option>
+                              <option value="MATCH_FOLLOWING">Match Following</option>
+                            </select>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Marks: +4 / -1</span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {/* Mark as Verified Toggle */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextStatus = currentQ.status === 'VERIFIED' ? 'EXTRACTED' : 'VERIFIED';
+                                handleUpdateBulkQuestion(activeBulkReviewIdx, {
+                                  status: nextStatus,
+                                  reviewReason: nextStatus === 'VERIFIED' ? '' : currentQ.reviewReason
+                                });
+                                showToast(
+                                  nextStatus === 'VERIFIED'
+                                    ? `✓ Q${activeBulkReviewIdx + 1} marked as Verified!`
+                                    : `Q${activeBulkReviewIdx + 1} set to Extracted`
+                                );
+                              }}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                border: currentQ.status === 'VERIFIED' ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                                background: currentQ.status === 'VERIFIED' ? '#dcfce7' : '#ffffff',
+                                color: currentQ.status === 'VERIFIED' ? '#15803d' : '#475569',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="Toggle verified status"
+                            >
+                              {currentQ.status === 'VERIFIED' ? '✓ Verified' : 'Mark Verified'}
+                            </button>
+
+                            {/* Access Mode for this Question */}
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 4px', background: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBulkQuestion(activeBulkReviewIdx, { isFree: true })}
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  border: currentQ.isFree !== false ? '1.5px solid #16a34a' : '1px solid transparent',
+                                  background: currentQ.isFree !== false ? '#dcfce7' : 'transparent',
+                                  color: currentQ.isFree !== false ? '#15803d' : '#64748b'
+                                }}
+                              >
+                                ✓ Free Preview
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBulkQuestion(activeBulkReviewIdx, { isFree: false })}
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  border: currentQ.isFree === false ? '1.5px solid #7c3aed' : '1px solid transparent',
+                                  background: currentQ.isFree === false ? '#ede9fe' : 'transparent',
+                                  color: currentQ.isFree === false ? '#6d28d9' : '#64748b'
+                                }}
+                              >
+                                🔒 Locked (Paid)
+                              </button>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setBulkReviewShowRaw(!bulkReviewShowRaw)}
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                background: '#ffffff',
+                                color: '#475569',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {bulkReviewShowRaw ? 'Show Preview' : 'Edit Raw LaTeX'}
+                            </button>
+                          </div>
                         </div>
-                      </div>
+
+                        {/* Review Alert Flag */}
+                        {currentQ.status === 'NEEDS_REVIEW' && (
+                          <div style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', color: '#92400e', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>⚠️ <strong>Review Flag:</strong> {currentQ.reviewReason || 'Please inspect formula and options for accuracy.'}</span>
+                          </div>
+                        )}
 
                       {/* Problem Statement Display / Editor */}
                       <div>
@@ -4741,6 +4841,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     </div>
                   );
                 })()}
+                </div>
               </div>
             )}
 

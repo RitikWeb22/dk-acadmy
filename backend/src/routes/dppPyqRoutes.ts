@@ -7,6 +7,7 @@ import {
   updateDppPyq,
   deleteDppPyq,
   importPdfQuestions,
+  bulkUploadDppPyqDocuments,
   getPdfImportHistory,
   getPdfImportById,
   updateExtractedQuestionInStaging,
@@ -61,6 +62,14 @@ router.post(
   authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
   uploadPdfMiddleware.single('file'),
   importPdfQuestions
+);
+
+router.post(
+  '/bulk-upload',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  uploadPdfMiddleware.array('files', 15),
+  bulkUploadDppPyqDocuments
 );
 
 router.get(

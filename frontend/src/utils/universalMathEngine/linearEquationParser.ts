@@ -540,10 +540,10 @@ export function reconstructFractions(input: string): string {
 }
 
 /**
- * Reconstructs Word Linear Piecewise Cases: {█(...)┤
+ * Reconstructs Word Linear Piecewise Cases: {█(...)┤ or {■(...)┤
  */
 export function reconstructPiecewiseCases(input: string): string {
-  const startRegex = /(?:([a-zA-Z]+\s*\([a-zA-Z0-9_]+\)\s*=)\s*)?(\{?\s*(?:█|\\matrix|\\eqarray|\\cases)\s*\()/g;
+  const startRegex = /(?:([a-zA-Z]+\s*\([a-zA-Z0-9_]+\)\s*=)\s*)?(\{?\s*(?:[█■]|\\matrix|\\eqarray|\\cases)\s*\()/g;
 
   let result = '';
   let lastIndex = 0;
@@ -648,8 +648,14 @@ function normalizeLinearMathPart(expr: string): string {
   s = s.replace(/\|([^|]+)\|/g, (_m, inner) => `\\left|${inner}\\right|`);
   s = reconstructRadicals(s);
 
-  // Escaping known math functions safely
-  s = s.replace(/(?<![\\a-zA-Z])(sin|cos|tan|cot|sec|csc|ln|log|exp)\b(?![a-zA-Z])/g, '\\$1');
+  // Corrupted floor bracket paired with closing brace: min⌊f(t)} -> \min\{f(t)\}
+  s = s.replace(/⌊([^⌋}]+)}/g, '\\{$1\\}');
+  s = s.replace(/\\lfloor([^⌋}]+)\}/g, '\\{$1\\}');
+  s = s.replace(/\{([^}]+)⌋/g, '\\{$1\\}');
+  s = s.replace(/\\{([^}]+)\\rfloor/g, '\\{$1\\}');
+
+  // Escaping known math functions safely (including min, max, lim, sup, inf, gcd, lcm, det)
+  s = s.replace(/(?<![\\a-zA-Z])(sin|cos|tan|cot|sec|csc|ln|log|exp|min|max|lim|sup|inf|gcd|lcm|det)\b(?![a-zA-Z])/g, '\\$1');
 
   // Fractions inside parentheses
   s = s.replace(/(\\(?:sin|cos|tan|cot|sec|csc))\s*\(([^()]+)\)/g, (_m, trig, arg) => {
@@ -679,6 +685,19 @@ function normalizeLinearCondPart(cond: string): string {
   let s = cleanInvisibleCharacters(cond);
   s = reconstructUnicodeMath(s);
 
+  // Quotes around text in conditions: e.g. " and " -> \text{ and }
+  s = s.replace(/"\s*([^"]+?)\s*"/g, (_m, word) => {
+    const cleanWord = word.trim();
+    if (!cleanWord) return ' ';
+    return ` \\text{ ${cleanWord} } `;
+  });
+  s = s.replace(/["']\s*["']/g, ' ');
+
+  // English words in conditions
+  s = s.replace(/(?<!\\text\{\s*)(?<=[0-9a-zA-Z\s>≤<≥=])\b(and|if|for|when|where|or)\b(?=[0-9a-zA-Z\s>≤<≥=])(?!\s*\})/g, '\\text{ $1 }');
+  s = s.replace(/\\text\{\s*\\text\{\s*([^}]+)\s*\}\s*\}/g, '\\text{ $1 }');
+  s = s.replace(/\\text\{\s*([a-zA-Z]+)\s*\}\s*\\text\{\s*([a-zA-Z]+)\s*\}/g, '\\text{ $1 $2 }');
+
   s = s.replace(/<=/g, '\\leq ');
   s = s.replace(/>=/g, '\\geq ');
   s = s.replace(/!=/g, '\\neq ');
@@ -697,7 +716,7 @@ function normalizeLinearCondPart(cond: string): string {
  */
 export function reconstructMatrices(input: string): string {
   return input.replace(
-    /([[(|])\s*(?:█|\\matrix|\\eqarray)\s*\(([\s\S]*?)\)\s*([\])|])/g,
+    /([[(|])\s*(?:[█■]|\\matrix|\\eqarray)\s*\(([\s\S]*?)\)\s*([\])|])/g,
     (_fullMatch, openBracket, content, closeBracket) => {
       let env = 'bmatrix';
       if (openBracket === '(' || closeBracket === ')') env = 'pmatrix';
@@ -763,14 +782,21 @@ function normalizeParenthesizedScripts(input: string): string {
 
 export function reconstructLinearEquation(input: string): string {
   if (!input) return '';
-  const already = input.trim();
+
+  // Spacing quotes: Word and user typing often uses " " or "" or '' for spacing, e.g. 8" " m+12n -> 8 m+12n
+  let pre = input.replace(/([0-9]+)\s*["']\s*["']\s*([a-zA-Z])/g, '$1 $2');
+  pre = pre.replace(/([a-zA-Z])\s*["']\s*["']\s*([0-9a-zA-Z])/g, '$1 $2');
+  pre = pre.replace(/["']\s*["']/g, ' ');
+  pre = pre.replace(/([0-9a-zA-Z])\s*\\,\s*(?=[0-9a-zA-Z])/g, '$1 ');
+
+  const already = pre.trim();
 
   // If the text already contains real LaTeX commands (output of ommlNodeToLatex / convertHtmlWithMath),
   // skip the linear and Unicode conversion steps that would corrupt existing LaTeX.
   // We still run paren-exponent normalisation and strip leftover Word tokens,
   // but we do NOT skip matrix/piecewise reconstruction (\matrix, \eqarray are Word linear artifacts).
   if (REAL_LATEX_COMMAND.test(already)) {
-    let text = input;
+    let text = pre;
     // Remove leading numbering/dot artifacts
     text = text.replace(/^\s*(?:\d+\.|\.)\s*(?=[A-Za-z\u0900-\u097F])/g, '');
     // Strip empty Word answer-box placeholder □( )
@@ -789,11 +815,11 @@ export function reconstructLinearEquation(input: string): string {
     text = text.replace(/([\^_])\s*(\\sqrt(?:\[[^\]]*\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
     text = text.replace(/([\^_])\s*(\\(?:d?frac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
     // Strip leftover Word linear formatting tokens
-    text = text.replace(/[█┤□▒]/g, '');
+    text = text.replace(/[█■┤□▒]/g, '');
     return text.trim();
   }
 
-  let text = input;
+  let text = pre;
 
   // 1. Remove leading numbering/dot artifacts and empty answer-box placeholders
   text = text.replace(/^\s*(?:\d+\.|\.)\s*(?=[A-Za-z\u0900-\u097F])/g, '');
@@ -861,7 +887,7 @@ export function reconstructLinearEquation(input: string): string {
   text = reconstructAbsoluteValues(text);
 
   // 12. Strip leftover Word linear formatting tokens
-  text = text.replace(/[█┤□▒]/g, '');
+  text = text.replace(/[█■┤□▒]/g, '');
 
   return text.trim();
 }

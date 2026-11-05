@@ -1,13 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
-import { PDFParse } from 'pdf-parse';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
-import { validateQuestionLatexStructure } from './mathLatexValidator.js';
 import { normalizeMathematicalText } from './universalMathEngine/index.js';
-import { extractDocxMath } from './docxMathExtractor.js';
+import { extractDocxMath, extractQuestionsFromDocxNative } from './docxMathExtractor.js';
+import { extractQuestionsFromPdfPipeline } from './pdfExtractor/pdfPipeline.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 /**
@@ -269,83 +267,106 @@ function runPythonOcrPipeline(tempPdfPath, subject, targetExam) {
 /**
  * Extracts and parses questions from PDF Buffer
  */
+/**
+ * Extracts and parses questions from PDF Buffer using the independent PDF pipeline
+ */
 export async function extractQuestionsFromPdfBuffer(buffer, subject = 'Mathematics', targetExam = 'JEE Main') {
-    // 1. Fast in-process extraction via PDFParse (<500ms for text-based PDFs)
     try {
-        const parser = new PDFParse({
-            data: buffer
-        });
-        const parsedData = await parser.getText();
-        const fullText = (parsedData && parsedData.text) || '';
-        const totalPages = (parsedData && parsedData.total) || 1;
-        if (fullText.trim().length > 60) {
-            const summary = parseQuestionsFromText(fullText, subject, targetExam);
-            summary.totalPages = totalPages;
-            if (summary.totalDetected > 0) {
-                return summary;
-            }
+        const pipelineResult = await extractQuestionsFromPdfPipeline(buffer, subject, targetExam);
+        if (pipelineResult.questions && pipelineResult.questions.length > 0) {
+            const questions = pipelineResult.questions.map((nq, idx) => ({
+                tempId: nq.id || `ext-pdf-${Date.now()}-${idx + 1}`,
+                qNum: nq.qNum,
+                statement: nq.statement,
+                topic: nq.topic || `${subject} Question`,
+                options: (nq.options || []).map((o) => ({
+                    key: (['A', 'B', 'C', 'D'].includes(o.key?.toUpperCase()) ? o.key.toUpperCase() : 'A'),
+                    text: o.text || ''
+                })),
+                suggestedAnswer: (['A', 'B', 'C', 'D'].includes(nq.correctAnswer?.toUpperCase())
+                    ? nq.correctAnswer.toUpperCase()
+                    : 'A'),
+                stepSolution: nq.stepSolution || '',
+                dkSirShortcut: nq.dkSirShortcut || '',
+                difficulty: (['Easy', 'Moderate', 'Challenging'].includes(nq.difficulty)
+                    ? nq.difficulty
+                    : 'Moderate'),
+                status: nq.status,
+                reviewReason: nq.reviewReason || '',
+                pageNumber: nq.sourcePage || Math.floor(idx / 5) + 1,
+                // Preserve additional normalized fields
+                ...(nq.questionType ? { questionType: nq.questionType } : {}),
+                ...(nq.marks ? { marks: nq.marks } : {}),
+                ...(nq.negativeMarks ? { negativeMarks: nq.negativeMarks } : {})
+            }));
+            return {
+                totalDetected: pipelineResult.totalDetected,
+                successfulCount: pipelineResult.successfulCount,
+                needsReviewCount: pipelineResult.needsReviewCount,
+                errorCount: pipelineResult.errorLog.length,
+                questions,
+                rawTextPreview: pipelineResult.rawTextPreview,
+                totalPages: pipelineResult.totalPages,
+                errorLog: pipelineResult.errorLog
+            };
         }
     }
     catch (err) {
-        console.warn('In-process PDFParse notice, proceeding to OCR fallback:', err.message);
+        console.warn('[PDF Pipeline Notice]: Falling back to standard parser:', err?.message);
     }
-    // 2. Fallback to PyMuPDF OCR (capped at 20s to prevent Nginx 504 Gateway Timeout)
-    try {
-        const tempFile = path.join(os.tmpdir(), `upload-${Date.now()}-${uuidv4().slice(0, 8)}.pdf`);
-        await fs.promises.writeFile(tempFile, buffer);
-        try {
-            const ocrSummary = await runPythonOcrPipeline(tempFile, subject, targetExam);
-            if (ocrSummary && ocrSummary.totalDetected > 0) {
-                let needsReviewCount = 0;
-                let successfulCount = 0;
-                ocrSummary.questions = ocrSummary.questions.map((q) => {
-                    const report = validateQuestionLatexStructure({
-                        qNum: q.qNum,
-                        statement: q.statement || q.questionText || '',
-                        options: q.options || []
-                    });
-                    const needsReview = report.needsReview || q.status === 'NEEDS_REVIEW';
-                    if (needsReview) {
-                        needsReviewCount++;
-                    }
-                    else {
-                        successfulCount++;
-                    }
-                    return {
-                        ...q,
-                        status: needsReview ? 'NEEDS_REVIEW' : 'EXTRACTED',
-                        reviewReason: report.reasons.length > 0 ? report.reasons.join('; ') : q.reviewReason,
-                        confidence: report.overallConfidence,
-                        uncertainRegions: report.uncertainRegions
-                    };
-                });
-                ocrSummary.successfulCount = successfulCount;
-                ocrSummary.needsReviewCount = needsReviewCount;
-                return ocrSummary;
-            }
-        }
-        finally {
-            fs.promises.unlink(tempFile).catch(() => { });
-        }
-    }
-    catch (pyErr) {
-        console.warn('Python OCR pipeline notice, proceeding to raw text fallback:', pyErr.message);
-    }
-    // 3. Fallback: scan printable strings from buffer
+    // Fallback to printable text parser
     const str = buffer.toString('utf-8');
     const printable = str.replace(/[^\x20-\x7E\n]/g, ' ');
-    const fallbackSummary = parseQuestionsFromText(printable, subject, targetExam);
-    fallbackSummary.errorLog.push('Standard raw extraction applied.');
-    return fallbackSummary;
+    return parseQuestionsFromText(printable, subject, targetExam);
 }
 /**
- * Extracts questions from DOCX buffer using pure Node.js (jszip + xmldom + ommlNodeToLatex).
- * No Python, no Pandoc, no mammoth. Works on Hostinger shared hosting.
- *
- * Safety: magic-bytes check, 25 MB size limit, zip-bomb protection,
- * sanitized media filenames. Covers equations in table cells and text boxes.
+ * Extracts questions from DOCX buffer using native document-aware OMML pipeline (Phase 3)
  */
 export async function extractQuestionsFromDocxBuffer(buffer, subject = 'Mathematics', targetExam = 'JEE Main') {
+    try {
+        const nativeResult = await extractQuestionsFromDocxNative(buffer, subject, targetExam);
+        if (nativeResult.questions && nativeResult.questions.length > 0) {
+            const questions = nativeResult.questions.map((nq, idx) => ({
+                tempId: nq.id || `ext-docx-${Date.now()}-${idx + 1}`,
+                qNum: nq.qNum,
+                statement: nq.statement,
+                topic: nq.topic || `${subject} Question`,
+                options: (nq.options || []).map((o) => ({
+                    key: (['A', 'B', 'C', 'D'].includes(o.key?.toUpperCase()) ? o.key.toUpperCase() : 'A'),
+                    text: o.text || ''
+                })),
+                suggestedAnswer: (['A', 'B', 'C', 'D'].includes(nq.correctAnswer?.toUpperCase())
+                    ? nq.correctAnswer.toUpperCase()
+                    : 'A'),
+                stepSolution: nq.stepSolution || '',
+                dkSirShortcut: nq.dkSirShortcut || '',
+                difficulty: (['Easy', 'Moderate', 'Challenging'].includes(nq.difficulty)
+                    ? nq.difficulty
+                    : 'Moderate'),
+                status: nq.status,
+                reviewReason: nq.reviewReason || '',
+                pageNumber: Math.floor(idx / 5) + 1,
+                // Preserve additional normalized fields
+                ...(nq.questionType ? { questionType: nq.questionType } : {}),
+                ...(nq.marks ? { marks: nq.marks } : {}),
+                ...(nq.negativeMarks ? { negativeMarks: nq.negativeMarks } : {})
+            }));
+            return {
+                totalDetected: nativeResult.totalDetected,
+                successfulCount: nativeResult.successfulCount,
+                needsReviewCount: nativeResult.needsReviewCount,
+                errorCount: nativeResult.errorLog.length,
+                questions,
+                rawTextPreview: '',
+                totalPages: Math.max(1, Math.ceil(questions.length / 5)),
+                errorLog: nativeResult.errorLog
+            };
+        }
+    }
+    catch (err) {
+        console.warn('[DOCX Native Notice]: Falling back to legacy docx parser:', err?.message);
+    }
+    // Fallback to extractDocxMath + parseQuestionsFromText
     const warnings = [];
     const errorLog = [];
     const result = await extractDocxMath(buffer, warnings, errorLog);
@@ -361,37 +382,8 @@ export async function extractQuestionsFromDocxBuffer(buffer, subject = 'Mathemat
             errorLog: errorLog.length > 0 ? errorLog : ['DOCX contained no extractable text.']
         };
     }
-    // Warnings from the extractor are appended to the error log for visibility
-    if (warnings.length > 0) {
-        errorLog.push(...warnings);
-    }
-    // Parse the extracted raw text into structured questions
     const summary = parseQuestionsFromText(result.rawText, subject, targetExam);
     summary.totalPages = Math.max(1, Math.ceil(summary.questions.length / 5));
     summary.errorLog.push(...errorLog);
-    // Validate LaTeX in each question
-    let validatedSuccessful = 0;
-    let validatedNeedsReview = 0;
-    summary.questions = summary.questions.map((q) => {
-        const report = validateQuestionLatexStructure({
-            qNum: q.qNum,
-            statement: q.statement || '',
-            options: q.options || []
-        });
-        const needsReview = report.needsReview || q.status === 'NEEDS_REVIEW';
-        if (needsReview)
-            validatedNeedsReview++;
-        else
-            validatedSuccessful++;
-        return {
-            ...q,
-            status: (needsReview ? 'NEEDS_REVIEW' : 'EXTRACTED'),
-            reviewReason: report.reasons.length > 0
-                ? report.reasons.join('; ')
-                : (q.reviewReason || undefined)
-        };
-    });
-    summary.successfulCount = validatedSuccessful;
-    summary.needsReviewCount = validatedNeedsReview;
     return summary;
 }

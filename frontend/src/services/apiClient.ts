@@ -345,6 +345,75 @@ export const apiClient = {
     });
   },
 
+  async uploadBulkDocumentsForExtraction(
+    files: File[],
+    meta: {
+      subject?: string;
+      exam?: string;
+      year?: number | string;
+      moduleType?: string;
+      chapter?: string;
+      topic?: string;
+    } = {},
+    onProgress?: (percent: number) => void
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', formatEndpoint('/dpp-pyqs/bulk-upload'));
+
+      const headers = getAuthHeaders();
+      if (headers.Authorization) {
+        xhr.setRequestHeader('Authorization', headers.Authorization);
+      }
+
+      if (onProgress && xhr.upload) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            onProgress(percent);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          if (xhr.status >= 400 || res.error || res.success === false) {
+            reject(
+              new Error(
+                res.error || res.details || res.message || `Server returned error (${xhr.status})`
+              )
+            );
+          } else {
+            resolve(res);
+          }
+        } catch {
+          reject(
+            new Error(
+              xhr.status >= 400 ? `Upload failed with status ${xhr.status}` : 'Invalid response from server'
+            )
+          );
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network upload failed'));
+      };
+
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+      if (meta.subject) formData.append('subject', meta.subject);
+      if (meta.exam) formData.append('exam', meta.exam);
+      if (meta.year) formData.append('year', String(meta.year));
+      if (meta.moduleType) formData.append('moduleType', meta.moduleType);
+      if (meta.chapter) formData.append('chapter', meta.chapter);
+      if (meta.topic) formData.append('topic', meta.topic);
+      xhr.send(formData);
+    });
+  },
+
   async getGeminiConfig(): Promise<{ configured: boolean; model: string; previewKey: string }> {
     const res = await this.get<any>('/system/gemini-config');
     return res as any;
