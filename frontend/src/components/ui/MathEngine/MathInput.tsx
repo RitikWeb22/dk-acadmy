@@ -5,8 +5,7 @@ import type { MathToolbarItem } from './mathToolbarData';
 import { MathPreview } from './MathPreview';
 import { parseContentToBlocks } from './mathParser';
 import type { MathContentBlock } from './mathParser';
-import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
-import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
+import { resolveMathInputPaste } from '../../../utils/mathInputPaste';
 import { Eye, Code, Columns, Sparkles } from 'lucide-react';
 
 export interface MathInputProps {
@@ -87,14 +86,9 @@ export const MathInput: React.FC<MathInputProps> = ({
 
   // Handles pasting from Word, Google Docs, MathML, OMML, or plain text clipboard
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const plain = e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text') || '';
-    const result = normalizePastedQuestion(e.clipboardData);
-    const isCorrupted = !result.fullNormalizedText || /\\frac\{\s*\}\{\s*\}/.test(result.fullNormalizedText) || (plain.trim().length > 25 && result.fullNormalizedText.trim().length < plain.trim().length * 0.4);
-    if (isCorrupted && plain) {
-      result.fullNormalizedText = normalizeMathText(plain);
-      result.statement = result.fullNormalizedText;
-    }
-    if (!result.fullNormalizedText) return;
+    const resolved = resolveMathInputPaste(e.clipboardData);
+    if (resolved.aborted) return;
+    const result = resolved.result;
 
     // 1. Check if pasted content contains question options (e.g. (A)/(B)/(C)/(D) or 1-4)
     if (onExtractOptions && result.hasQuestionWithOptions) {

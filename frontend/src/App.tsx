@@ -54,6 +54,7 @@ const AdminAnnouncementsPage = lazyNamed(() => import('./pages/Admin/Announcemen
 const AdminMediaPage = lazyNamed(() => import('./pages/Admin/Media/AdminMediaPage'), 'AdminMediaPage');
 const AdminSettingsPage = lazyNamed(() => import('./pages/Admin/Settings/AdminSettingsPage'), 'AdminSettingsPage');
 const AdminAuditLogsPage = lazyNamed(() => import('./pages/Admin/AuditLogs/AdminAuditLogsPage'), 'AdminAuditLogsPage');
+const PasteDebugPage = lazyNamed(() => import('./pages/Admin/PasteDebug/PasteDebugPage'), 'PasteDebugPage');
 
 // Legal & Utility Pages (Code-split)
 const PrivacyPage = lazyNamed(() => import('./pages/Legal/PrivacyPage'), 'PrivacyPage');
@@ -117,6 +118,16 @@ export const App: React.FC = () => {
                 <Route path="/admin/login" element={<AdminLoginPage />} />
                 <Route path="/teacher/login" element={<AdminLoginPage />} />
                 <Route path="/faculty/login" element={<AdminLoginPage />} />
+                <Route
+                  path="/admin/paste-debug"
+                  element={
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                      <AdminLayout>
+                        <PasteDebugPage />
+                      </AdminLayout>
+                    </AdminProtectedRoute>
+                  }
+                />
 
                 {/* Dedicated Teacher / Faculty Portal Workspace */}
                 <Route

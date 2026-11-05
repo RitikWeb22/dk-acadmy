@@ -50,6 +50,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "happy-dom": "^21.0.4",
     "nodemon": "^3.1.14",
     "tsx": "^4.23.15"
   },
