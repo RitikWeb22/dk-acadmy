@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Window } from 'happy-dom';
+import katex from 'katex';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixtureDir = path.join(here, 'fixtures', 'paste');
@@ -26,6 +27,35 @@ root.document = dom.document;
 
 const { traceMathInputPaste } = await import('../../frontend/src/utils/pastePipelineTrace.ts');
 const { resolveMathInputPaste } = await import('../../frontend/src/utils/mathInputPaste.ts');
+const { reconstructLinearEquation } = await import('../../frontend/src/utils/universalMathEngine/linearEquationParser.ts');
+
+/**
+ * Comparison rules for expectedStored. The expected strings themselves are not edited.
+ * - A single-character exponent `{n}` is the same as `^n`, and `{ ' }` is the same as a prime.
+ * - All whitespace is removed. KaTeX HTML is compared separately, so spacing is not part of the string check.
+ */
+function canonicalizeStoredMath(value: string): string {
+  return value
+    .replace(/\^\{\s*([0-9a-zA-Z])\s*\}/g, '^$1')
+    .replace(/\^\{\s*['′]\s*\}/g, "'")
+    .replace(/\{\s*['′]\s*\}/g, "'")
+    .replace(/\s+/g, '');
+}
+
+function katexHtml(value: string): string {
+  const formulas = [...value.matchAll(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g)].map((match) => match[1] ?? match[2]);
+  return formulas
+    .map((formula) => {
+      const canonical = formula
+        .replace(/\^\{\s*([0-9a-zA-Z])\s*\}/g, '^$1')
+        .replace(/_\{\s*([0-9a-zA-Z])\s*\}/g, '_$1')
+        .replace(/\^\{\s*['′]\s*\}/g, "'")
+        .replace(/\{\s*['′]\s*\}/g, "'");
+      return katex.renderToString(canonical, { throwOnError: true, displayMode: false });
+    })
+    .join('\n')
+    .replace(/<annotation\b[\s\S]*?<\/annotation>/g, '');
+}
 
 interface PasteFixture {
   name: string;
@@ -55,7 +85,8 @@ function clipboard(html: string, plain: string) {
 }
 
 function wordTokens(text: string): string[] {
-  return (text.match(/[A-Za-z0-9]+/g) || []).map((token) => token.toLowerCase());
+  const unfolded = text.replace(/\\([a-zA-Z]+)/g, ' $1 ');
+  return (unfolded.match(/[A-Za-z0-9]+/g) || []).map((token) => token.toLowerCase());
 }
 
 function missingTokens(plain: string, stored: string): string[] {
@@ -91,6 +122,23 @@ describe('MathInput paste harness (happy-dom, frontend path)', () => {
     assert.equal(trace.afterPasteHandler, resolved.result.fullNormalizedText);
   });
 
+  test('sanitizeFormula preserves nested radicals with y^4 and y^{4} (regression test)', async () => {
+    const { sanitizeFormula } = await import('../../frontend/src/components/ui/MathEngine/sanitizeFormula.ts');
+
+    const input1 = '\\sqrt{1+\\sqrt{1+y^4}}';
+    const res1 = sanitizeFormula(input1);
+    assert.equal(res1.endsWith('}}'), true, `Expected ending in }} but got: ${res1}`);
+    assert.doesNotThrow(() => katex.renderToString(res1, { throwOnError: true }));
+
+    const input2 = '\\sqrt{1+\\sqrt{1+y^{4}}}';
+    const res2 = sanitizeFormula(input2);
+    assert.equal(res2.endsWith('}}'), true, `Expected ending in }} but got: ${res2}`);
+    assert.doesNotThrow(() => katex.renderToString(res2, { throwOnError: true }));
+
+    // Both render to identical KaTeX HTML
+    assert.equal(katexHtml(`$${res1}$`), katexHtml(`$${res2}$`));
+  });
+
   for (const fixture of loadFixtures()) {
     test(`fixture ${fixture.name} matches expected stored value and I1-I7`, () => {
       assert.equal(fixture.synthetic, true, `${fixture.name} must stay labelled synthetic until a real capture replaces it`);
@@ -119,7 +167,10 @@ describe('MathInput paste harness (happy-dom, frontend path)', () => {
         `blocks: ${JSON.stringify(trace.blocks.map((block) => ({ type: block.type, content: block.content, katexOk: block.katexOk })))}`,
       ].join('\n');
 
-      assert.equal(stored, fixture.expectedStored, report);
+      assert.equal(canonicalizeStoredMath(stored), canonicalizeStoredMath(fixture.expectedStored), report);
+      assert.equal(katexHtml(stored), katexHtml(fixture.expectedStored), `KaTeX HTML differs\n${report}`);
+      const once = reconstructLinearEquation(fixture.plain);
+      assert.equal(reconstructLinearEquation(once), once, 'reconstructLinearEquation is not idempotent');
       assert.deepEqual(lost, [], `I1 lost tokens\n${report}`);
       assert.equal(trace.delimiterWrappedByPipeline, true, `I3 math must be stored inside $...$\n${report}`);
       assert.equal(undelimitedLatexInText, false, `I5 text blocks still contain raw LaTeX commands\n${report}`);

@@ -1,10 +1,8 @@
 /**
  * The paste decision used by MathInput.
- * Extracted so the builder and the paste harness call one function.
- * Behavior matches the previous inline handler: no new normalization rules.
  */
-import { normalizeMathText } from './questionBulkParser';
 import { normalizePastedQuestion, type NormalizedQuestionResult } from './universalDocxParser';
+import { PLAIN_TEXT_FALLBACK_WARNING, htmlResultLosesContent } from './pasteContentGuard';
 
 export interface MathInputPasteResolution {
   html: string;
@@ -47,17 +45,24 @@ export function readClipboardPayload(clipboardPayload: unknown): { html: string;
   };
 }
 
+function plainPath(plain: string, warning?: string): NormalizedQuestionResult {
+  const result = normalizePastedQuestion(plain);
+  if (warning) {
+    result.warnings = [...(result.warnings || []), warning];
+    result.needsReview = true;
+  }
+  return result;
+}
+
 export function resolveMathInputPaste(clipboardPayload: unknown): MathInputPasteResolution {
   const { html, plain } = readClipboardPayload(clipboardPayload);
-  const result = normalizePastedQuestion(clipboardPayload as never);
+  let result = normalizePastedQuestion(clipboardPayload as never);
+  const htmlLostContent = Boolean(html && plain && htmlResultLosesContent(plain, result.fullNormalizedText));
   const isCorrupted =
-    !result.fullNormalizedText ||
-    /\\frac\{\s*\}\{\s*\}/.test(result.fullNormalizedText) ||
-    (plain.trim().length > 25 && result.fullNormalizedText.trim().length < plain.trim().length * 0.4);
-  const usedPlainFallback = Boolean(isCorrupted && plain);
+    !result.fullNormalizedText || /\\frac\{\s*\}\{\s*\}/.test(result.fullNormalizedText);
+  const usedPlainFallback = Boolean(plain && (htmlLostContent || isCorrupted));
   if (usedPlainFallback) {
-    result.fullNormalizedText = normalizeMathText(plain);
-    result.statement = result.fullNormalizedText;
+    result = plainPath(plain, htmlLostContent ? PLAIN_TEXT_FALLBACK_WARNING : undefined);
   }
   return {
     html,

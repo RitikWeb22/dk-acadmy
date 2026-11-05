@@ -139,7 +139,7 @@ export function normalizeMathInText(rawText: string, options: NormalizationOptio
  * Normalizes multi-part pasted question content (clipboard event, HTML, or raw text).
  */
 export function normalizePastedQuestion(
-  clipboard: string | ClipboardEvent | DataTransfer | any
+  clipboard: string | any
 ): NormalizedQuestionResult {
   return normalizePastedQuestionContent(clipboard);
 }

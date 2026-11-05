@@ -15,19 +15,22 @@ export type InputFormatType =
 
 export interface NormalizationOptions {
   preserveExistingLatex?: boolean;
-  targetExam?: string; // 'JEE Main', 'JEE Advanced', etc.
-  wrapMathInDollars?: boolean; // wrap standalone formulas in $...$
+  targetExam?: string;
+  wrapMathInDollars?: boolean;
   inlineFractions?: boolean;
   maxNestingDepth?: number;
+  // Optional safe flags (non-breaking)
+  stripInvisibleChars?: boolean;
+  strictSyntaxCheck?: boolean;
 }
 
 export interface ValidationReport {
   isValid: boolean;
-  confidence: number; // 0.0 to 1.0 based on structural integrity
+  confidence: number;
   needsReview: boolean;
   errors: string[];
   warnings: string[];
-  uncertainRegions: string[];
+  uncertainRegions: string[]; // Exactly string[] as expected
 }
 
 export interface NormalizationResult {
@@ -52,13 +55,13 @@ export interface NormalizedQuestionResult {
   hasQuestionWithOptions: boolean;
   statement: string;
   options: NormalizedOption[];
-  correctKey?: 'A' | 'B' | 'C' | 'D';
-  numericalAnswer?: string;
+  correctKey?: 'A' | 'B' | 'C' | 'D'; // Intact as original
+  numericalAnswer?: string;           // Intact as string
   stepSolution?: string;
   dkSirShortcut?: string;
   warnings: string[];
   errors: string[];
   confidence: number;
   needsReview: boolean;
+  validation?: ValidationReport;      // Optional so older callers don't fail
 }
-

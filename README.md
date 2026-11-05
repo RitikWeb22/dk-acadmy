@@ -7,3 +7,8 @@ Premier coaching institute platform for IIT-JEE Mathematics founded by DK Sir (D
 
 - **Frontend**: React 18, TypeScript, Vite, SCSS Modules, Lucide React
 - **Backend**: Node.js, Express, MongoDB, JWT Authentication
+
+## Documentation
+
+- [Word Equation Architecture & Paste Ingestion Pipeline](docs/word-equation-paste-architecture.md)
+

@@ -10,6 +10,7 @@ import { detectInputFormat } from './inputDetector';
 import { convertHtmlWithMath } from './ommlMathMLConverter';
 import { reconstructLinearEquation } from './linearEquationParser';
 import { validateLatex } from './latexValidator';
+import { ensureMathDelimiters } from './mathDelimiters';
 
 type OptionKey = 'A' | 'B' | 'C' | 'D';
 const OPTION_KEYS: readonly OptionKey[] = ['A', 'B', 'C', 'D'];
@@ -270,7 +271,9 @@ export function normalizePastedQuestionContent(clipboardOrText: PastedContent): 
   if (html && isMathHtml) {
     reconstructed = convertHtmlWithMath(html);
   }
-  reconstructed = reconstructLinearEquation(reconstructed.trim() ? reconstructed : plain);
+  reconstructed = ensureMathDelimiters(
+    reconstructLinearEquation(reconstructed.trim() ? reconstructed : plain)
+  );
 
   const extracted = extractStatementAndOptionsPreserving(reconstructed);
 

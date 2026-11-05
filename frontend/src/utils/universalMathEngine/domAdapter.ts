@@ -35,8 +35,8 @@ export function getDOMParser(): any {
   // invalid, non-callable, or throwing candidate never blocks the next one.
   const readers: Array<() => any> = [
     () => (typeof globalThis !== 'undefined' ? (globalThis as any).DOMParser : undefined),
-    () => (typeof window !== 'undefined' ? (window as any).DOMParser : undefined),
-    () => (typeof self !== 'undefined' ? (self as any).DOMParser : undefined),
+    () => (typeof (globalThis as any).window !== 'undefined' ? (globalThis as any).window.DOMParser : undefined),
+    () => (typeof (globalThis as any).self !== 'undefined' ? (globalThis as any).self.DOMParser : undefined),
   ];
 
   for (const read of readers) {
@@ -61,16 +61,19 @@ export function getDOMParser(): any {
         return cachedDOMParser;
       }
       const nodeRequire = typeof g.require === 'function' ? g.require : null;
-      if (nodeRequire) {
-        const xmldom = nodeRequire('@xmldom/xmldom');
-        if (xmldom?.DOMParser) {
-          cachedDOMParser = class SilentDOMParser extends xmldom.DOMParser {
-            constructor() {
+      const required = nodeRequire?.('@xmldom/xmldom') || loadXmldomWithCreateRequire();
+      if (required?.DOMParser) {
+        const Parser = required.DOMParser;
+        cachedDOMParser = class SilentDOMParser extends Parser {
+          constructor() {
+            try {
+              super({ onError: () => {} });
+            } catch {
               super({ errorHandler: { warning: () => {}, error: () => {}, fatalError: () => {} } });
             }
-          };
-          return cachedDOMParser;
-        }
+          }
+        };
+        return cachedDOMParser;
       }
     }
   } catch {
@@ -78,6 +81,38 @@ export function getDOMParser(): any {
   }
 
   return null;
+}
+
+function loadXmldomWithCreateRequire(): { DOMParser?: new (...args: any[]) => any } | null {
+  try {
+    const proc = (globalThis as any).process;
+    const createRequire = proc?.getBuiltinModule?.('module')?.createRequire;
+    if (typeof createRequire !== 'function') return null;
+    if (typeof import.meta.url === 'string') {
+      try {
+        return createRequire(import.meta.url)('@xmldom/xmldom');
+      } catch {
+        // Fall through to CWD
+      }
+    }
+    if (typeof proc?.cwd === 'function') {
+      const candidates = [
+        proc.cwd() + '/',
+        proc.cwd() + '/backend/',
+      ];
+      for (const base of candidates) {
+        try {
+          const res = createRequire(base)('@xmldom/xmldom');
+          if (res?.DOMParser) return res;
+        } catch {
+          // Keep trying
+        }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
