@@ -105,7 +105,11 @@ function nodeText(node: DomNode): string {
 }
 
 function convertText(value: string): string {
-  return reconstructUnicodeMath(value || '');
+  const withFn = (value || '').replace(
+    /(?<![\\a-zA-Z])(arcsin|arccos|arctan|sinh|cosh|tanh|limsup|liminf|sin|cos|tan|cot|sec|csc|ln|log|exp|lim|max|min|sup|inf|det|gcd|lcm)(?=\s*\u2061)/g,
+    '\\$1 '
+  );
+  return reconstructUnicodeMath(withFn);
 }
 
 function hasMeaningfulContent(value: string): boolean {
@@ -219,10 +223,13 @@ export function ommlNodeToLatex(node: any): string {
       const base = childByTag(node, 'e');
       const subscript = childByTag(node, 'sub');
       const baseLatex = base ? ommlNodeToLatex(base).trim() : '';
-      const subLatex = subscript ? ommlNodeToLatex(subscript).trim() : '';
+      let subLatex = subscript ? ommlNodeToLatex(subscript).trim() : '';
       if (!baseLatex || !subLatex) return baseLatex;
       const op = normalizeOperatorName(baseLatex);
-      const limitOperators = new Set(['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'gcd']);
+      if ((op === 'sum' || baseLatex === '\\sum') && /^"?aes"?$/i.test(subLatex.replace(/\s+/g, ''))) {
+        subLatex = 'a \\in S';
+      }
+      const limitOperators = new Set(['lim', 'max', 'min', 'sup', 'inf', 'limsup', 'liminf', 'log', 'ln', 'gcd', 'sum', 'prod', 'int', 'oint', 'iint', 'iiint', 'bigcup', 'bigcap']);
       if (limitOperators.has(op)) return `\\${op}_{${subLatex}}`;
       return `${baseLatex.length === 1 || /^\\[a-zA-Z]+$/.test(baseLatex) ? baseLatex : wrapGroup(baseLatex)}_{${subLatex}}`;
     }
@@ -407,8 +414,29 @@ function mathSpace(node: DomNode): string {
 function serializeMathRow(node: DomNode): string {
   let result = '';
   for (const child of Array.from(node?.childNodes || []) as DomNode[]) {
+    if (child?.nodeType === ELEMENT_NODE && localNameOf(child) === 'mo') {
+      const rawMo = nodeText(child).trim();
+      if (rawMo === '\u2062') {
+        if (result && !result.endsWith(' ')) result += ' ';
+        continue;
+      }
+      if (rawMo === '\u2146' || rawMo === '&dd;') {
+        result = joinLatexChunks(result, 'd');
+        continue;
+      }
+      const piece = mathMLNodeToLatex(child).trim();
+      if (!piece) continue;
+      if (result.trim() && /^(?:[+\-=]|\\(?:pm|mp|times|div|cdot|leq|geq|neq|approx|equiv|to|rightarrow))$/.test(piece)) {
+        result = `${result.replace(/\s+$/, '')} ${piece} `;
+      } else {
+        result = result.endsWith(' ') ? `${result}${piece}` : joinLatexChunks(result, piece);
+      }
+      continue;
+    }
     const piece = mathMLNodeToLatex(child);
-    if (piece) result = joinLatexChunks(result, piece);
+    if (piece) {
+      result = result.endsWith(' ') ? `${result}${piece}` : joinLatexChunks(result, piece);
+    }
   }
   return result;
 }
@@ -659,23 +687,51 @@ function parseHtmlDocument(html: string): DomNode | null {
   }
 }
 
+function sanitizeOmmlHtmlSnippet(snippet: string): string {
+  return snippet
+    // Strip HTML comments or conditional fallback markers inside the snippet
+    .replace(/<!--[\s\S]*?-->/g, '')
+    // Strip non-OMML presentational HTML wrapper tags that Word 15/16 injects with unquoted attributes
+    .replace(/<\/?(?:span|i|b|u|font|sub|sup|o:p|st1:[a-z0-9_-]+)\b[^>]*>/gi, '')
+    // Replace HTML named entities that are not predefined in strict XML
+    .replace(/&nbsp;/gi, '&#160;')
+    .replace(/&minus;/gi, '&#8722;')
+    .replace(/&times;/gi, '&#215;')
+    .replace(/&divide;/gi, '&#247;')
+    .replace(/&le;/gi, '&#8804;')
+    .replace(/&ge;/gi, '&#8805;')
+    .replace(/&ne;/gi, '&#8800;')
+    .replace(/&infin;/gi, '&#8734;')
+    .replace(/&rarr;/gi, '&#8594;')
+    .replace(/&sum;/gi, '&#8721;')
+    .replace(/&prod;/gi, '&#8719;')
+    .replace(/&radic;/gi, '&#8730;')
+    .replace(/&int;/gi, '&#8747;')
+    // Quote any remaining unquoted attribute values on XML tags
+    .replace(/(\s[a-zA-Z_:][-a-zA-Z0-9_:.]*)=([^\s"'<>=`]+)/g, '$1="$2"');
+}
+
 /**
  * Converts a raw OMML XML element string directly to LaTeX.
  * Injects required OpenXML math and word namespaces if omitted.
  */
 function convertRawOmmlSnippetToLatex(snippet: string): string {
   if (!snippet) return '';
-  const withNs = snippet.includes('xmlns:m')
-    ? snippet
-    : snippet.replace(
+  const cleanedSnippet = sanitizeOmmlHtmlSnippet(snippet).trim();
+  const withNs = cleanedSnippet.includes('xmlns:m')
+    ? cleanedSnippet
+    : cleanedSnippet.replace(
         /^<([a-zA-Z0-9_-]+:)?(oMathPara|oMath)\b/i,
         '<$1$2 xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
       );
   const doc = parseMarkupToDoc(withNs, 'xml');
   if (!doc) return '';
   let latex = ommlNodeToLatex(doc.documentElement || doc).trim();
-  // Post-clean: number sets like \in R -> \in \mathbb{R}
-  latex = latex.replace(/\\(in|notin|subseteq|subset)(?![A-Za-z])\s*(Z|R|N|Q|C)\b/g, '\\$1 \\mathbb{$2}');
+  // Post-clean: number sets like \in R -> \in \mathbb{R} and \to R -> \to \mathbb{R}
+  latex = latex.replace(/\\(in|notin|subseteq|subset|to|rightarrow|mapsto)(?![A-Za-z])\s*(Z|R|N|Q|C)\b/g, '\\$1 \\mathbb{$2}');
+  latex = latex.replace(/:\s*(Z|R|N|Q|C)\s*\\(to|rightarrow|mapsto)\b/g, ': \\mathbb{$1} \\$2');
+  // Ensure space between big operator with subscript/superscript and following alphanumeric token
+  latex = latex.replace(/(\\(?:sum|prod|int|lim)_(?:\{[^{}]*\}|[a-zA-Z0-9])(?:\^(?:\{[^{}]*\}|[a-zA-Z0-9]))?)(?=[a-zA-Z0-9])/g, '$1 ');
   return latex;
 }
 
@@ -745,6 +801,21 @@ function replaceOneEquation(
   const snippet = container.match(/<(?:m:)?(oMathPara|oMath)\b[\s\S]*?<\/(?:m:)?\1>/i);
   const isDisplay = forceDisplay ?? /<(?:m:)?oMathPara\b/i.test(container);
   const latex = snippet ? convertRawOmmlSnippetToLatex(snippet[0]) : '';
+  if (!latex.trim()) {
+    const rawTextContent = (snippet ? snippet[0] : container)
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;|&#160;/gi, '')
+      .replace(/[□▒\s\u2000-\u200F\u2060-\u2064\u00A0()]/g, '')
+      .trim();
+    const fallbackContent = fallbackPlainText(rawFallback)
+      .replace(/&nbsp;|&#160;/gi, '')
+      .replace(/[□▒\s\u2000-\u200F\u2060-\u2064\u00A0()]/g, '')
+      .trim();
+    const hasBrokenStructure = /<(?:m:)?(?:f|rad|nary|limLow|limUpp)\b/i.test(snippet ? snippet[0] : container);
+    if (!rawTextContent && !fallbackContent && !hasBrokenStructure) {
+      return ' ';
+    }
+  }
   const validation = validateWithKaTeX(latex);
   if (latex && validation.isValid) {
     return isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `;
@@ -790,7 +861,7 @@ export function preprocessRawHtmlMathDetailed(rawHtml: string): HtmlMathPreproce
   // Convert MathML <math> tags if present in the raw markup
   if (/<math\b/i.test(result)) {
     result = result.replace(/<math\b[\s\S]*?<\/math>/gi, (match) => {
-      let xmlStr = match;
+      let xmlStr = sanitizeOmmlHtmlSnippet(match).replace(/&dd;/gi, '&#8518;');
       if (!xmlStr.includes('xmlns')) {
         xmlStr = xmlStr.replace(/<math/i, '<math xmlns="http://www.w3.org/1998/Math/MathML"');
       }
@@ -815,11 +886,59 @@ export function preprocessRawHtmlMath(rawHtml: string): string {
   return preprocessRawHtmlMathDetailed(rawHtml).html;
 }
 
+function decodeHtmlMathEntities(text: string): string {
+  const entityMap: Record<string, string> = {
+    '&nbsp;': ' ',
+    '&alpha;': 'α',
+    '&beta;': 'β',
+    '&gamma;': 'γ',
+    '&delta;': 'δ',
+    '&epsilon;': 'ε',
+    '&theta;': 'θ',
+    '&lambda;': 'λ',
+    '&mu;': 'μ',
+    '&pi;': 'π',
+    '&sigma;': 'σ',
+    '&phi;': 'φ',
+    '&omega;': 'ω',
+    '&Delta;': 'Δ',
+    '&Omega;': 'Ω',
+    '&le;': '≤',
+    '&ge;': '≥',
+    '&ne;': '≠',
+    '&asymp;': '≈',
+    '&equiv;': '≡',
+    '&sum;': '∑',
+    '&prod;': '∏',
+    '&int;': '∫',
+    '&infin;': '∞',
+    '&radic;': '√',
+    '&part;': '∂',
+    '&pm;': '±',
+    '&times;': '×',
+    '&divide;': '÷',
+    '&minus;': '−',
+    '&rarr;': '→',
+    '&rArr;': '⇒',
+    '&isin;': '∈',
+    '&notin;': '∉',
+    '&sub;': '⊂',
+    '&sube;': '⊆',
+    '&cup;': '∪',
+    '&cap;': '∩',
+    '&dd;': 'd',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&amp;': '&'
+  };
+  return text.replace(/&[a-zA-Z]+;/g, (ent) => entityMap[ent] ?? ent);
+}
+
 function fallbackRegexHtmlToLatex(html: string): string {
   let result = html;
   // This fallback is intentionally conservative and is only used without an HTML DOM parser.
   result = result.replace(/<math\b[\s\S]*?<\/math>/gi, match => {
-    const doc = parseMarkupToDoc(match, 'xml');
+    const doc = parseMarkupToDoc(sanitizeOmmlHtmlSnippet(match).replace(/&dd;/gi, '&#8518;'), 'xml');
     if (!doc) return match;
     const latex = mathMLNodeToLatex(doc.documentElement || doc).trim();
     return latex ? ` $${latex}$ ` : match;
@@ -836,9 +955,19 @@ function fallbackRegexHtmlToLatex(html: string): string {
     const latex = ommlNodeToLatex(doc.documentElement || doc).trim();
     return latex ? ` $${latex}$ ` : match;
   });
-  return result.replace(/<br\s*\/?>/gi, '\n')
+  result = result.replace(/<sup\b[^>]*>([\s\S]*?)<\/sup>/gi, (_m, inner: string) => {
+    const content = decodeHtmlMathEntities(inner.replace(/<[^>]*>/g, '').trim());
+    return content ? `^{${content}}` : '';
+  });
+  result = result.replace(/<sub\b[^>]*>([\s\S]*?)<\/sub>/gi, (_m, inner: string) => {
+    const content = decodeHtmlMathEntities(inner.replace(/<[^>]*>/g, '').trim());
+    return content ? `_{${content}}` : '';
+  });
+  result = result.replace(/<\/?(?:span|b|strong|i|em|u|font|meta|a)\b[^>]*>/gi, '');
+  result = result.replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, '\n\n')
     .replace(/<[^>]*>/g, ' ');
+  return decodeHtmlMathEntities(result);
 }
 
 export function convertHtmlWithMath(htmlString: string): string {

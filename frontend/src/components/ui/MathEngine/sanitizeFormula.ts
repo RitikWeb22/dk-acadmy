@@ -51,10 +51,12 @@ export function sanitizeFormula(str: string): string {
     .replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ")
     // Normalize empty set phi
     .replace(/∅/g, '\\phi ')
-    // Normalize unbraced fractions in powers: x^\frac{1}{2} -> x^{\frac{1}{2}} (careful: never corrupt already-braced ^{\frac{...}{...}})
+    // Normalize unbraced fractions and radicals in powers/subscripts: x^\frac{1}{2} -> x^{\frac{1}{2}}, e^\sqrt{x} -> e^{\sqrt{x}}
     .replace(/\^\{\{\\frac\{([^}]+)\}\}\{([^}]+)\}\}/g, '^{\\frac{$1}{$2}}')
     .replace(/\^(?!\{)\\frac\{\{([^}]+)\}\}\{([^}]+)\}/g, '^{\\frac{$1}{$2}}')
     .replace(/\^(?!\{)\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '^{\\frac{$1}{$2}}')
+    .replace(/([\^_])\s*(\\sqrt(?:\[[^\]]*\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}')
+    .replace(/([\^_])\s*(\\(?:d?frac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}')
     // Normalize vectors: (OA) ⃗ -> \vec{OA}, a ⃗ -> \vec{a}, i ˆ -> \hat{i}
     .replace(/\(([A-Za-z]{1,3})\)\s*[\u20D7\u2192⃗]/g, '\\vec{$1}')
     .replace(/([a-zA-Z])\s*[\u20D7\u2192⃗]/g, '\\vec{$1}')
@@ -65,13 +67,16 @@ export function sanitizeFormula(str: string): string {
     .replace(/sint\b/g, '\\sin t')
     .replace(/sinxdx\b/g, '\\sin x\\,dx')
     .replace(/cos2([ABC])\b/g, '\\cos 2$1')
-    // Exponential powers and arbitrary base powers with single or double parentheses:
+    // Exponential powers and arbitrary base powers with balanced single or double parentheses:
     // e.g. e^((2-4x)) -> e^{2-4x}, e^(2-4x) -> e^{2-4x}, e^(-x) -> e^{-x}, x^(n+1) -> x^{n+1}
-    .replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(+([^()]+)\)+/g, '$1^{$2}')
+    .replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(\(([^()]+)\)\)/g, '$1^{$2}')
+    .replace(/([a-zA-Z0-9_\)\]\}]|\\\w+)\^\(([^()]+)\)/g, '$1^{$2}')
     .replace(/e\^([0-9a-zA-Z]+)/g, 'e^{$1}')
     // Greek powers and unbraced variable exponents: \alpha^4 -> \alpha^{4}, \beta^4 -> \beta^{4}, x^2 -> x^{2}
     .replace(/\\(alpha|beta|gamma|theta|lambda|pi|phi|omega)\^([0-9a-zA-Z])(?![0-9a-zA-Z\{])/g, '\\$1^{$2}')
     .replace(/([a-zA-Z0-9_\)\]\}])\^([0-9a-zA-Z])(?![0-9a-zA-Z\{])/g, '$1^{$2}')
+    // Strip any dangling trailing _ or ^ at the end of a formula
+    .replace(/([\^_])\s*$/g, '')
     // Tall bracket display fractions: \left(\frac -> \left(\dfrac
     .replace(/\\left\(\s*\\frac/g, '\\left(\\dfrac')
     .trim();
