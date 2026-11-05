@@ -14,16 +14,43 @@ export interface MathContentBlock {
  * Tokenizes a mixed string of text and mathematical expressions into structured blocks.
  * Preserves the exact mathematical source for MongoDB storage and lossless re-editing.
  */
+/**
+ * Returns true when the entire string is a pure LaTeX formula with no prose —
+ * i.e. it was produced by our OMML/linear-equation converter and is already
+ * valid KaTeX.  Running normalizeMathText on it can only corrupt it.
+ *
+ * Heuristic: contains a LaTeX command (\frac, \lim, \sqrt, \int …) AND
+ * does not already have $ delimiters AND has no sentence-starting prose words.
+ */
+function isPureLatexFormula(text: string): boolean {
+  if (!text || text.includes('$')) return false;
+  const hasLatexCmd = /\\(?:frac|dfrac|lim|int|sum|prod|sqrt|vec|hat|left|right|begin|binom|matrix|cases|alpha|beta|gamma|delta|theta|lambda|pi|sigma|phi|omega|infty|to|cdot|times|leq|geq|neq|in|mathbb|text)\b/.test(text);
+  if (!hasLatexCmd) return false;
+  // Reject if it contains English prose words (≥2 words that look like sentences)
+  const stripped = text.replace(/\\[a-zA-Z]+/g, ' ');
+  const words = stripped.match(/\b[a-zA-Z]{4,}\b/g) || [];
+  const mathKeywords = new Set(['sqrt','frac','dfrac','left','right','lim','lim','int','sum','prod','infty','cdot','times','leq','geq','neq','text','mathbb','begin','cases','binom','matrix','alpha','beta','gamma','delta','theta','lambda','sigma','omega','phi','quad','qquad']);
+  const proseWords = words.filter(w => !mathKeywords.has(w.toLowerCase()));
+  return proseWords.length < 2;
+}
+
 export function parseContentToBlocks(rawText: string): MathContentBlock[] {
   if (!rawText) return [];
 
   // Convert any double dollar display delimiters to single dollar inline delimiters
   const singleDollarText = rawText.split('$$').join('$');
-  // Normalize Word equations, unicode math, powers, and fractions
-  const normalized = normalizeMathText(singleDollarText);
 
-  // Automatically wrap un-delimited LaTeX if delimiters are absent
-  const text = autoWrapMathDelimiters(normalized).split('$$').join('$');
+  let text: string;
+  if (isPureLatexFormula(singleDollarText.trim())) {
+    // Already-valid LaTeX (from OMML converter or linear parser) — wrap directly
+    // without running normalizeMathText which can corrupt nested structures.
+    text = `$${singleDollarText.trim()}$`;
+  } else {
+    // Normalize Word equations, unicode math, powers, and fractions
+    const normalized = normalizeMathText(singleDollarText);
+    // Automatically wrap un-delimited LaTeX if delimiters are absent
+    text = autoWrapMathDelimiters(normalized).split('$$').join('$');
+  }
 
   // Delimiters supported:
   // 1. Display math: $$ ... $$ and \[ ... \]
