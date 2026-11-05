@@ -1,0 +1,9 @@
+{
+  "name": "case-a-nested-limit",
+  "synthetic": true,
+  "label": "synthetic",
+  "note": "SYNTHETIC Word clipboard HTML. The text/plain is the live-site source. The HTML reproduces Word conditional comments, an m: namespace on <html>, and a <![if !msEquation]> fallback. Replace this file when a real capture.json arrives.",
+  "plain": "(lim)┬(y→0) (√(1+√(1+y^4 )) -√2)/y^4",
+  "expectedStored": "$\\lim_{y \\to 0} \\frac{\\sqrt{1+\\sqrt{1+y^4}}-\\sqrt{2}}{y^4}$",
+  "html": "<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:w=\"urn:schemas-microsoft-com:office:word\" xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\" xmlns=\"http://www.w3.org/TR/REC-html40\"><head><meta name=ProgId content=Word.Document><meta name=Generator content=\"Microsoft Word 15\"></head><body><!--StartFragment--><p class=MsoNormal><!--[if gte msEquation 12]><m:oMath><m:limLow><m:e><m:r><m:t>lim</m:t></m:r></m:e><m:lim><m:r><m:t>y→0</m:t></m:r></m:lim></m:limLow><m:f><m:num><m:rad><m:radPr><m:degHide m:val=\"on\"/></m:radPr><m:deg/><m:e><m:r><m:t>1+</m:t></m:r><m:rad><m:radPr><m:degHide m:val=\"on\"/></m:radPr><m:deg/><m:e><m:r><m:t>1+</m:t></m:r><m:sSup><m:e><m:r><m:t>y</m:t></m:r></m:e><m:sup><m:r><m:t>4</m:t></m:r></m:sup></m:sSup></m:e></m:rad></m:e></m:rad><m:r><m:t>-</m:t></m:r><m:rad><m:radPr><m:degHide m:val=\"on\"/></m:radPr><m:deg/><m:e><m:r><m:t>2</m:t></m:r></m:e></m:rad></m:num><m:den><m:sSup><m:e><m:r><m:t>y</m:t></m:r></m:e><m:sup><m:r><m:t>4</m:t></m:r></m:sup></m:sSup></m:den></m:f></m:oMath><![endif]--><![if !msEquation]><span style='font-family:\"Cambria Math\",serif'>(lim)┬(y→0) (√(1+√(1+y^4 )) -√2)/y^4</span><![endif]></p><!--EndFragment--></body></html>"
+}

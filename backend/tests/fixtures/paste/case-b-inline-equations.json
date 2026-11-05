@@ -1,0 +1,9 @@
+{
+  "name": "case-b-inline-equations",
+  "synthetic": true,
+  "label": "synthetic",
+  "note": "SYNTHETIC Word clipboard HTML. Inline equations sit inside <!--[if gte msEquation 12]> ... <![endif]--> with a <![if !msEquation]> fallback span after the comment. The m: namespace is declared on <html>, not on each snippet. Replace this file when a real capture.json arrives.",
+  "plain": "Suppose f(x) is differentiable at x=1 and (lim)┬(h→0) 1/h f(1+h)=5 , then f'(1) equals",
+  "expectedStored": "Suppose $f(x)$ is differentiable at $x=1$ and $\\lim_{h \\to 0} \\frac{1}{h} f(1+h)=5$, then $f'(1)$ equals",
+  "html": "<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:w=\"urn:schemas-microsoft-com:office:word\" xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\" xmlns=\"http://www.w3.org/TR/REC-html40\"><head><meta name=ProgId content=Word.Document></head><body><!--StartFragment--><p class=MsoNormal>Suppose <!--[if gte msEquation 12]><m:oMath><m:r><m:t>f(x)</m:t></m:r></m:oMath><![endif]--><![if !msEquation]><span style='font-family:\"Cambria Math\",serif'>f(x)</span><![endif]> is differentiable at <!--[if gte msEquation 12]><m:oMath><m:r><m:t>x=1</m:t></m:r></m:oMath><![endif]--><![if !msEquation]><span>x=1</span><![endif]> and <!--[if gte msEquation 12]><m:oMath><m:limLow><m:e><m:r><m:t>lim</m:t></m:r></m:e><m:lim><m:r><m:t>h</m:t></m:r><m:r><m:t>→</m:t></m:r><m:r><m:t>0</m:t></m:r></m:lim></m:limLow><m:f><m:num><m:r><m:t>1</m:t></m:r></m:num><m:den><m:r><m:t>h</m:t></m:r></m:den></m:f><m:r><m:t>f(1+h)=5</m:t></m:r></m:oMath><![endif]--><![if !msEquation]><span>(lim)┬(h→0) 1/h f(1+h)=5</span><![endif]> , then <!--[if gte msEquation 12]><m:oMath><m:sSup><m:e><m:r><m:t>f</m:t></m:r></m:e><m:sup><m:r><m:t>′</m:t></m:r></m:sup></m:sSup><m:r><m:t>(1)</m:t></m:r></m:oMath><![endif]--><![if !msEquation]><span>f'(1)</span><![endif]> equals</p><!--EndFragment--></body></html>"
+}
