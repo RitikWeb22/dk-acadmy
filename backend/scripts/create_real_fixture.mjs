@@ -35,3 +35,4 @@ console.log('Written:', outPath);
 console.log('plain:', fixture.plain);
 console.log('expectedStored:', fixture.expectedStored);
 console.log('html length:', fixture.html.length, 'bytes');
+
