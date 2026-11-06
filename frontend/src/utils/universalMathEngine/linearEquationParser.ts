@@ -821,9 +821,10 @@ export function reconstructLinearEquation(input: string): string {
 
   let text = pre;
 
-  // 1. Remove leading numbering/dot artifacts and empty answer-box placeholders
+  // 1. Remove leading numbering/dot artifacts, Word equation placeholders and box tokens
   text = text.replace(/^\s*(?:\d+\.|\.)\s*(?=[A-Za-z\u0900-\u097F])/g, '');
   text = text.replace(/□\s*\(\s*\)/g, '');
+  text = text.replace(/[▒□┤├│〖〗]/g, '');
   text = text.replace(/\bvalue of\s+ea\b(?!\^)/gi, 'value of e^{a}');
 
   // 2. Clean invisible chars
