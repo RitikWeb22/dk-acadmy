@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   GraduationCap,
   CheckCircle2,
@@ -9,11 +9,12 @@ import {
   AlertCircle,
   Tag,
   Check,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { couponService } from '../../services/couponService';
 import { paymentService } from '../../services/paymentService';
-import { offerService } from '../../services/offerService';
+import { offerService, OFFERS_EVENT_KEY } from '../../services/offerService';
 import { useStudentAuth } from '../../context/AuthContext';
 
 // ─── Constants & Configuration ───
@@ -76,7 +77,23 @@ const VERIFIED_COUPONS: Record<string, CouponData> = {
 
 export const CourseCheckout: React.FC = () => {
   const navigate = useNavigate();
+  const { courseId } = useParams<{ courseId?: string }>();
+  const [searchParams] = useSearchParams();
   const { student, isAuthenticated, isLoading, enrollCourse } = useStudentAuth();
+
+  const queryCourseId = courseId || searchParams.get('courseId') || 'jee-flagship';
+  const queryCoupon = searchParams.get('coupon') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('dk_applied_coupon') : null);
+
+  const [offersTick, setOffersTick] = useState(0);
+  useEffect(() => {
+    const handleOffers = () => setOffersTick((v) => v + 1);
+    window.addEventListener(OFFERS_EVENT_KEY, handleOffers);
+    window.addEventListener('storage', handleOffers);
+    return () => {
+      window.removeEventListener(OFFERS_EVENT_KEY, handleOffers);
+      window.removeEventListener('storage', handleOffers);
+    };
+  }, []);
 
   // Authentication Guard: Student must be logged in before opening checkout
   useEffect(() => {
@@ -107,6 +124,28 @@ export const CourseCheckout: React.FC = () => {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
 
+  // Auto-apply promo coupon from URL / popup session
+  useEffect(() => {
+    if (queryCoupon && !appliedCoupon) {
+      const code = queryCoupon.trim().toUpperCase();
+      setCouponCodeInput(code);
+      couponService.validateAndApply(code, BASE_COURSE_MRP).then((res) => {
+        if (res && res.success) {
+          const discountVal = res.discountAmount || 0;
+          setAppliedCoupon({
+            code,
+            data: {
+              type: res.data?.discountType || 'percent',
+              value: res.data?.discountValue || discountVal,
+              label: res.data?.description || `${code} Promotion Applied`
+            }
+          });
+          setCouponSuccess(`✓ Promo offer "${code}" auto-applied! Saved ₹${discountVal.toLocaleString('en-IN')}`);
+        }
+      }).catch(() => {});
+    }
+  }, [queryCoupon]);
+
   // ─── Validation & Submission State ───
   const [submitted, setSubmitted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -120,8 +159,8 @@ export const CourseCheckout: React.FC = () => {
   // ─── Pricing & GST Calculations ───
   // Course MRP = ₹18,500 (GST inclusive at 18%)
   const activeItemOffer = useMemo(() => {
-    return offerService.getEffectiveItemOffer('class-11th-self-study-dlp', 'course', BASE_COURSE_MRP);
-  }, []);
+    return offerService.getEffectiveItemOffer(queryCourseId, 'course', BASE_COURSE_MRP);
+  }, [queryCourseId, offersTick]);
 
   const offerDiscount = activeItemOffer.hasOffer ? activeItemOffer.discountAmount : 0;
 

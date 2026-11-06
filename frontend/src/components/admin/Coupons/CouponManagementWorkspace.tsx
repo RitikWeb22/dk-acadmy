@@ -24,7 +24,10 @@ import {
   CheckCircle2,
   Lock,
   Layers,
-  ShoppingBag
+  ShoppingBag,
+  Upload,
+  Image as ImageIcon,
+  FileText
 } from 'lucide-react';
 import { couponService, type CouponItem } from '../../../services/couponService';
 import {
@@ -35,6 +38,9 @@ import {
   OFFERS_EVENT_KEY
 } from '../../../services/offerService';
 import { TRIGGER_PREVIEW_POPUP_EVENT } from '../../common/PromotionalPopupModal/PromotionalPopupModal';
+import { cmsService, CMS_EVENT_KEY } from '../../../services/cmsService';
+import { apiClient } from '../../../services/apiClient';
+import type { Course } from '../../../types';
 import { exportToExcel, exportToPDF } from '../../../utils/exportUtils';
 import { AdminConfirmModal } from '../Common/AdminConfirmModal';
 import styles from './CouponManagementWorkspace.module.scss';
@@ -116,6 +122,12 @@ export const CouponManagementWorkspace: React.FC = () => {
     linkUrl: '/courses',
     audience: 'all',
     frequency: 'once_per_session',
+    hasDiscount: true,
+    discountType: 'percent',
+    discountValue: 20,
+    couponCode: 'KOTA2026',
+    discountBadge: '⚡ 20% SCHOLARSHIP OFF',
+    autoApplyOnRedirect: true,
     isActive: true
   });
 
@@ -131,6 +143,9 @@ export const CouponManagementWorkspace: React.FC = () => {
     isActive: true
   });
 
+  const [catalogCourses, setCatalogCourses] = useState<Course[]>(() => cmsService.getCourses());
+  const [isUploadingPopupImage, setIsUploadingPopupImage] = useState(false);
+  const popupFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [isSavingOffer, setIsSavingOffer] = useState(false);
 
   const loadOffers = async () => {
@@ -147,6 +162,14 @@ export const CouponManagementWorkspace: React.FC = () => {
   useEffect(() => {
     loadCoupons();
     loadOffers();
+
+    cmsService.fetchCoursesFromAPI().then((courses) => {
+      if (courses && courses.length > 0) setCatalogCourses(courses);
+    }).catch(() => {});
+
+    const handleCms = () => setCatalogCourses(cmsService.getCourses());
+    window.addEventListener(CMS_EVENT_KEY, handleCms);
+    return () => window.removeEventListener(CMS_EVENT_KEY, handleCms);
   }, []);
 
   // ─────────────────────────────────────────────────────────────
@@ -224,6 +247,69 @@ export const CouponManagementWorkspace: React.FC = () => {
     } catch {
       showToast('Failed to update offer status');
     }
+  };
+
+  const handlePopupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file (PNG, JPG, WebP)');
+      return;
+    }
+
+    setIsUploadingPopupImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'promotions');
+
+      const res = await apiClient.post<any>('/upload', formData, {
+        headers: {}
+      });
+
+      if (res && res.success && res.data && res.data.url) {
+        setPopupForm((prev) => ({ ...prev, imageUrl: res.data.url }));
+        showToast('✓ Promotional banner graphic uploaded successfully!');
+      } else {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setPopupForm((prev) => ({ ...prev, imageUrl: reader.result as string }));
+          showToast('✓ Image loaded successfully!');
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPopupForm((prev) => ({ ...prev, imageUrl: reader.result as string }));
+        showToast('✓ Image loaded from local storage');
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingPopupImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const toggleCourseApplicable = (courseId: string) => {
+    setItemOfferForm((prev) => {
+      const currentIds = prev.applicableItemIds || [];
+      const exists = currentIds.includes(courseId);
+      const updatedIds = exists
+        ? currentIds.filter((id) => id !== courseId)
+        : [...currentIds, courseId];
+      return { ...prev, applicableItemIds: updatedIds };
+    });
+  };
+
+  const selectAllCoursesForSale = () => {
+    const allIds = catalogCourses.map((c) => c.id || (c as any)._id).filter(Boolean);
+    setItemOfferForm((prev) => ({ ...prev, applicableItemIds: allIds }));
+  };
+
+  const clearAllCoursesFromSale = () => {
+    setItemOfferForm((prev) => ({ ...prev, applicableItemIds: [] }));
   };
 
   // ─────────────────────────────────────────────────────────────
@@ -473,26 +559,59 @@ export const CouponManagementWorkspace: React.FC = () => {
     return { totalCoupons, activeCoupons, totalRedeemed, totalAvailableSlots };
   }, [coupons]);
 
-  // Mock calculation for live card preview in Tab 4 (respecting Target Scope and Active status)
-  const isCourseTargeted =
-    itemOfferForm.isActive &&
-    (itemOfferForm.targetScope === 'all' || itemOfferForm.targetScope === 'courses');
-  const isTestTargeted =
-    itemOfferForm.isActive &&
-    (itemOfferForm.targetScope === 'all' || itemOfferForm.targetScope === 'test-series');
+  // Dynamic Real-Course calculation for live card preview in Tab 4
+  const previewCourse = useMemo(() => {
+    if (itemOfferForm.targetScope === 'custom' && itemOfferForm.applicableItemIds && itemOfferForm.applicableItemIds.length > 0) {
+      const found = catalogCourses.find(
+        (c) => itemOfferForm.applicableItemIds?.includes(c.id) || itemOfferForm.applicableItemIds?.includes((c as any)._id)
+      );
+      if (found) return found;
+    }
+    return (
+      catalogCourses[0] || {
+        id: 'mock-1',
+        title: 'JEE Main & Advanced 2-Yr Ultimate Flagship Batch',
+        numericPrice: 18500,
+        price: '₹18,500',
+        targetExam: 'JEE Advanced'
+      }
+    );
+  }, [catalogCourses, itemOfferForm.targetScope, itemOfferForm.applicableItemIds]);
 
-  const mockCoursePrice = 18500;
+  const previewCourseBasePrice = useMemo(() => {
+    if (typeof (previewCourse as any).numericPrice === 'number' && (previewCourse as any).numericPrice > 0) {
+      return (previewCourse as any).numericPrice;
+    }
+    if (typeof (previewCourse as any).price === 'string') {
+      const num = parseFloat((previewCourse as any).price.replace(/[^0-9.]/g, ''));
+      if (!isNaN(num) && num > 0) return num;
+    }
+    return 18500;
+  }, [previewCourse]);
+
+  const isCourseTargeted = useMemo(() => {
+    if (itemOfferForm.targetScope === 'all' || itemOfferForm.targetScope === 'courses') return true;
+    if (itemOfferForm.targetScope === 'custom') {
+      const cid = previewCourse.id || (previewCourse as any)._id;
+      return Boolean(cid && itemOfferForm.applicableItemIds?.includes(cid));
+    }
+    return false;
+  }, [itemOfferForm.targetScope, itemOfferForm.applicableItemIds, previewCourse]);
+
+  const isTestTargeted =
+    itemOfferForm.targetScope === 'all' || itemOfferForm.targetScope === 'test-series';
+
   const mockDiscountAmount = isCourseTargeted
     ? itemOfferForm.discountType === 'percent'
-      ? Math.round((mockCoursePrice * Math.min(100, itemOfferForm.discountValue)) / 100)
-      : Math.min(mockCoursePrice, itemOfferForm.discountValue)
+      ? Math.round((previewCourseBasePrice * Math.min(100, Math.max(1, itemOfferForm.discountValue))) / 100)
+      : Math.min(previewCourseBasePrice, itemOfferForm.discountValue)
     : 0;
-  const mockDiscountedCoursePrice = Math.max(0, mockCoursePrice - mockDiscountAmount);
+  const mockDiscountedCoursePrice = Math.max(0, previewCourseBasePrice - mockDiscountAmount);
 
   const mockTestPrice = 299;
   const mockTestDiscount = isTestTargeted
     ? itemOfferForm.discountType === 'percent'
-      ? Math.round((mockTestPrice * Math.min(100, itemOfferForm.discountValue)) / 100)
+      ? Math.round((mockTestPrice * Math.min(100, Math.max(1, itemOfferForm.discountValue))) / 100)
       : Math.min(mockTestPrice, itemOfferForm.discountValue)
     : 0;
   const mockDiscountedTestPrice = Math.max(0, mockTestPrice - mockTestDiscount);
@@ -1109,15 +1228,36 @@ export const CouponManagementWorkspace: React.FC = () => {
               </div>
 
               <div>
-                <label className={styles.fieldLabel}>Banner Graphic Image URL</label>
-                <input
-                  type="text"
-                  className={styles.textInput}
-                  value={popupForm.imageUrl}
-                  onChange={(e) => setPopupForm({ ...popupForm, imageUrl: e.target.value })}
-                  placeholder="/img/dk-results-banner.jpeg or https://..."
-                  required
-                />
+                <label className={styles.fieldLabel}>Banner Graphic Image</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className={styles.textInput}
+                    value={popupForm.imageUrl}
+                    onChange={(e) => setPopupForm({ ...popupForm, imageUrl: e.target.value })}
+                    placeholder="/img/dk-results-banner.jpeg or https://..."
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  <input
+                    type="file"
+                    ref={popupFileInputRef}
+                    accept="image/*"
+                    onChange={handlePopupImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    className={styles.uploadImageBtn}
+                    onClick={() => popupFileInputRef.current?.click()}
+                    disabled={isUploadingPopupImage}
+                    title="Upload banner graphic from device"
+                  >
+                    <Upload size={14} />
+                    <span>{isUploadingPopupImage ? 'Uploading...' : 'Upload Image'}</span>
+                  </button>
+                </div>
+
                 <div className={styles.presetImagesList}>
                   <span style={{ fontSize: '11px', color: '#64748b', alignSelf: 'center' }}>Presets:</span>
                   <button
@@ -1156,6 +1296,78 @@ export const CouponManagementWorkspace: React.FC = () => {
                 </div>
               </div>
 
+              {/* Promotional Discount & Coupon Configuration */}
+              <div className={styles.popupDiscountSection}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                    <Sparkles size={14} style={{ color: '#2563eb' }} />
+                    <span>Attach Auto-Applied Discount on Click</span>
+                  </label>
+                  <input
+                    type="checkbox"
+                    className={styles.courseRowCheckbox}
+                    checked={Boolean(popupForm.hasDiscount)}
+                    onChange={(e) => setPopupForm({ ...popupForm, hasDiscount: e.target.checked })}
+                  />
+                </div>
+
+                {popupForm.hasDiscount && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div>
+                        <label className={styles.fieldLabel}>Discount Type</label>
+                        <select
+                          className={styles.selectInput}
+                          value={popupForm.discountType || 'percent'}
+                          onChange={(e) => setPopupForm({ ...popupForm, discountType: e.target.value as any })}
+                        >
+                          <option value="percent">Percentage (%)</option>
+                          <option value="flat">Flat Concession (₹)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className={styles.fieldLabel}>
+                          Discount Value {popupForm.discountType === 'flat' ? '(₹)' : '(%)'}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max={popupForm.discountType === 'flat' ? 50000 : 100}
+                          className={styles.textInput}
+                          value={popupForm.discountValue || 15}
+                          onChange={(e) => setPopupForm({ ...popupForm, discountValue: Number(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div>
+                        <label className={styles.fieldLabel}>Auto Coupon Code</label>
+                        <input
+                          type="text"
+                          className={styles.textInput}
+                          value={popupForm.couponCode || ''}
+                          onChange={(e) => setPopupForm({ ...popupForm, couponCode: e.target.value.toUpperCase() })}
+                          placeholder="e.g. KOTA2026, POPUP20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className={styles.fieldLabel}>Custom Promo Tag / Badge</label>
+                        <input
+                          type="text"
+                          className={styles.textInput}
+                          value={popupForm.discountBadge || ''}
+                          onChange={(e) => setPopupForm({ ...popupForm, discountBadge: e.target.value })}
+                          placeholder="e.g. ⚡ 20% POPUP SCHOLARSHIP"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className={styles.fieldLabel}>Target Redirect Link URL</label>
                 <input
@@ -1167,7 +1379,7 @@ export const CouponManagementWorkspace: React.FC = () => {
                   required
                 />
                 <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  When students click anywhere on the banner image, they will automatically be redirected to this URL with the discount applied.
+                  When students click anywhere on the banner image, they will automatically be redirected to this URL with the discount auto-applied.
                 </span>
               </div>
 
@@ -1409,8 +1621,98 @@ export const CouponManagementWorkspace: React.FC = () => {
                   <option value="all">All Paid Items (Courses &amp; Test Series)</option>
                   <option value="courses">All Courses Only</option>
                   <option value="test-series">All Test Series CBT Mocks Only</option>
+                  <option value="custom">Specific Selected Course(s)</option>
                 </select>
+                <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  Choose whether the flash sale applies site-wide across all courses or only to specific selected courses.
+                </span>
               </div>
+
+              {/* Specific Course Selection Checklist */}
+              {itemOfferForm.targetScope === 'custom' && (
+                <div className={styles.courseSelectorWrap}>
+                  <div className={styles.courseSelectorHeader}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
+                      Select Specific Courses for Flash Sale ({itemOfferForm.applicableItemIds?.length || 0} Selected)
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        type="button"
+                        className={styles.presetBtn}
+                        onClick={selectAllCoursesForSale}
+                        style={{ padding: '2px 8px', fontSize: '11px' }}
+                      >
+                        Select All
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.presetBtn}
+                        onClick={clearAllCoursesFromSale}
+                        style={{ padding: '2px 8px', fontSize: '11px' }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.courseListScroll}>
+                    {catalogCourses.map((c) => {
+                      const cid = c.id || (c as any)._id;
+                      const isSelected = Boolean(cid && itemOfferForm.applicableItemIds?.includes(cid));
+                      const baseP =
+                        typeof c.numericPrice === 'number' && c.numericPrice > 0
+                          ? c.numericPrice
+                          : typeof c.price === 'string'
+                          ? parseFloat(c.price.replace(/[^0-9.]/g, '')) || 18500
+                          : 18500;
+                      const discVal =
+                        itemOfferForm.discountType === 'percent'
+                          ? Math.round((baseP * Math.min(100, Math.max(1, itemOfferForm.discountValue))) / 100)
+                          : Math.min(baseP, itemOfferForm.discountValue);
+                      const finalP = Math.max(0, baseP - discVal);
+
+                      return (
+                        <div
+                          key={cid}
+                          className={`${styles.courseSelectRow} ${isSelected ? styles.rowSelected : ''}`}
+                          onClick={() => toggleCourseApplicable(cid)}
+                        >
+                          <input
+                            type="checkbox"
+                            className={styles.courseRowCheckbox}
+                            checked={isSelected}
+                            onChange={() => {}} // handled by row click
+                          />
+                          <div className={styles.courseRowInfo}>
+                            <span className={styles.courseRowTitle}>{c.title}</span>
+                            <span className={styles.courseRowMeta}>
+                              <span>{c.targetExam || 'JEE'}</span>
+                              <span>•</span>
+                              <span>{c.mode || 'Online Live'}</span>
+                            </span>
+                          </div>
+                          <div className={styles.courseRowPricing}>
+                            {isSelected ? (
+                              <>
+                                <span style={{ fontSize: '13px', fontWeight: 800, color: '#16a34a' }}>
+                                  ₹{finalP.toLocaleString('en-IN')}
+                                </span>
+                                <span style={{ fontSize: '11px', color: '#94a3b8', textDecoration: 'line-through' }}>
+                                  ₹{baseP.toLocaleString('en-IN')}
+                                </span>
+                              </>
+                            ) : (
+                              <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#475569' }}>
+                                ₹{baseP.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className={styles.fieldLabel}>Campaign Subtitle / Details</label>
@@ -1460,15 +1762,17 @@ export const CouponManagementWorkspace: React.FC = () => {
               <div className={styles.previewHeading}>
                 <span>Live Card &amp; Price Calculation Preview</span>
                 <span style={{ fontSize: '11px', color: itemOfferForm.isActive ? '#15803d' : '#94a3b8' }}>
-                  {itemOfferForm.isActive ? '● Live' : '○ Inactive'}
+                  {itemOfferForm.isActive ? '● Live on Site' : '○ Inactive'}
                 </span>
               </div>
 
               <div className={styles.mockCardsWrap}>
-                {/* 1. Mock Course Card */}
+                {/* 1. Real Course Card Preview */}
                 <div className={styles.mockCardItem}>
                   <div className={styles.mockCardHeader}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#0052cc' }}>Course Card Preview</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#0052cc' }}>
+                      Course Card Preview: {previewCourse.targetExam || 'IIT-JEE'}
+                    </span>
                     {isCourseTargeted ? (
                       <span className={styles.mockCustomBadge}>
                         <Sparkles size={10} />
@@ -1476,13 +1780,13 @@ export const CouponManagementWorkspace: React.FC = () => {
                       </span>
                     ) : (
                       <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                        Standard (No Discount)
+                        Standard (Not in Sale)
                       </span>
                     )}
                   </div>
 
                   <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
-                    JEE Main &amp; Advanced 2-Yr Ultimate Flagship Batch
+                    {previewCourse.title}
                   </h4>
 
                   <div className={styles.mockPricingRow}>
@@ -1492,7 +1796,7 @@ export const CouponManagementWorkspace: React.FC = () => {
                           ₹{mockDiscountedCoursePrice.toLocaleString('en-IN')}
                         </span>
                         <span className={styles.mockOriginalPrice}>
-                          ₹{mockCoursePrice.toLocaleString('en-IN')}
+                          ₹{previewCourseBasePrice.toLocaleString('en-IN')}
                         </span>
                         <span className={styles.mockSavingsPill}>
                           Save ₹{mockDiscountAmount.toLocaleString('en-IN')} (
@@ -1504,9 +1808,39 @@ export const CouponManagementWorkspace: React.FC = () => {
                       </>
                     ) : (
                       <span className={styles.mockCurrentPrice}>
-                        ₹{mockCoursePrice.toLocaleString('en-IN')}
+                        ₹{previewCourseBasePrice.toLocaleString('en-IN')}
                       </span>
                     )}
+                  </div>
+
+                  {/* Math Breakdown Box */}
+                  <div className={styles.calcBreakdownCard}>
+                    <div className={styles.calcRow}>
+                      <span>Original Course MRP:</span>
+                      <span>₹{previewCourseBasePrice.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className={styles.calcRow} style={{ color: isCourseTargeted ? '#16a34a' : '#94a3b8' }}>
+                      <span>
+                        Flash Sale Discount ({itemOfferForm.discountType === 'percent' ? `${itemOfferForm.discountValue}%` : `₹${itemOfferForm.discountValue}`}):
+                      </span>
+                      <span>{isCourseTargeted ? `- ₹${mockDiscountAmount.toLocaleString('en-IN')}` : '₹0'}</span>
+                    </div>
+                    <div className={styles.calcTotalRow}>
+                      <span>Student Payable Total:</span>
+                      <span style={{ color: '#16a34a' }}>
+                        ₹{mockDiscountedCoursePrice.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
+                      Scope:{' '}
+                      {itemOfferForm.targetScope === 'all'
+                        ? 'All Courses & Test Series'
+                        : itemOfferForm.targetScope === 'courses'
+                        ? 'All Courses'
+                        : itemOfferForm.targetScope === 'test-series'
+                        ? 'All Test Series'
+                        : `${itemOfferForm.applicableItemIds?.length || 0} Specific Selected Courses`}
+                    </div>
                   </div>
                 </div>
 

@@ -75,17 +75,32 @@ export const PromotionalPopupModal: React.FC = () => {
     // Automatically apply promotional offer/discount on click
     try {
       sessionStorage.setItem('dk_popup_offer_applied', 'true');
-      sessionStorage.setItem(
-        'dk_active_promo_badge',
-        popup?.tagText || popup?.title || 'SPECIAL OFFER'
-      );
+      if (popup?.couponCode) {
+        sessionStorage.setItem('dk_applied_coupon', popup.couponCode.trim().toUpperCase());
+      }
+      if (popup?.hasDiscount && popup?.discountValue) {
+        sessionStorage.setItem('dk_popup_discount_val', String(popup.discountValue));
+        sessionStorage.setItem('dk_popup_discount_type', popup.discountType || 'percent');
+        if (popup?.discountBadge) {
+          sessionStorage.setItem('dk_active_promo_badge', popup.discountBadge);
+        }
+      } else {
+        sessionStorage.setItem(
+          'dk_active_promo_badge',
+          popup?.discountBadge || popup?.tagText || popup?.title || 'SPECIAL PROMO'
+        );
+      }
     } catch {
       // ignore
     }
 
     setIsOpen(false);
 
-    const targetUrl = popup?.linkUrl || '/courses';
+    let targetUrl = popup?.linkUrl || '/courses';
+    if (popup?.couponCode && !targetUrl.includes('coupon=')) {
+      targetUrl += `${targetUrl.includes('?') ? '&' : '?'}coupon=${encodeURIComponent(popup.couponCode.trim().toUpperCase())}`;
+    }
+
     if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
       window.location.href = targetUrl;
     } else {

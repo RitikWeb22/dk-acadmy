@@ -53,6 +53,8 @@ import { normalizePastedQuestionContent } from '../../../utils/universalMathEngi
 import { MathText } from '../../ui/MathText/MathText';
 import { MathInput, parseContentToBlocks } from '../../ui/MathEngine';
 import { GeminiApiKeyModal } from '../../common/GeminiApiKeyModal/GeminiApiKeyModal';
+import { PasteWordQuestionModal } from '../Common/PasteWordQuestionModal';
+import type { ParsedWordQuestion } from '../../../utils/wordPasteParser';
 
 export type ProblemModuleType = 'DPP' | 'PYQ' | 'BITSAT';
 export type ProblemSubject = 'Mathematics' | 'Physics' | 'Chemistry' | 'Mixed';
@@ -540,6 +542,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
   const [viewingItem, setViewingItem] = useState<DppPyqItem | null>(null);
   const [editingItem, setEditingItem] = useState<DppPyqItem | null>(null);
   const [editingQuestionIdx, setEditingQuestionIdx] = useState<number>(0);
+  const [isPasteWordModalOpen, setIsPasteWordModalOpen] = useState<boolean>(false);
   const [editModalTab, setEditModalTab] = useState<'QUESTIONS' | 'SETTINGS'>('QUESTIONS');
   const [previewingStudentItem, setPreviewingStudentItem] = useState<DppPyqItem | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<DppPyqItem | null>(null);
@@ -1315,15 +1318,15 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       pdfUrl: newPdfUrl.trim(),
       badgeCode,
       categoryLabel,
-      questionsCount: createdCustomQuestions ? createdCustomQuestions.length : (Number(newQuestionsCount) || 5),
+      questionsCount: createdCustomQuestions ? createdCustomQuestions.length : 0,
       durationMinutes: Number(newDurationMinutes) || 15,
-      solutionNote: newSolutionNote.trim() || `${createdCustomQuestions ? createdCustomQuestions.length : newQuestionsCount} questions with step solutions`,
+      solutionNote: newSolutionNote.trim() || `${createdCustomQuestions ? createdCustomQuestions.length : 0} questions with step solutions`,
       status: newStatus,
       scheduledDate: newStatus === 'Scheduled' && newScheduledDate ? newScheduledDate : undefined,
       attemptsCount: 0,
       questions: (createdCustomQuestions && createdCustomQuestions.length > 0
         ? createdCustomQuestions
-        : getSampleQuestionsForSubject(newSubject, newChapter).slice(0, Number(newQuestionsCount) || 4)
+        : []
       ).map((q) => ({
         ...q,
         isFree: newIsFree ? (q.isFree ?? true) : false
@@ -1419,22 +1422,17 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
     const newQ: ProblemQuestionItem = {
       id: `q-custom-${Date.now()}`,
       qNum: nextQNum,
-      statement: 'Enter the new problem statement here (KaTeX / LaTeX equations and symbols supported)...',
-      topic:
-        editingItem.subject === 'Chemistry'
-          ? 'Organic Reaction Pathways'
-          : editingItem.subject === 'Physics'
-          ? 'Rotational Dynamics'
-          : 'Coordinate Geometry & Calculus',
+      statement: '',
+      topic: '',
       options: [
-        { key: 'A', text: 'Option A value / formula' },
-        { key: 'B', text: 'Option B value / formula' },
-        { key: 'C', text: 'Option C value / formula' },
-        { key: 'D', text: 'Option D value / formula' }
+        { key: 'A', text: '' },
+        { key: 'B', text: '' },
+        { key: 'C', text: '' },
+        { key: 'D', text: '' }
       ],
       correctKey: 'A',
-      dkSirShortcut: 'DK Sir Speed Rule: Eliminate boundary conditions or test limits to lock answer in 20 seconds.',
-      stepSolution: 'Step 1: Write down basic governing laws. Step 2: Simplify algebraic terms and solve for unknown.',
+      dkSirShortcut: '',
+      stepSolution: '',
       difficulty: 'Moderate',
       isFree: !isPaperPaid,
       examYear: editingItem.moduleType === 'PYQ' ? 'JEE Main' : undefined
@@ -1448,6 +1446,50 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
     });
     setEditingQuestionIdx(updatedQs.length - 1);
     showToast(`Added Question ${nextQNum}!`);
+  };
+
+  const handleWordQuestionsAddedToDppPyq = (parsedList: ParsedWordQuestion[]) => {
+    if (!parsedList || parsedList.length === 0 || !editingItem) return;
+
+    const isPaperPaid = editingItem.isFree === false;
+    let updatedQs = [...(editingItem.questions || [])];
+    const currentQ = updatedQs[editingQuestionIdx];
+    const isCurrentBlank = currentQ && !currentQ.statement?.trim();
+    let targetIdx = editingQuestionIdx >= 0 && editingQuestionIdx < updatedQs.length ? editingQuestionIdx : 0;
+
+    parsedList.forEach((parsed, pIdx) => {
+      const qNum = (pIdx === 0 && isCurrentBlank) ? (currentQ.qNum || targetIdx + 1) : updatedQs.length + 1;
+      const formattedQ: ProblemQuestionItem = {
+        id: (pIdx === 0 && isCurrentBlank && currentQ.id) ? currentQ.id : `q-custom-${Date.now()}-${pIdx}`,
+        qNum,
+        statement: parsed.statement,
+        topic: parsed.examTag || currentQ?.topic || editingItem.chapter || '',
+        options: parsed.options,
+        correctKey: parsed.correctKey || 'A',
+        dkSirShortcut: parsed.shortcut || '',
+        stepSolution: parsed.solution || '',
+        difficulty: parsed.type === 'NUMERICAL' ? 'Challenging' : 'Moderate',
+        isFree: !isPaperPaid,
+        examYear: parsed.examTag || (editingItem.moduleType === 'PYQ' ? 'JEE Main' : undefined)
+      };
+
+      if (pIdx === 0 && isCurrentBlank) {
+        updatedQs[targetIdx] = formattedQ;
+      } else {
+        updatedQs.push(formattedQ);
+        if (pIdx === 0 && (!currentQ || isCurrentBlank)) {
+          targetIdx = updatedQs.length - 1;
+        }
+      }
+    });
+
+    setEditingItem({
+      ...editingItem,
+      questions: updatedQs,
+      questionsCount: updatedQs.length
+    });
+    setEditingQuestionIdx(targetIdx);
+    showToast(`✓ Added ${parsedList.length} Question${parsedList.length > 1 ? 's' : ''} from Word!`);
   };
 
   const handleDuplicateQuestionInEditingItem = (idx: number) => {
@@ -3395,6 +3437,28 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                     <button
                       type="button"
+                      onClick={() => setIsPasteWordModalOpen(true)}
+                      style={{
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1.5px solid #bfdbfe',
+                        borderRadius: '6px',
+                        padding: '6px 8px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        gridColumn: '1 / -1'
+                      }}
+                      title="Paste question with options from Word or PDF"
+                    >
+                      <Sparkles size={13} color="#2563eb" /> Paste Word Question
+                    </button>
+                    <button
+                      type="button"
                       onClick={handleAddQuestionToEditingItem}
                       style={{
                         background: '#ffffff',
@@ -3479,7 +3543,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
               {/* Right Column: Question Authoring Area */}
               <div className={styles.studioEditorMain}>
-                {editingItem.questions[editingQuestionIdx] && (
+                {editingItem.questions && editingItem.questions.length > 0 && editingItem.questions[editingQuestionIdx] ? (
                   <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {/* Header Toolbar */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
@@ -3678,6 +3742,27 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     <label className={styles.sectionSmallLabel} style={{ margin: 0 }}>
                       Problem Statement (KaTeX LaTeX formulas supported):
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsPasteWordModalOpen(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: '#EFF6FF',
+                        color: '#1D4ED8',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '6px',
+                        padding: '4px 9px',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                      title="Paste full question with options from Word or PDF"
+                    >
+                      <Sparkles size={13} color="#2563EB" />
+                      <span>Paste Word Question</span>
+                    </button>
                   </div>
                   <MathInput
                     value={editingItem.questions[editingQuestionIdx].statement}
@@ -3914,7 +3999,79 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                   </button>
                 </div>
               </div>
-            )}
+            ) : (
+              <div style={{ textAlign: 'center', padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', minHeight: '380px', width: '100%' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={24} />
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>No Questions in this Problem Set Yet</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#64748B', maxWidth: '440px' }}>
+                    Use <strong>"Paste Word Question"</strong> to instantly parse problem statements, options and answer keys, or click <strong>"Add Question Slot"</strong> to start writing.
+                  </p>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsPasteWordModalOpen(true)}
+                      style={{
+                        background: '#2563EB',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Sparkles size={14} />
+                      <span>Paste Word Question</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddQuestionToEditingItem}
+                      style={{
+                        background: '#FFFFFF',
+                        color: '#334155',
+                        border: '1.5px solid #CBD5E1',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Plus size={14} />
+                      <span>Add Question Slot</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenBulkModal(false)}
+                      style={{
+                        background: '#F1F5F9',
+                        color: '#475569',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Upload size={14} />
+                      <span>Bulk Upload File</span>
+                    </button>
+                  </div>
+                </div>
+              )}
           </div>
         </div>
 
@@ -4952,6 +5109,13 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
         isOpen={isGeminiKeyModalOpen}
         onClose={() => setIsGeminiKeyModalOpen(false)}
         onConfigured={() => showToast('✓ Gemini API connected!')}
+      />
+
+      {/* Paste Word Question Modal for DPP, PYQ & BITSAT */}
+      <PasteWordQuestionModal
+        isOpen={isPasteWordModalOpen}
+        onClose={() => setIsPasteWordModalOpen(false)}
+        onAddQuestions={handleWordQuestionsAddedToDppPyq}
       />
     </div>
   );

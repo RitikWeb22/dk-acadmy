@@ -11,6 +11,7 @@ import { TopLoadingBar, PageTransitionWrapper, PageLoader } from './components/u
 import { FloatingLeadWidget } from './components/leads/FloatingLeadWidget/FloatingLeadWidget';
 import { PromotionalPopupModal } from './components/common/PromotionalPopupModal/PromotionalPopupModal';
 import { initSocketClient } from './services/socketClient';
+import { offerService } from './services/offerService';
 
 // Helper for dynamic named imports with React.lazy
 const lazyNamed = <T extends Record<string, any>, K extends keyof T>(
@@ -84,6 +85,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     initSocketClient();
+    offerService.getAllOffers(true).catch(() => {});
   }, []);
 
   const isAuthPortalPage = 

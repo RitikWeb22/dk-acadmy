@@ -14,6 +14,10 @@ export interface IOffer extends Document {
   badgeText?: string;
   discountType?: 'percent' | 'flat';
   discountValue?: number;
+  hasDiscount?: boolean;
+  couponCode?: string;
+  discountBadge?: string;
+  autoApplyOnRedirect?: boolean;
   targetScope?: 'all' | 'courses' | 'test-series' | 'custom';
   applicableItemIds?: string[];
   isActive: boolean;
@@ -90,6 +94,24 @@ const offerSchema = new Schema<IOffer>(
     discountValue: {
       type: Number,
       default: 0
+    },
+    hasDiscount: {
+      type: Boolean,
+      default: false
+    },
+    couponCode: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    discountBadge: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    autoApplyOnRedirect: {
+      type: Boolean,
+      default: true
     },
     targetScope: {
       type: String,

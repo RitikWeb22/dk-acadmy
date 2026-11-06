@@ -73,6 +73,8 @@ import { MathText } from '../../ui/MathText/MathText';
 import { MathInput, parseContentToBlocks } from '../../ui/MathEngine';
 import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
 import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
+import { PasteWordQuestionModal } from '../Common/PasteWordQuestionModal';
+import type { ParsedWordQuestion } from '../../../utils/wordPasteParser';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -655,8 +657,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [wizardPrice, setWizardPrice] = useState<number>(299);
   const [subjectRules, setSubjectRules] = useState(INITIAL_SUBJECT_RULES);
   const [activeSubjectTab, setActiveSubjectTab] = useState<'Physics' | 'Chemistry' | 'Mathematics'>('Mathematics');
-  const [questions, setQuestions] = useState<QuestionItem[]>(INITIAL_SAMPLE_QUESTIONS);
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string>('ja-cg-q1');
+  const [questions, setQuestions] = useState<QuestionItem[]>([]);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string>('');
+  const [isPasteWordModalOpen, setIsPasteWordModalOpen] = useState(false);
   const [isEquationHelpOpen, setIsEquationHelpOpen] = useState(false);
   const [startWindowDate, setStartWindowDate] = useState('2026-11-05T14:30');
   const [endWindowDate, setEndWindowDate] = useState('2026-11-12T23:59');
@@ -2163,18 +2166,18 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       section: 'A',
       index: nextIndex,
       type: 'SINGLE_CORRECT',
-      difficulty: 'HARD',
-      topicTag: '3D Geometry / Vectors',
-      questionText: 'Enter your new problem statement here (LaTeX syntax supported)...',
+      difficulty: 'MEDIUM',
+      topicTag: '',
+      questionText: '',
       options: [
-        { key: 'A', text: 'Option A' },
-        { key: 'B', text: 'Option B' },
-        { key: 'C', text: 'Option C' },
-        { key: 'D', text: 'Option D' }
+        { key: 'A', text: '' },
+        { key: 'B', text: '' },
+        { key: 'C', text: '' },
+        { key: 'D', text: '' }
       ],
       correctKey: 'A',
-      solutionDerivation: 'Enter detailed step-by-step mathematical working...',
-      shortcutTrick: 'DK Sir 20-30s speed inspection shortcut rule...'
+      solutionDerivation: '',
+      shortcutTrick: ''
     };
     setQuestions((prev) => [...prev, newQ]);
     setSelectedQuestionId(newId);
@@ -2244,32 +2247,65 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     };
   }, [smartPasteText]);
 
-  const handlePasteWordQuestionClick = async () => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
-        const clipText = await navigator.clipboard.readText();
-        if (clipText && clipText.trim()) {
-          const parsed = normalizePastedQuestion({ text: clipText });
-          if (parsed.hasQuestionWithOptions && parsed.options.length === 4) {
-            updateCurrentQuestion({
-              questionText: parsed.statement,
-              statementBlocks: parseContentToBlocks(parsed.statement),
-              options: parsed.options,
-              correctKey: (parsed.correctKey || currentEditingQuestion?.correctKey || 'A') as any,
-              numericalAnswer: parsed.numericalAnswer || currentEditingQuestion?.numericalAnswer,
-              solutionDerivation: parsed.stepSolution || currentEditingQuestion?.solutionDerivation,
-              shortcutTrick: parsed.dkSirShortcut || currentEditingQuestion?.shortcutTrick
-            });
-            showToast('✓ Pasted from Clipboard: Question and Options separated cleanly!');
-            return;
-          }
-          setSmartPasteText(clipText);
+  const handlePasteWordQuestionClick = () => {
+    setIsPasteWordModalOpen(true);
+  };
+
+  const handleWordQuestionsAdded = (parsedList: ParsedWordQuestion[]) => {
+    if (!parsedList || parsedList.length === 0) return;
+
+    setQuestions((prev) => {
+      let newQuestions = [...prev];
+      const isCurrentBlank = currentEditingQuestion && !currentEditingQuestion.questionText.trim();
+      let firstTargetId = currentEditingQuestion?.id;
+
+      parsedList.forEach((parsed, pIdx) => {
+        if (pIdx === 0 && isCurrentBlank && currentEditingQuestion) {
+          newQuestions = newQuestions.map((q) =>
+            q.id === currentEditingQuestion.id
+              ? {
+                  ...q,
+                  type: parsed.type,
+                  section: parsed.type === 'NUMERICAL' ? 'B' : q.section,
+                  questionText: parsed.statement,
+                  statementBlocks: parseContentToBlocks(parsed.statement),
+                  options: parsed.options,
+                  correctKey: parsed.correctKey,
+                  numericalAnswer: parsed.numericalAnswer || '',
+                  topicTag: parsed.examTag || q.topicTag,
+                  solutionDerivation: parsed.solution || q.solutionDerivation,
+                  shortcutTrick: parsed.shortcut || q.shortcutTrick
+                }
+              : q
+          );
+        } else {
+          const newId = `q-word-${Date.now()}-${pIdx}`;
+          if (pIdx === 0 && !firstTargetId) firstTargetId = newId;
+          const newQ: QuestionItem = {
+            id: newId,
+            subject: activeSubjectTab,
+            section: parsed.type === 'NUMERICAL' ? 'B' : 'A',
+            index: newQuestions.length + 1,
+            type: parsed.type,
+            difficulty: parsed.type === 'NUMERICAL' ? 'HARD' : 'MEDIUM',
+            topicTag: parsed.examTag || '',
+            questionText: parsed.statement,
+            statementBlocks: parseContentToBlocks(parsed.statement),
+            options: parsed.options,
+            correctKey: parsed.correctKey,
+            numericalAnswer: parsed.numericalAnswer || '',
+            solutionDerivation: parsed.solution || '',
+            shortcutTrick: parsed.shortcut || ''
+          };
+          newQuestions.push(newQ);
         }
-      }
-    } catch {
-      // If clipboard permission is not granted, fall through to opening modal
-    }
-    setIsSmartPasteModalOpen(true);
+      });
+
+      if (firstTargetId) setSelectedQuestionId(firstTargetId);
+      return newQuestions;
+    });
+
+    showToast(`✓ Added ${parsedList.length} Question${parsedList.length > 1 ? 's' : ''} from Word!`);
   };
 
   const handleApplySmartPaste = () => {
@@ -4529,6 +4565,17 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                       <button
                         type="button"
+                        onClick={handlePasteWordQuestionClick}
+                        className={styles.addNewQuestionBtn}
+                        style={{ background: '#2563EB', color: '#FFFFFF', border: '1px solid #1D4ED8' }}
+                        title="Paste question and options from Word or PDF"
+                      >
+                        <Sparkles size={14} />
+                        <span>Paste Word Question</span>
+                      </button>
+
+                      <button
+                        type="button"
                         className={styles.addNewQuestionBtn}
                         onClick={handleAddQuestion}
                       >
@@ -4634,8 +4681,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   </div>
 
                   {/* Question Editor */}
-                  {currentEditingQuestion && (
-                    <div className={styles.questionEditorCard}>
+                  {currentEditingQuestion ? (
+                    <>
+                      <div className={styles.questionEditorCard}>
                       {/* 1. Header Toolbar (Actions & Identification) */}
                       <div className={styles.qEditorHeader}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -4855,9 +4903,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  )}
 
-                  {/* Question-Specific Scheduled Solution Attachments (Video & PDF) */}
+                    {/* Question-Specific Scheduled Solution Attachments (Video & PDF) */}
                   <div
                     style={{
                       marginTop: '20px',
@@ -4922,6 +4969,46 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '60px 20px', background: '#FFFFFF', borderRadius: '14px', border: '1.5px dashed #CBD5E1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', margin: '20px 0' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={24} />
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>No Questions in this Test Yet</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#64748B', maxWidth: '440px' }}>
+                    Click <strong>"Sync Blueprint"</strong> to generate all {selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} question slots, or use <strong>"Paste Word Question"</strong> to auto-import from Word/PDF.
+                  </p>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={syncQuestionsWithSections}
+                      className={styles.syncBlueprintBtn}
+                      style={{ padding: '8px 16px', fontSize: '13px' }}
+                    >
+                      <span>🔄 Sync Blueprint ({selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} Qs)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePasteWordQuestionClick}
+                      className={styles.addNewQuestionBtn}
+                      style={{ padding: '8px 16px', fontSize: '13px', background: '#2563EB', color: '#FFFFFF' }}
+                    >
+                      <Sparkles size={14} />
+                      <span>Paste Word Question</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddQuestion}
+                      className={styles.addNewQuestionBtn}
+                      style={{ padding: '8px 16px', fontSize: '13px' }}
+                    >
+                      <Plus size={14} />
+                      <span>Add Question Slot</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
                   {/* Access Mode & Paid Monetization Lock */}
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
@@ -7154,6 +7241,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Dedicated Word / PDF Paste Question Modal */}
+      <PasteWordQuestionModal
+        isOpen={isPasteWordModalOpen}
+        onClose={() => setIsPasteWordModalOpen(false)}
+        onAddQuestions={handleWordQuestionsAdded}
+      />
 
     </div>
   );

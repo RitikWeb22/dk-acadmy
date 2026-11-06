@@ -65,6 +65,24 @@ const offerSchema = new Schema({
         type: Number,
         default: 0
     },
+    hasDiscount: {
+        type: Boolean,
+        default: false
+    },
+    couponCode: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    discountBadge: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    autoApplyOnRedirect: {
+        type: Boolean,
+        default: true
+    },
     targetScope: {
         type: String,
         enum: ['all', 'courses', 'test-series', 'custom'],

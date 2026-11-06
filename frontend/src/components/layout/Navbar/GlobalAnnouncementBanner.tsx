@@ -39,34 +39,33 @@ export const GlobalAnnouncementBanner: React.FC = () => {
   return (
     <aside className={styles.bannerBar} role="region" aria-label="Special Announcement Banner">
       <div className={styles.contentWrap}>
-        <div className={styles.leftInfo}>
-          <span className={styles.tagBadge}>
-            <Sparkles size={12} className={styles.tagIcon} aria-hidden="true" />
-            <span>{banner.tagText || 'SPECIAL OFFER'}</span>
-          </span>
-          <p className={styles.bannerMessage}>
+        <div className={styles.centerContent}>
+          {banner.tagText && (
+            <span className={styles.tagBadge}>
+              <Sparkles size={11} className={styles.tagIcon} aria-hidden="true" />
+              <span>{banner.tagText}</span>
+            </span>
+          )}
+          <span className={styles.bannerMessage}>
             {banner.message}
-          </p>
-        </div>
-
-        <div className={styles.rightActions}>
+          </span>
           {banner.linkUrl && (
             <Link to={banner.linkUrl} className={styles.ctaLink}>
               <span>{banner.linkText || 'Claim Offer'}</span>
-              <ArrowRight size={13} aria-hidden="true" />
+              <ArrowRight size={12} className={styles.ctaArrow} aria-hidden="true" />
             </Link>
           )}
-
-          <button
-            type="button"
-            className={styles.dismissBtn}
-            onClick={() => setIsDismissed(true)}
-            aria-label="Dismiss announcement banner"
-            title="Dismiss announcement"
-          >
-            <X size={15} />
-          </button>
         </div>
+
+        <button
+          type="button"
+          className={styles.dismissBtn}
+          onClick={() => setIsDismissed(true)}
+          aria-label="Dismiss announcement banner"
+          title="Dismiss banner"
+        >
+          <X size={14} />
+        </button>
       </div>
     </aside>
   );
