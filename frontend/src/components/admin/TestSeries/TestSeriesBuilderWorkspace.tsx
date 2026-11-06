@@ -2244,28 +2244,77 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     };
   }, [smartPasteText]);
 
+  const handlePasteWordQuestionClick = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+        const clipText = await navigator.clipboard.readText();
+        if (clipText && clipText.trim()) {
+          const parsed = normalizePastedQuestion({ text: clipText });
+          if (parsed.hasQuestionWithOptions && parsed.options.length === 4) {
+            updateCurrentQuestion({
+              questionText: parsed.statement,
+              statementBlocks: parseContentToBlocks(parsed.statement),
+              options: parsed.options,
+              correctKey: (parsed.correctKey || currentEditingQuestion?.correctKey || 'A') as any,
+              numericalAnswer: parsed.numericalAnswer || currentEditingQuestion?.numericalAnswer,
+              solutionDerivation: parsed.stepSolution || currentEditingQuestion?.solutionDerivation,
+              shortcutTrick: parsed.dkSirShortcut || currentEditingQuestion?.shortcutTrick
+            });
+            showToast('✓ Pasted from Clipboard: Question and Options separated cleanly!');
+            return;
+          }
+          setSmartPasteText(clipText);
+        }
+      }
+    } catch {
+      // If clipboard permission is not granted, fall through to opening modal
+    }
+    setIsSmartPasteModalOpen(true);
+  };
+
   const handleApplySmartPaste = () => {
     if (!smartPasteText.trim()) return;
+
+    // 1. Try normalizePastedQuestion first
     const result = normalizePastedQuestion({ text: smartPasteText });
 
-    const isSectionB = currentEditingQuestion?.section === 'B';
-    const hasOptions = result.options.length === 4;
+    // 2. Fallback to liveSmartExtracted or extractStatementAndOptions if options were not cleanly separated
+    let finalStatement = result.statement;
+    let finalOptions = result.options;
+    let finalKey = result.correctKey || liveSmartExtracted?.detectedCorrectKey;
+    let finalNum = result.numericalAnswer || liveSmartExtracted?.detectedNumericalAnswer;
+
+    if ((!finalOptions || finalOptions.length < 4 || !result.hasQuestionWithOptions) && liveSmartExtracted?.hasRealOptions && liveSmartExtracted.options.length === 4) {
+      finalStatement = liveSmartExtracted.statement;
+      finalOptions = liveSmartExtracted.options;
+    }
+
+    if (!finalOptions || finalOptions.length < 4) {
+      const fallback = extractStatementAndOptions(smartPasteText);
+      if (fallback.options && fallback.options.length === 4 && fallback.options.some((o) => o.text && !o.text.startsWith('Option '))) {
+        finalStatement = normalizeMathText(fallback.statement);
+        finalOptions = fallback.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) }));
+        if (fallback.correctKey) finalKey = fallback.correctKey;
+      }
+    }
+
+    const hasOptions = Array.isArray(finalOptions) && finalOptions.length === 4 && finalOptions.some((o) => o.text && !o.text.startsWith('Option '));
 
     updateCurrentQuestion({
-      questionText: result.statement,
-      statementBlocks: parseContentToBlocks(result.statement),
+      questionText: finalStatement || smartPasteText,
+      statementBlocks: parseContentToBlocks(finalStatement || smartPasteText),
       options: hasOptions
-        ? result.options
-        : (currentEditingQuestion?.options || result.options),
-      correctKey: (result.correctKey || currentEditingQuestion?.correctKey || 'A') as any,
-      numericalAnswer: result.numericalAnswer || currentEditingQuestion?.numericalAnswer,
+        ? finalOptions
+        : (currentEditingQuestion?.options || finalOptions),
+      correctKey: (finalKey || currentEditingQuestion?.correctKey || 'A') as any,
+      numericalAnswer: finalNum || currentEditingQuestion?.numericalAnswer,
       solutionDerivation: result.stepSolution || currentEditingQuestion?.solutionDerivation,
       shortcutTrick: result.dkSirShortcut || currentEditingQuestion?.shortcutTrick
     });
 
     setSmartPasteText('');
     setIsSmartPasteModalOpen(false);
-    showToast('✓ Successfully formatted & imported question statement and options!');
+    showToast('✓ Successfully separated & imported Question Statement and Options!');
   };
 
   // DOCX / PDF Bulk Import State for Test Series
@@ -4688,34 +4737,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             Question Statement (LaTeX / KaTeX Syntax Supported)
                           </label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            
                             <button
                               type="button"
-                              disabled={isAiFormattingActiveQStatement}
-                              onClick={handleAiFormatQuestionStatementOnly}
-                              className={styles.smartPasteActionBtn}
-                              title="Auto-repair and format question statement with Gemini AI"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '6px',
-                                padding: '5px 11px',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                cursor: isAiFormattingActiveQStatement ? 'not-allowed' : 'pointer',
-                                opacity: isAiFormattingActiveQStatement ? 0.7 : 1
-                              }}
-                            >
-                              {isAiFormattingActiveQStatement ? <Loader2 size={13} className={styles.spinIcon} /> : <Sparkles size={13} />}
-                              <span>{isAiFormattingActiveQStatement ? 'Fixing Question...' : '✨ Auto-Fix Question'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setIsSmartPasteModalOpen(true)}
+                              onClick={handlePasteWordQuestionClick}
                               className={styles.smartPasteActionBtn}
                               title="Paste full question with options from Word or PDF"
                               style={{
@@ -4791,29 +4815,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             <label className={styles.sectionLabel} style={{ marginBottom: 0, fontSize: '13px', color: '#1e293b' }}>
                               Answer Choices (A, B, C, D) &amp; Correct Key
                             </label>
-                            <button
-                              type="button"
-                              disabled={isAiFormattingActiveOptions}
-                              onClick={handleAiFormatOptionsOnly}
-                              title="Auto-repair and format all 4 options with Gemini AI"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '6px',
-                                padding: '4px 10px',
-                                fontSize: '11.5px',
-                                fontWeight: 700,
-                                cursor: isAiFormattingActiveOptions ? 'not-allowed' : 'pointer',
-                                opacity: isAiFormattingActiveOptions ? 0.7 : 1
-                              }}
-                            >
-                              {isAiFormattingActiveOptions ? <Loader2 size={12} className={styles.spinIcon} /> : <Sparkles size={12} />}
-                              <span>{isAiFormattingActiveOptions ? 'Fixing Options...' : '✨ Auto-Fix Options'}</span>
-                            </button>
                           </div>
                           {currentEditingQuestion.options.map((opt) => {
                             return (
@@ -4843,37 +4844,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                     defaultViewMode="edit"
                                   />
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' }}>
-                                  <button
-                                    type="button"
-                                    disabled={formattingOptionKey === opt.key}
-                                    onClick={() => handleAiFormatSingleOption(opt.key)}
-                                    title={`Auto-Fix Option ${opt.key} with AI`}
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      background: '#f8fafc',
-                                      border: '1px solid #cbd5e1',
-                                      color: '#475569',
-                                      borderRadius: '6px',
-                                      padding: '3px 7px',
-                                      fontSize: '11px',
-                                      fontWeight: 600,
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    {formattingOptionKey === opt.key ? (
-                                      <Loader2 size={11} className={styles.spinIcon} />
-                                    ) : (
-                                      <Sparkles size={11} color="#4f46e5" />
-                                    )}
-                                    <span>Fix {opt.key}</span>
-                                  </button>
-                                  {currentEditingQuestion.correctKey === opt.key && (
+                                {currentEditingQuestion.correctKey === opt.key && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' }}>
                                     <span className={styles.correctKeyTag}>✓ Key</span>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -7066,7 +7041,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     const plain = e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text') || '';
                     const res = normalizePastedQuestion(e.clipboardData);
                     const isCorrupted = !res.fullNormalizedText || /\\frac\{\s*\}\{\s*\}/.test(res.fullNormalizedText) || (plain.trim().length > 25 && res.fullNormalizedText.trim().length < plain.trim().length * 0.4);
-                    if (!isCorrupted && res.fullNormalizedText) {
+                    if (!isCorrupted && res.hasQuestionWithOptions && res.options.length === 4) {
+                      e.preventDefault();
+                      const formatted = `${res.statement}\n\n${res.options.map((o) => `(${o.key}) ${o.text}`).join('\n')}${res.correctKey ? `\n\nAns: ${res.correctKey}` : ''}`;
+                      setSmartPasteText(formatted);
+                    } else if (!isCorrupted && res.fullNormalizedText) {
                       e.preventDefault();
                       setSmartPasteText(res.fullNormalizedText);
                     } else if (plain) {
@@ -7161,29 +7140,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 onClick={() => setIsSmartPasteModalOpen(false)}
               >
                 Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isAiFormattingSmartPaste || !smartPasteText.trim()}
-                onClick={handleAiFormatSmartPasteAll}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '8px 14px',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  cursor: isAiFormattingSmartPaste || !smartPasteText.trim() ? 'not-allowed' : 'pointer',
-                  opacity: isAiFormattingSmartPaste || !smartPasteText.trim() ? 0.6 : 1
-                }}
-                title="Use Gemini AI to reconstruct mathematical formulas and format question + options"
-              >
-                {isAiFormattingSmartPaste ? <Loader2 size={14} className={styles.spinIcon} /> : <Sparkles size={14} />}
-                <span>{isAiFormattingSmartPaste ? 'Auto-Fixing All...' : '✨ Auto-Fix All'}</span>
               </button>
               <button
                 type="button"

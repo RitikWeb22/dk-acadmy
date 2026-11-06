@@ -63,17 +63,17 @@ function parseAnswer(raw, hasOptions) {
     }
     return {};
 }
-/** Finds every "(A)", "A.", "A)", "(1)", "1." style marker. */
+/** Finds every "(A)", "A.", "A)", "(1)", "1.", "[A]", "Option A:" style marker. */
 function findMarkers(text) {
-    const re = /(^|\s)(?:\(([A-Da-d1-4])\)|([A-Da-d1-4])([.)]))(?=\s)/g;
+    const re = /(^|[\s\n])(?:\bOption\s+)?(?:\(([A-Da-d1-4])\)|\[([A-Da-d1-4])\]|([A-Da-d1-4])([.):\-]))(?=\s|[$0-9a-zA-Z\\{\[(\-]|$)/gi;
     const markers = [];
     let m;
     while ((m = re.exec(text)) !== null) {
-        const raw = m[2] ?? m[3];
+        const raw = m[2] ?? m[3] ?? m[4];
         const key = toOptionKey(raw);
         if (!key)
             continue;
-        const shape = m[2] !== undefined ? 'paren' : m[4];
+        const shape = m[2] !== undefined ? 'paren' : m[3] !== undefined ? 'bracket' : (m[5] || 'bare');
         const kind = /\d/.test(raw) ? 'n' : raw === raw.toUpperCase() ? 'U' : 'l';
         markers.push({
             key,
@@ -90,6 +90,7 @@ function findMarkers(text) {
  * not mistaken for the answer options.
  */
 function findOptionSequence(markers) {
+    // 1. Exact style match first
     for (let d = markers.length - 1; d >= 0; d--) {
         if (markers[d].key !== 'D')
             continue;
@@ -100,6 +101,28 @@ function findOptionSequence(markers) {
             let found = -1;
             for (let i = cursor - 1; i >= 0; i--) {
                 if (markers[i].key === OPTION_KEYS[k] && markers[i].style === style) {
+                    found = i;
+                    break;
+                }
+            }
+            if (found < 0)
+                break;
+            seq.unshift(markers[found]);
+            cursor = found;
+        }
+        if (seq.length === 4)
+            return seq;
+    }
+    // 2. Relaxed match: any consistent A -> B -> C -> D run
+    for (let d = markers.length - 1; d >= 0; d--) {
+        if (markers[d].key !== 'D')
+            continue;
+        const seq = [markers[d]];
+        let cursor = d;
+        for (let k = 2; k >= 0; k--) {
+            let found = -1;
+            for (let i = cursor - 1; i >= 0; i--) {
+                if (markers[i].key === OPTION_KEYS[k]) {
                     found = i;
                     break;
                 }
@@ -124,8 +147,10 @@ function splitStatementAndOptions(body) {
         const to = i < 3 ? seq[i + 1].start : body.length;
         let text = body.slice(from, to);
         // The last option ends at the first blank line, not at end of input.
-        if (i === 3)
+        if (i === 3) {
+            text = text.replace(/(?:\r?\n|^)\s*(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Option|Answer))?)\s*[:=\-]?\s*.*$/i, '');
             text = text.split(/\n[ \t]*\n/)[0];
+        }
         text = text.trim();
         if (!text)
             return { statement: body.trim(), options: [] };
