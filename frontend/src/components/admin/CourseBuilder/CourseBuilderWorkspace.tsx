@@ -1642,9 +1642,9 @@ export const CourseBuilderWorkspace: React.FC = () => {
                     const parsed = parseVideoUrl(demoVideoUrl);
                     const badge = getVideoSourceBadge(parsed.type);
                     return (
-                      <div style={{ marginTop: '10px', padding: '10px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                      <div style={{ marginTop: '10px', padding: '10px', borderRadius: '8px', background: 'var(--color-surface-alt, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--color-text-strong, #0f172a)' }}>
                             <Play size={14} color="#16a34a" /> Live Demo Video Preview:
                           </div>
                           <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: badge.bg, color: badge.color, fontWeight: 600 }}>

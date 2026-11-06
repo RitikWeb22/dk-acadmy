@@ -930,13 +930,13 @@ export const FreeLecturesManagementWorkspace: React.FC = () => {
                               type="button"
                               onClick={() => handleToggleLectureTag(tag)}
                               style={{
-                                border: isSelected ? '1px solid transparent' : '1px solid #cbd5e1',
+                                border: isSelected ? '1px solid transparent' : '1px solid var(--color-border, #cbd5e1)',
                                 background: isSelected
-                                  ? (isPromo ? '#fef3c7' : '#0f172a')
-                                  : '#f8fafc',
+                                  ? (isPromo ? '#fef3c7' : '#2563eb')
+                                  : 'var(--color-surface, #f8fafc)',
                                 color: isSelected
                                   ? (isPromo ? '#92400e' : '#ffffff')
-                                  : '#475569',
+                                  : 'var(--color-text-muted, #475569)',
                                 fontWeight: isSelected ? 700 : 500,
                                 borderRadius: '9999px',
                                 padding: '4px 11px',

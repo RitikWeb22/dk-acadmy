@@ -820,20 +820,36 @@
   border-bottom-right-radius: 16px;
 }
 
-:global(.darkMode) {
+:global(.darkMode),
+:global(.dark),
+:global([data-theme="dark"]) {
+  .container,
   .workspaceContainer {
     background: transparent;
     color: #F8FAFC;
   }
 
+  .title,
   .headerTitle {
     color: #F8FAFC;
   }
 
+  .subtitle,
   .headerSubtitle {
     color: #94A3B8;
   }
 
+  .iconCircle {
+    background: #1E293B;
+    border-color: #334155;
+    color: #60A5FA;
+  }
+
+  .tabsBar {
+    border-bottom-color: #334155;
+  }
+
+  .tabItem,
   .tabBtn {
     color: #94A3B8;
 
@@ -841,9 +857,31 @@
       color: #F8FAFC;
     }
 
+    &.activeTab,
     &.tabBtnActive {
       color: #3B82F6;
       border-bottom-color: #3B82F6;
+    }
+  }
+
+  .tabBadge {
+    background: #1E293B;
+    color: #CBD5E1;
+  }
+
+  .searchFilterBar {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .searchBox input,
+  .searchBar input {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &::placeholder {
+      color: #64748B;
     }
   }
 
@@ -854,8 +892,13 @@
     background: #1E293B;
     border-color: #334155;
     color: #F8FAFC;
+
+    &:hover {
+      border-color: #475569;
+    }
   }
 
+  .pageTitle,
   .pageName,
   .sectionTitle {
     color: #F8FAFC;
@@ -866,34 +909,129 @@
     color: #94A3B8;
   }
 
+  .pageCardBottom {
+    border-top-color: #334155;
+  }
+
+  .smallActionBtn,
+  .outlineBtn {
+    background: #0F172A;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #FFFFFF;
+    }
+  }
+
+  .pageSelectorStrip {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .label {
+    color: #CBD5E1;
+  }
+
+  .pageDropdownSelect {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .heroConfigCard,
+  .sectionCard {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .sectionHeaderTitle,
+  .sectionCardTitle {
+    color: #F8FAFC;
+  }
+
+  .sectionSubtitleText {
+    color: #94A3B8;
+  }
+
+  .orderBtn {
+    background: #0F172A;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #FFFFFF;
+    }
+  }
+
+  .sectionPreviewBox {
+    background: #0F172A;
+    border-color: #334155;
+  }
+
   .input,
   .select,
   .textarea {
     background: #0F172A;
     border-color: #334155;
     color: #F8FAFC;
-  }
 
-  .searchBar input {
-    background: #0F172A;
-    border-color: #334155;
-    color: #F8FAFC;
+    &::placeholder {
+      color: #64748B;
+    }
   }
 
   .modalContent {
-    background: #1E293B;
-    border-color: #334155;
+    background: #0F172A;
+    border-color: #1E293B;
     color: #F8FAFC;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
 
     .modalHeader {
+      background: #1E293B;
       border-color: #334155;
-      h3 {
+
+      h3,
+      .modalTitle {
         color: #F8FAFC;
       }
     }
 
+    .closeModalBtn {
+      background: #1E293B;
+      border-color: #334155;
+      color: #94A3B8;
+
+      &:hover {
+        background: #334155;
+        color: #F8FAFC;
+      }
+    }
+
+    .layoutCardOption {
+      background: #1E293B;
+      border-color: #334155;
+      color: #F8FAFC;
+
+      &.selectedLayout {
+        border-color: #3B82F6;
+        background: rgba(37, 99, 235, 0.15);
+      }
+    }
+
+    .layoutOptionTitle {
+      color: #F8FAFC;
+    }
+
+    .layoutOptionDesc {
+      color: #94A3B8;
+    }
+
     .modalFooter {
-      background: #0F172A;
+      background: #1E293B;
       border-color: #334155;
     }
   }

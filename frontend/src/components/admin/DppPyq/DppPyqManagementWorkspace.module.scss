@@ -3733,7 +3733,9 @@
 }
 
 /* ─── 10. GLOBAL DARK MODE OVERRIDES ─── */
-:global(.darkMode) {
+:global(.darkMode),
+:global(.dark),
+:global([data-theme="dark"]) {
   .workspaceShell {
     background-color: #0B1120;
     color: #F8FAFC;
@@ -3923,5 +3925,209 @@
   .cbtOptChoice {
     background: #0F172A;
     border-color: #334155;
+  }
+
+  .syncBtn,
+  .portalLinkBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &:hover {
+      background: #334155;
+      border-color: #475569;
+      color: #FFFFFF;
+    }
+  }
+
+  .presetChip {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+
+    &.activeChip {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+  }
+
+  .chipCountBadge {
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+  }
+
+  .pageSizeSelect {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .modalCardStudio,
+  .modalCardEnhanced {
+    background: #0F172A;
+    border-color: #1E293B;
+    color: #F8FAFC;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+  }
+
+  .studioPaletteSidebar {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .studioEditorMain {
+    background: #0F172A;
+    color: #F8FAFC;
+  }
+
+  .studioTabsBar {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .studioTabBtn {
+    color: #94A3B8;
+
+    &:hover {
+      color: #F8FAFC;
+      background: #334155;
+    }
+
+    &.studioTabActive {
+      background: #0F172A;
+      color: #60A5FA;
+      border-bottom-color: #3B82F6;
+    }
+  }
+
+  .questionSwitcherStrip {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .qTabPillBtn {
+    background: #0F172A;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+
+    &.qTabPillActive {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+  }
+
+  .addQuestionQuickBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #60A5FA;
+
+    &:hover {
+      background: #2563EB;
+      color: #FFFFFF;
+    }
+  }
+
+  .qTopicInput,
+  .qDifficultySelect,
+  .qYearInput {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &::placeholder {
+      color: #64748B;
+    }
+  }
+
+  .qStatementTextarea,
+  .optionTextInput,
+  .shortcutTextarea,
+  .solutionTextarea {
+    background: #090D16;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &::placeholder {
+      color: #64748B;
+    }
+
+    &:focus {
+      border-color: #3B82F6;
+    }
+  }
+
+  .optionEditRow {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .optionKeyCircle {
+    background: #0F172A;
+    color: #60A5FA;
+    border-color: #334155;
+  }
+
+  .correctKeyToggleBtn {
+    background: #0F172A;
+    border-color: #334155;
+    color: #94A3B8;
+
+    &.isMarkedCorrect {
+      background: #10B981;
+      border-color: #059669;
+      color: #FFFFFF;
+    }
+  }
+
+  .formSectionBox,
+  .formFieldCard {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .modalCloseBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #94A3B8;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+  }
+
+  .dkSirTrickStrip {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #FCD34D;
+  }
+
+  .solutionTextStrip {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: #93C5FD;
+  }
+
+  .btnActionOutline {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
   }
 }

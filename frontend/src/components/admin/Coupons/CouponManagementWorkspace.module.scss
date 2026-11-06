@@ -837,7 +837,9 @@
 }
 
 /* ─── DARK THEME OVERRIDES ─── */
-:global(.darkMode) {
+:global(.darkMode),
+:global(.dark),
+:global([data-theme="dark"]) {
   .couponsWorkspaceShell {
     color: #f8fafc;
   }
@@ -1633,6 +1635,205 @@
   &:hover {
     background: #f1f5f9;
     border-color: #94a3b8;
+  }
+}
+
+/* ─── DISCOUNTS & OFFERS TABS DARK THEME OVERRIDES ─── */
+:global(.darkMode),
+:global(.dark),
+:global([data-theme="dark"]) {
+  .workspaceTabsBar {
+    background: #0f172a;
+    border-color: #1e293b;
+  }
+
+  .workspaceTabBtn {
+    color: #94a3b8;
+
+    &:hover {
+      color: #f8fafc;
+      background: #1e293b;
+    }
+
+    &.workspaceTabBtnActive {
+      color: #60a5fa;
+      background: #1e293b;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  .tabBadgeOff {
+    background: #1e293b;
+    color: #64748b;
+  }
+
+  .offerWorkspaceCard {
+    background: #0f172a;
+    border-color: #1e293b;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .offerCardHeader {
+    border-bottom-color: #1e293b;
+  }
+
+  .offerTitleRow {
+    h2 {
+      color: #f8fafc;
+    }
+    p {
+      color: #94a3b8;
+    }
+  }
+
+  .switchWrap {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .quickOfferCard {
+    background: #1e293b;
+    border-color: #334155;
+
+    &:hover {
+      border-color: #475569;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    strong {
+      color: #f8fafc;
+    }
+    span {
+      color: #94a3b8;
+    }
+  }
+
+  .previewColumn {
+    background: #0b1120;
+    border-color: #1e293b;
+  }
+
+  .previewHeading {
+    color: #94a3b8;
+  }
+
+  .fieldLabel {
+    color: #e2e8f0;
+  }
+
+  .textInput,
+  .selectInput,
+  .textareaInput {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
+
+    &:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    &::placeholder {
+      color: #64748b;
+    }
+  }
+
+  .testTriggerBtn {
+    background: #1e293b;
+    border-color: #4338ca;
+    color: #a5b4fc;
+
+    &:hover {
+      background: #2e1065;
+      border-color: #6366f1;
+    }
+  }
+
+  .mockCardItem {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .mockCurrentPrice {
+    color: #f8fafc;
+  }
+
+  .courseSelectRow {
+    background: #1e293b;
+    border-color: #334155;
+
+    &:hover {
+      background: #27354a;
+      border-color: #60a5fa;
+    }
+
+    &.rowSelected {
+      background: rgba(37, 99, 235, 0.2);
+      border-color: #3b82f6;
+    }
+  }
+
+  .courseRowTitle {
+    color: #f8fafc;
+  }
+
+  .courseRowMeta {
+    color: #94a3b8;
+  }
+
+  .calcBreakdownCard {
+    background: #0b1120;
+    border-color: #1e293b;
+  }
+
+  .calcRow {
+    color: #94a3b8;
+  }
+
+  .calcTotalRow {
+    color: #f8fafc;
+    border-top-color: #334155;
+  }
+
+  .modalBackdrop {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .modalCard {
+    background: #0f172a;
+    border-color: #1e293b;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  .modalHeader {
+    border-bottom-color: #1e293b;
+
+    h3 {
+      color: #f8fafc;
+    }
+  }
+
+  .modalBody {
+    color: #e2e8f0;
+  }
+
+  .modalFooter {
+    background: #0b1120;
+    border-top-color: #1e293b;
+  }
+
+  .searchCourseBox {
+    background: #1e293b;
+    border-color: #334155;
+
+    input {
+      color: #f8fafc;
+
+      &::placeholder {
+        color: #64748b;
+      }
+    }
   }
 }
 

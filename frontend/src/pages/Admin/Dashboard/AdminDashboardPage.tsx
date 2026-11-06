@@ -126,9 +126,15 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
   useEffect(() => {
     if (isDarkMode) {
-      document.documentElement.classList.add('darkMode');
+      document.documentElement.classList.add('darkMode', 'dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.body.classList.add('darkMode', 'dark');
+      document.body.setAttribute('data-theme', 'dark');
     } else {
-      document.documentElement.classList.remove('darkMode');
+      document.documentElement.classList.remove('darkMode', 'dark');
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.body.classList.remove('darkMode', 'dark');
+      document.body.setAttribute('data-theme', 'light');
     }
   }, [isDarkMode]);
 
@@ -283,7 +289,10 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
   }, []);
 
   return (
-    <div className={`${styles.dashboardMasterShell} ${isDarkMode ? 'darkMode' : ''}`}>
+    <div
+      className={`${styles.dashboardMasterShell} ${isDarkMode ? 'darkMode dark' : ''}`}
+      data-theme={isDarkMode ? 'dark' : 'light'}
+    >
       {/* Skip to Content for Accessibility */}
       <a href="#main-content" className={styles.skipLink}>
         Skip to main executive content
@@ -319,7 +328,13 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
         />
 
         {/* Main Content Workspace */}
-        <main id="main-content" className={styles.workspace} role="main" tabIndex={-1}>
+        <main
+          id="main-content"
+          className={`${styles.workspace} ${isDarkMode ? 'darkMode dark' : ''}`}
+          data-theme={isDarkMode ? 'dark' : 'light'}
+          role="main"
+          tabIndex={-1}
+        >
           {activeMenu === 'students' ? (
             <StudentManagementWorkspace />
           ) : activeMenu === 'teachers' ? (
