@@ -1976,28 +1976,22 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     }
   };
 
-  const goToStep = (step: StepId) => {
-    setCurrentStep(step);
-    if (!completedSteps.includes(step)) {
-      setCompletedSteps([...completedSteps, step]);
-    }
-    scrollToTop();
-  };
+  // Helper to check question section assignment reliably
+  const isQuestionSecA = useCallback((q: QuestionItem): boolean => {
+    if (!q) return true;
+    const s = String(q.section || '').toUpperCase().trim();
+    if (s === 'A' || s === 'SECTION_A' || s === 'SECTION A' || s === 'SECA') return true;
+    if (s === 'B' || s === 'SECTION_B' || s === 'SECTION B' || s === 'SECB') return false;
+    return q.type !== 'NUMERICAL';
+  }, []);
 
-  const handleNextStep = () => {
-    if (currentStep === 1) {
-      if (!editingSeriesTitle.trim() || editingSeriesTitle.trim().length < 4) {
-        showToast('Please enter a test series title (min 4 characters).');
-        return;
-      }
-    }
-    if (currentStep === 2) {
-      syncQuestionsWithSections();
-    }
-    if (currentStep < 4) {
-      goToStep((currentStep + 1) as StepId);
-    }
-  };
+  const isQuestionSecB = useCallback((q: QuestionItem): boolean => {
+    if (!q) return false;
+    const s = String(q.section || '').toUpperCase().trim();
+    if (s === 'B' || s === 'SECTION_B' || s === 'SECTION B' || s === 'SECB') return true;
+    if (s === 'A' || s === 'SECTION_A' || s === 'SECTION A' || s === 'SECA') return false;
+    return q.type === 'NUMERICAL';
+  }, []);
 
   // Helper to check if question statement & content has been filled in by teacher
   const isQuestionFilled = useCallback((q: QuestionItem): boolean => {
@@ -2008,7 +2002,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     if (txt.startsWith('Enter problem') || txt.startsWith('Enter your new')) return false;
 
     // For Section B (Numerical):
-    if (q.section === 'B' || q.type === 'NUMERICAL') {
+    if (isQuestionSecB(q)) {
       const numAns = (q.numericalAnswer || q.correctKey || '').trim();
       return txt.length > 3 && numAns.length > 0;
     }
@@ -2016,14 +2010,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     // For Section A (MCQ):
     const hasOptions = q.options && q.options.some((o) => o.text && o.text.trim().length > 0 && o.text !== 'Option A' && o.text !== 'Option B');
     return txt.length > 3 && Boolean(hasOptions && q.correctKey);
-  }, []);
-
-  // Synchronize activeSubjectTab when selectedSubjects changes
-  useEffect(() => {
-    if (selectedSubjects.length > 0 && !selectedSubjects.includes(activeSubjectTab)) {
-      setActiveSubjectTab(selectedSubjects[0]);
-    }
-  }, [selectedSubjects, activeSubjectTab]);
+  }, [isQuestionSecB]);
 
   // Synchronize question slots with configured Section A & Section B counts from Step 2
   const syncQuestionsWithSections = useCallback(() => {
@@ -2039,22 +2026,24 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       selectedSubjects.forEach((subj) => {
         const rule = subjectRules[subj] || { secATotal: 20, secBTotal: 10, secBEnforceOptional: true };
         const targetSecA = Math.max(1, Number(rule.secATotal) || 20);
-        const targetSecB = Math.max(0, Number(rule.secBTotal) || (rule.secBEnforceOptional ? 10 : 5));
+        const targetSecB = typeof rule.secBTotal === 'number' && !isNaN(rule.secBTotal)
+          ? Math.max(0, rule.secBTotal)
+          : (rule.secBEnforceOptional ? 10 : 5);
 
         // Keep existing Section A questions for this subject
         const existingA = selectedSubjects.length === 1
-          ? prevQuestions.filter((q) => q.section === 'A' || (!q.section && q.type !== 'NUMERICAL'))
+          ? prevQuestions.filter(isQuestionSecA)
           : prevQuestions.filter(
               (q) => (String(q.subject || '').toLowerCase() === String(subj).toLowerCase() || !q.subject) &&
-                     (q.section === 'A' || (!q.section && q.type !== 'NUMERICAL'))
+                     isQuestionSecA(q)
             );
 
         // Keep existing Section B questions for this subject
         const existingB = selectedSubjects.length === 1
-          ? prevQuestions.filter((q) => q.section === 'B' || q.type === 'NUMERICAL')
+          ? prevQuestions.filter(isQuestionSecB)
           : prevQuestions.filter(
               (q) => (String(q.subject || '').toLowerCase() === String(subj).toLowerCase() || !q.subject) &&
-                     (q.section === 'B' || q.type === 'NUMERICAL')
+                     isQuestionSecB(q)
             );
 
         // Populate Section A slots
@@ -2110,7 +2099,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               difficulty: 'HARD',
               topicTag: '',
               questionText: '',
-              options: [],
+              options: [
+                { key: 'A', text: '' },
+                { key: 'B', text: '' },
+                { key: 'C', text: '' },
+                { key: 'D', text: '' }
+              ],
               correctKey: '',
               numericalAnswer: '',
               solutionDerivation: '',
@@ -2130,7 +2124,46 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       return prevQuestions;
     });
     showToast('✓ Synchronized question slots with Section A and Section B counts.');
-  }, [selectedSubjects, subjectRules, selectedQuestionId, activeSubjectTab]);
+  }, [selectedSubjects, subjectRules, selectedQuestionId, activeSubjectTab, isQuestionSecA, isQuestionSecB]);
+
+  const goToStep = (step: StepId) => {
+    if (step === 3) {
+      const targetTotal = selectedSubjects.reduce(
+        (acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10),
+        0
+      );
+      if (questions.length === 0 || questions.length !== targetTotal) {
+        syncQuestionsWithSections();
+      }
+    }
+    setCurrentStep(step);
+    if (!completedSteps.includes(step)) {
+      setCompletedSteps([...completedSteps, step]);
+    }
+    scrollToTop();
+  };
+
+  const handleNextStep = () => {
+    if (currentStep === 1) {
+      if (!editingSeriesTitle.trim() || editingSeriesTitle.trim().length < 4) {
+        showToast('Please enter a test series title (min 4 characters).');
+        return;
+      }
+    }
+    if (currentStep === 2) {
+      syncQuestionsWithSections();
+    }
+    if (currentStep < 4) {
+      goToStep((currentStep + 1) as StepId);
+    }
+  };
+
+  // Synchronize activeSubjectTab when selectedSubjects changes
+  useEffect(() => {
+    if (selectedSubjects.length > 0 && !selectedSubjects.includes(activeSubjectTab)) {
+      setActiveSubjectTab(selectedSubjects[0]);
+    }
+  }, [selectedSubjects, activeSubjectTab]);
 
   const handlePrevStep = () => {
     if (currentStep > 1) {
@@ -2166,12 +2199,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   }, [questions, activeSubjectTab, selectedSubjects]);
 
   const secAQuestions = useMemo(() => {
-    return activeSubjectQuestions.filter((q) => q.section === 'A' || (!q.section && q.type !== 'NUMERICAL'));
-  }, [activeSubjectQuestions]);
+    return activeSubjectQuestions.filter(isQuestionSecA);
+  }, [activeSubjectQuestions, isQuestionSecA]);
 
   const secBQuestions = useMemo(() => {
-    return activeSubjectQuestions.filter((q) => q.section === 'B' || q.type === 'NUMERICAL');
-  }, [activeSubjectQuestions]);
+    return activeSubjectQuestions.filter(isQuestionSecB);
+  }, [activeSubjectQuestions, isQuestionSecB]);
 
   const totalPaperFilled = useMemo(() => {
     return questions.filter(isQuestionFilled).length;

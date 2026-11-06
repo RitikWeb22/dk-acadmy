@@ -165,12 +165,12 @@ Ans: (A)`;
                         <span
                           className={styles.qTypeBadge}
                           style={{
-                            background: q.type === 'NUMERICAL' ? '#eff6ff' : '#f0fdf4',
-                            color: q.type === 'NUMERICAL' ? '#1d4ed8' : '#15803d',
-                            border: `1px solid ${q.type === 'NUMERICAL' ? '#bfdbfe' : '#bbf7d0'}`
+                            background: '#f0fdf4',
+                            color: '#15803d',
+                            border: '1px solid #bbf7d0'
                           }}
                         >
-                          {q.type === 'NUMERICAL' ? 'Numerical Answer' : 'Single Choice MCQ'}
+                          Single Choice MCQ (4 Options)
                         </span>
                       </div>
 
@@ -197,72 +197,58 @@ Ans: (A)`;
                       </div>
                     </div>
 
-                    {/* Options (Alag Se) - If MCQ */}
-                    {q.type === 'SINGLE_CORRECT' && q.options && (
-                      <div className={styles.fieldGroup}>
-                        <label className={styles.fieldTitle}>
-                          <span>Answer Choices (Options Alag Se - A, B, C, D):</span>
-                          <span style={{ fontSize: '11px', fontWeight: 500, color: '#16a34a' }}>Click ✓ Key to change correct answer</span>
-                        </label>
-                        <div className={styles.optionsInputsGrid}>
-                          {q.options.map((opt) => {
-                            const isCorrect = q.correctKey === opt.key;
-                            return (
-                              <div
-                                key={opt.key}
-                                className={`${styles.optionInputCard} ${isCorrect ? styles.isCorrect : ''}`}
-                              >
-                                <div className={styles.optionHeader}>
-                                  <span className={`${styles.optionKeyBadge} ${isCorrect ? styles.correctBadge : ''}`}>
-                                    {opt.key}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className={`${styles.correctRadioBtn} ${isCorrect ? styles.activeCorrect : ''}`}
-                                    onClick={() => updateCorrectKey(idx, opt.key)}
-                                    title={`Mark Option ${opt.key} as correct answer`}
-                                  >
-                                    {isCorrect ? '✓ Correct Key' : 'Set as Key'}
-                                  </button>
-                                </div>
-                                <input
-                                  type="text"
-                                  className={styles.optionTextInput}
-                                  value={opt.text}
-                                  onChange={(e) => updateOptionText(idx, opt.key, e.target.value)}
-                                  placeholder={`Option ${opt.key} formula or text...`}
-                                />
-                                {opt.text && (
-                                  <div style={{ fontSize: '11.5px', marginTop: '2px', color: '#334155' }}>
-                                    <MathText text={opt.text} />
-                                  </div>
-                                )}
+                    {/* Options (Alag Se - A, B, C, D) - Always Shown for Every Question */}
+                    <div className={styles.fieldGroup}>
+                      <label className={styles.fieldTitle}>
+                        <span>Answer Choices (Options Alag Se - A, B, C, D):</span>
+                        <span style={{ fontSize: '11px', fontWeight: 500, color: '#16a34a' }}>Click ✓ Key to set the correct answer</span>
+                      </label>
+                      <div className={styles.optionsInputsGrid}>
+                        {(q.options && q.options.length > 0
+                          ? q.options
+                          : [
+                              { key: 'A' as const, text: '' },
+                              { key: 'B' as const, text: '' },
+                              { key: 'C' as const, text: '' },
+                              { key: 'D' as const, text: '' }
+                            ]
+                        ).map((opt) => {
+                          const isCorrect = q.correctKey === opt.key;
+                          return (
+                            <div
+                              key={opt.key}
+                              className={`${styles.optionInputCard} ${isCorrect ? styles.isCorrect : ''}`}
+                            >
+                              <div className={styles.optionHeader}>
+                                <span className={`${styles.optionKeyBadge} ${isCorrect ? styles.correctBadge : ''}`}>
+                                  {opt.key}
+                                </span>
+                                <button
+                                  type="button"
+                                  className={`${styles.correctRadioBtn} ${isCorrect ? styles.activeCorrect : ''}`}
+                                  onClick={() => updateCorrectKey(idx, opt.key)}
+                                  title={`Mark Option ${opt.key} as correct answer`}
+                                >
+                                  {isCorrect ? '✓ Correct Key' : 'Set as Key'}
+                                </button>
                               </div>
-                            );
-                          })}
-                        </div>
+                              <input
+                                type="text"
+                                className={styles.optionTextInput}
+                                value={opt.text}
+                                onChange={(e) => updateOptionText(idx, opt.key, e.target.value)}
+                                placeholder={`Option ${opt.key} formula or text...`}
+                              />
+                              {opt.text && (
+                                <div style={{ fontSize: '11.5px', marginTop: '2px', color: '#334155' }}>
+                                  <MathText text={opt.text} />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    )}
-
-                    {/* Numerical Answer (Alag Se) - If Numerical */}
-                    {q.type === 'NUMERICAL' && (
-                      <div className={styles.fieldGroup}>
-                        <label className={styles.fieldTitle}>
-                          <span>Numerical Answer Key (Answer Alag Se):</span>
-                        </label>
-                        <div className={styles.numericalInputWrap}>
-                          <span style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>Ans Key =</span>
-                          <input
-                            type="text"
-                            className={styles.numericalInput}
-                            value={q.numericalAnswer || ''}
-                            onChange={(e) => updateNumericalAnswer(idx, e.target.value)}
-                            placeholder="e.g. 16 or 3.14"
-                          />
-                          <span style={{ fontSize: '11px', color: '#64748b' }}>Integer or decimal value</span>
-                        </div>
-                      </div>
-                    )}
+                    </div>
 
                     {/* Solution or Shortcut if present */}
                     {(q.solution || q.shortcut) && (
