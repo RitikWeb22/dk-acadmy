@@ -298,6 +298,12 @@ export function autoWrapMathDelimiters(text: string): string {
     return protect(eq);
   });
 
+  // 3d-2. Protect full summation/limit equations with variable: e.g. S_{k} = \sum_{r=1}^{k} ... or L = \lim ...
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\b[A-Za-z](?:_\{[^{}]+\}|_[A-Za-z0-9]+)?\s*=\s*(?:\\sum|\\prod|\\lim)[\s\S]+?)(?=\s*\.|\s+Then\b|\s+and\b|\s+where\b|$)/gi, (_, m) => protect(m));
+
+  // 3d-3. Protect standalone limits before prose: e.g. \lim_{k\to\infty} S_{k} is equal to
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*[A-Za-z0-9_^{}\\()]+)(?=\s+is\b|\s*=\s*|\s*[,;.]|\s+where\b|\s+and\b|$)/gi, (_, m) => protect(m));
+
   // 3e. Protect standalone fractions with optional leading numeric coefficient: 16\frac{...}{...} or \frac{...}{...}
   s = s.replace(/(?<![\^_{a-zA-Z_\$])((?:-?\s*[0-9]+(?:\.[0-9]+)?\s*)?\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?![\^}a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 

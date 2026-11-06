@@ -23,6 +23,200 @@ export interface ParsedWordQuestion {
 }
 
 /**
+ * Strips Word equation placeholders, invisible zero-width markers, and OCR artifacts.
+ */
+export function cleanWordMathArtifacts(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/[\u200B-\u200F\u2060-\u2064\uFEFF\u00AD\u034F\u180E\uFFF9-\uFFFC]/g, '')
+    .replace(/[\u2000-\u200A\u202F\u205F\u00A0\u3000]/g, ' ')
+    .replace(/[▒□┤├│〖〗]/g, '')
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/\u2032/g, "'")
+    .replace(/\u2033/g, "''")
+    .replace(/\u2034/g, "'''")
+    .replace(/[\u2212\u2010-\u2015]/g, '-')
+    .replace(/[\u2044\u2215]/g, '/');
+}
+
+/**
+ * Reconstructs Word linear UnicodeMath equations, integrals, summations, limits,
+ * fractions, powers, and inverse trig functions into standardized LaTeX syntax.
+ */
+export function convertWordEquationToLatex(raw: string): string {
+  if (!raw) return '';
+  let s = cleanWordMathArtifacts(raw);
+
+  // 1. Word linear limits: (lim)┬(k→∞) or lim┬(k→∞) or (lim)_(k→∞) or lim_(x→0)
+  s = s.replace(/(?:\(?\\?lim\)?)\s*[┬┴]\s*\(([^()]+)\)/gi, (_m, cond) => {
+    const c = cond.trim().replace(/[→⟶]|->|(?<!\\)to\b/g, '\\to ').replace(/\\infty|\u221E|\binf\b/gi, '\\infty');
+    return `\\lim_{${c.trim()}}`;
+  });
+  s = s.replace(/(?:\\?lim|\(lim\))_\s*\(([^()]+)\)/gi, (_m, cond) => {
+    const c = cond.trim().replace(/[→⟶]|->|(?<!\\)to\b/g, '\\to ').replace(/\\infty|\u221E|\binf\b/gi, '\\infty');
+    return `\\lim_{${c.trim()}}`;
+  });
+
+  // 2. Word summations: ∑_(r=1)^k or ∑_{r=1}^k or ∑_(r=1)^(k) or ∑_i^n
+  s = s.replace(/[∑\u2211]\s*_\s*([({])([^(){}]+)([)}])(?:\s*\^\s*([({]?)([0-9a-zA-Z_+-\\^]+)([)}]?))?/g, (_m, _o1, lower, _c1, _o2, upper) => {
+    const up = upper ? `^{${upper.trim()}}` : '';
+    return `\\sum_{${lower.trim()}}${up}`;
+  });
+
+  // 3. Integrals: ∫_0^1 or ∫_{0}^{1} or ∫_(0)^(1)
+  s = s.replace(/∫\s*(?:_\s*(?:\{([^{}]+)\}|\(([^()]+)\)|([0-9a-zA-Z\\]+)))?(?:\s*\^\s*(?:\{([^{}]+)\}|\(([^()]+)\)|([0-9a-zA-Z\\]+)))?/g,
+    (_m, lBrace, lParen, lBare, uBrace, uParen, uBare) => {
+      const lower = (lBrace || lParen || lBare || '').trim();
+      const upper = (uBrace || uParen || uBare || '').trim();
+      const bLower = lower ? `_{${lower}}` : '';
+      const bUpper = upper ? `^{${upper}}` : '';
+      return `\\int${bLower}${bUpper} `;
+    }
+  );
+  s = s.replace(/∫/g, '\\int ');
+
+  // 4. Products: ∏_(i=1)^n
+  s = s.replace(/[∏\u220F]\s*_\s*([({])([^(){}]+)([)}])(?:\s*\^\s*([({]?)([0-9a-zA-Z_+-\\^]+)([)}]?))?/g, (_m, _o1, lower, _c1, _o2, upper) => {
+    const up = upper ? `^{${upper.trim()}}` : '';
+    return `\\prod_{${lower.trim()}}${up}`;
+  });
+
+  // 5. Inverse trigonometric functions: tan^(-1), cot^(-1), sin^(-1), cos^(-1), sec^(-1), csc^(-1)
+  s = s.replace(/(?<![\\a-zA-Z])(sin|cos|tan|cot|sec|csc)\s*\^\s*\(\s*-?\s*1\s*\)/gi, '\\$1^{-1}');
+
+  // 6. Standard math functions
+  s = s.replace(/(?<![\\a-zA-Z])(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b(?![a-zA-Z])/gi, '\\$1');
+
+  // 7. Greek letters & symbols
+  s = s.replace(/[π𝜋]/g, '\\pi')
+       .replace(/[α𝛼]/g, '\\alpha')
+       .replace(/[β𝛽]/g, '\\beta')
+       .replace(/[γ𝛾]/g, '\\gamma')
+       .replace(/[θ𝜃]/g, '\\theta')
+       .replace(/[λ𝜆]/g, '\\lambda')
+       .replace(/[μ𝜇]/g, '\\mu')
+       .replace(/[σ𝜎]/g, '\\sigma')
+       .replace(/[ω𝜔]/g, '\\omega')
+       .replace(/∞/g, '\\infty')
+       .replace(/≤/g, '\\le ')
+       .replace(/≥/g, '\\ge ')
+       .replace(/≠/g, '\\neq ');
+
+  // 8. Multi-character or parenthesized exponents: 2^(2r+1) -> 2^{2r+1}, e^((2-4x)) -> e^{2-4x}
+  s = s.replace(/([0-9a-zA-Z\)\]\}]|\\\w+)\s*\^\s*\(\s*\(([^()]+)\)\s*\)/g, '$1^{$2}');
+  s = s.replace(/([0-9a-zA-Z\)\]\}]|\\\w+)\s*\^\s*\(\s*([^()]+)\s*\)/g, '$1^{$2}');
+  s = s.replace(/([0-9a-zA-Z\)\]\}]|\\\w+)\s*\^\s*([a-zA-Z0-9])(?![a-zA-Z0-9{])/g, '$1^{$2}');
+
+  // 9. Subscripts: S_k -> S_{k}, a_n -> a_{n}
+  s = s.replace(/\b([A-Za-z])_([a-zA-Z0-9]+)\b/g, '$1_{$2}');
+
+  // 10. Fractions:
+  // e.g. 1/(5+2x-2x^2 )(1+e^{2-4x} ) -> \frac{1}{(5+2x-2x^2)(1+e^{2-4x})}
+  s = s.replace(/1\s*\/\s*\(\s*([^()]+)\s*\)\s*\(\s*([^()]+)\s*\)/g, '\\frac{1}{($1)($2)}');
+  s = s.replace(/1\s*\/\s*\\alpha\b/g, '\\frac{1}{\\alpha}');
+  s = s.replace(/\\pi\s*\/\s*([0-9]+)/g, '\\frac{\\pi}{$1}');
+  s = s.replace(/(?<![a-zA-Z0-9\\])([0-9]+)\s*\/\s*([0-9]+)(?![a-zA-Z0-9])/g, '\\frac{$1}{$2}');
+
+  // (a+1)/b or (\alpha+1)/\beta
+  s = s.replace(/\(\s*([0-9a-zA-Z\\^{}_+\-\s]+?)\s*\)\s*\/\s*([\\a-zA-Z0-9_]+)/g, '\\frac{$1}{$2}');
+  // NUM / (DEN)
+  s = s.replace(/([0-9a-zA-Z\\^{}_]+)\s*\/\s*\(\s*([0-9a-zA-Z\\^{}_+\-\s]+?)\s*\)/g, '\\frac{$1}{$2}');
+  // (NUM) / (DEN)
+  s = s.replace(/\(\s*([0-9a-zA-Z\\^{}_+\-\s]+?)\s*\)\s*\/\s*([0-9a-zA-Z\\^{}_+\-\s]+?)\s*\)/g, '\\frac{$1}{$2}');
+
+  // 11. Tall parentheses \left( \frac{...}{...} \right) with arbitrary nested braces
+  s = s.replace(/(\\(?:tan|cot|sin|cos|sec|csc)(?:\^\{[^}]+\})?|\\(?:log_e|ln|log))\s*\(\s*(\\frac\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})\s*\)/g,
+    '$1\\left($2\\right)');
+
+  // 12. Spacing around \, dx
+  s = s.replace(/\s*dx\b/gi, ' \\, dx');
+
+  return s.trim();
+}
+
+/**
+ * Smartly wraps mathematical formulas in KaTeX-compatible $...$ delimiters.
+ * Wraps equations, integrals, summations, limits, and options while preserving
+ * natural English sentence words.
+ */
+export function wrapMathInDollars(text: string): string {
+  let s = text.trim();
+  if (!s) return '';
+
+  // Already single math block wrapped
+  if (s.startsWith('$') && s.endsWith('$') && !s.slice(1, -1).includes('$')) {
+    return s;
+  }
+
+  // Check if string contains English prose words:
+  const proseRegex = /\b(?:Let|Then|If|When|Where|Find|Calculate|Given|Suppose|Show|Prove|The|Hence|Therefore|is|are|was|were|equal|to|for|with|and|or|in|of|by|on|at|all|value|values|such|that)\b/i;
+  const words = s.split(/\s+/);
+  const hasProse = proseRegex.test(s) && words.length > 2;
+
+  // If pure math (like an option or standalone expression), wrap entirely in $...$
+  if (!hasProse) {
+    if (!s.startsWith('$')) {
+      return `$${s}$`;
+    }
+    return s;
+  }
+
+  // For mixed text:
+  // Step 1: Protect existing $...$
+  const protectedBlocks: string[] = [];
+  s = s.replace(/\$[^\$]+?\$/g, (m) => {
+    const key = `___PROT_${protectedBlocks.length}___`;
+    protectedBlocks.push(m);
+    return key;
+  });
+
+  const protect = (match: string) => {
+    const key = `___PROT_${protectedBlocks.length}___`;
+    protectedBlocks.push(`$${match.trim()}$`);
+    return ` ${key} `;
+  };
+
+  // Step 2: Full integral equations or expressions
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*[\s\S]+?\\,\s*dx(?:\s*=\s*[^,;\n]+)?)(?=\s*,|\s+where|\s+for|\s+and|$)/gi,
+    (_, m) => protect(m));
+
+  // Step 3: Full equations starting with variable: e.g. S_{k} = \sum_{r=1}^{k} \tan^{-1}\left(\frac{6^{r}}{2^{2r+1}+3^{2r+1}}\right)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\b[A-Za-z](?:_\{[^{}]+\}|_[A-Za-z0-9]+)?\s*=\s*(?:\\sum|\\prod|\\lim)[\s\S]+?)(?=\s*\.|\s+Then\b|\s+and\b|\s+where\b|$)/gi,
+    (_, m) => protect(m));
+
+  // Step 4: Standalone limits/summations before prose: e.g. \lim_{k\to\infty} S_{k}
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*[A-Za-z0-9_^{}\\()]+)(?=\s+is\b|\s*=\s*|\s*[,;.]|\s+where\b|\s+and\b|$)/gi,
+    (_, m) => protect(m));
+
+  // Step 5: Inequalities or bounds: e.g. \alpha, \beta > 0
+  s = s.replace(/(?<![a-zA-Z0-9_\$])((\\[a-zA-Z]+|[a-zA-Z])(?:\s*,\s*(\\[a-zA-Z]+|[a-zA-Z]))*\s*[><=]\s*[0-9]+)(?![a-zA-Z0-9_\$])/gi,
+    (_, m) => protect(m));
+
+  // Step 6: Polynomials or expressions: e.g. \alpha^4 - \beta^4
+  s = s.replace(/(?<![a-zA-Z0-9_\$])((\\[a-zA-Z]+|[a-zA-Z])\^[0-9a-zA-Z]+\s*[-+*/]\s*(\\[a-zA-Z]+|[a-zA-Z])\^[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/gi,
+    (_, m) => protect(m));
+
+  // Step 7: Standalone math commands
+  s = s.replace(/(?<!\$)((\\(?:tan|cot|sin|cos|sec|csc)\^\{[^}]+\}|\\(?:frac|dfrac|sqrt|log_e|ln|alpha|beta|gamma|theta|lambda|pi|sum|lim|int))\S*(?:\s*[=+*/\-]\s*\S+)*)(?!\$)/g,
+    (_, m) => protect(m));
+
+  // Step 8: Restore protected blocks
+  for (let idx = 0; idx < protectedBlocks.length; idx++) {
+    s = s.replace(`___PROT_${idx}___`, protectedBlocks[idx]);
+  }
+
+  // Clean double dollars and redundant spaces around punctuation
+  s = s.replace(/\$\s*\$/g, ' ');
+  s = s.replace(/\$\$+/g, '$');
+  s = s.replace(/\s+,/g, ',');
+  s = s.replace(/\s+\./g, '.');
+  s = s.replace(/\s+/g, ' ').trim();
+
+  return s;
+}
+
+/**
  * Smart Question Splitter:
  * Splits raw pasted text into individual question segments without
  * accidentally fragmenting numbered options (1., 2., 3., 4.) into separate questions.
@@ -65,10 +259,7 @@ export function splitIntoQuestionSegments(rawText: string): string[] {
  */
 export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
   // Normalize unicode spaces and strip invisible Word/PDF mathematical formatting markers
-  let text = rawBlock
-    .replace(/[\u200B-\u200D\uFEFF\u2060\u2061]/g, '')
-    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
-    .trim();
+  let text = cleanWordMathArtifacts(rawBlock).trim();
 
   // 1. Remove leading question numbers e.g. "1.", "2.", "Q.1:", "Question 2:"
   text = text.replace(/^\s*(?:Q(?:uestion)?\.?\s*\d+|\d+[\.\:\)])\s*/i, '').trim();
@@ -199,22 +390,22 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
   }
 
   // 6. Mathematical & LaTeX Normalization (KaTeX / MathJax Compatibility)
-  const normalizedStatement = normalizeMathText(text.trim());
+  const normStatement = wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(text.trim())));
   const finalOptions: { key: 'A' | 'B' | 'C' | 'D'; text: string }[] = [
-    { key: 'A', text: normalizeMathText(optionsMap.A || '') },
-    { key: 'B', text: normalizeMathText(optionsMap.B || '') },
-    { key: 'C', text: normalizeMathText(optionsMap.C || '') },
-    { key: 'D', text: normalizeMathText(optionsMap.D || '') }
+    { key: 'A', text: wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(optionsMap.A || ''))) },
+    { key: 'B', text: wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(optionsMap.B || ''))) },
+    { key: 'C', text: wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(optionsMap.C || ''))) },
+    { key: 'D', text: wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(optionsMap.D || ''))) }
   ];
 
   return {
-    statement: normalizedStatement,
+    statement: normStatement,
     options: finalOptions,
     type: 'SINGLE_CORRECT',
     correctKey,
     examTag: examTag || undefined,
-    solution: solution ? normalizeMathText(solution) : undefined,
-    shortcut: shortcut ? normalizeMathText(shortcut) : undefined
+    solution: solution ? wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(solution))) : undefined,
+    shortcut: shortcut ? wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(shortcut))) : undefined
   };
 }
 
@@ -226,5 +417,3 @@ export function parseWordQuestions(rawText: string): ParsedWordQuestion[] {
   if (segments.length === 0) return [];
   return segments.map((seg) => parseSingleQuestionBlock(seg));
 }
-
-
