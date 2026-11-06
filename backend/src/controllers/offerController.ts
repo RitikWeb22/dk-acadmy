@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Offer, type IOffer } from '../models/Offer.js';
 
-const SEED_OFFERS = [
+const SEED_OFFERS: Array<Partial<IOffer>> = [
   {
     offerType: 'banner',
     title: 'Top Announcement Banner',
@@ -47,10 +47,10 @@ export const getAllOffers = async (_req: Request, res: Response): Promise<void> 
       await Offer.insertMany(SEED_OFFERS);
     }
 
-    const offers = await Offer.find().sort({ priority: 1, createdAt: -1 });
+    const offers = await Offer.find().sort({ priority: 1, updatedAt: -1, createdAt: -1 });
 
-    const bannerOffer = offers.find((o) => o.offerType === 'banner' && o.isActive) || offers.find((o) => o.offerType === 'banner') || null;
-    const popupOffer = offers.find((o) => o.offerType === 'popup' && o.isActive) || offers.find((o) => o.offerType === 'popup') || null;
+    const bannerOffer = offers.find((o) => o.offerType === 'banner') || null;
+    const popupOffer = offers.find((o) => o.offerType === 'popup') || null;
     const itemOffers = offers.filter((o) => o.offerType === 'item_discount');
 
     res.status(200).json({
@@ -87,6 +87,7 @@ export const createOrUpdateOffer = async (req: Request, res: Response): Promise<
 
     if (existingOffer) {
       Object.assign(existingOffer, offerData);
+      existingOffer.updatedAt = new Date();
       await existingOffer.save();
       res.status(200).json({ success: true, message: 'Offer updated successfully', data: existingOffer });
       return;
@@ -106,8 +107,23 @@ export const toggleOfferStatus = async (req: Request, res: Response): Promise<vo
     if (mongoose.isValidObjectId(id)) {
       offer = await Offer.findById(id);
     }
-    if (!offer && (id === 'banner' || id === 'popup' || id === 'item_discount')) {
-      offer = await Offer.findOne({ offerType: id });
+    if (!offer) {
+      const normalizedType = id.includes('banner')
+        ? 'banner'
+        : id.includes('popup')
+        ? 'popup'
+        : id.includes('item')
+        ? 'item_discount'
+        : null;
+      if (normalizedType) {
+        offer = await Offer.findOne({ offerType: normalizedType });
+        if (!offer) {
+          const seed = SEED_OFFERS.find((s) => s.offerType === normalizedType);
+          if (seed) {
+            offer = (await Offer.create(seed as any)) as unknown as IOffer;
+          }
+        }
+      }
     }
     if (!offer) {
       res.status(404).json({ success: false, message: 'Offer not found' });
@@ -115,6 +131,7 @@ export const toggleOfferStatus = async (req: Request, res: Response): Promise<vo
     }
 
     offer.isActive = !offer.isActive;
+    offer.updatedAt = new Date();
     await offer.save();
 
     res.status(200).json({

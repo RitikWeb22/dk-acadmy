@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Container } from '../../ui/Container/Container';
 import { cmsService, CMS_EVENT_KEY } from '../../../services/cmsService';
+import { offerService, OFFERS_EVENT_KEY } from '../../../services/offerService';
 import type { Course } from '../../../types';
 import styles from './PopularCourses.module.scss';
 
@@ -28,11 +29,21 @@ export interface PopularCoursesProps {
 export const PopularCourses: React.FC<PopularCoursesProps> = ({ badge, title, subtitle }) => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [coursesList, setCoursesList] = useState<Course[]>(() => cmsService.getCourses());
+  const [offersTick, setOffersTick] = useState(0);
 
   useEffect(() => {
     const handleUpdate = () => setCoursesList(cmsService.getCourses());
+    const handleOffers = () => setOffersTick((v) => v + 1);
+
     window.addEventListener(CMS_EVENT_KEY, handleUpdate);
-    return () => window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
+    window.addEventListener(OFFERS_EVENT_KEY, handleOffers);
+    window.addEventListener('storage', handleOffers);
+
+    return () => {
+      window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
+      window.removeEventListener(OFFERS_EVENT_KEY, handleOffers);
+      window.removeEventListener('storage', handleOffers);
+    };
   }, []);
 
   const filteredCourses = useMemo(() => {
@@ -182,7 +193,12 @@ export const PopularCourses: React.FC<PopularCoursesProps> = ({ badge, title, su
               course.badge?.toLowerCase().includes('flagship') ||
               index === 0;
 
-            const discount = getDiscountPercentage(course);
+            const rawPrice = course.numericPrice || (typeof course.price === 'string' ? parseFloat(course.price.replace(/[^0-9.]/g, '')) : 18500);
+            const effectiveOffer = offerService.getEffectiveItemOffer(course.id || (course as any)._id, 'course', rawPrice);
+            const discount = effectiveOffer.hasOffer ? effectiveOffer.discountPercent : getDiscountPercentage(course);
+            const displayPrice = effectiveOffer.hasOffer ? `₹${effectiveOffer.discountedPrice.toLocaleString('en-IN')}` : course.price;
+            const originalPriceDisplay = effectiveOffer.hasOffer ? `₹${rawPrice.toLocaleString('en-IN')}` : course.originalPrice;
+            const activeBadge = (effectiveOffer.hasOffer && effectiveOffer.badgeText) ? effectiveOffer.badgeText : (course.badge || 'DK SIR FLAGSHIP');
 
             return (
               <article
@@ -195,9 +211,16 @@ export const PopularCourses: React.FC<PopularCoursesProps> = ({ badge, title, su
 
                 {/* Top Badge Row */}
                 <div className={styles.topBadgeRow}>
-                  <div className={styles.flagshipBadge}>
+                  <div
+                    className={styles.flagshipBadge}
+                    style={
+                      effectiveOffer.hasOffer
+                        ? { background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#ffffff' }
+                        : undefined
+                    }
+                  >
                     <Sparkles size={12} className={styles.flagshipIcon} aria-hidden="true" />
-                    <span>{course.badge || 'DK SIR FLAGSHIP'}</span>
+                    <span>{activeBadge}</span>
                   </div>
 
                   <div className={styles.targetYearPill}>
@@ -243,13 +266,13 @@ export const PopularCourses: React.FC<PopularCoursesProps> = ({ badge, title, su
                 {/* Standardized Pricing Row */}
                 <div className={styles.priceRow}>
                   <div className={styles.priceWrap}>
-                    <span className={styles.currentPrice}>{course.price}</span>
-                    {course.originalPrice && (
-                      <span className={styles.strikethroughPrice}>{course.originalPrice}</span>
+                    <span className={styles.currentPrice}>{displayPrice}</span>
+                    {originalPriceDisplay && (
+                      <span className={styles.strikethroughPrice}>{originalPriceDisplay}</span>
                     )}
-                    {discount && (
+                    {discount ? (
                       <span className={styles.discountBadge}>Save {discount}%</span>
-                    )}
+                    ) : null}
                   </div>
                   <span className={styles.gstTag}>Incl. 18% GST</span>
                 </div>

@@ -43,9 +43,9 @@ export const getAllOffers = async (_req, res) => {
         if (count === 0) {
             await Offer.insertMany(SEED_OFFERS);
         }
-        const offers = await Offer.find().sort({ priority: 1, createdAt: -1 });
-        const bannerOffer = offers.find((o) => o.offerType === 'banner' && o.isActive) || offers.find((o) => o.offerType === 'banner') || null;
-        const popupOffer = offers.find((o) => o.offerType === 'popup' && o.isActive) || offers.find((o) => o.offerType === 'popup') || null;
+        const offers = await Offer.find().sort({ priority: 1, updatedAt: -1, createdAt: -1 });
+        const bannerOffer = offers.find((o) => o.offerType === 'banner') || null;
+        const popupOffer = offers.find((o) => o.offerType === 'popup') || null;
         const itemOffers = offers.filter((o) => o.offerType === 'item_discount');
         res.status(200).json({
             success: true,
@@ -78,6 +78,7 @@ export const createOrUpdateOffer = async (req, res) => {
         }
         if (existingOffer) {
             Object.assign(existingOffer, offerData);
+            existingOffer.updatedAt = new Date();
             await existingOffer.save();
             res.status(200).json({ success: true, message: 'Offer updated successfully', data: existingOffer });
             return;
@@ -96,14 +97,30 @@ export const toggleOfferStatus = async (req, res) => {
         if (mongoose.isValidObjectId(id)) {
             offer = await Offer.findById(id);
         }
-        if (!offer && (id === 'banner' || id === 'popup' || id === 'item_discount')) {
-            offer = await Offer.findOne({ offerType: id });
+        if (!offer) {
+            const normalizedType = id.includes('banner')
+                ? 'banner'
+                : id.includes('popup')
+                    ? 'popup'
+                    : id.includes('item')
+                        ? 'item_discount'
+                        : null;
+            if (normalizedType) {
+                offer = await Offer.findOne({ offerType: normalizedType });
+                if (!offer) {
+                    const seed = SEED_OFFERS.find((s) => s.offerType === normalizedType);
+                    if (seed) {
+                        offer = (await Offer.create(seed));
+                    }
+                }
+            }
         }
         if (!offer) {
             res.status(404).json({ success: false, message: 'Offer not found' });
             return;
         }
         offer.isActive = !offer.isActive;
+        offer.updatedAt = new Date();
         await offer.save();
         res.status(200).json({
             success: true,

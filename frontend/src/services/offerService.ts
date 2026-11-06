@@ -28,6 +28,12 @@ export interface PopupOfferData {
   linkUrl: string;
   audience: 'all' | 'guest_only' | 'loggedin_only';
   frequency: 'every_visit' | 'once_per_session' | 'once_per_day';
+  hasDiscount?: boolean;
+  discountType?: 'percent' | 'flat';
+  discountValue?: number;
+  couponCode?: string;
+  discountBadge?: string;
+  autoApplyOnRedirect?: boolean;
   isActive: boolean;
   priority?: number;
   createdAt?: string;
@@ -167,13 +173,14 @@ class OfferService {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       if (emitEvent) {
         window.dispatchEvent(new CustomEvent(OFFERS_EVENT_KEY, { detail: data }));
+        window.dispatchEvent(new Event('storage'));
       }
     } catch (err) {
       console.warn('[OfferService] Failed saving to localStorage:', err);
     }
   }
 
-  public async getAllOffers(): Promise<AllOffersPayload> {
+  public async getAllOffers(forceEmit = false): Promise<AllOffersPayload> {
     try {
       const res = await apiClient.get<any>('/offers');
       if (res && res.success && res.data) {
@@ -183,8 +190,8 @@ class OfferService {
           popupOffer: res.data.popupOffer || null,
           itemOffers: res.data.itemOffers || []
         };
-        // Save silently without triggering re-fetch storms
-        this.saveLocalData(payload, false);
+        // Save and conditionally notify listeners
+        this.saveLocalData(payload, forceEmit);
         return payload;
       }
     } catch (err) {

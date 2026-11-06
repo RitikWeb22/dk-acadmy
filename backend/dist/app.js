@@ -159,9 +159,9 @@ app.use(cors((req, callback) => {
 }));
 // Razorpay Webhook endpoint mounted with raw body parser BEFORE global express.json()
 app.post(['/api/v1/payment/webhook', '/api/payment/webhook'], express.raw({ type: 'application/json' }), handleRazorpayWebhook);
-// Request body parsers with strictly bounded content size (100kb)
-app.use(express.json({ limit: '100kb' }));
-app.use(express.urlencoded({ limit: '100kb', extended: true }));
+// Request body parsers with generous limits for rich media & base64 attachments
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 // NoSQL Injection & Input Sanitizer (recursively cleans req.body, req.query, req.params)
 app.use(sanitizeInputs);
 // Serve local media uploads statically with download/view restrictions and scoped cross-origin policy

@@ -9,14 +9,12 @@ import {
   ShieldCheck,
   GraduationCap,
   FileCheck,
-  PhoneCall,
   Target,
   TrendingUp,
   Award,
   Trophy
 } from 'lucide-react';
 import { Container } from '../../ui/Container/Container';
-import { CallbackModal } from '../../leads/CallbackModal/CallbackModal';
 import { cmsService, CMS_EVENT_KEY } from '../../../services/cmsService';
 import styles from './ResultsBannerStrip.module.scss';
 
@@ -112,7 +110,6 @@ export interface ResultsBannerStripProps {
 
 export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, title, subtitle }) => {
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
-  const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<'All' | 'JEE Advanced' | 'JEE Main' | 'BITSAT'>('All');
   const [homeConfig, setHomeConfig] = useState(() => cmsService.getPageConfig('home'));
 
@@ -201,15 +198,6 @@ export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, t
 
           {/* Right-side action buttons */}
           <div className={styles.headerRight}>
-            <button
-              type="button"
-              className={styles.counselingBtn}
-              onClick={() => setIsCallbackModalOpen(true)}
-              aria-label="Ask academic counselor"
-            >
-              <PhoneCall size={14} aria-hidden="true" />
-              <span>Ask Counselor</span>
-            </button>
             <Link to="/results" className={styles.exploreAllBtn} aria-label="Explore all verified achievers">
               <span>View All Achievers</span>
               <ArrowRight size={14} aria-hidden="true" />
@@ -238,12 +226,12 @@ export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, t
 
         {/* 3. Achievers Grid: 4 columns desktop, 3 tablet, 2 small tablet, 1 mobile */}
         <div className={styles.achieversGrid}>
-          {filteredRankers.map((ranker) => {
+          {filteredRankers.map((ranker, idx) => {
             const { number: pNumber, suffix: pSuffix } = parsePercentileParts(ranker.percentile);
 
             return (
               <div key={ranker.id} className={styles.standardCard}>
-                {/* Photo Area */}
+                {/* Photo Area (portrait, face-first framing) */}
                 <div className={styles.cardPhotoArea}>
                   <img
                     src={ranker.image}
@@ -260,6 +248,9 @@ export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, t
                     <span>{getInitials(ranker.name)}</span>
                   </div>
 
+                  {/* Bottom gradient scrim for legible overlay text */}
+                  <div className={styles.photoScrim} aria-hidden="true" />
+
                   {/* Top-Left Tag: Exam Name */}
                   <span className={styles.examTag}>{ranker.exam}</span>
 
@@ -268,27 +259,25 @@ export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, t
                     <ShieldCheck size={12} className={styles.verifiedShieldIcon} aria-hidden="true" />
                     <span>Verified</span>
                   </span>
+
+                  {/* Overlay identity block */}
+                  <div className={styles.photoOverlayInfo}>
+                    <span className={styles.rankIndex}>#{String(idx + 1).padStart(2, '0')}</span>
+                    <h3 className={styles.cardName}>{ranker.name}</h3>
+                    <div className={styles.cardCollegeLine}>
+                      <GraduationCap size={13} className={styles.collegeIcon} aria-hidden="true" />
+                      <span>{ranker.college}</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Card Body */}
+                {/* Card Footer: Percentile & Rank */}
                 <div className={styles.cardBody}>
-                  {/* Hero Row: Percentile & Rank Pill */}
-                  <div className={styles.cardHeroRow}>
-                    <div className={styles.cardPercentileWrap}>
-                      <span className={styles.cardPercentileVal}>{pNumber}</span>
-                      <span className={styles.cardPercentileSuffix}>{pSuffix}</span>
-                    </div>
-                    <span className={styles.rankPill}>{ranker.rank}</span>
+                  <div className={styles.cardPercentileWrap}>
+                    <span className={styles.cardPercentileVal}>{pNumber}</span>
+                    <span className={styles.cardPercentileSuffix}>{pSuffix}</span>
                   </div>
-
-                  {/* Name */}
-                  <h3 className={styles.cardName}>{ranker.name}</h3>
-
-                  {/* College + Branch Line */}
-                  <div className={styles.cardCollegeLine}>
-                    <GraduationCap size={14} className={styles.collegeIcon} aria-hidden="true" />
-                    <span>{ranker.college}</span>
-                  </div>
+                  <span className={styles.rankPill}>{ranker.rank}</span>
                 </div>
               </div>
             );
@@ -405,14 +394,6 @@ export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, t
           </div>
         </div>,
         document.body
-      )}
-
-      {/* Counselor Callback Modal */}
-      {isCallbackModalOpen && (
-        <CallbackModal
-          isOpen={isCallbackModalOpen}
-          onClose={() => setIsCallbackModalOpen(false)}
-        />
       )}
     </section>
   );
