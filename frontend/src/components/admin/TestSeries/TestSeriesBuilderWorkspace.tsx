@@ -2018,21 +2018,44 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     return txt.length > 3 && Boolean(hasOptions && q.correctKey);
   }, []);
 
+  // Synchronize activeSubjectTab when selectedSubjects changes
+  useEffect(() => {
+    if (selectedSubjects.length > 0 && !selectedSubjects.includes(activeSubjectTab)) {
+      setActiveSubjectTab(selectedSubjects[0]);
+    }
+  }, [selectedSubjects, activeSubjectTab]);
+
   // Synchronize question slots with configured Section A & Section B counts from Step 2
   const syncQuestionsWithSections = useCallback(() => {
     setQuestions((prevQuestions) => {
       const result: QuestionItem[] = [];
       let overallIdx = 1;
 
+      const primarySubject = selectedSubjects.length > 0 ? selectedSubjects[0] : 'Mathematics';
+      if (!selectedSubjects.includes(activeSubjectTab)) {
+        setActiveSubjectTab(primarySubject);
+      }
+
       selectedSubjects.forEach((subj) => {
-        const rule = subjectRules[subj] || { secATotal: 20, secBTotal: 10 };
+        const rule = subjectRules[subj] || { secATotal: 20, secBTotal: 10, secBEnforceOptional: true };
         const targetSecA = Math.max(1, Number(rule.secATotal) || 20);
-        const targetSecB = Math.max(0, Number(rule.secBTotal) || 10);
+        const targetSecB = Math.max(0, Number(rule.secBTotal) || (rule.secBEnforceOptional ? 10 : 5));
 
         // Keep existing Section A questions for this subject
-        const existingA = prevQuestions.filter((q) => q.subject === subj && q.section === 'A');
+        const existingA = selectedSubjects.length === 1
+          ? prevQuestions.filter((q) => q.section === 'A' || (!q.section && q.type !== 'NUMERICAL'))
+          : prevQuestions.filter(
+              (q) => (String(q.subject || '').toLowerCase() === String(subj).toLowerCase() || !q.subject) &&
+                     (q.section === 'A' || (!q.section && q.type !== 'NUMERICAL'))
+            );
+
         // Keep existing Section B questions for this subject
-        const existingB = prevQuestions.filter((q) => q.subject === subj && q.section === 'B');
+        const existingB = selectedSubjects.length === 1
+          ? prevQuestions.filter((q) => q.section === 'B' || q.type === 'NUMERICAL')
+          : prevQuestions.filter(
+              (q) => (String(q.subject || '').toLowerCase() === String(subj).toLowerCase() || !q.subject) &&
+                     (q.section === 'B' || q.type === 'NUMERICAL')
+            );
 
         // Populate Section A slots
         for (let i = 0; i < targetSecA; i++) {
@@ -2107,7 +2130,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       return prevQuestions;
     });
     showToast('✓ Synchronized question slots with Section A and Section B counts.');
-  }, [selectedSubjects, subjectRules, selectedQuestionId]);
+  }, [selectedSubjects, subjectRules, selectedQuestionId, activeSubjectTab]);
 
   const handlePrevStep = () => {
     if (currentStep > 1) {
@@ -2127,15 +2150,27 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
   // Active questions categorized by subject & section
   const activeSubjectQuestions = useMemo(() => {
-    return questions.filter((q) => q.subject === activeSubjectTab);
-  }, [questions, activeSubjectTab]);
+    if (selectedSubjects.length === 1) {
+      return questions;
+    }
+    const filtered = questions.filter(
+      (q) => String(q.subject || '').toLowerCase() === String(activeSubjectTab || '').toLowerCase()
+    );
+    if (filtered.length > 0) return filtered;
+
+    const firstSubj = selectedSubjects[0];
+    const fallback = questions.filter(
+      (q) => String(q.subject || '').toLowerCase() === String(firstSubj || '').toLowerCase()
+    );
+    return fallback.length > 0 ? fallback : questions;
+  }, [questions, activeSubjectTab, selectedSubjects]);
 
   const secAQuestions = useMemo(() => {
-    return activeSubjectQuestions.filter((q) => q.section === 'A');
+    return activeSubjectQuestions.filter((q) => q.section === 'A' || (!q.section && q.type !== 'NUMERICAL'));
   }, [activeSubjectQuestions]);
 
   const secBQuestions = useMemo(() => {
-    return activeSubjectQuestions.filter((q) => q.section === 'B');
+    return activeSubjectQuestions.filter((q) => q.section === 'B' || q.type === 'NUMERICAL');
   }, [activeSubjectQuestions]);
 
   const totalPaperFilled = useMemo(() => {
@@ -2256,35 +2291,52 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     setQuestions((prev) => {
       let newQuestions = [...prev];
-      const isCurrentBlank = currentEditingQuestion && !currentEditingQuestion.questionText.trim();
-      let firstTargetId = currentEditingQuestion?.id;
+      let firstTargetId: string | undefined;
+
+      // Find current starting slot index
+      let curIdx = currentEditingQuestion
+        ? newQuestions.findIndex((q) => q.id === currentEditingQuestion.id)
+        : -1;
+
+      if (curIdx === -1) {
+        // Find the first slot that is blank/empty
+        curIdx = newQuestions.findIndex((q) => !q.questionText || !q.questionText.trim());
+        if (curIdx === -1) curIdx = 0;
+      }
 
       parsedList.forEach((parsed, pIdx) => {
-        if (pIdx === 0 && isCurrentBlank && currentEditingQuestion) {
-          newQuestions = newQuestions.map((q) =>
-            q.id === currentEditingQuestion.id
-              ? {
-                  ...q,
-                  type: parsed.type,
-                  section: parsed.type === 'NUMERICAL' ? 'B' : q.section,
-                  questionText: parsed.statement,
-                  statementBlocks: parseContentToBlocks(parsed.statement),
-                  options: parsed.options,
-                  correctKey: parsed.correctKey,
-                  numericalAnswer: parsed.numericalAnswer || '',
-                  topicTag: parsed.examTag || q.topicTag,
-                  solutionDerivation: parsed.solution || q.solutionDerivation,
-                  shortcutTrick: parsed.shortcut || q.shortcutTrick
-                }
-              : q
-          );
+        const slotIdx = curIdx + pIdx;
+        const assignedSubj = selectedSubjects.length === 1 ? selectedSubjects[0] : activeSubjectTab;
+        const assignedSec = parsed.type === 'NUMERICAL' ? 'B' : 'A';
+
+        if (slotIdx < newQuestions.length) {
+          // AUTO-FILL the existing slot!
+          const targetSlot = newQuestions[slotIdx];
+          if (pIdx === 0) firstTargetId = targetSlot.id;
+
+          newQuestions[slotIdx] = {
+            ...targetSlot,
+            subject: assignedSubj,
+            section: assignedSec,
+            type: parsed.type,
+            questionText: parsed.statement,
+            statementBlocks: parseContentToBlocks(parsed.statement),
+            options: parsed.options,
+            correctKey: parsed.correctKey,
+            numericalAnswer: parsed.numericalAnswer || '',
+            topicTag: parsed.examTag || targetSlot.topicTag,
+            solutionDerivation: parsed.solution || targetSlot.solutionDerivation,
+            shortcutTrick: parsed.shortcut || targetSlot.shortcutTrick
+          };
         } else {
+          // If we have more parsed questions than existing slots, push a new slot
           const newId = `q-word-${Date.now()}-${pIdx}`;
-          if (pIdx === 0 && !firstTargetId) firstTargetId = newId;
+          if (pIdx === 0) firstTargetId = newId;
+
           const newQ: QuestionItem = {
             id: newId,
-            subject: activeSubjectTab,
-            section: parsed.type === 'NUMERICAL' ? 'B' : 'A',
+            subject: assignedSubj,
+            section: assignedSec,
             index: newQuestions.length + 1,
             type: parsed.type,
             difficulty: parsed.type === 'NUMERICAL' ? 'HARD' : 'MEDIUM',
@@ -2301,11 +2353,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         }
       });
 
-      if (firstTargetId) setSelectedQuestionId(firstTargetId);
+      if (firstTargetId) {
+        setSelectedQuestionId(firstTargetId);
+      }
       return newQuestions;
     });
 
-    showToast(`✓ Added ${parsedList.length} Question${parsedList.length > 1 ? 's' : ''} from Word!`);
+    showToast(`✓ All Fetched! Auto-filled ${parsedList.length} question statement and options.`);
   };
 
   const handleApplySmartPaste = () => {
@@ -4414,11 +4468,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   </div>
 
                   {/* Access Mode & Paid Monetization Lock */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
+                  <div style={{ background: 'var(--color-surface-alt, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '16px' }}>🔒</span>
-                        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Test Access &amp; Monetization Mode</h4>
+                        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--color-text-strong, #0f172a)' }}>Test Access &amp; Monetization Mode</h4>
                       </div>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: wizardIsFree ? '#15803d' : '#4338ca', background: wizardIsFree ? '#dcfce7' : '#e0e7ff', padding: '3px 8px', borderRadius: '6px' }}>
                         {wizardIsFree ? 'Free Access' : `Paid Lock • ₹${wizardPrice}`}
@@ -4434,8 +4488,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           minWidth: '200px',
                           padding: '12px',
                           borderRadius: '8px',
-                          border: `2px solid ${wizardIsFree ? '#10b981' : '#cbd5e1'}`,
-                          background: wizardIsFree ? '#ecfdf5' : '#ffffff',
+                          border: `2px solid ${wizardIsFree ? '#10b981' : 'var(--color-border, #cbd5e1)'}`,
+                          background: wizardIsFree ? 'rgba(16, 185, 129, 0.15)' : 'var(--color-surface, #ffffff)',
                           cursor: 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
@@ -4443,8 +4497,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           gap: '4px'
                         }}
                       >
-                        <span style={{ fontWeight: 700, fontSize: '13px', color: wizardIsFree ? '#065f46' : '#334155' }}>🟢 Free Test Series</span>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>Open for all enrolled students without payment lock.</span>
+                        <span style={{ fontWeight: 700, fontSize: '13px', color: wizardIsFree ? 'var(--color-text-accent, #065f46)' : 'var(--color-text-strong, #334155)' }}>🟢 Free Test Series</span>
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #64748b)' }}>Open for all enrolled students without payment lock.</span>
                       </button>
 
                       <button
@@ -4455,8 +4509,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           minWidth: '200px',
                           padding: '12px',
                           borderRadius: '8px',
-                          border: `2px solid ${!wizardIsFree ? '#6366f1' : '#cbd5e1'}`,
-                          background: !wizardIsFree ? '#eef2ff' : '#ffffff',
+                          border: `2px solid ${!wizardIsFree ? '#6366f1' : 'var(--color-border, #cbd5e1)'}`,
+                          background: !wizardIsFree ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-surface, #ffffff)',
                           cursor: 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
@@ -4464,22 +4518,22 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           gap: '4px'
                         }}
                       >
-                        <span style={{ fontWeight: 700, fontSize: '13px', color: !wizardIsFree ? '#3730a3' : '#334155' }}>🔒 Paid &amp; Locked (Razorpay)</span>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>Students must pay via Razorpay to unlock and attempt.</span>
+                        <span style={{ fontWeight: 700, fontSize: '13px', color: !wizardIsFree ? '#818cf8' : 'var(--color-text-strong, #334155)' }}>🔒 Paid &amp; Locked (Razorpay)</span>
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #64748b)' }}>Students must pay via Razorpay to unlock and attempt.</span>
                       </button>
                     </div>
 
                     {!wizardIsFree && (
                       <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>Unlock Price (INR):</label>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-strong, #334155)' }}>Unlock Price (INR):</label>
                         <div style={{ position: 'relative', width: '140px' }}>
-                          <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b' }}>₹</span>
+                          <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--color-text-muted, #64748b)' }}>₹</span>
                           <input
                             type="number"
                             min={1}
                             value={wizardPrice}
                             onChange={(e) => setWizardPrice(Math.max(1, Number(e.target.value) || 0))}
-                            style={{ width: '100%', padding: '6px 10px 6px 24px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700 }}
+                            style={{ width: '100%', padding: '6px 10px 6px 24px', borderRadius: '6px', border: '1px solid var(--color-border, #cbd5e1)', background: 'var(--color-surface, #ffffff)', color: 'var(--color-text-strong, #0f172a)', fontSize: '13px', fontWeight: 700 }}
                           />
                         </div>
                       </div>
@@ -4909,23 +4963,23 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     style={{
                       marginTop: '20px',
                       padding: '16px 18px',
-                      background: '#F8FAFC',
-                      border: '1px solid #E2E8F0',
+                      background: 'var(--color-surface-alt, #F8FAFC)',
+                      border: '1px solid var(--color-border, #E2E8F0)',
                       borderRadius: '10px'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Video size={16} color="#2563EB" />
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-strong, #1E293B)' }}>
                           Question Solution &amp; Video Walkthrough (Scheduled Release Protected)
                         </span>
                       </div>
-                      <span style={{ fontSize: '11px', color: '#64748B', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '2px 8px', borderRadius: '12px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-link, #2563EB)', background: 'var(--color-surface, #EFF6FF)', border: '1px solid var(--color-border, #BFDBFE)', padding: '2px 8px', borderRadius: '12px' }}>
                         Optional • For Difficult Questions
                       </span>
                     </div>
-                    <p style={{ fontSize: '12px', color: '#64748B', margin: '0 0 14px 0' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--color-text-muted, #64748B)', margin: '0 0 14px 0' }}>
                       Attach dedicated video explanations (YouTube or Google Drive) and PDF derivations for this question. These solutions remain locked until the student's scheduled release timer.
                     </p>
 
@@ -5011,11 +5065,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               )}
 
                   {/* Access Mode & Paid Monetization Lock */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
+                  <div style={{ background: 'var(--color-surface-alt, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '16px' }}>🔒</span>
-                        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Test Access &amp; Monetization Mode</h4>
+                        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--color-text-strong, #0f172a)' }}>Test Access &amp; Monetization Mode</h4>
                       </div>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: wizardIsFree ? '#15803d' : '#4338ca', background: wizardIsFree ? '#dcfce7' : '#e0e7ff', padding: '3px 8px', borderRadius: '6px' }}>
                         {wizardIsFree ? 'Free Access' : `Paid Lock • ₹${wizardPrice}`}
@@ -5031,8 +5085,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           minWidth: '200px',
                           padding: '12px',
                           borderRadius: '8px',
-                          border: `2px solid ${wizardIsFree ? '#10b981' : '#cbd5e1'}`,
-                          background: wizardIsFree ? '#ecfdf5' : '#ffffff',
+                          border: `2px solid ${wizardIsFree ? '#10b981' : 'var(--color-border, #cbd5e1)'}`,
+                          background: wizardIsFree ? 'rgba(16, 185, 129, 0.15)' : 'var(--color-surface, #ffffff)',
                           cursor: 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
@@ -5040,8 +5094,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           gap: '4px'
                         }}
                       >
-                        <span style={{ fontWeight: 700, fontSize: '13px', color: wizardIsFree ? '#065f46' : '#334155' }}>🟢 Free Test Series</span>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>Open for all enrolled students without payment lock.</span>
+                        <span style={{ fontWeight: 700, fontSize: '13px', color: wizardIsFree ? 'var(--color-text-accent, #065f46)' : 'var(--color-text-strong, #334155)' }}>🟢 Free Test Series</span>
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #64748b)' }}>Open for all enrolled students without payment lock.</span>
                       </button>
 
                       <button
@@ -5052,8 +5106,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           minWidth: '200px',
                           padding: '12px',
                           borderRadius: '8px',
-                          border: `2px solid ${!wizardIsFree ? '#6366f1' : '#cbd5e1'}`,
-                          background: !wizardIsFree ? '#eef2ff' : '#ffffff',
+                          border: `2px solid ${!wizardIsFree ? '#6366f1' : 'var(--color-border, #cbd5e1)'}`,
+                          background: !wizardIsFree ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-surface, #ffffff)',
                           cursor: 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
@@ -5061,22 +5115,22 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                           gap: '4px'
                         }}
                       >
-                        <span style={{ fontWeight: 700, fontSize: '13px', color: !wizardIsFree ? '#3730a3' : '#334155' }}>🔒 Paid &amp; Locked (Razorpay)</span>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>Students must pay via Razorpay to unlock and attempt.</span>
+                        <span style={{ fontWeight: 700, fontSize: '13px', color: !wizardIsFree ? '#818cf8' : 'var(--color-text-strong, #334155)' }}>🔒 Paid &amp; Locked (Razorpay)</span>
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #64748b)' }}>Students must pay via Razorpay to unlock and attempt.</span>
                       </button>
                     </div>
 
                     {!wizardIsFree && (
                       <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>Unlock Price (INR):</label>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-strong, #334155)' }}>Unlock Price (INR):</label>
                         <div style={{ position: 'relative', width: '140px' }}>
-                          <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b' }}>₹</span>
+                          <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--color-text-muted, #64748b)' }}>₹</span>
                           <input
                             type="number"
                             min={1}
                             value={wizardPrice}
                             onChange={(e) => setWizardPrice(Math.max(1, Number(e.target.value) || 0))}
-                            style={{ width: '100%', padding: '6px 10px 6px 24px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700 }}
+                            style={{ width: '100%', padding: '6px 10px 6px 24px', borderRadius: '6px', border: '1px solid var(--color-border, #cbd5e1)', background: 'var(--color-surface, #ffffff)', color: 'var(--color-text-strong, #0f172a)', fontSize: '13px', fontWeight: 700 }}
                           />
                         </div>
                       </div>

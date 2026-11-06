@@ -1143,26 +1143,49 @@
   }
 }
 
-:global(.darkMode) {
+:global(.darkMode),
+:global(.dark),
+:global([data-theme="dark"]) {
+  .workspaceContainer,
   .workspaceShell {
     background: transparent;
     color: #F8FAFC;
   }
 
+  .pageTitle,
   .titleH1 {
     color: #F8FAFC;
   }
 
+  .pageSubtitle,
   .subtitleP {
     color: #94A3B8;
   }
 
-  .metricCard,
-  .tableContainer,
-  .filtersToolbar,
-  .leadDrawer {
+  .iconCircle {
     background: #1E293B;
     border-color: #334155;
+    color: #60A5FA;
+  }
+
+  .refreshBtn,
+  .exportBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #FFFFFF;
+    }
+  }
+
+  .metricCard {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .metricValue {
     color: #F8FAFC;
   }
 
@@ -1170,17 +1193,57 @@
     color: #94A3B8;
   }
 
-  .metricValue {
-    color: #F8FAFC;
+  .metricSubText {
+    color: #64748B;
   }
 
+  .toolbarCard,
+  .filtersToolbar {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .searchBoxWrapper input,
   .searchInput,
+  .filterGroup select,
   .filterSelect {
     background: #0F172A;
     border-color: #334155;
     color: #F8FAFC;
+
+    &::placeholder {
+      color: #64748B;
+    }
   }
 
+  .tabPill {
+    background: #0F172A;
+    border-color: #334155;
+    color: #94A3B8;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+
+    &.activeTab {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+  }
+
+  .tabCount {
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+  }
+
+  .tableContainer {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .rosterTable,
   .leadsTable {
     thead th {
       background: #0F172A;
@@ -1194,42 +1257,156 @@
     }
 
     tbody tr:hover {
-      background: rgba(30, 41, 59, 0.8);
+      background: rgba(15, 23, 42, 0.7);
     }
   }
 
+  .studentName,
   .leadName {
     color: #F8FAFC;
   }
 
+  .phoneLink {
+    color: #60A5FA;
+  }
+
+  .emailText,
+  .cityText,
+  .messagePreview,
+  .batchName,
   .leadSub {
     color: #94A3B8;
   }
 
-  .leadModal {
+  .leadIdBadge {
+    background: #0F172A;
+    border-color: #334155;
+    color: #93C5FD;
+  }
+
+  .statusSelectPill,
+  .counselorSelect {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .tableActionBtn {
+    background: #0F172A;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #FFFFFF;
+    }
+  }
+
+  .emptyState {
     background: #1E293B;
+    border-color: #334155;
+    color: #94A3B8;
+
+    h3 {
+      color: #F8FAFC;
+    }
+  }
+
+  .modalCard,
+  .leadModal,
+  .drawerPanel,
+  .leadDrawer {
+    background: #0F172A;
+    border-color: #1E293B;
+    color: #F8FAFC;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+  }
+
+  .modalHeader,
+  .drawerHeader {
+    background: #1E293B;
+    border-color: #334155;
+
+    h2,
+    h3 {
+      color: #F8FAFC;
+    }
+  }
+
+  .closeBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #94A3B8;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+  }
+
+  .modalBody,
+  .drawerContent {
+    background: #0F172A;
+    color: #F8FAFC;
+  }
+
+  .modalFooter {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .cancelBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #FFFFFF;
+    }
+  }
+
+  .inputGroup input,
+  .inputGroup select,
+  .inputGroup textarea {
+    background: #090D16;
     border-color: #334155;
     color: #F8FAFC;
 
-    .modalHeader {
-      border-color: #334155;
-      h2 {
-        color: #F8FAFC;
-      }
+    &::placeholder {
+      color: #64748B;
     }
+  }
 
-    .modalFooter {
-      background: #0F172A;
-      border-color: #334155;
-    }
+  .drawerSection {
+    border-bottom-color: #334155;
+  }
 
-    input,
-    select,
-    textarea {
-      background: #0F172A;
-      border-color: #334155;
-      color: #F8FAFC;
-    }
+  .detailLabel {
+    color: #94A3B8;
+  }
+
+  .detailVal {
+    color: #F8FAFC;
+  }
+
+  .noteItem {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .noteAuthor {
+    color: #F8FAFC;
+  }
+
+  .noteTime {
+    color: #64748B;
+  }
+
+  .addNoteBox textarea {
+    background: #090D16;
+    border-color: #334155;
+    color: #F8FAFC;
   }
 
   .deleteConfirmBox {

@@ -1160,7 +1160,9 @@
   }
 }
 
-:global(.darkMode) {
+:global(.darkMode),
+:global(.dark),
+:global([data-theme="dark"]) {
   .workspaceShell {
     background: transparent;
     color: #F8FAFC;
@@ -1172,6 +1174,11 @@
 
   .pageSubtitle {
     color: #94A3B8;
+  }
+
+  .titleIconBox {
+    background: #1E293B;
+    border-color: #334155;
   }
 
   .kpiCard {
@@ -1191,6 +1198,16 @@
     }
   }
 
+  .kpiCardWarning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+
+  .tabsContainer {
+    border-bottom-color: #334155;
+  }
+
+  .tabBtn,
   .navTabBtn {
     color: #94A3B8;
 
@@ -1199,25 +1216,56 @@
       color: #F8FAFC;
     }
 
+    &.tabBtnActive,
     &.activeTab {
       background: #2563EB;
       color: #FFFFFF;
     }
   }
 
+  .tabBadge {
+    background: #1E293B;
+    color: #CBD5E1;
+  }
+
+  .filterBar,
   .filterStripBar {
     background: #1E293B;
     border-color: #334155;
   }
 
+  .searchWrap input,
   .searchInputWrap input,
+  .filterSelect,
   .filterSelectWrap select {
     background: #0F172A;
     border-color: #334155;
     color: #F8FAFC;
+
+    &::placeholder {
+      color: #64748B;
+    }
+  }
+
+  .pillBtn {
+    background: #0F172A;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+
+    &.pillBtnActive {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
   }
 
   .doubtCard,
+  .reviewCard,
   .reviewItemCard {
     background: #1E293B;
     border-color: #334155;
@@ -1229,8 +1277,19 @@
 
   .studentName,
   .cardHeadline,
-  .doubtQuestionText {
+  .doubtQuestionText,
+  .questionText,
+  .reviewTitle,
+  .studentDetails {
     color: #F8FAFC;
+  }
+
+  .reviewContent {
+    color: #CBD5E1;
+  }
+
+  .chapterTopicStrip {
+    color: #94A3B8;
   }
 
   .questionBlock {
@@ -1239,9 +1298,23 @@
     color: #E2E8F0;
   }
 
+  .adminReplyBox {
+    background: #0F172A;
+    border-color: #334155;
+    color: #E2E8F0;
+  }
+
+  .adminReplyContent {
+    color: #CBD5E1;
+  }
+
   .answerBlock {
     background: rgba(37, 99, 235, 0.1);
     border-color: #1E3A8A;
+  }
+
+  .answerText {
+    color: #E2E8F0;
   }
 
   .emptyStateCard {
@@ -1254,7 +1327,10 @@
     }
   }
 
-  .secondaryActionBtn {
+  .secondaryActionBtn,
+  .actionBtnOutline,
+  .editAnswerBtn,
+  .cancelModalBtn {
     background: #1E293B;
     border-color: #334155;
     color: #E2E8F0;
@@ -1265,28 +1341,81 @@
     }
   }
 
+  .modalCard,
   .modalContent {
-    background: #1E293B;
-    border-color: #334155;
+    background: #0F172A;
+    border-color: #1E293B;
     color: #F8FAFC;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
 
     .modalHeader {
+      background: #1E293B;
       border-color: #334155;
-      h3 {
+
+      h3,
+      .modalHeaderTitle {
+        color: #F8FAFC;
+      }
+
+      .modalHeaderSubtitle {
+        color: #94A3B8;
+      }
+    }
+
+    .modalCloseBtn {
+      background: #1E293B;
+      border-color: #334155;
+      color: #94A3B8;
+
+      &:hover {
+        background: #334155;
+        color: #F8FAFC;
+      }
+    }
+
+    .modalBody {
+      background: #0F172A;
+    }
+
+    .doubtQuestionPreviewBox {
+      background: #1E293B;
+      border-color: #334155;
+    }
+
+    .previewQuestionText {
+      color: #F8FAFC;
+    }
+
+    .quickChipsRow .quickChip {
+      background: #1E293B;
+      border-color: #334155;
+      color: #CBD5E1;
+
+      &:hover {
+        background: #334155;
         color: #F8FAFC;
       }
     }
 
     .modalFooter {
+      background: #1E293B;
       border-color: #334155;
+    }
+
+    .formLabel {
+      color: #CBD5E1;
     }
 
     .formInput,
     .formSelect,
     .formTextarea {
-      background: #0F172A;
+      background: #090D16;
       border-color: #334155;
       color: #F8FAFC;
+
+      &::placeholder {
+        color: #64748B;
+      }
     }
   }
 }

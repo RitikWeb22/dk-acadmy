@@ -770,20 +770,47 @@
   border-bottom-right-radius: 16px;
 }
 
-:global(.darkMode) {
+:global(.darkMode),
+:global(.dark),
+:global([data-theme="dark"]) {
+  .container,
   .workspaceContainer {
     background: transparent;
     color: #F8FAFC;
   }
 
+  .title,
   .headerTitle {
     color: #F8FAFC;
   }
 
+  .subtitle,
   .headerSubtitle {
     color: #94A3B8;
   }
 
+  .iconCircle {
+    background: #1E293B;
+    border-color: #334155;
+    color: #60A5FA;
+  }
+
+  .outlineBtn {
+    background: #0F172A;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #FFFFFF;
+    }
+  }
+
+  .tabsBar {
+    border-bottom-color: #334155;
+  }
+
+  .tabItem,
   .tabBtn {
     color: #94A3B8;
 
@@ -791,12 +818,32 @@
       color: #F8FAFC;
     }
 
+    &.activeTab,
     &.tabBtnActive {
       color: #3B82F6;
       border-bottom-color: #3B82F6;
     }
   }
 
+  .tabBadge {
+    background: #1E293B;
+    color: #CBD5E1;
+  }
+
+  .previewStrip {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .previewNavItem {
+    background: #0F172A;
+    border-color: #334155;
+    color: #E2E8F0;
+  }
+
+  .contentCard,
+  .linksColumnCard,
+  .formSection,
   .builderCard,
   .footerSectionCard,
   .previewCard {
@@ -806,15 +853,18 @@
   }
 
   .cardTitle,
+  .formSectionTitle,
+  .linkColumnTitle,
   .sectionTitle {
     color: #F8FAFC;
   }
 
-  .cardSubtitle,
+  .cardSub,
   .sectionSubtitle {
     color: #94A3B8;
   }
 
+  .itemRowCard,
   .navItemRow,
   .dropdownItemRow,
   .footerLinkItem {
@@ -827,38 +877,93 @@
     }
   }
 
-  .itemLabel,
-  .linkTitle {
+  .itemLabelText,
+  .subItemLabel,
+  .linkTitle,
+  .itemLabel {
     color: #F8FAFC;
   }
 
-  .itemPath,
-  .linkUrl {
+  .itemPathText,
+  .subItemSubtitle,
+  .subItemPath,
+  .linkUrl,
+  .itemPath {
     color: #94A3B8;
   }
 
+  .orderBtn,
+  .iconActionBtn,
+  .expandSubBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #FFFFFF;
+    }
+  }
+
+  .subItemsWrapper {
+    background: #090D16;
+    border-color: #1E293B;
+  }
+
+  .subItemRow,
+  .columnLinkRow {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .label {
+    color: #CBD5E1;
+  }
+
+  .input,
+  .select,
+  .textarea,
   .inputField,
   .selectField,
   .textareaField {
     background: #0F172A;
     border-color: #334155;
     color: #F8FAFC;
+
+    &::placeholder {
+      color: #64748B;
+    }
   }
 
   .modalContent {
-    background: #1E293B;
-    border-color: #334155;
+    background: #0F172A;
+    border-color: #1E293B;
     color: #F8FAFC;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
 
     .modalHeader {
+      background: #1E293B;
       border-color: #334155;
-      h3 {
+
+      h3,
+      .modalTitle {
+        color: #F8FAFC;
+      }
+    }
+
+    .closeModalBtn {
+      background: #1E293B;
+      border-color: #334155;
+      color: #94A3B8;
+
+      &:hover {
+        background: #334155;
         color: #F8FAFC;
       }
     }
 
     .modalFooter {
-      background: #0F172A;
+      background: #1E293B;
       border-color: #334155;
     }
   }

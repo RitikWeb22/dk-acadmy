@@ -23,26 +23,65 @@ export const PasteWordQuestionModal: React.FC<PasteWordQuestionModalProps> = ({
   initialText = ''
 }) => {
   const [pasteText, setPasteText] = useState(initialText);
+  const [parsedList, setParsedList] = useState<ParsedWordQuestion[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       if (initialText) {
         setPasteText(initialText);
+        setParsedList(parseWordQuestions(initialText));
+      } else {
+        setParsedList(parseWordQuestions(pasteText));
       }
     }
   }, [isOpen, initialText]);
 
-  const parsedQuestions = useMemo(() => {
-    if (!pasteText.trim()) return [];
-    return parseWordQuestions(pasteText);
+  // Synchronize parsedList when raw pasteText changes
+  useEffect(() => {
+    if (!pasteText.trim()) {
+      setParsedList([]);
+      return;
+    }
+    const auto = parseWordQuestions(pasteText);
+    setParsedList(auto);
   }, [pasteText]);
 
   if (!isOpen || typeof document === 'undefined') return null;
 
-  const handleAddClick = () => {
-    if (parsedQuestions.length === 0) return;
-    onAddQuestions(parsedQuestions);
+  // Handlers for modifying extracted fields independently
+  const updateStatement = (qIdx: number, val: string) => {
+    setParsedList((prev) =>
+      prev.map((q, i) => (i === qIdx ? { ...q, statement: val } : q))
+    );
+  };
+
+  const updateOptionText = (qIdx: number, optKey: 'A' | 'B' | 'C' | 'D', val: string) => {
+    setParsedList((prev) =>
+      prev.map((q, i) => {
+        if (i !== qIdx) return q;
+        const newOpts = q.options.map((o) => (o.key === optKey ? { ...o, text: val } : o));
+        return { ...q, options: newOpts };
+      })
+    );
+  };
+
+  const updateCorrectKey = (qIdx: number, optKey: 'A' | 'B' | 'C' | 'D') => {
+    setParsedList((prev) =>
+      prev.map((q, i) => (i === qIdx ? { ...q, correctKey: optKey } : q))
+    );
+  };
+
+  const updateNumericalAnswer = (qIdx: number, val: string) => {
+    setParsedList((prev) =>
+      prev.map((q, i) => (i === qIdx ? { ...q, numericalAnswer: val } : q))
+    );
+  };
+
+  const handleAllFetchClick = () => {
+    if (parsedList.length === 0) return;
+    onAddQuestions(parsedList);
     setPasteText('');
+    setParsedList([]);
     onClose();
   };
 
@@ -84,7 +123,7 @@ Ans: (A)`;
         <div className={styles.modalBody}>
           <div className={styles.textareaWrap}>
             <div className={styles.textareaLabelRow}>
-              <span>Paste Question Statement &amp; Options Here:</span>
+              <span>Paste Raw Word / PDF Text Here:</span>
               <button
                 type="button"
                 onClick={handleLoadSample}
@@ -104,84 +143,137 @@ Ans: (A)`;
               className={styles.pasteTextarea}
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
-              placeholder={`Paste your Word or PDF question here, e.g.:\n\nLet $[t]$ denote the greatest integer less than or equal to t. Let $f(x)=[\\frac{x}{2}+3]-[\\sqrt{x}]$ ... Then the sum is equal to _.\nJEE Main 2024 (Online) 6th April Evening Shift\n\nOr Multiple Choice:\nFind the limit $\\lim_{x \\to 0} \\frac{\\sin x}{x}$.\n(A) 0\n(B) 1\n(C) -1\n(D) Does not exist\nAns: (B)`}
-              rows={6}
+              placeholder={`Paste question and options from Word/PDF here...\n\nExample:\nLet $[t]$ denote the greatest integer less than or equal to t. Let $f(x)=[\\frac{x}{2}+3]-[\\sqrt{x}]$ ... Then the sum is equal to _.\nJEE Main 2024 (Online) 6th April Evening Shift\n\nOr Multiple Choice:\nFind the limit $\\lim_{x \\to 0} \\frac{\\sin x}{x}$.\n(A) 0\n(B) 1\n(C) -1\n(D) Does not exist\nAns: (B)`}
+              rows={4}
             />
           </div>
 
-          {/* Live Formatted Math Preview */}
-          {parsedQuestions.length > 0 && (
+          {/* Separated Extracted Question & Options Section */}
+          {parsedList.length > 0 && (
             <div className={styles.previewContainer}>
               <div className={styles.previewHeader}>
-                <span>✨ Auto-Extracted Preview ({parsedQuestions.length} Question{parsedQuestions.length > 1 ? 's' : ''} Detected)</span>
-                <span style={{ fontSize: '11px', color: '#16a34a' }}>✓ MathJax / KaTeX Rendered</span>
+                <span>✨ Extracted &amp; Separated ({parsedList.length} Question{parsedList.length > 1 ? 's' : ''} Ready)</span>
+                <span style={{ fontSize: '11px', color: '#16a34a' }}>✓ Question Alag &amp; Options Alag Se Extracted</span>
               </div>
 
-              {parsedQuestions.map((q, idx) => (
-                <div key={idx} className={styles.questionPreviewCard}>
-                  <div className={styles.qMetaRow}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={styles.qNumberPill}>Question {idx + 1}</span>
-                      <span
-                        className={styles.qTypeBadge}
-                        style={{
-                          background: q.type === 'NUMERICAL' ? '#eff6ff' : '#f0fdf4',
-                          color: q.type === 'NUMERICAL' ? '#1d4ed8' : '#15803d',
-                          border: `1px solid ${q.type === 'NUMERICAL' ? '#bfdbfe' : '#bbf7d0'}`
-                        }}
-                      >
-                        {q.type === 'NUMERICAL' ? 'Numerical Answer' : 'Single Choice MCQ'}
-                      </span>
-                    </div>
+              <div className={styles.extractedQuestionsList}>
+                {parsedList.map((q, idx) => (
+                  <div key={idx} className={styles.questionEditCard}>
+                    <div className={styles.cardHeaderRow}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={styles.qNumberPill}>Question {idx + 1}</span>
+                        <span
+                          className={styles.qTypeBadge}
+                          style={{
+                            background: q.type === 'NUMERICAL' ? '#eff6ff' : '#f0fdf4',
+                            color: q.type === 'NUMERICAL' ? '#1d4ed8' : '#15803d',
+                            border: `1px solid ${q.type === 'NUMERICAL' ? '#bfdbfe' : '#bbf7d0'}`
+                          }}
+                        >
+                          {q.type === 'NUMERICAL' ? 'Numerical Answer' : 'Single Choice MCQ'}
+                        </span>
+                      </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {q.examTag && (
                         <span className={styles.examTagBadge}>{q.examTag}</span>
                       )}
-                      {q.type === 'NUMERICAL' && q.numericalAnswer && (
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#1d4ed8' }}>
-                          Ans: {q.numericalAnswer}
-                        </span>
-                      )}
                     </div>
+
+                    {/* Question Statement (Alag Se) */}
+                    <div className={styles.fieldGroup}>
+                      <label className={styles.fieldTitle}>
+                        <span>Question Statement (Question Alag Se):</span>
+                        <span style={{ fontSize: '11px', fontWeight: 500, color: '#64748b' }}>Editable text &amp; KaTeX Preview</span>
+                      </label>
+                      <textarea
+                        className={styles.statementInputTextarea}
+                        value={q.statement}
+                        onChange={(e) => updateStatement(idx, e.target.value)}
+                        placeholder="Extracted Question Statement..."
+                        rows={3}
+                      />
+                      <div className={styles.statementPreviewWrap}>
+                        <MathText text={q.statement || 'Empty statement'} />
+                      </div>
+                    </div>
+
+                    {/* Options (Alag Se) - If MCQ */}
+                    {q.type === 'SINGLE_CORRECT' && q.options && (
+                      <div className={styles.fieldGroup}>
+                        <label className={styles.fieldTitle}>
+                          <span>Answer Choices (Options Alag Se - A, B, C, D):</span>
+                          <span style={{ fontSize: '11px', fontWeight: 500, color: '#16a34a' }}>Click ✓ Key to change correct answer</span>
+                        </label>
+                        <div className={styles.optionsInputsGrid}>
+                          {q.options.map((opt) => {
+                            const isCorrect = q.correctKey === opt.key;
+                            return (
+                              <div
+                                key={opt.key}
+                                className={`${styles.optionInputCard} ${isCorrect ? styles.isCorrect : ''}`}
+                              >
+                                <div className={styles.optionHeader}>
+                                  <span className={`${styles.optionKeyBadge} ${isCorrect ? styles.correctBadge : ''}`}>
+                                    {opt.key}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className={`${styles.correctRadioBtn} ${isCorrect ? styles.activeCorrect : ''}`}
+                                    onClick={() => updateCorrectKey(idx, opt.key)}
+                                    title={`Mark Option ${opt.key} as correct answer`}
+                                  >
+                                    {isCorrect ? '✓ Correct Key' : 'Set as Key'}
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  className={styles.optionTextInput}
+                                  value={opt.text}
+                                  onChange={(e) => updateOptionText(idx, opt.key, e.target.value)}
+                                  placeholder={`Option ${opt.key} formula or text...`}
+                                />
+                                {opt.text && (
+                                  <div style={{ fontSize: '11.5px', marginTop: '2px', color: '#334155' }}>
+                                    <MathText text={opt.text} />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Numerical Answer (Alag Se) - If Numerical */}
+                    {q.type === 'NUMERICAL' && (
+                      <div className={styles.fieldGroup}>
+                        <label className={styles.fieldTitle}>
+                          <span>Numerical Answer Key (Answer Alag Se):</span>
+                        </label>
+                        <div className={styles.numericalInputWrap}>
+                          <span style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>Ans Key =</span>
+                          <input
+                            type="text"
+                            className={styles.numericalInput}
+                            value={q.numericalAnswer || ''}
+                            onChange={(e) => updateNumericalAnswer(idx, e.target.value)}
+                            placeholder="e.g. 16 or 3.14"
+                          />
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>Integer or decimal value</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Solution or Shortcut if present */}
+                    {(q.solution || q.shortcut) && (
+                      <div style={{ fontSize: '11.5px', color: '#475569', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        {q.solution && <div><strong>Solution:</strong> {q.solution}</div>}
+                        {q.shortcut && <div style={{ color: '#2563eb', marginTop: '3px' }}><strong>Shortcut:</strong> {q.shortcut}</div>}
+                      </div>
+                    )}
                   </div>
-
-                  {/* Statement */}
-                  <div className={styles.statementBox}>
-                    <MathText text={q.statement} />
-                  </div>
-
-                  {/* Options (if MCQ) */}
-                  {q.type === 'SINGLE_CORRECT' && q.options && q.options.some((o) => o.text && o.text.trim()) && (
-                    <div className={styles.optionsGrid}>
-                      {q.options.map((opt) => {
-                        const isCorrect = q.correctKey === opt.key;
-                        return (
-                          <div
-                            key={opt.key}
-                            className={`${styles.optionItem} ${isCorrect ? styles.correctOption : ''}`}
-                          >
-                            <span className={`${styles.optionKey} ${isCorrect ? styles.correctKey : ''}`}>
-                              {opt.key}
-                            </span>
-                            <span style={{ flex: 1, minWidth: 0 }}>
-                              <MathText text={opt.text || `Option ${opt.key}`} />
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Solution derivation or shortcut preview if present */}
-                  {(q.solution || q.shortcut) && (
-                    <div style={{ fontSize: '11.5px', color: '#475569', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                      {q.solution && <div><strong>Solution:</strong> {q.solution}</div>}
-                      {q.shortcut && <div style={{ color: '#2563eb', marginTop: '2px' }}><strong>Shortcut:</strong> {q.shortcut}</div>}
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -193,13 +285,14 @@ Ans: (A)`;
           </button>
           <button
             type="button"
-            className={styles.addQuestionsBtn}
-            onClick={handleAddClick}
-            disabled={parsedQuestions.length === 0}
+            className={styles.allFetchBtn}
+            onClick={handleAllFetchClick}
+            disabled={parsedList.length === 0}
+            title="Auto-fill question statement and options into question inputs"
           >
-            <CheckCircle2 size={16} />
+            <Sparkles size={16} />
             <span>
-              Add {parsedQuestions.length > 0 ? `${parsedQuestions.length} Question${parsedQuestions.length > 1 ? 's' : ''}` : 'Question'}
+              ⚡ All Fetch ({parsedList.length > 0 ? `${parsedList.length} Qs` : '0 Qs'}) &amp; Auto-Fill Inputs
             </span>
           </button>
         </div>

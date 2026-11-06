@@ -3231,7 +3231,9 @@
 }
 
 /* ─── DARK THEME OVERRIDES ─── */
-:global(.darkMode) {
+:global(.darkMode),
+:global(.dark),
+:global([data-theme="dark"]) {
   .testSeriesWorkspaceShell {
     color: #F8FAFC;
   }
@@ -5565,6 +5567,407 @@ select.primaryTextInput {
     }
   }
 }
+
+:global(.darkMode),
+:global(.dark),
+:global([data-theme="dark"]) {
+  .syncLiveBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &:hover {
+      background: #334155;
+      border-color: #475569;
+      color: #FFFFFF;
+    }
+  }
+
+  .rowQuickBuilderBtn {
+    background: rgba(37, 99, 235, 0.2);
+    border-color: rgba(37, 99, 235, 0.4);
+    color: #93C5FD;
+
+    &:hover {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+  }
+
+  .createModalCard,
+  .slideOverPanel,
+  .deleteConfirmModalCard,
+  .smartPasteModalCard {
+    background: #0F172A;
+    border-color: #1E293B;
+    color: #F8FAFC;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+  }
+
+  .createModalHeader,
+  .drawerHeader,
+  .smartPasteHeader {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .createModalTitle,
+  .drawerTitle,
+  .deleteModalTitle,
+  .smartPasteTitle {
+    color: #F8FAFC;
+  }
+
+  .createModalSubtitle,
+  .deleteModalDesc,
+  .smartPasteSubtitle {
+    color: #94A3B8;
+  }
+
+  .createHeaderIcon {
+    background: rgba(37, 99, 235, 0.2);
+    color: #60A5FA;
+  }
+
+  .createCloseBtn,
+  .drawerCloseBtn,
+  .smartPasteCloseBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #94A3B8;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+  }
+
+  .createModalBody,
+  .drawerBody,
+  .smartPasteBody {
+    background: #0F172A;
+    color: #F8FAFC;
+  }
+
+  .fieldLabel {
+    color: #CBD5E1;
+  }
+
+  .primaryTextInput {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &::placeholder {
+      color: #64748B;
+    }
+
+    &:focus {
+      background: #0F172A;
+      border-color: #3B82F6;
+    }
+  }
+
+  .slugPreviewRow {
+    color: #94A3B8;
+  }
+
+  .segmentedButtonGroup {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .segmentedBtn {
+    color: #94A3B8;
+
+    &:hover {
+      color: #F8FAFC;
+    }
+
+    &.activeSegment {
+      background: #0F172A;
+      color: #60A5FA;
+    }
+  }
+
+  .batchCohortSelector {
+    background: #0F172A;
+    border-color: #1E293B;
+  }
+
+  .cohortChip {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+
+    &.cohortSelected {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+  }
+
+  .radioLabel {
+    background: #1E293B;
+    border-color: #334155;
+    color: #E2E8F0;
+
+    &:hover {
+      background: #334155;
+    }
+  }
+
+  .createModalFooter,
+  .drawerFooter,
+  .modalFooterActions,
+  .smartPasteFooter {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .discardBtn,
+  .cancelBtn,
+  .smartPasteCancelBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+  }
+
+  .drawerSlugCode {
+    background: #0F172A;
+    border-color: #334155;
+    color: #93C5FD;
+  }
+
+  .statMiniCard,
+  .drawerStatsBox {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .statMiniLabel {
+    color: #94A3B8;
+  }
+
+  .statMiniVal {
+    color: #F8FAFC;
+  }
+
+  .builderDirectLinkBox {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .attemptsWarningCard {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #FCA5A5;
+  }
+
+  .btnArchiveSafeAction {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+  }
+
+  .emptyStateContainer {
+    background: #0F172A;
+    border-color: #1E293B;
+  }
+
+  .emptyMainText {
+    color: #F8FAFC;
+  }
+
+  .emptySubText {
+    color: #94A3B8;
+  }
+
+  .btnClearFiltersBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+  }
+
+  .pageSizeSelector {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .modeOptionCard {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &.modeOptionCardActive {
+      background: rgba(37, 99, 235, 0.15);
+      border-color: #3B82F6;
+    }
+  }
+
+  .modeCardTitle {
+    color: #F8FAFC;
+  }
+
+  .modeCardDesc {
+    color: #94A3B8;
+  }
+
+  .proctorRuleItem {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .proctorRuleTitle {
+    color: #F8FAFC;
+  }
+
+  .proctorRuleDesc {
+    color: #94A3B8;
+  }
+
+  .presetChip {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+  }
+
+  .liveSummaryHero {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .summaryPill {
+    background: #0F172A;
+    border-color: #334155;
+    color: #E2E8F0;
+  }
+
+  .bulkActionBar {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .bulkLabel {
+    color: #CBD5E1;
+  }
+
+  .bulkClearBtn {
+    background: #0F172A;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+  }
+
+  .quickTemplatesBar {
+    background: #0F172A;
+    border-color: #1E293B;
+  }
+
+  .templateBarLabel {
+    color: #94A3B8;
+  }
+
+  .templatePillBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+
+    &.templateActive {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+  }
+
+  .smartPasteFormatGuide {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .smartPasteFormatHeading {
+    color: #60A5FA;
+  }
+
+  .smartPasteGuideList {
+    color: #CBD5E1;
+  }
+
+  .smartPasteTextarea {
+    background: #090D16;
+    border-color: #334155;
+    color: #F8FAFC;
+
+    &::placeholder {
+      color: #64748B;
+    }
+  }
+
+  .smartPastePreviewWrap {
+    background: #090D16;
+    border-color: #1E293B;
+  }
+
+  .smartPastePreviewHeader {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .smartPastePreviewCard {
+    background: #0F172A;
+    border-color: #1E293B;
+  }
+
+  .smartPasteOptionChip {
+    background: #1E293B;
+    border-color: #334155;
+    color: #E2E8F0;
+
+    &.smartPasteCorrectOption {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: #10B981;
+      color: #6EE7B7;
+    }
+  }
+}
+
 
 
 

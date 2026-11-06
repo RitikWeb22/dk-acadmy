@@ -1453,33 +1453,31 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
     const isPaperPaid = editingItem.isFree === false;
     let updatedQs = [...(editingItem.questions || [])];
-    const currentQ = updatedQs[editingQuestionIdx];
-    const isCurrentBlank = currentQ && !currentQ.statement?.trim();
-    let targetIdx = editingQuestionIdx >= 0 && editingQuestionIdx < updatedQs.length ? editingQuestionIdx : 0;
+    let startIdx = editingQuestionIdx >= 0 && editingQuestionIdx < updatedQs.length ? editingQuestionIdx : 0;
+    let firstTargetIdx = startIdx;
 
     parsedList.forEach((parsed, pIdx) => {
-      const qNum = (pIdx === 0 && isCurrentBlank) ? (currentQ.qNum || targetIdx + 1) : updatedQs.length + 1;
+      const slotIdx = startIdx + pIdx;
+      const targetQ = slotIdx < updatedQs.length ? updatedQs[slotIdx] : null;
+
       const formattedQ: ProblemQuestionItem = {
-        id: (pIdx === 0 && isCurrentBlank && currentQ.id) ? currentQ.id : `q-custom-${Date.now()}-${pIdx}`,
-        qNum,
+        id: targetQ ? targetQ.id : `q-custom-${Date.now()}-${pIdx}`,
+        qNum: slotIdx + 1,
         statement: parsed.statement,
-        topic: parsed.examTag || currentQ?.topic || editingItem.chapter || '',
+        topic: parsed.examTag || targetQ?.topic || editingItem.chapter || '',
         options: parsed.options,
         correctKey: parsed.correctKey || 'A',
-        dkSirShortcut: parsed.shortcut || '',
-        stepSolution: parsed.solution || '',
+        dkSirShortcut: parsed.shortcut || (targetQ ? targetQ.dkSirShortcut : ''),
+        stepSolution: parsed.solution || (targetQ ? targetQ.stepSolution : ''),
         difficulty: parsed.type === 'NUMERICAL' ? 'Challenging' : 'Moderate',
         isFree: !isPaperPaid,
         examYear: parsed.examTag || (editingItem.moduleType === 'PYQ' ? 'JEE Main' : undefined)
       };
 
-      if (pIdx === 0 && isCurrentBlank) {
-        updatedQs[targetIdx] = formattedQ;
+      if (slotIdx < updatedQs.length) {
+        updatedQs[slotIdx] = formattedQ;
       } else {
         updatedQs.push(formattedQ);
-        if (pIdx === 0 && (!currentQ || isCurrentBlank)) {
-          targetIdx = updatedQs.length - 1;
-        }
       }
     });
 
@@ -1488,8 +1486,8 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       questions: updatedQs,
       questionsCount: updatedQs.length
     });
-    setEditingQuestionIdx(targetIdx);
-    showToast(`✓ Added ${parsedList.length} Question${parsedList.length > 1 ? 's' : ''} from Word!`);
+    setEditingQuestionIdx(firstTargetIdx);
+    showToast(`✓ All Fetched! Auto-filled ${parsedList.length} question statement and options.`);
   };
 
   const handleDuplicateQuestionInEditingItem = (idx: number) => {

@@ -88,3 +88,45 @@
   --btn-height-sm: 44px;
   --btn-height: var(--btn-height-md);
 }
+
+// ─────────────────────────────────────────────────────────────
+// Dark Mode Theme Tokens (Applied via .darkMode, .dark, or data-theme="dark")
+// ─────────────────────────────────────────────────────────────
+:root.darkMode,
+:root.dark,
+:root[data-theme="dark"],
+.darkMode,
+.dark,
+[data-theme="dark"] {
+  --color-text-strong: #F8FAFC;
+  --color-text-default: #F1F5F9;
+  --color-text-muted: #94A3B8;
+  --color-text-on-dark: #FFFFFF;
+  --color-text-link: #60A5FA;
+  --color-text-accent: #4ADE80;
+
+  --color-surface: #0F172A;
+  --color-surface-alt: #1E293B;
+  --color-bg: #090D16;
+  --color-bg-alt: #0F172A;
+
+  --color-border: #1E293B;
+  --color-border-subtle: #334155;
+
+  --color-primary: #3B82F6;
+  --color-primary-hover: #2563EB;
+  --color-primary-soft: rgba(37, 99, 235, 0.18);
+  --color-primary-border: rgba(59, 130, 246, 0.35);
+
+  --color-success: #22C55E;
+  --color-success-soft: rgba(34, 197, 94, 0.15);
+  --color-warning: #F59E0B;
+  --color-warning-soft: rgba(245, 158, 11, 0.15);
+  --color-error: #EF4444;
+
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 12px 24px -4px rgba(0, 0, 0, 0.6);
+}
