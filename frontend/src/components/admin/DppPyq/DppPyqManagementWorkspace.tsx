@@ -3672,59 +3672,12 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                       </div>
                     </div>
 
-                {/* Problem Statement Textarea & Live KaTeX preview */}
+                {/* Problem Statement Textarea & MathInput */}
                 <div className={styles.statementEditorSection}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                     <label className={styles.sectionSmallLabel} style={{ margin: 0 }}>
                       Problem Statement (KaTeX LaTeX formulas supported):
                     </label>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const clipboardText = await navigator.clipboard.readText();
-                          if (!clipboardText || !clipboardText.trim()) {
-                            showToast('Clipboard is empty! Copy a question from Word or PDF first.');
-                            return;
-                          }
-                          const parsed = normalizePastedQuestionContent(clipboardText);
-                          if (parsed.hasQuestionWithOptions || (parsed.options && parsed.options.length > 0)) {
-                            handleUpdateActiveQuestion({
-                              statement: parsed.statement,
-                              options: parsed.options.map((o) => ({ key: o.key, text: o.text })),
-                              ...(parsed.correctKey ? { correctKey: parsed.correctKey } : {}),
-                              ...(parsed.stepSolution ? { stepSolution: parsed.stepSolution } : {}),
-                              ...(parsed.dkSirShortcut ? { dkSirShortcut: parsed.dkSirShortcut } : {})
-                            });
-                            showToast('✓ Auto-extracted Question Statement, 4 Options & Answer Key!');
-                          } else {
-                            handleUpdateActiveQuestion({
-                              statement: parsed.statement || clipboardText
-                            });
-                            showToast('✓ Pasted into statement.');
-                          }
-                        } catch {
-                          showToast('Clipboard access denied. Please paste directly using Ctrl+V in the box below.');
-                        }
-                      }}
-                      style={{
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
-                        border: '1px solid #bfdbfe',
-                        borderRadius: '6px',
-                        padding: '4px 10px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                      title="Read question and options from clipboard and auto-fill"
-                    >
-                      <FileText size={13} />
-                      <span>Paste Word Question</span>
-                    </button>
                   </div>
                   <MathInput
                     value={editingItem.questions[editingQuestionIdx].statement}
@@ -3741,12 +3694,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     rows={5}
                     defaultViewMode="edit"
                   />
-                  <div className={styles.mathLivePreviewBox}>
-                    <span className={styles.previewTag}>CANDIDATE VIEW PREVIEW (MATHJAX / KATEX):</span>
-                    <div className={styles.previewFormulaText}>
-                      <MathText text={editingItem.questions[editingQuestionIdx].statement || '(Empty statement)'} />
-                    </div>
-                  </div>
                 </div>
 
                 {/* 4 Options Grid with Correct Key radio */}

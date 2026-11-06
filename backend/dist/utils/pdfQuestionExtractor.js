@@ -5,7 +5,7 @@ import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { normalizeMathematicalText } from './universalMathEngine/index.js';
 import { extractDocxMath, extractQuestionsFromDocxNative } from './docxMathExtractor.js';
-import { extractQuestionsFromPdfPipeline } from './pdfExtractor/pdfPipeline.js';
+import { extractQuestionsFromPdfPipeline, cleanPdfMathArtifacts } from './pdfExtractor/pdfPipeline.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 /**
@@ -15,7 +15,8 @@ const __dirname = path.dirname(__filename);
 export function normalizeMathInText(rawText) {
     if (!rawText)
         return '';
-    const result = normalizeMathematicalText(rawText);
+    const cleaned = cleanPdfMathArtifacts(rawText);
+    const result = normalizeMathematicalText(cleaned);
     return result.normalizedText;
 }
 /**
@@ -39,14 +40,14 @@ export function parseQuestionsFromText(fullText, subject = 'Mathematics', target
     let cleanedText = fullText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     // Remove page footer markers like "-- 1 of 5 --"
     cleanedText = cleanedText.replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '');
-    // 1. Check for separate Answer Key block (e.g. "Answer Key", "Answers:", or trailing answer grid like "1.C 2.D 3.D")
+    // 1. Check for separate Answer Key block (requires explicit header or sequential 1.X 2.X 3.X grid)
     const answerKeyMap = new Map();
-    const ansGridMatch = cleanedText.match(/(?:(?:^|\n)\s*(?:JEE\s+Main[^\n]*\n\s*)?)1\s*[\.:]\s*[A-Da-d0-9][\s\S]*$/i);
     const explicitAnsMatch = cleanedText.match(/(?:Answer\s*Key|Answers?|ANSWERS?)\s*[:\n]([\s\S]+)$/i);
+    const ansGridMatch = cleanedText.match(/(?:(?:\b(?:Answer\s*Key|Answers?|ANSWERS?)\b[^\n]*\n?)|(?:(?:^|\n)\s*(?:JEE\s+Main[^\n]*\n\s*)?1\s*[\.:\-]\s*[A-Da-d0-9]+\s+2\s*[\.:\-]\s*[A-Da-d0-9]+\s+3\s*[\.:\-]\s*[A-Da-d0-9]+))[\s\S]*$/i);
     const matchedAnsKey = explicitAnsMatch || ansGridMatch;
     if (matchedAnsKey && matchedAnsKey.index !== undefined) {
         const keyBlock = matchedAnsKey[0];
-        const keyPairRegex = /(\d{1,3})\s*[\.:]\s*([A-Da-d0-9\.\-]+)/g;
+        const keyPairRegex = /(\d{1,3})\s*[\.:\-]\s*([A-Da-d0-9\.\-]+)/g;
         let km;
         while ((km = keyPairRegex.exec(keyBlock)) !== null) {
             const qn = parseInt(km[1], 10);
@@ -59,8 +60,8 @@ export function parseQuestionsFromText(fullText, subject = 'Mathematics', target
         cleanedText = cleanedText.substring(0, matchedAnsKey.index).trim();
     }
     // 2. Identify sequential Question Delimiters:
-    // e.g. "1.", "2.Let", "\n3.If", "Q.1", "Question 1:"
-    const questionDelimiter = /(?:^|\n)\s*(?:(?:Q\.?|Question)\s*)?(\d{1,3})\s*\.\s*(?=[A-Za-z\(\[\\\|∫√])/g;
+    // e.g. "1.", "1.The", "2.Let", "\n3.If", "Q.1", "Question 1:"
+    const questionDelimiter = /(?:^|\n)\s*(?:(?:Q\.?|Question)\s*)?(\d{1,3})\s*[\.:\)]\s*(?=[A-Za-z\(\[\\\|∫√\$])/g;
     const matches = [];
     let match;
     let expectedQ = 1;

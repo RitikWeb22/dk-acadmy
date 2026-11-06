@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
-import { X, Sparkles, ArrowRight, ExternalLink } from 'lucide-react';
-import { useStudentAuth } from '../../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { offerService, type PopupOfferData, OFFERS_EVENT_KEY } from '../../../services/offerService';
 import styles from './PromotionalPopupModal.module.scss';
 
-const POPUP_SESSION_KEY = 'dk_popup_session_dismissed_v1';
 export const TRIGGER_PREVIEW_POPUP_EVENT = 'dk_trigger_test_popup';
 
 export const PromotionalPopupModal: React.FC = () => {
-  const { isAuthenticated } = useStudentAuth();
+  const navigate = useNavigate();
   const [popup, setPopup] = useState<PopupOfferData | null>(() => offerService.getPopupOfferSync());
   const [isOpen, setIsOpen] = useState(false);
 
@@ -20,38 +18,23 @@ export const PromotionalPopupModal: React.FC = () => {
       return;
     }
 
-    if (!forcePreview) {
-      // Check session dismissal
-      if (offerData.frequency === 'once_per_session') {
-        const dismissed = sessionStorage.getItem(POPUP_SESSION_KEY);
-        if (dismissed === 'true') {
-          return;
-        }
-      }
-
-      // Check audience targeting
-      if (offerData.audience === 'guest_only' && isAuthenticated) {
-        return;
-      }
-      if (offerData.audience === 'loggedin_only' && !isAuthenticated) {
-        return;
-      }
-    }
-
-    // Delay slightly for natural entrance on visit
+    // Always show on every refresh/page load, whether student is logged in or guest
     const timer = setTimeout(() => {
       setIsOpen(true);
-    }, forcePreview ? 50 : 1200);
+    }, forcePreview ? 50 : 800);
 
     return () => clearTimeout(timer);
   };
 
   useEffect(() => {
-    // 1. Initial check
+    // 1. Initial check on mount
     offerService.getAllOffers().then((res) => {
-      if (res.popupOffer) {
+      if (res.popupOffer && res.popupOffer.isActive) {
         setPopup(res.popupOffer);
         evaluateAndShow(res.popupOffer);
+      } else {
+        setPopup(null);
+        setIsOpen(false);
       }
     });
 
@@ -59,7 +42,11 @@ export const PromotionalPopupModal: React.FC = () => {
     const handleOffersUpdate = () => {
       const active = offerService.getPopupOfferSync();
       setPopup(active);
-      evaluateAndShow(active);
+      if (active && active.isActive) {
+        evaluateAndShow(active);
+      } else {
+        setIsOpen(false);
+      }
     };
 
     // 3. Listen for admin live preview trigger
@@ -78,18 +65,37 @@ export const PromotionalPopupModal: React.FC = () => {
       window.removeEventListener(OFFERS_EVENT_KEY, handleOffersUpdate);
       window.removeEventListener(TRIGGER_PREVIEW_POPUP_EVENT, handlePreviewTrigger);
     };
-  }, [isAuthenticated]);
+  }, []);
 
   const handleClose = () => {
-    sessionStorage.setItem(POPUP_SESSION_KEY, 'true');
     setIsOpen(false);
   };
 
-  if (!isOpen || !popup || typeof document === 'undefined') {
+  const handleBannerClick = () => {
+    // Automatically apply promotional offer/discount on click
+    try {
+      sessionStorage.setItem('dk_popup_offer_applied', 'true');
+      sessionStorage.setItem(
+        'dk_active_promo_badge',
+        popup?.tagText || popup?.title || 'SPECIAL OFFER'
+      );
+    } catch {
+      // ignore
+    }
+
+    setIsOpen(false);
+
+    const targetUrl = popup?.linkUrl || '/courses';
+    if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+      window.location.href = targetUrl;
+    } else {
+      navigate(targetUrl);
+    }
+  };
+
+  if (!isOpen || !popup || !popup.isActive || typeof document === 'undefined') {
     return null;
   }
-
-  const isExternal = popup.linkUrl?.startsWith('http') || popup.linkUrl?.startsWith('//');
 
   return createPortal(
     <div
@@ -97,75 +103,42 @@ export const PromotionalPopupModal: React.FC = () => {
       onClick={handleClose}
       role="dialog"
       aria-modal="true"
-      aria-label={popup.title || 'Special Promotional Offer'}
+      aria-label={popup.title || 'Promotional Offer'}
     >
       <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
-        {/* Floating Close Button */}
+        {/* Floating Top-Right Close Button */}
         <button
           type="button"
           className={styles.closeBtn}
           onClick={handleClose}
           aria-label="Close promotional offer modal"
+          title="Close modal"
         >
           <X size={18} />
         </button>
 
-        {/* Banner Graphic Image */}
-        {popup.imageUrl && (
-          <div className={styles.imageContainer}>
-            <img
-              src={popup.imageUrl}
-              alt={popup.title}
-              className={styles.bannerImage}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/img/dk-results-banner.jpeg';
-              }}
-            />
-            {popup.tagText && (
-              <div className={styles.tagBadge}>
-                <Sparkles size={12} />
-                <span>{popup.tagText}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Modal Text Content */}
-        <div className={styles.modalBody}>
-          <h2 className={styles.title}>{popup.title}</h2>
-          {popup.message && <p className={styles.message}>{popup.message}</p>}
-
-          <div className={styles.actionsRow}>
-            {isExternal ? (
-              <a
-                href={popup.linkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.ctaButton}
-                onClick={handleClose}
-              >
-                <span>{popup.buttonText || 'View Offer'}</span>
-                <ExternalLink size={15} />
-              </a>
-            ) : (
-              <Link
-                to={popup.linkUrl || '/courses'}
-                className={styles.ctaButton}
-                onClick={handleClose}
-              >
-                <span>{popup.buttonText || 'Claim Offer Now'}</span>
-                <ArrowRight size={15} />
-              </Link>
-            )}
-
-            <button
-              type="button"
-              className={styles.skipBtn}
-              onClick={handleClose}
-            >
-              Maybe Later
-            </button>
-          </div>
+        {/* Pure Clickable Banner Graphic - Clicking redirects & auto-applies discount */}
+        <div
+          className={styles.clickableBannerWrap}
+          onClick={handleBannerClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleBannerClick();
+            }
+          }}
+          title={popup.title ? `${popup.title} - Click to apply offer` : 'Click to claim discount'}
+        >
+          <img
+            src={popup.imageUrl || '/img/dk-results-banner.jpeg'}
+            alt={popup.title || 'Special Promotion Banner'}
+            className={styles.bannerImage}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/img/dk-results-banner.jpeg';
+            }}
+          />
         </div>
       </div>
     </div>,

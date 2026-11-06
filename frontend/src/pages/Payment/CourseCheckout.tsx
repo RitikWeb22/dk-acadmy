@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { couponService } from '../../services/couponService';
 import { paymentService } from '../../services/paymentService';
+import { offerService } from '../../services/offerService';
 import { useStudentAuth } from '../../context/AuthContext';
 
 // ─── Constants & Configuration ───
@@ -118,15 +119,22 @@ export const CourseCheckout: React.FC = () => {
 
   // ─── Pricing & GST Calculations ───
   // Course MRP = ₹18,500 (GST inclusive at 18%)
+  const activeItemOffer = useMemo(() => {
+    return offerService.getEffectiveItemOffer('class-11th-self-study-dlp', 'course', BASE_COURSE_MRP);
+  }, []);
+
+  const offerDiscount = activeItemOffer.hasOffer ? activeItemOffer.discountAmount : 0;
+
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
+    const eligibleAmount = Math.max(0, BASE_COURSE_MRP - offerDiscount);
     if (appliedCoupon.data.type === 'percent') {
-      return Math.round((BASE_COURSE_MRP * appliedCoupon.data.value) / 100);
+      return Math.round((eligibleAmount * appliedCoupon.data.value) / 100);
     }
-    return Math.min(appliedCoupon.data.value, BASE_COURSE_MRP);
-  }, [appliedCoupon]);
+    return Math.min(appliedCoupon.data.value, eligibleAmount);
+  }, [appliedCoupon, offerDiscount]);
 
-  const finalPayableTotal = Math.max(0, BASE_COURSE_MRP - couponDiscount);
+  const finalPayableTotal = Math.max(0, BASE_COURSE_MRP - offerDiscount - couponDiscount);
 
   // Taxable Value = Net Payable / 1.18
   const taxableBaseFee = useMemo(() => {
@@ -487,13 +495,25 @@ export const CourseCheckout: React.FC = () => {
                 </span>
               </div>
 
+              {/* Special Offer Discount */}
+              {offerDiscount > 0 && (
+                <div className="flex items-center justify-between text-indigo-600 font-semibold">
+                  <span>Special Offer ({activeItemOffer.badgeText})</span>
+                  <span>
+                    − ₹{offerDiscount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
+
               {/* Coupon Discount */}
-              <div className="flex items-center justify-between text-emerald-600 font-semibold">
-                <span>Coupon discount</span>
-                <span>
-                  − ₹{couponDiscount.toLocaleString('en-IN')}
-                </span>
-              </div>
+              {couponDiscount > 0 && (
+                <div className="flex items-center justify-between text-emerald-600 font-semibold">
+                  <span>Coupon discount</span>
+                  <span>
+                    − ₹{couponDiscount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
 
               {/* GST Tax Breakdown */}
               {isIntraState ? (
