@@ -151,10 +151,10 @@ export const TrophyHeroIllustration: React.FC<{ className?: string }> = ({ class
       {/* Ribbon Text */}
       <text
         x="160"
-        y="165"
+        y="170"
         textAnchor="middle"
         fontFamily="'Plus Jakarta Sans', system-ui, sans-serif"
-        fontSize="9.5"
+        fontSize="14.5"
         fontWeight="800"
         fill="#10234A"
         letterSpacing="0.04em"
