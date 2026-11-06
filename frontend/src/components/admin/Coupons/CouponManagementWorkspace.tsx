@@ -54,7 +54,7 @@ export const CouponManagementWorkspace: React.FC = () => {
   // 1. COUPONS STATE & LOGIC
   // ─────────────────────────────────────────────────────────────
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
-  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -66,7 +66,7 @@ export const CouponManagementWorkspace: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'exhausted' | 'inactive'>('all');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<CouponItem | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -79,17 +79,17 @@ export const CouponManagementWorkspace: React.FC = () => {
   const [formDescription, setFormDescription] = useState('');
   const [formExpiryDate, setFormExpiryDate] = useState('');
   const [formIsActive, setFormIsActive] = useState(true);
-  const [isSubmittingCoupon, setIsSubmittingCoupon] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadCoupons = async () => {
-    setIsLoadingCoupons(true);
+    setIsLoading(true);
     try {
       const data = await couponService.getAllCoupons();
       setCoupons(data);
     } catch {
       showToast('Error loading coupons list');
     } finally {
-      setIsLoadingCoupons(false);
+      setIsLoading(false);
     }
   };
 
@@ -136,15 +136,9 @@ export const CouponManagementWorkspace: React.FC = () => {
   const loadOffers = async () => {
     try {
       const res = await offerService.getAllOffers();
-      if (res.bannerOffer) {
-        setBannerForm(res.bannerOffer);
-      }
-      if (res.popupOffer) {
-        setPopupForm(res.popupOffer);
-      }
-      if (res.itemOffers && res.itemOffers.length > 0) {
-        setItemOfferForm(res.itemOffers[0]);
-      }
+      if (res.bannerOffer) setBannerForm(res.bannerOffer);
+      if (res.popupOffer) setPopupForm(res.popupOffer);
+      if (res.itemOffers && res.itemOffers.length > 0) setItemOfferForm(res.itemOffers[0]);
     } catch {
       console.warn('Failed loading offers');
     }
@@ -223,7 +217,7 @@ export const CouponManagementWorkspace: React.FC = () => {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const handleToggleCouponActive = async (coupon: CouponItem) => {
+  const handleToggleActive = async (coupon: CouponItem) => {
     const id = coupon._id || coupon.id || coupon.code;
     const nextState = !coupon.isActive;
     try {
@@ -239,7 +233,7 @@ export const CouponManagementWorkspace: React.FC = () => {
     }
   };
 
-  const handleDeleteCoupon = (coupon: CouponItem) => {
+  const handleDelete = (coupon: CouponItem) => {
     setConfirmModal({ isOpen: true, type: 'single', coupon });
   };
 
@@ -301,7 +295,7 @@ export const CouponManagementWorkspace: React.FC = () => {
     setFormExpiryDate('');
     setFormIsActive(true);
     setFormError(null);
-    setIsCouponModalOpen(true);
+    setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (coupon: CouponItem) => {
@@ -316,7 +310,7 @@ export const CouponManagementWorkspace: React.FC = () => {
     setFormExpiryDate(coupon.expiryDate ? coupon.expiryDate.split('T')[0] : '');
     setFormIsActive(coupon.isActive);
     setFormError(null);
-    setIsCouponModalOpen(true);
+    setIsModalOpen(true);
   };
 
   const handleSaveCoupon = async (e: React.FormEvent) => {
@@ -339,10 +333,13 @@ export const CouponManagementWorkspace: React.FC = () => {
       return;
     }
 
-    setIsSubmittingCoupon(true);
+    setIsSubmitting(true);
     try {
-      const generatedLabel = formLabel.trim() ||
-        (formDiscountType === 'percent' ? `${formDiscountValue}% OFF Discount` : `₹${formDiscountValue} Flat Discount`);
+      const generatedLabel =
+        formLabel.trim() ||
+        (formDiscountType === 'percent'
+          ? `${formDiscountValue}% OFF Discount`
+          : `₹${formDiscountValue} Flat Discount`);
 
       if (editingCoupon) {
         const id = editingCoupon._id || editingCoupon.id || editingCoupon.code;
@@ -358,7 +355,9 @@ export const CouponManagementWorkspace: React.FC = () => {
         });
         if (updated) {
           setCoupons((prev) =>
-            prev.map((c) => (c._id === id || c.id === id || c.code === editingCoupon.code) ? updated : c)
+            prev.map((c) =>
+              c._id === id || c.id === id || c.code === editingCoupon.code ? updated : c
+            )
           );
           showToast(`Updated coupon ${cleanCode}`);
         }
@@ -377,12 +376,51 @@ export const CouponManagementWorkspace: React.FC = () => {
         setCoupons((prev) => [created, ...prev]);
         showToast(`Created new coupon "${cleanCode}" for ${formUsageLimit} students!`);
       }
-      setIsCouponModalOpen(false);
+      setIsModalOpen(false);
     } catch (err: any) {
       setFormError(err.message || 'Error saving coupon');
     } finally {
-      setIsSubmittingCoupon(false);
+      setIsSubmitting(false);
     }
+  };
+
+  // Export handlers
+  const handleExportExcel = () => {
+    const headers = ['Code', 'Discount Type', 'Discount Value', 'Usage Limit', 'Used Count', 'Min Course Price', 'Status', 'Label', 'Expiry'];
+    const rows = filteredCoupons.map((c) => [
+      c.code,
+      c.discountType || 'percent',
+      c.discountType === 'percent' ? `${c.discountValue}%` : `₹${c.discountValue}`,
+      c.usageLimit,
+      c.usedCount,
+      c.minCoursePrice || 0,
+      c.isActive ? 'Active' : 'Disabled',
+      c.label || '',
+      c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : 'N/A'
+    ]);
+    exportToExcel(`DK_Academy_Discount_Coupons_${new Date().toISOString().split('T')[0]}`, headers, rows);
+    showToast('Exported coupons to Excel (.xlsx / .csv)');
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['Code', 'Type', 'Value', 'Limit', 'Used', 'Min Price', 'Status'];
+    const rows = filteredCoupons.map((c) => [
+      c.code,
+      c.discountType || 'percent',
+      c.discountType === 'percent' ? `${c.discountValue}%` : `₹${c.discountValue}`,
+      String(c.usageLimit),
+      String(c.usedCount),
+      `₹${c.minCoursePrice || 0}`,
+      c.isActive ? 'Active' : 'Disabled'
+    ]);
+    exportToPDF({
+      title: 'DK Academy - Discount Coupons & Concessions',
+      subtitle: `Total: ${filteredCoupons.length} coupons`,
+      filename: `DK_Coupons_${new Date().toISOString().split('T')[0]}`,
+      headers,
+      rows
+    });
+    showToast('Generated printable PDF coupon roster');
   };
 
   // Filtered coupons
@@ -453,11 +491,56 @@ export const CouponManagementWorkspace: React.FC = () => {
           </div>
           <h1 className={styles.pageMainHeading}>Discounts and Offers</h1>
           <p className={styles.pageSubtitle}>
-            Manage promotional discount coupons, site-wide announcement banners, visitor popups, and 1-click sales discounts with custom badges.
+            Manage promo codes, website announcement banners, visitor popups, and site-wide instant discounts & custom badges.
           </p>
         </div>
 
         <div className={styles.headerActionsGroup}>
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              className={styles.bulkDeleteBtn}
+              onClick={handleRequestBulkDelete}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                background: '#dc2626',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              title="Delete all selected coupons"
+            >
+              <Trash2 size={14} />
+              <span>Delete ({selectedIds.length})</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={styles.actionPillBtn}
+            onClick={handleExportExcel}
+            title="Download coupons list in Excel (.xlsx / .csv)"
+          >
+            <FileSpreadsheet size={14} />
+            <span>Export Excel</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.actionPillBtn}
+            onClick={handleExportPDF}
+            title="Print or export coupons roster to PDF"
+          >
+            <Printer size={14} />
+            <span>PDF Roster</span>
+          </button>
+
           <button
             type="button"
             className={styles.syncBtn}
@@ -466,9 +549,9 @@ export const CouponManagementWorkspace: React.FC = () => {
               loadOffers();
               showToast('Refreshed coupons and offers from database');
             }}
-            title="Reload coupons and offers from database"
+            title="Reload coupons from database"
           >
-            <RefreshCw size={14} className={isLoadingCoupons ? styles.spinning : ''} />
+            <RefreshCw size={14} className={isLoading ? styles.spinIcon : ''} />
             <span>Sync</span>
           </button>
         </div>
@@ -536,70 +619,73 @@ export const CouponManagementWorkspace: React.FC = () => {
           ───────────────────────────────────────────────────────────── */}
       {activeTab === 'coupons' && (
         <>
-          {/* Summary Metric Cards */}
-          <div className={styles.metricGrid}>
-            <div className={styles.metricCard}>
-              <div className={styles.metricHeader}>
-                <span className={styles.metricLabel}>Total Coupons</span>
-                <Tag size={16} className={styles.metricIconBlue} />
+          {/* Summary Bento Cards */}
+          <div className={styles.bentoStatsGrid}>
+            <div className={styles.statCard}>
+              <div className={`${styles.statIconTile} ${styles.blueTile}`}>
+                <Tag size={20} />
               </div>
-              <div className={styles.metricValue}>{stats.totalCoupons}</div>
-              <div className={styles.metricSubtext}>{stats.activeCoupons} currently live for students</div>
+              <div className={styles.statMeta}>
+                <span className={styles.statValue}>{stats.totalCoupons}</span>
+                <span className={styles.statLabel}>Total Coupons</span>
+              </div>
             </div>
 
-            <div className={styles.metricCard}>
-              <div className={styles.metricHeader}>
-                <span className={styles.metricLabel}>Total Redemptions</span>
-                <Users size={16} className={styles.metricIconGreen} />
+            <div className={styles.statCard}>
+              <div className={`${styles.statIconTile} ${styles.emeraldTile}`}>
+                <ShieldCheck size={20} />
               </div>
-              <div className={styles.metricValue}>{stats.totalRedeemed}</div>
-              <div className={styles.metricSubtext}>Times promo codes were redeemed</div>
+              <div className={styles.statMeta}>
+                <span className={styles.statValue}>{stats.activeCoupons}</span>
+                <span className={styles.statLabel}>Active & Redeemable</span>
+              </div>
             </div>
 
-            <div className={styles.metricCard}>
-              <div className={styles.metricHeader}>
-                <span className={styles.metricLabel}>Available Student Slots</span>
-                <ShieldCheck size={16} className={styles.metricIconPurple} />
+            <div className={styles.statCard}>
+              <div className={`${styles.statIconTile} ${styles.amberTile}`}>
+                <Users size={20} />
               </div>
-              <div className={styles.metricValue}>{stats.totalAvailableSlots}</div>
-              <div className={styles.metricSubtext}>Remaining slots before codes exhaust</div>
+              <div className={styles.statMeta}>
+                <span className={styles.statValue}>{stats.totalRedeemed}</span>
+                <span className={styles.statLabel}>Students Enrolled</span>
+              </div>
+            </div>
+
+            <div className={styles.statCard}>
+              <div className={`${styles.statIconTile} ${styles.purpleTile}`}>
+                <Percent size={20} />
+              </div>
+              <div className={styles.statMeta}>
+                <span className={styles.statValue}>{stats.totalAvailableSlots}</span>
+                <span className={styles.statLabel}>Available Slots Left</span>
+              </div>
             </div>
           </div>
 
-          {/* Action Row & Filters */}
-          <div className={styles.controlsRow}>
-            <div className={styles.searchBox}>
-              <Search size={16} className={styles.searchIcon} />
+          {/* Controls & Filter Bar */}
+          <div className={styles.filterActionBar}>
+            <div className={styles.searchBoxWrapper}>
+              <Search size={16} color="#64748b" />
               <input
                 type="text"
-                placeholder="Search coupon code or discount label..."
+                placeholder="Search by code (e.g. KOTA10), label, or campaign..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Search coupons"
+                aria-label="Search coupon codes"
               />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className={styles.clearSearchBtn}
-                  onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
-                >
-                  <X size={14} />
-                </button>
-              )}
             </div>
 
-            <div className={styles.filterGroup}>
+            <div className={styles.filterControlsRight}>
               <select
+                className={styles.filterSelect}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                aria-label="Filter coupons by status"
-                className={styles.statusSelect}
+                aria-label="Filter by coupon status"
               >
                 <option value="all">All Statuses ({coupons.length})</option>
-                <option value="active">Active & Available</option>
-                <option value="exhausted">Usage Limit Reached</option>
-                <option value="inactive">Disabled / Paused</option>
+                <option value="active">Active & Open</option>
+                <option value="exhausted">Limit Reached / Full</option>
+                <option value="inactive">Paused / Inactive</option>
               </select>
 
               <button
@@ -613,17 +699,22 @@ export const CouponManagementWorkspace: React.FC = () => {
             </div>
           </div>
 
-          {/* Coupons Table */}
-          <div className={styles.tableCard}>
+          {/* Table Container Card */}
+          <div className={styles.tableContainerCard}>
             {filteredCoupons.length === 0 ? (
-              <div className={styles.emptyState}>
-                <Tag size={40} className={styles.emptyIcon} />
+              <div className={styles.emptyStateBox}>
+                <Tag size={42} color="#cbd5e1" />
                 <h3>No discount coupons found</h3>
-                <p>Create a promo code to offer concessions to enrolling aspirants.</p>
+                <p>
+                  {searchQuery || statusFilter !== 'all'
+                    ? 'Try adjusting your search query or status filter to see other promo codes.'
+                    : 'Create your first discount coupon code to allow prospective students to avail fee concessions.'}
+                </p>
                 <button
                   type="button"
-                  className={styles.emptyCreateBtn}
+                  className={styles.createCouponBtn}
                   onClick={handleOpenCreateModal}
+                  style={{ marginTop: '8px' }}
                 >
                   <Plus size={15} />
                   <span>Create First Coupon</span>
@@ -633,7 +724,7 @@ export const CouponManagementWorkspace: React.FC = () => {
               <table className={styles.couponsTable}>
                 <thead>
                   <tr>
-                    <th style={{ width: '40px' }}>
+                    <th style={{ width: '40px', textAlign: 'center' }}>
                       <input
                         type="checkbox"
                         checked={selectedIds.length > 0 && selectedIds.length === filteredCoupons.length}
@@ -641,25 +732,26 @@ export const CouponManagementWorkspace: React.FC = () => {
                         aria-label="Select all coupons"
                       />
                     </th>
-                    <th>Code</th>
-                    <th>Discount</th>
-                    <th>Student Limit</th>
-                    <th>Redeemed</th>
-                    <th>Min. Fee</th>
+                    <th>Code & Campaign</th>
+                    <th>Discount Concession</th>
+                    <th>Student Limit & Usage</th>
+                    <th>Min. Course Value</th>
                     <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+                    <th>Valid Through</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCoupons.map((coupon) => {
                     const id = coupon._id || coupon.id || coupon.code;
                     const isExhausted = coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit;
-                    const percentUsed = coupon.usageLimit > 0 ? Math.min(100, Math.round((coupon.usedCount / coupon.usageLimit) * 100)) : 0;
+                    const percentUsed =
+                      coupon.usageLimit > 0 ? Math.min(100, Math.round((coupon.usedCount / coupon.usageLimit) * 100)) : 0;
                     const isSelected = selectedIds.includes(id);
 
                     return (
-                      <tr key={id} className={isSelected ? styles.rowSelected : ''}>
-                        <td>
+                      <tr key={id} style={isSelected ? { background: '#f8fafc' } : undefined}>
+                        <td style={{ textAlign: 'center' }}>
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -668,94 +760,114 @@ export const CouponManagementWorkspace: React.FC = () => {
                           />
                         </td>
                         <td>
-                          <div className={styles.codeWrap}>
+                          <div className={styles.codePillGroup}>
                             <span className={styles.couponCodeText}>{coupon.code}</span>
                             <button
                               type="button"
-                              className={styles.copyBtn}
+                              className={styles.copyCodeBtn}
                               onClick={() => handleCopy(coupon.code)}
                               title="Copy code to clipboard"
                             >
-                              {copiedCode === coupon.code ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+                              {copiedCode === coupon.code ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
                             </button>
                           </div>
-                          <div className={styles.couponSubLabel}>{coupon.label}</div>
+                          <div className={styles.couponLabelTitle}>{coupon.label}</div>
+                          {coupon.description && (
+                            <div className={styles.couponDescriptionText}>{coupon.description}</div>
+                          )}
                         </td>
                         <td>
-                          <span className={styles.discountPill}>
+                          <div
+                            className={`${styles.discountPill} ${
+                              coupon.discountType === 'percent' ? styles.percentDiscount : styles.flatDiscount
+                            }`}
+                          >
                             {coupon.discountType === 'percent' ? (
                               <>
                                 <Percent size={12} />
                                 <span>{coupon.discountValue}% OFF</span>
                               </>
                             ) : (
-                              <span>₹{coupon.discountValue.toLocaleString('en-IN')} FLAT</span>
+                              <span>₹{coupon.discountValue.toLocaleString('en-IN')} Flat Off</span>
                             )}
-                          </span>
+                          </div>
                         </td>
                         <td>
-                          <span className={styles.limitText}>
-                            {coupon.usageLimit > 0 ? `${coupon.usageLimit} Students` : 'Unlimited'}
-                          </span>
-                        </td>
-                        <td>
-                          <div className={styles.usageProgressWrap}>
-                            <div className={styles.usageNums}>
-                              <strong>{coupon.usedCount || 0}</strong>
-                              <span>/ {coupon.usageLimit || '∞'}</span>
+                          <div className={styles.usageQuotaCell}>
+                            <div className={styles.usageTextRow}>
+                              <span className={styles.usageCountFraction}>
+                                <strong>{coupon.usedCount || 0}</strong> / {coupon.usageLimit || '∞'} students
+                              </span>
+                              <span
+                                className={`${styles.usageRemainingPill} ${
+                                  isExhausted
+                                    ? styles.exhaustedQuota
+                                    : percentUsed > 80
+                                    ? styles.lowQuota
+                                    : styles.plentyQuota
+                                }`}
+                              >
+                                {coupon.usageLimit > 0
+                                  ? `${Math.max(0, coupon.usageLimit - (coupon.usedCount || 0))} slots left`
+                                  : 'Unlimited'}
+                              </span>
                             </div>
                             {coupon.usageLimit > 0 && (
-                              <div className={styles.progressBarBg}>
+                              <div className={styles.progressBarTrack}>
                                 <div
-                                  className={styles.progressBarFill}
-                                  style={{
-                                    width: `${percentUsed}%`,
-                                    background: isExhausted ? '#ef4444' : percentUsed > 75 ? '#f59e0b' : '#10b981'
-                                  }}
+                                  className={`${styles.progressBarFill} ${
+                                    isExhausted
+                                      ? styles.fillRed
+                                      : percentUsed > 80
+                                      ? styles.fillAmber
+                                      : styles.fillGreen
+                                  }`}
+                                  style={{ width: `${percentUsed}%` }}
                                 />
                               </div>
                             )}
                           </div>
                         </td>
                         <td>
-                          <span className={styles.minPriceText}>
-                            {coupon.minCoursePrice && coupon.minCoursePrice > 0 ? `₹${coupon.minCoursePrice.toLocaleString('en-IN')}` : 'Any'}
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                            {coupon.minCoursePrice && coupon.minCoursePrice > 0
+                              ? `₹${coupon.minCoursePrice.toLocaleString('en-IN')}`
+                              : 'No minimum'}
                           </span>
                         </td>
                         <td>
-                          {isExhausted ? (
-                            <span className={`${styles.statusBadge} ${styles.statusExhausted}`}>Exhausted</span>
-                          ) : coupon.isActive ? (
-                            <span className={`${styles.statusBadge} ${styles.statusActive}`}>Active</span>
-                          ) : (
-                            <span className={`${styles.statusBadge} ${styles.statusInactive}`}>Disabled</span>
-                          )}
+                          <label className={styles.switchToggle} title={coupon.isActive ? 'Active - click to pause' : 'Disabled - click to activate'}>
+                            <input
+                              type="checkbox"
+                              checked={coupon.isActive}
+                              onChange={() => handleToggleActive(coupon)}
+                              disabled={isExhausted}
+                            />
+                            <span className={styles.switchSlider} />
+                          </label>
                         </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div className={styles.rowActions}>
-                            <button
-                              type="button"
-                              className={styles.actionIconBtn}
-                              onClick={() => handleToggleCouponActive(coupon)}
-                              title={coupon.isActive ? 'Disable this coupon' : 'Activate this coupon'}
-                            >
-                              <ShieldCheck size={15} color={coupon.isActive ? '#10b981' : '#94a3b8'} />
-                            </button>
+                        <td>
+                          <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                            {coupon.expiryDate ? new Date(coupon.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Never expires'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div className={styles.actionBtnsRow} style={{ justifyContent: 'center' }}>
                             <button
                               type="button"
                               className={styles.actionIconBtn}
                               onClick={() => handleOpenEditModal(coupon)}
-                              title="Edit coupon parameters"
+                              title="Edit parameters"
                             >
-                              <Edit2 size={15} />
+                              <Edit2 size={14} />
                             </button>
                             <button
                               type="button"
-                              className={`${styles.actionIconBtn} ${styles.deleteIconBtn}`}
-                              onClick={() => handleDeleteCoupon(coupon)}
+                              className={`${styles.actionIconBtn} ${styles.deleteAction}`}
+                              onClick={() => handleDelete(coupon)}
                               title="Delete coupon"
                             >
-                              <Trash2 size={15} />
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </td>
@@ -1368,39 +1480,39 @@ export const CouponManagementWorkspace: React.FC = () => {
       {/* ─────────────────────────────────────────────────────────────
           COUPON CREATE / EDIT MODAL
           ───────────────────────────────────────────────────────────── */}
-      {isCouponModalOpen && (
-        <div className={styles.modalBackdrop} onClick={() => setIsCouponModalOpen(false)}>
-          <div className={styles.couponModal} onClick={(e) => e.stopPropagation()}>
+      {isModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
+          <div className={styles.modalContentCard} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div className={styles.modalTitleGroup}>
-                <div className={styles.modalIconWrap}>
-                  <Tag size={20} color="#0052cc" />
+                <div className={styles.modalIconTile}>
+                  <Tag size={20} color="#2563eb" />
                 </div>
                 <div>
-                  <h3>{editingCoupon ? `Edit Coupon: ${editingCoupon.code}` : 'Create New Discount Coupon'}</h3>
+                  <h2>{editingCoupon ? `Edit Coupon: ${editingCoupon.code}` : 'Create New Discount Coupon'}</h2>
                   <p>Configure redemption parameters, discount percentage or flat amount, and usage limit.</p>
                 </div>
               </div>
               <button
                 type="button"
-                className={styles.closeModalBtn}
-                onClick={() => setIsCouponModalOpen(false)}
+                className={styles.modalCloseBtn}
+                onClick={() => setIsModalOpen(false)}
                 aria-label="Close modal"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCoupon} className={styles.modalForm}>
+            <form onSubmit={handleSaveCoupon} className={styles.modalFormBody}>
               {formError && (
-                <div className={styles.formErrorBanner}>
+                <div className={styles.formErrorAlert}>
                   <AlertCircle size={15} />
                   <span>{formError}</span>
                 </div>
               )}
 
-              <div className={styles.formRow}>
-                <div className={styles.formCol}>
+              <div className={styles.formRowTwoCol}>
+                <div className={styles.formFieldGroup}>
                   <label>Coupon Code *</label>
                   <input
                     type="text"
@@ -1413,7 +1525,7 @@ export const CouponManagementWorkspace: React.FC = () => {
                   <span className={styles.fieldHelperText}>Uppercase alphanumeric letters only</span>
                 </div>
 
-                <div className={styles.formCol}>
+                <div className={styles.formFieldGroup}>
                   <label>Discount Type *</label>
                   <select
                     value={formDiscountType}
@@ -1425,8 +1537,8 @@ export const CouponManagementWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              <div className={styles.formRow}>
-                <div className={styles.formCol}>
+              <div className={styles.formRowTwoCol}>
+                <div className={styles.formFieldGroup}>
                   <label>Discount Value *</label>
                   <input
                     type="number"
@@ -1441,7 +1553,7 @@ export const CouponManagementWorkspace: React.FC = () => {
                   </span>
                 </div>
 
-                <div className={styles.formCol}>
+                <div className={`${styles.formFieldGroup} ${styles.highlightLimitField}`}>
                   <label>Student Limit (Max Redemptions) *</label>
                   <input
                     type="number"
@@ -1455,8 +1567,8 @@ export const CouponManagementWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              <div className={styles.formRow}>
-                <div className={styles.formCol}>
+              <div className={styles.formRowTwoCol}>
+                <div className={styles.formFieldGroup}>
                   <label>Minimum Course Price (₹)</label>
                   <input
                     type="number"
@@ -1468,7 +1580,7 @@ export const CouponManagementWorkspace: React.FC = () => {
                   <span className={styles.fieldHelperText}>Valid only for courses at or above this value</span>
                 </div>
 
-                <div className={styles.formCol}>
+                <div className={styles.formFieldGroup}>
                   <label>Expiry Date (Optional)</label>
                   <input
                     type="date"
@@ -1478,7 +1590,7 @@ export const CouponManagementWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              <div className={styles.formRowFull}>
+              <div className={styles.formFieldGroup}>
                 <label>Offer Label (Public display) *</label>
                 <input
                   type="text"
@@ -1488,24 +1600,25 @@ export const CouponManagementWorkspace: React.FC = () => {
                 />
               </div>
 
-              <div className={styles.formRowFull}>
+              <div className={styles.formFieldGroup}>
                 <label>Internal Description / Notes</label>
-                <textarea
+                <input
+                  type="text"
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="e.g. For Janakpuri classroom students enrolling in advance"
-                  rows={2}
                 />
               </div>
 
-              <div className={styles.checkboxRow}>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={formIsActive}
-                    onChange={(e) => setFormIsActive(e.target.checked)}
-                  />
-                  <span>Active & Redeemable Immediately</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                <input
+                  type="checkbox"
+                  id="activeCheck"
+                  checked={formIsActive}
+                  onChange={(e) => setFormIsActive(e.target.checked)}
+                />
+                <label htmlFor="activeCheck" style={{ fontSize: '13px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+                  Active & Redeemable Immediately
                 </label>
               </div>
 
@@ -1513,16 +1626,16 @@ export const CouponManagementWorkspace: React.FC = () => {
                 <button
                   type="button"
                   className={styles.cancelModalBtn}
-                  onClick={() => setIsCouponModalOpen(false)}
+                  onClick={() => setIsModalOpen(false)}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className={styles.submitModalBtn}
-                  disabled={isSubmittingCoupon}
+                  disabled={isSubmitting}
                 >
-                  {isSubmittingCoupon ? 'Saving...' : editingCoupon ? 'Update Coupon' : 'Create Coupon'}
+                  {isSubmitting ? 'Saving...' : editingCoupon ? 'Update Coupon' : 'Create Coupon'}
                 </button>
               </div>
             </form>
