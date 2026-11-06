@@ -207,6 +207,32 @@ export const CouponManagementWorkspace: React.FC = () => {
     showToast('Launched live preview popup on screen');
   };
 
+  const handleInstantToggleOffer = async (offerType: 'banner' | 'popup' | 'item_discount') => {
+    try {
+      if (offerType === 'banner') {
+        const nextState = !bannerForm.isActive;
+        const updated = { ...bannerForm, isActive: nextState };
+        setBannerForm(updated);
+        await offerService.saveOffer(updated);
+        showToast(`Top Announcement Banner is now ${nextState ? 'Active (Live)' : 'Disabled'}`);
+      } else if (offerType === 'popup') {
+        const nextState = !popupForm.isActive;
+        const updated = { ...popupForm, isActive: nextState };
+        setPopupForm(updated);
+        await offerService.saveOffer(updated);
+        showToast(`Visitor Promotional Popup is now ${nextState ? 'Active (Live)' : 'Disabled'}`);
+      } else if (offerType === 'item_discount') {
+        const nextState = !itemOfferForm.isActive;
+        const updated = { ...itemOfferForm, isActive: nextState };
+        setItemOfferForm(updated);
+        await offerService.saveOffer(updated);
+        showToast(`Course & Test Series Flash Sale is now ${nextState ? 'Active (Live)' : 'Disabled'}`);
+      }
+    } catch {
+      showToast('Failed to update offer status');
+    }
+  };
+
   // ─────────────────────────────────────────────────────────────
   // HANDLERS FOR COUPONS
   // ─────────────────────────────────────────────────────────────
@@ -454,19 +480,28 @@ export const CouponManagementWorkspace: React.FC = () => {
     return { totalCoupons, activeCoupons, totalRedeemed, totalAvailableSlots };
   }, [coupons]);
 
-  // Mock calculation for live card preview in Tab 4
+  // Mock calculation for live card preview in Tab 4 (respecting Target Scope and Active status)
+  const isCourseTargeted =
+    itemOfferForm.isActive &&
+    (itemOfferForm.targetScope === 'all' || itemOfferForm.targetScope === 'courses');
+  const isTestTargeted =
+    itemOfferForm.isActive &&
+    (itemOfferForm.targetScope === 'all' || itemOfferForm.targetScope === 'test-series');
+
   const mockCoursePrice = 18500;
-  const mockDiscountAmount =
-    itemOfferForm.discountType === 'percent'
+  const mockDiscountAmount = isCourseTargeted
+    ? itemOfferForm.discountType === 'percent'
       ? Math.round((mockCoursePrice * Math.min(100, itemOfferForm.discountValue)) / 100)
-      : Math.min(mockCoursePrice, itemOfferForm.discountValue);
+      : Math.min(mockCoursePrice, itemOfferForm.discountValue)
+    : 0;
   const mockDiscountedCoursePrice = Math.max(0, mockCoursePrice - mockDiscountAmount);
 
   const mockTestPrice = 299;
-  const mockTestDiscount =
-    itemOfferForm.discountType === 'percent'
+  const mockTestDiscount = isTestTargeted
+    ? itemOfferForm.discountType === 'percent'
       ? Math.round((mockTestPrice * Math.min(100, itemOfferForm.discountValue)) / 100)
-      : Math.min(mockTestPrice, itemOfferForm.discountValue);
+      : Math.min(mockTestPrice, itemOfferForm.discountValue)
+    : 0;
   const mockDiscountedTestPrice = Math.max(0, mockTestPrice - mockTestDiscount);
 
   return (
@@ -501,19 +536,6 @@ export const CouponManagementWorkspace: React.FC = () => {
               type="button"
               className={styles.bulkDeleteBtn}
               onClick={handleRequestBulkDelete}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                background: '#dc2626',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
               title="Delete all selected coupons"
             >
               <Trash2 size={14} />
@@ -612,6 +634,122 @@ export const CouponManagementWorkspace: React.FC = () => {
             {itemOfferForm.isActive ? 'Sale Active' : 'Off'}
           </span>
         </button>
+      </div>
+
+      {/* 2b. Quick Offer Controls & Status Overview Strip */}
+      <div className={styles.quickOfferOverviewStrip}>
+        {/* Banner Quick Control */}
+        <div className={styles.quickOfferCard}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: bannerForm.isActive ? '#eff6ff' : '#f1f5f9',
+                color: bannerForm.isActive ? '#2563eb' : '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <Megaphone size={16} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Top Announcement Banner
+              </div>
+              <div style={{ fontSize: '11.5px', color: bannerForm.isActive ? '#10b981' : '#64748b', fontWeight: 600 }}>
+                {bannerForm.isActive ? '● Active on All Pages' : '○ Banner Hidden'}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className={`${styles.toggleDisableBtn} ${bannerForm.isActive ? styles.activeState : styles.inactiveState}`}
+            onClick={() => handleInstantToggleOffer('banner')}
+            title={bannerForm.isActive ? 'Click to disable top banner' : 'Click to enable top banner'}
+          >
+            {bannerForm.isActive ? 'Disable' : 'Enable'}
+          </button>
+        </div>
+
+        {/* Popup Quick Control */}
+        <div className={styles.quickOfferCard}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: popupForm.isActive ? '#fdf2f8' : '#f1f5f9',
+                color: popupForm.isActive ? '#db2777' : '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <Sparkles size={16} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Visitor Promotional Popup
+              </div>
+              <div style={{ fontSize: '11.5px', color: popupForm.isActive ? '#10b981' : '#64748b', fontWeight: 600 }}>
+                {popupForm.isActive ? '● Active on Visit' : '○ Popup Paused'}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className={`${styles.toggleDisableBtn} ${popupForm.isActive ? styles.activeState : styles.inactiveState}`}
+            onClick={() => handleInstantToggleOffer('popup')}
+            title={popupForm.isActive ? 'Click to disable visitor popup' : 'Click to enable visitor popup'}
+          >
+            {popupForm.isActive ? 'Disable' : 'Enable'}
+          </button>
+        </div>
+
+        {/* Item Flash Sale Quick Control */}
+        <div className={styles.quickOfferCard}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: itemOfferForm.isActive ? '#ecfdf5' : '#f1f5f9',
+                color: itemOfferForm.isActive ? '#059669' : '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <Zap size={16} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Courses & Tests Flash Sale
+              </div>
+              <div style={{ fontSize: '11.5px', color: itemOfferForm.isActive ? '#10b981' : '#64748b', fontWeight: 600 }}>
+                {itemOfferForm.isActive
+                  ? `● Live (${itemOfferForm.discountValue}${itemOfferForm.discountType === 'percent' ? '%' : '₹'} off)`
+                  : '○ Sale Deactivated'}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className={`${styles.toggleDisableBtn} ${itemOfferForm.isActive ? styles.activeState : styles.inactiveState}`}
+            onClick={() => handleInstantToggleOffer('item_discount')}
+            title={itemOfferForm.isActive ? 'Click to disable flash sale' : 'Click to enable flash sale'}
+          >
+            {itemOfferForm.isActive ? 'Disable' : 'Enable'}
+          </button>
+        </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
@@ -888,22 +1026,99 @@ export const CouponManagementWorkspace: React.FC = () => {
         <div className={styles.offerWorkspaceCard}>
           <div className={styles.offerCardHeader}>
             <div className={styles.offerTitleRow}>
-              <h2>Top Announcement Banner (Har Page Ke Banner Pr)</h2>
+              <h2>Top Announcement Banner</h2>
               <p>This banner is permanently pinned at the top header of every single public page across the website.</p>
             </div>
 
-            <div
-              className={styles.switchWrap}
-              onClick={() => setBannerForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
-            >
-              <span className={`${styles.switchIndicator} ${bannerForm.isActive ? styles.switchActive : ''}`} />
-              <span>{bannerForm.isActive ? 'BANNER LIVE ON ALL PAGES' : 'BANNER DISABLED / HIDDEN'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                className={`${styles.toggleDisableBtn} ${bannerForm.isActive ? styles.activeState : styles.inactiveState}`}
+                onClick={() => handleInstantToggleOffer('banner')}
+              >
+                {bannerForm.isActive ? 'Disable Banner' : 'Enable Banner'}
+              </button>
+
+              <div
+                className={styles.switchWrap}
+                onClick={() => handleInstantToggleOffer('banner')}
+                title="Click to toggle banner status"
+              >
+                <span className={`${styles.switchIndicator} ${bannerForm.isActive ? styles.switchActive : ''}`} />
+                <span>{bannerForm.isActive ? 'BANNER LIVE ON ALL PAGES' : 'BANNER DISABLED / HIDDEN'}</span>
+              </div>
             </div>
           </div>
 
-          <form onSubmit={handleSaveBanner} className={styles.offerGrid}>
-            {/* Form Column */}
-            <div className={styles.formColumn}>
+          <div className={styles.offerStackedLayout}>
+            {/* 1. Live Website Header Preview (Stacked Top, Full Width) */}
+            <div className={styles.previewColumn} style={{ width: '100%' }}>
+              <div className={styles.previewHeading}>
+                <span>Live Website Header Preview</span>
+                <span style={{ fontSize: '11px', color: bannerForm.isActive ? '#10b981' : '#94a3b8' }}>
+                  {bannerForm.isActive ? '● Active' : '○ Disabled'}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  background: 'linear-gradient(90deg, #1e1b4b 0%, #312e81 40%, #1e3a8a 100%)',
+                  borderRadius: '10px',
+                  padding: '12px 18px',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  width: '100%'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <span
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '9999px',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Sparkles size={10} />
+                    <span>{bannerForm.tagText || 'OFFER'}</span>
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {bannerForm.message || 'Announcement message preview'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <span
+                    style={{
+                      background: '#ffffff',
+                      color: '#1e1b4b',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '4px 10px',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    {bannerForm.linkText || 'Claim Offer'}
+                  </span>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
+                This bar is automatically rendered sticky at the very top of the desktop & mobile navigation header across all pages.
+              </p>
+            </div>
+
+            {/* 2. Banner Editor Form (Stacked Below Preview) */}
+            <form onSubmit={handleSaveBanner} className={styles.formColumn}>
               <div>
                 <label className={styles.fieldLabel}>Tag Text (Badge Pill)</label>
                 <input
@@ -952,77 +1167,21 @@ export const CouponManagementWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              <button type="submit" className={styles.saveOfferBtn} disabled={isSavingOffer}>
-                <Check size={16} />
-                <span>{isSavingOffer ? 'Saving Banner...' : 'Save & Update Top Banner'}</span>
-              </button>
-            </div>
-
-            {/* Live Preview Column */}
-            <div className={styles.previewColumn}>
-              <div className={styles.previewHeading}>
-                <span>Live Website Header Preview</span>
-                <span style={{ fontSize: '11px', color: bannerForm.isActive ? '#10b981' : '#94a3b8' }}>
-                  {bannerForm.isActive ? '● Active' : '○ Disabled'}
-                </span>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button type="submit" className={styles.saveOfferBtn} style={{ flex: 1 }} disabled={isSavingOffer}>
+                  <Check size={16} />
+                  <span>{isSavingOffer ? 'Saving Banner...' : 'Save & Update Top Banner'}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.toggleDisableBtn} ${bannerForm.isActive ? styles.activeState : styles.inactiveState}`}
+                  onClick={() => handleInstantToggleOffer('banner')}
+                >
+                  {bannerForm.isActive ? 'Disable Banner' : 'Enable Banner'}
+                </button>
               </div>
-
-              <div
-                style={{
-                  background: 'linear-gradient(90deg, #1e1b4b 0%, #312e81 40%, #1e3a8a 100%)',
-                  borderRadius: '10px',
-                  padding: '10px 14px',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                  <span
-                    style={{
-                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      padding: '2px 7px',
-                      borderRadius: '9999px',
-                      whiteSpace: 'nowrap',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Sparkles size={10} />
-                    <span>{bannerForm.tagText || 'OFFER'}</span>
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {bannerForm.message || 'Announcement message preview'}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  <span
-                    style={{
-                      background: '#ffffff',
-                      color: '#1e1b4b',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '3px 8px',
-                      borderRadius: '5px'
-                    }}
-                  >
-                    {bannerForm.linkText || 'Claim Offer'}
-                  </span>
-                </div>
-              </div>
-
-              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-                This bar is automatically rendered sticky at the very top of the desktop & mobile navigation header on all pages.
-              </p>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       )}
 
@@ -1034,15 +1193,26 @@ export const CouponManagementWorkspace: React.FC = () => {
           <div className={styles.offerCardHeader}>
             <div className={styles.offerTitleRow}>
               <h2>Visitor Promotional Popup (Image & Link Modal)</h2>
-              <p>Promotional modal popup that automatically appears when users visit the website.</p>
+              <p>Promotional modal popup that automatically appears on visit and every refresh for all visitors.</p>
             </div>
 
-            <div
-              className={styles.switchWrap}
-              onClick={() => setPopupForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
-            >
-              <span className={`${styles.switchIndicator} ${popupForm.isActive ? styles.switchActive : ''}`} />
-              <span>{popupForm.isActive ? 'POPUP ACTIVE ON VISIT' : 'POPUP PAUSED'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                className={`${styles.toggleDisableBtn} ${popupForm.isActive ? styles.activeState : styles.inactiveState}`}
+                onClick={() => handleInstantToggleOffer('popup')}
+              >
+                {popupForm.isActive ? 'Disable Popup' : 'Enable Popup'}
+              </button>
+
+              <div
+                className={styles.switchWrap}
+                onClick={() => handleInstantToggleOffer('popup')}
+                title="Click to toggle popup status"
+              >
+                <span className={`${styles.switchIndicator} ${popupForm.isActive ? styles.switchActive : ''}`} />
+                <span>{popupForm.isActive ? 'POPUP ACTIVE ON VISIT' : 'POPUP PAUSED'}</span>
+              </div>
             </div>
           </div>
 
@@ -1152,7 +1322,7 @@ export const CouponManagementWorkspace: React.FC = () => {
                     value={popupForm.audience}
                     onChange={(e) => setPopupForm({ ...popupForm, audience: e.target.value as any })}
                   >
-                    <option value="all">All Visitors (Guest & Logged In)</option>
+                    <option value="all">All Visitors (Guest &amp; Logged In)</option>
                     <option value="guest_only">New / Guest Visitors Only</option>
                     <option value="loggedin_only">Logged-in Students Only</option>
                   </select>
@@ -1165,8 +1335,8 @@ export const CouponManagementWorkspace: React.FC = () => {
                     value={popupForm.frequency}
                     onChange={(e) => setPopupForm({ ...popupForm, frequency: e.target.value as any })}
                   >
+                    <option value="every_visit">Every Visit &amp; Refresh</option>
                     <option value="once_per_session">Once Per Browsing Session</option>
-                    <option value="every_visit">Every Visit</option>
                   </select>
                 </div>
               </div>
@@ -1175,6 +1345,14 @@ export const CouponManagementWorkspace: React.FC = () => {
                 <button type="submit" className={styles.saveOfferBtn} style={{ flex: 1 }} disabled={isSavingOffer}>
                   <Check size={16} />
                   <span>{isSavingOffer ? 'Saving...' : 'Save & Publish Popup'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`${styles.toggleDisableBtn} ${popupForm.isActive ? styles.activeState : styles.inactiveState}`}
+                  onClick={() => handleInstantToggleOffer('popup')}
+                >
+                  {popupForm.isActive ? 'Disable' : 'Enable'}
                 </button>
 
                 <button
@@ -1274,23 +1452,34 @@ export const CouponManagementWorkspace: React.FC = () => {
         <div className={styles.offerWorkspaceCard}>
           <div className={styles.offerCardHeader}>
             <div className={styles.offerTitleRow}>
-              <h2>Courses & Test Series Item Offers (1-Click Apply & Custom Badges)</h2>
+              <h2>Courses &amp; Test Series Item Offers (1-Click Apply &amp; Custom Badges)</h2>
               <p>
                 Apply instant percentage or flat discounts directly to Course and Test Series cards with a prominent Custom Badge.
               </p>
             </div>
 
-            <div
-              className={styles.switchWrap}
-              style={{
-                background: itemOfferForm.isActive ? '#ecfdf5' : '#f8fafc',
-                borderColor: itemOfferForm.isActive ? '#a7f3d0' : '#e2e8f0',
-                color: itemOfferForm.isActive ? '#065f46' : '#64748b'
-              }}
-              onClick={() => setItemOfferForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
-            >
-              <span className={`${styles.switchIndicator} ${itemOfferForm.isActive ? styles.switchActive : ''}`} />
-              <span>{itemOfferForm.isActive ? '1-CLICK SALE ACTIVE ON SITE' : 'SALE DEACTIVATED'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                className={`${styles.toggleDisableBtn} ${itemOfferForm.isActive ? styles.activeState : styles.inactiveState}`}
+                onClick={() => handleInstantToggleOffer('item_discount')}
+              >
+                {itemOfferForm.isActive ? 'Disable Flash Sale' : 'Enable Flash Sale'}
+              </button>
+
+              <div
+                className={styles.switchWrap}
+                style={{
+                  background: itemOfferForm.isActive ? '#ecfdf5' : '#f8fafc',
+                  borderColor: itemOfferForm.isActive ? '#a7f3d0' : '#e2e8f0',
+                  color: itemOfferForm.isActive ? '#065f46' : '#64748b'
+                }}
+                onClick={() => handleInstantToggleOffer('item_discount')}
+                title="Click to toggle flash sale status"
+              >
+                <span className={`${styles.switchIndicator} ${itemOfferForm.isActive ? styles.switchActive : ''}`} />
+                <span>{itemOfferForm.isActive ? '1-CLICK SALE ACTIVE ON SITE' : 'SALE DEACTIVATED'}</span>
+              </div>
             </div>
           </div>
 
@@ -1311,7 +1500,7 @@ export const CouponManagementWorkspace: React.FC = () => {
 
               <div>
                 <label className={styles.fieldLabel}>
-                  Custom Badge Text (Dikhne wala badge)
+                  Custom Badge Text
                 </label>
                 <input
                   type="text"
@@ -1322,7 +1511,7 @@ export const CouponManagementWorkspace: React.FC = () => {
                   required
                 />
                 <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  Yeh custom badge Course cards and Test Series cards par prominently display hoga.
+                  This custom badge is prominently displayed on Course and Test Series cards.
                 </span>
               </div>
 
@@ -1356,13 +1545,13 @@ export const CouponManagementWorkspace: React.FC = () => {
               </div>
 
               <div>
-                <label className={styles.fieldLabel}>Target Scope (Kin chizo par apply hoga)</label>
+                <label className={styles.fieldLabel}>Target Scope</label>
                 <select
                   className={styles.selectInput}
                   value={itemOfferForm.targetScope}
                   onChange={(e) => setItemOfferForm({ ...itemOfferForm, targetScope: e.target.value as any })}
                 >
-                  <option value="all">All Paid Items (Courses & Test Series)</option>
+                  <option value="all">All Paid Items (Courses &amp; Test Series)</option>
                   <option value="courses">All Courses Only</option>
                   <option value="test-series">All Test Series CBT Mocks Only</option>
                 </select>
@@ -1379,31 +1568,42 @@ export const CouponManagementWorkspace: React.FC = () => {
                 />
               </div>
 
-              <button
-                type="submit"
-                className={styles.saveOfferBtn}
-                style={{
-                  background: itemOfferForm.isActive
-                    ? 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)'
-                    : '#0052cc'
-                }}
-                disabled={isSavingOffer}
-              >
-                <Zap size={16} />
-                <span>
-                  {isSavingOffer
-                    ? 'Applying...'
-                    : itemOfferForm.isActive
-                    ? 'Save & Apply Live Sale Across Site'
-                    : 'Save Changes (Sale Disabled)'}
-                </span>
-              </button>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="submit"
+                  className={styles.saveOfferBtn}
+                  style={{
+                    flex: 1,
+                    background: itemOfferForm.isActive
+                      ? 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)'
+                      : '#0052cc'
+                  }}
+                  disabled={isSavingOffer}
+                >
+                  <Zap size={16} />
+                  <span>
+                    {isSavingOffer
+                      ? 'Applying...'
+                      : itemOfferForm.isActive
+                      ? 'Save & Apply Live Sale Across Site'
+                      : 'Save Changes (Sale Disabled)'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`${styles.toggleDisableBtn} ${itemOfferForm.isActive ? styles.activeState : styles.inactiveState}`}
+                  onClick={() => handleInstantToggleOffer('item_discount')}
+                >
+                  {itemOfferForm.isActive ? 'Disable Sale' : 'Enable Sale'}
+                </button>
+              </div>
             </div>
 
             {/* Live Card Preview Column */}
             <div className={styles.previewColumn}>
               <div className={styles.previewHeading}>
-                <span>Live Card & Price Calculation Preview</span>
+                <span>Live Card &amp; Price Calculation Preview</span>
                 <span style={{ fontSize: '11px', color: itemOfferForm.isActive ? '#15803d' : '#94a3b8' }}>
                   {itemOfferForm.isActive ? '● Live' : '○ Inactive'}
                 </span>
@@ -1414,30 +1614,44 @@ export const CouponManagementWorkspace: React.FC = () => {
                 <div className={styles.mockCardItem}>
                   <div className={styles.mockCardHeader}>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#0052cc' }}>Course Card Preview</span>
-                    <span className={styles.mockCustomBadge}>
-                      <Sparkles size={10} />
-                      <span>{itemOfferForm.badgeText || 'SPECIAL OFFER'}</span>
-                    </span>
+                    {isCourseTargeted ? (
+                      <span className={styles.mockCustomBadge}>
+                        <Sparkles size={10} />
+                        <span>{itemOfferForm.badgeText || 'SPECIAL OFFER'}</span>
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                        Standard (No Discount)
+                      </span>
+                    )}
                   </div>
 
                   <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
-                    JEE Main & Advanced 2-Yr Ultimate Flagship Batch
+                    JEE Main &amp; Advanced 2-Yr Ultimate Flagship Batch
                   </h4>
 
                   <div className={styles.mockPricingRow}>
-                    <span className={styles.mockCurrentPrice}>
-                      ₹{mockDiscountedCoursePrice.toLocaleString('en-IN')}
-                    </span>
-                    <span className={styles.mockOriginalPrice}>
-                      ₹{mockCoursePrice.toLocaleString('en-IN')}
-                    </span>
-                    <span className={styles.mockSavingsPill}>
-                      Save ₹{mockDiscountAmount.toLocaleString('en-IN')} (
-                      {itemOfferForm.discountType === 'percent'
-                        ? `${itemOfferForm.discountValue}% OFF`
-                        : `Flat ₹${itemOfferForm.discountValue} OFF`}
-                      )
-                    </span>
+                    {isCourseTargeted ? (
+                      <>
+                        <span className={styles.mockCurrentPrice}>
+                          ₹{mockDiscountedCoursePrice.toLocaleString('en-IN')}
+                        </span>
+                        <span className={styles.mockOriginalPrice}>
+                          ₹{mockCoursePrice.toLocaleString('en-IN')}
+                        </span>
+                        <span className={styles.mockSavingsPill}>
+                          Save ₹{mockDiscountAmount.toLocaleString('en-IN')} (
+                          {itemOfferForm.discountType === 'percent'
+                            ? `${itemOfferForm.discountValue}% OFF`
+                            : `Flat ₹${itemOfferForm.discountValue} OFF`}
+                          )
+                        </span>
+                      </>
+                    ) : (
+                      <span className={styles.mockCurrentPrice}>
+                        ₹{mockCoursePrice.toLocaleString('en-IN')}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1445,10 +1659,16 @@ export const CouponManagementWorkspace: React.FC = () => {
                 <div className={styles.mockCardItem}>
                   <div className={styles.mockCardHeader}>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#7c3aed' }}>Test Series Card Preview</span>
-                    <span className={styles.mockCustomBadge}>
-                      <Sparkles size={10} />
-                      <span>{itemOfferForm.badgeText || 'SPECIAL OFFER'}</span>
-                    </span>
+                    {isTestTargeted ? (
+                      <span className={styles.mockCustomBadge}>
+                        <Sparkles size={10} />
+                        <span>{itemOfferForm.badgeText || 'SPECIAL OFFER'}</span>
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                        Standard (No Discount)
+                      </span>
+                    )}
                   </div>
 
                   <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
@@ -1456,21 +1676,29 @@ export const CouponManagementWorkspace: React.FC = () => {
                   </h4>
 
                   <div className={styles.mockPricingRow}>
-                    <span className={styles.mockCurrentPrice}>
-                      ₹{mockDiscountedTestPrice.toLocaleString('en-IN')}
-                    </span>
-                    <span className={styles.mockOriginalPrice}>
-                      ₹{mockTestPrice.toLocaleString('en-IN')}
-                    </span>
-                    <span className={styles.mockSavingsPill}>
-                      Save ₹{mockTestDiscount.toLocaleString('en-IN')}
-                    </span>
+                    {isTestTargeted ? (
+                      <>
+                        <span className={styles.mockCurrentPrice}>
+                          ₹{mockDiscountedTestPrice.toLocaleString('en-IN')}
+                        </span>
+                        <span className={styles.mockOriginalPrice}>
+                          ₹{mockTestPrice.toLocaleString('en-IN')}
+                        </span>
+                        <span className={styles.mockSavingsPill}>
+                          Save ₹{mockTestDiscount.toLocaleString('en-IN')}
+                        </span>
+                      </>
+                    ) : (
+                      <span className={styles.mockCurrentPrice}>
+                        ₹{mockTestPrice.toLocaleString('en-IN')}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
               <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-                When active, the custom badge automatically appears on all Course cards and Test Series cards, and the price discount is automatically reflected both on the card and during checkout.
+                When active, the custom badge automatically appears on targeted Course cards and Test Series cards, and the price discount is automatically reflected both on the card and during checkout.
               </p>
             </div>
           </form>

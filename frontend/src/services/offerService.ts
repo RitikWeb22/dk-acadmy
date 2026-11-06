@@ -221,7 +221,13 @@ class OfferService {
     }
 
     const current = this.getLocalData();
-    const existingIndex = current.all.findIndex((o) => (o.id === id || o._id === id));
+    const existingIndex = current.all.findIndex(
+      (o) =>
+        o.id === id ||
+        o._id === id ||
+        (o.offerType === payload.offerType &&
+          (payload.offerType === 'banner' || payload.offerType === 'popup' || payload.offerType === 'item_discount'))
+    );
     let updatedAll: AnyOfferData[];
 
     if (existingIndex >= 0) {
@@ -251,16 +257,18 @@ class OfferService {
   /**
    * Toggle Offer active status with one click
    */
-  public async toggleOffer(id: string): Promise<boolean> {
+  public async toggleOffer(idOrType: string): Promise<boolean> {
     const current = this.getLocalData();
-    const target = current.all.find((o) => o.id === id || o._id === id);
+    const target = current.all.find(
+      (o) => o.id === idOrType || o._id === idOrType || o.offerType === idOrType
+    );
     if (!target) return false;
 
     const nextState = !target.isActive;
     target.isActive = nextState;
 
     try {
-      await apiClient.patch(`/offers/${id}/toggle`, {});
+      await apiClient.patch(`/offers/${target._id || target.id || idOrType}/toggle`, {});
     } catch (err: any) {
       console.warn('[OfferService] Toggling locally:', err.message);
     }

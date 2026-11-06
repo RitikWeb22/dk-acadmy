@@ -31,6 +31,7 @@ import { useStudentAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { CourseDemoModal } from '../../components/courses/CourseDemoModal/CourseDemoModal';
 import { CourseSyllabusModal } from '../../components/courses/CourseSyllabusModal/CourseSyllabusModal';
+import { offerService, OFFERS_EVENT_KEY } from '../../services/offerService';
 import type { Course, CourseCurriculumSection } from '../../types';
 import styles from './CourseDetailPage.module.scss';
 
@@ -214,6 +215,13 @@ export const CourseDetailPage: React.FC = () => {
     );
   }, [course]);
 
+  const [offersTick, setOffersTick] = useState(0);
+  useEffect(() => {
+    const handler = () => setOffersTick((v) => v + 1);
+    window.addEventListener(OFFERS_EVENT_KEY, handler);
+    return () => window.removeEventListener(OFFERS_EVENT_KEY, handler);
+  }, []);
+
   // Dynamic pricing calculations
   const numericCurrent = useMemo(() => {
     if (!course) return 0;
@@ -235,18 +243,28 @@ export const CourseDetailPage: React.FC = () => {
     return 0;
   }, [course, isFree]);
 
-  const hasDiscount = numericOriginal > numericCurrent && numericCurrent > 0;
+  const effectiveOffer = useMemo(() => {
+    if (!course || isFree) return null;
+    return offerService.getEffectiveItemOffer(course.id || (course as any)._id, 'course', numericCurrent);
+  }, [course, isFree, numericCurrent, offersTick]);
+
+  const finalPayable = effectiveOffer && effectiveOffer.hasOffer ? effectiveOffer.discountedPrice : numericCurrent;
+  const originalStrikethrough = numericOriginal > 0 ? numericOriginal : (effectiveOffer && effectiveOffer.hasOffer ? numericCurrent : 0);
+  const hasDiscount = (originalStrikethrough > finalPayable) && finalPayable > 0;
   const discountPercent = useMemo(() => {
     if (!hasDiscount) return 0;
+    if (effectiveOffer && effectiveOffer.hasOffer) {
+      return effectiveOffer.discountPercent;
+    }
     if (course?.discountPercentage && course.discountPercentage > 0) {
       return course.discountPercentage;
     }
-    return Math.round(((numericOriginal - numericCurrent) / numericOriginal) * 100);
-  }, [hasDiscount, course?.discountPercentage, numericOriginal, numericCurrent]);
+    return Math.round(((originalStrikethrough - finalPayable) / originalStrikethrough) * 100);
+  }, [hasDiscount, effectiveOffer, course?.discountPercentage, originalStrikethrough, finalPayable]);
 
-  const savingsAmount = hasDiscount ? numericOriginal - numericCurrent : 0;
-  const formattedCurrentPrice = formatIndianPrice(course?.price || numericCurrent, isFree);
-  const formattedOriginalPrice = hasDiscount ? `₹${numericOriginal.toLocaleString('en-IN')}` : '';
+  const savingsAmount = hasDiscount ? originalStrikethrough - finalPayable : 0;
+  const formattedCurrentPrice = formatIndianPrice(finalPayable, isFree);
+  const formattedOriginalPrice = hasDiscount ? `₹${originalStrikethrough.toLocaleString('en-IN')}` : '';
 
   // Curriculum breakdown
   const curriculumSections = useMemo(() => {
@@ -923,6 +941,26 @@ export const CourseDetailPage: React.FC = () => {
                   {/* Pricing Display */}
                   {!isPurchased && (
                     <div className={styles.priceContainer}>
+                      {effectiveOffer?.hasOffer && (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            marginBottom: '6px'
+                          }}
+                        >
+                          <Sparkles size={12} />
+                          <span>{effectiveOffer.badgeText}</span>
+                        </div>
+                      )}
                       <div className={styles.priceMainRow}>
                         <span className={styles.currentPriceText}>{formattedCurrentPrice}</span>
                         {hasDiscount && (

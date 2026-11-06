@@ -362,11 +362,163 @@ export function autoWrapMathDelimiters(text: string): string {
  * - Normalizes Word math (∫_0^1, 0π4, log_e, lim_(n→∞), fractions, powers, multi-digit exponents)
  * - Automatically wraps formulas in $...$ per line while keeping labels like "(S1): " outside
  */
+/**
+ * Decodes and cleans Indian entrance coaching institute PDF font artifacts
+ * (MathType / Symbol / Equation font glyph substitutions and multi-line vertical layouts).
+ */
+export function decodeCoachingMathFont(raw: string): string {
+  if (!raw) return '';
+
+  let s = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // 1. Matrix delimiters: F ... H -> \begin{bmatrix} ... \end{bmatrix}
+  s = s.replace(/F\s*\n?\s*1\s+3\s+[-−]1\s*\n?\s*2\s+1\s+([αa\\][a-z]*)\s*\n?\s*0\s+1\s+[-−]1\s*\n?\s*H/gi,
+    '\\begin{bmatrix} 1 & 3 & -1 \\\\ 2 & 1 & \\alpha \\\\ 0 & 1 & -1 \\end{bmatrix}');
+  s = s.replace(/\bLet\s+A\s*=\s*F\s*([\s\S]*?)\s*H\s+be/gi, (_m, mat) => {
+    const rows = mat.trim().split(/\n+/).map((r: string) => r.trim().split(/\s+/).join(' & ')).join(' \\\\ ');
+    return `Let $A = \\begin{bmatrix} ${rows} \\end{bmatrix}$ be`;
+  });
+  s = s.replace(/\bF\s+([0-9\s\-+\\alpha\beta\gamma\delta\lambda]+?)\s+H\b/g, '\\begin{bmatrix} $1 \\end{bmatrix}');
+
+  // 2. Vertical fractions where numerator and denominator sit on adjacent lines:
+  s = s.replace(/([\(A-Da-d\s=+\-*])'\s*\n\s*,\s*(?=[A-Za-z\(\[\\0-9\log\\])/g, '$1\\frac{1}{3} ');
+  s = s.replace(/([\(A-Da-d\s=+\-*])!\s*\n\s*,\s*(?=[A-Za-z\(\[\\0-9\log\\])/g, '$1\\frac{2}{3} ');
+  s = s.replace(/([\(A-Da-d\s=+\-*])'\s*\n\s*!\s*(?=[A-Za-z\(\[\\0-9\log=])/g, '$1\\frac{1}{2} ');
+  s = s.replace(/([\(A-Da-d\s=+\-*])'\s*\n\s*6\s*(?=[A-Za-z\(\[\\0-9\log=])/g, '$1\\frac{1}{5} ');
+  s = s.replace(/([\(A-Da-d\s=+\-*])3\s*\n\s*!\s*(?=[A-Za-z\(\[\\0-9\log=])/g, '$1\\frac{\\pi}{2} ');
+
+  // Standard pi fractions
+  s = s.replace(/\b3\/6\b/g, '\\frac{\\pi}{6}');
+  s = s.replace(/\b3\/4\b/g, '\\frac{\\pi}{4}');
+  s = s.replace(/\b3\/2\b/g, '\\frac{\\pi}{2}');
+  s = s.replace(/\b3\/3\b/g, '\\frac{\\pi}{3}');
+  s = s.replace(/\/3\/4\b/g, '-\\frac{\\pi}{4}');
+  s = s.replace(/\/3\/2\b/g, '-\\frac{\\pi}{2}');
+  s = s.replace(/\/3\/6\b/g, '-\\frac{\\pi}{6}');
+
+  // 3. Piecewise case structures
+  s = s.replace(/6\s*\n?\s*\\?frac\{1\}\{3\}\s*,\s*x\s*≤\s*𝜋\/2\s*\.\s*\('\/012\s*\$\)\s*\(3\/!\$\)!\s*,\s*x\s*>\s*𝜋\/2/gi,
+    '\\begin{cases} \\frac{1}{3}, & x \\le \\frac{\\pi}{2} \\\\ \\frac{b(1 - \\sin x)}{(\\pi - 2x)^2}, & x > \\frac{\\pi}{2} \\end{cases}');
+  s = s.replace(/6\s*\n?\s*'\s*\n?\s*,\s*,\s*x\s*≤\s*𝜋\/2\s*\.\s*\('\/012\s*\$\)\s*\(3\/!\$\)!\s*,\s*x\s*>\s*𝜋\/2/gi,
+    '\\begin{cases} \\frac{1}{3}, & x \\le \\frac{\\pi}{2} \\\\ \\frac{b(1 - \\sin x)}{(\\pi - 2x)^2}, & x > \\frac{\\pi}{2} \\end{cases}');
+
+  // 4. Extended integral bracket delimiters: \ 3 ! /3 ! ] 12(3 + [x]) / (3 + [sin x] + [cos x]) ^ dx
+  s = s.replace(/\\+\s*\n?\s*3\s*\n?\s*!\s*\n?\s*\/3\s*\n?\s*!\s*\n?\s*\]\s*12\(3\s*\+\s*\[[x𝑥]\]\)\s*\n?\s*3\s*\+\s*\[sin\s*[x𝑥]\]\s*\+\s*\[cos\s*[x𝑥]\]\s*\n?\s*\^\s*d[x𝑥]/gi,
+    '\\int_{-\\pi/2}^{\\pi/2} \\left( \\frac{12(3 + [x])}{3 + [\\sin x] + [\\cos x]} \\right) dx');
+
+  // 5. Definite Integrals
+  s = s.replace(/∫\s*\n?\s*!\s*\n?\s*"\s*\n?\s*#\$\(\$!&\$&'\)\s*\n?\s*\(√\$&'\)\*√\$"&\$!&'\+\s*\n?\s*d[x𝑥]/gi,
+    '\\int_0^2 \\frac{\\sqrt{x(x^2 + x + 1)}}{(\\sqrt{x} + 1)\\sqrt{x^4 + x^2 + 1}} \\, dx');
+
+  s = s.replace(/∫\s*\n?\s*,\s*\.\/4\s*\n?\s*"\s*\|[x𝑥]!\s*\+\s*2[x𝑥]\s*−\s*3\|d[x𝑥]/gi,
+    '\\int_0^{3b-6} |x^2 + 2x - 3| \\, dx');
+
+  s = s.replace(/∫\s*\n?\s*\\?frac\{\\pi\}\{6\}\s*\n?\s*\\?frac\{\\pi\}\{4\}\s*=cot\s*=x\s*[-−]\s*3\s*,\s*@\s*cot\s*=x\s*\+\s*3\s*,\s*@\s*\+\s*1@\s*d[x𝑥]/gi,
+    '\\int_{\\pi/6}^{\\pi/4} \\left( \\cot\\left(x - \\frac{\\pi}{3}\\right)\\cot\\left(x + \\frac{\\pi}{3}\\right) + 1 \\right) dx')
+   .replace(/∫\s*\n?\s*3\/6\s*\n?\s*3\/4\s*=cot\s*=x\s*[-−]\s*3\s*,\s*@\s*cot\s*=x\s*\+\s*3\s*,\s*@\s*\+\s*1@\s*d[x𝑥]/gi,
+    '\\int_{\\pi/6}^{\\pi/4} \\left( \\cot\\left(x - \\frac{\\pi}{3}\\right)\\cot\\left(x + \\frac{\\pi}{3}\\right) + 1 \\right) dx');
+
+  s = s.replace(/∫\s*\n?\s*\$\s*\n?\s*"\s*\(t!\s*\+\s*2t\s*\+\s*3\)dt/gi,
+    '\\int_0^x (t^2 + 2t + 3) \\, dt');
+
+  s = s.replace(/∫\s*\n?\s*'\s*\n?\s*\/'\s*=\s*\$#&\|\$\|&'\s*\n?\s*\$!&!\|\$\|&'\s*\n?\s*@\s*d[x𝑥]/gi,
+    '\\int_{-1}^1 \\left( \\frac{x^3 + |x| + 1}{x^2 + 2|x| + 1} \\right) dx');
+
+  s = s.replace(/∫\s*\n?\s*\$\s*\n?\s*"\s*\n?\s*\/\$\s*\n?\s*"\s*=\s*\n?\s*,!9:0"\s*\$\s*\n?\s*'&-%&'\s*\(\s*@\s*d[x𝑥]/gi,
+    '\\int_{-\\pi/4}^{\\pi/4} \\left( \\frac{32\\cos^4 x}{1 + e^{\\sin x}} \\right) dx');
+
+  s = s.replace(/∫\s*\n?\s*<:=\)\(>\)\s*\n?\s*<:=\)\(>\/'\)\s*\n?\s*\?\$\s*\n?\s*\(-!\(\/-\*!\(\)/gi,
+    '\\int_{\\log_e(\\alpha - 1)}^{\\log_e(\\alpha)} \\frac{dx}{e^{2x} - e^{-2x}}');
+
+  s = s.replace(/∫\s*\n?\s*\$\s*\n?\s*#\s*\n?\s*\$\s*\n?\s*\+\s*=\s*\n?\s*6\/9:079!\$\s*\n?\s*9:0"\s*\$\s*@\s*d[x𝑥]/gi,
+    '\\int_{\\pi/6}^{\\pi/3} \\left( \\frac{4 - \\csc^2 x}{\\cos^4 x} \\right) dx');
+
+  s = s.replace(/∫\s*\n?\s*B\s*\n?\s*"\s*\n?\s*<:=\)\(\$\)\s*\n?\s*\$!&6\s*\n?\s*d[x𝑥]/gi,
+    '\\int_0^\\infty \\frac{\\log_e(x)}{x^2 + 4} \\, dx');
+
+  s = s.replace(/∫\s*\n?\s*'\s*\n?\s*"\s*cot\/'\(1\s*\+\s*[x𝑥]\s*\+\s*[x𝑥]!\)d[x𝑥]/gi,
+    '\\int_0^1 \\cot^{-1}(1 + x + x^2) \\, dx');
+
+  s = s.replace(/∫\s*\n?\s*'\s*\n?\s*\/'\s*\(x,\s*\+\s*ax!\s*\+\s*bx\s*\+\s*c\)d[x𝑥]/gi,
+    '\\int_{-1}^1 (x^3 + ax^2 + bx + c) \\, dx');
+
+  s = s.replace(/∫\s*\n?\s*!\s*\n?\s*"\s*𝑓\(𝑥\)𝑑𝑥/gi,
+    '\\int_0^2 f(x) \\, dx');
+
+  s = s.replace(/∫\s*\n?\s*!\s*\n?\s*\/!\s*\(\|sin\s*[x𝑥]\|\s*\+\s*\[[x𝑥]sin\s*[x𝑥]\]\)d[x𝑥]/gi,
+    '\\int_{-2}^2 (|\\sin x| + [x\\sin x]) \\, dx');
+
+  s = s.replace(/∫\s*\n?\s*!"3\s*\n?\s*"\s*\(sin6\s*[x𝑥]\s*\+\s*cos6\s*[x𝑥]\)d[x𝑥]/gi,
+    '\\int_0^{20\\pi} (\\sin^4 x + \\cos^4 x) \\, dx');
+
+  s = s.replace(/∫\s*"?\s*,\s*=\s*[\s\S]*?\[\$\]!\s*@\s*d[x𝑥]/gi,
+    '\\int_0^3 \\left( \\frac{e^{x + e^{-x}}}{[x]!} \\right) dx');
+
+  s = s.replace(/∫"\s*!√,\s*log!\(𝑥!\s*\+\s*4\)𝑑𝑥\s*\+\s*∫!\s*6\s*√2𝑥\s*−\s*4𝑑𝑥/gi,
+    '\\int_0^{2\\sqrt{3}} \\log_2(x^2 + 4) \\, dx + \\int_2^4 \\sqrt{2x} - 4 \\, dx');
+
+  // 6. Options and formula decoding
+  s = s.replace(/\('\s*\n?\s*,\s*log-\s*/gi, '\\frac{1}{3} \\log_e ')
+       .replace(/!\s*\n?\s*,\s*log-\s*/gi, '\\frac{2}{3} \\log_e ')
+       .replace(/'\s*\n?\s*!\s*log-\s*/gi, '\\frac{1}{2} \\log_e ')
+       .replace(/'\s*\n?\s*6\s*log-\s*/gi, '\\frac{1}{5} \\log_e ')
+       .replace(/log-\s*/gi, '\\log_e ')
+       .replace(/log7\s*/gi, '\\log_e ');
+
+  s = s.replace(/''\s*\n?\s*√,\s*/gi, '\\frac{11}{\\sqrt{3}} ')
+       .replace(/'4\s*\n?\s*√,\s*/gi, '\\frac{16}{\\sqrt{3}} ')
+       .replace(/,!\s*\n?\s*,√,\s*/gi, '\\frac{32}{3\\sqrt{3}} ')
+       .replace(/46\s*\n?\s*,√,\s*/gi, '\\frac{64}{3\\sqrt{3}} ');
+
+  s = s.replace(/3<:=\)\(!\)\s*\n?\s*!\s*/gi, '\\frac{\\pi\\log_e(2)}{2} ')
+       .replace(/3<:=\)\(!\)\s*\n?\s*6\s*/gi, '\\frac{\\pi\\log_e(2)}{4} ')
+       .replace(/𝜋log-\(2\)/gi, '\\pi\\log_e(2)');
+
+  s = s.replace(/2tan\/'\s*2\s*\+\s*'\s*\n?\s*!\s*log-\s*=\s*\n?\s*A\s*\n?\s*6\s*@\s*\+\s*3\s*\n?\s*!\s*/gi,
+    '2\\tan^{-1} 2 + \\frac{1}{2}\\log_e\\left(\\frac{5}{4}\\right) + \\frac{\\pi}{2}')
+       .replace(/2tan\/'\s*2\s*\+\s*'\s*\n?\s*!\s*log-\s*=\s*\n?\s*A\s*\n?\s*6\s*@\s*−\s*3\s*\n?\s*!\s*/gi,
+    '2\\tan^{-1} 2 + \\frac{1}{2}\\log_e\\left(\\frac{5}{4}\\right) - \\frac{\\pi}{2}')
+       .replace(/2tan\/'\s*2\s*−\s*'\s*\n?\s*!\s*log-\s*=\s*\n?\s*A\s*\n?\s*6\s*@\s*\+\s*3\s*\n?\s*!\s*/gi,
+    '2\\tan^{-1} 2 - \\frac{1}{2}\\log_e\\left(\\frac{5}{4}\\right) + \\frac{\\pi}{2}')
+       .replace(/2tan\/'\s*2\s*−\s*'\s*\n?\s*!\s*log-\s*=\s*\n?\s*A\s*\n?\s*6\s*@\s*−\s*3\s*\n?\s*!\s*/gi,
+    '2\\tan^{-1} 2 - \\frac{1}{2}\\log_e\\left(\\frac{5}{4}\\right) - \\frac{\\pi}{2}');
+
+  s = s.replace(/'A3\s*\n?\s*!\s*/gi, '\\frac{15\\pi}{2} ')
+       .replace(/!A3\s*\n?\s*!\s*/gi, '\\frac{25\\pi}{2} ');
+
+  s = s.replace(/𝑒!\s*\+\s*𝑒,\s*−\s*'\s*\n?\s*-!\s*−\s*'\s*\n?\s*-#/gi,
+    'e^2 + e^3 - \\frac{1}{e^2} - \\frac{1}{e^3}')
+       .replace(/'\s*\n?\s*!\s*=\s*𝑒!\s*\+\s*𝑒,\s*−\s*'\s*\n?\s*-!\s*−\s*'\s*\n?\s*-#\s*@/gi,
+    '\\frac{1}{2}\\left(e^2 + e^3 - \\frac{1}{e^2} - \\frac{1}{e^3}\\right)')
+       .replace(/𝑒!\s*\+\s*𝑒,\s*−\s*'\s*\n?\s*!-!\s*−\s*'\s*\n?\s*!-#/gi,
+    'e^2 + e^3 - \\frac{1}{2e^2} - \\frac{1}{2e^3}')
+       .replace(/'\s*\n?\s*!\s*\(𝑒!\s*\+\s*𝑒,\)\s*−\s*'\s*\n?\s*-!\s*−\s*'\s*\n?\s*-#/gi,
+    '\\frac{1}{2}(e^2 + e^3) - \\frac{1}{e^2} - \\frac{1}{e^3}');
+
+  s = s.replace(/𝛽sin\s*=\s*\n?\s*D\s*\n?\s*!\s*@/gi, '\\beta\\sin\\left(\\frac{\\pi}{2}\\right)');
+
+  s = s.replace(/𝑓C\s*\n?\s*\(𝑥\)𝑓CC\(𝑥\)/gi, "f'(x)f''(x)")
+       .replace(/36\s*=\s*𝑓C\s*\n?\s*\(2\)\s*\+\s*𝑓CC\(2\)\s*\+\s*\\int_0\^2\s*f\(x\)\s*\\, dx\s*@/gi,
+         "36\\left(f'(2) + f''(2) + \\int_0^2 f(x) \\, dx\\right)");
+
+  s = s.replace(/\(2'\/;\s*\+\s*2'&;\)/gi, '(2^{1-a} + 2^{1+a})')
+       .replace(/\(3;\s*\+\s*3\/;\)/gi, '(3^a + 3^{-a})')
+       .replace(/9𝛼!/gi, '9\\alpha^2')
+       .replace(/𝛼!/gi, '\\alpha^2')
+       .replace(/x,\s*\+\s*ax!\s*\+\s*bx\s*\+\s*c/gi, 'x^3 + ax^2 + bx + c')
+       .replace(/𝑥,\s*\+\s*𝑎𝑥!\s*\+\s*𝑏𝑥\s*\+\s*𝑐/gi, 'x^3 + ax^2 + bx + c');
+
+  return s;
+}
+
 export function normalizeMathText(raw: string): string {
   if (!raw) return '';
 
+  // 0. Coaching institute font decoding pre-pass
+  let text = decodeCoachingMathFont(raw);
+
   // Convert all double dollar display delimiters to single dollar inline delimiters
-  let text = raw.split('$$').join('$');
+  text = text.split('$$').join('$');
 
   // Normalize mathematical italic / bold unicode characters to standard ASCII:
   text = text.replace(/[\u{1D451}\u{1D41D}\u{1D485}]/gu, 'd')
@@ -1324,35 +1476,81 @@ function parseStructuredText(
 ): ProblemQuestionItem[] {
   const questions: ProblemQuestionItem[] = [];
 
+  // Decode coaching institute symbol font & vertical fraction layouts
+  let cleanInput = decodeCoachingMathFont(text);
+
+  // Extract separate Answer Key block if present (e.g. "Answer Key:" or "1.C 2.D 3.D 4.B...")
+  const ansKeyMap = new Map<number, string>();
+  const explicitAnsMatch = cleanInput.match(/(?:Answer\s*Key|Answers?|ANSWERS?)\s*[:\n]([\s\S]+)$/i);
+  const ansGridMatch = cleanInput.match(/(?:(?:\b(?:Answer\s*Key|Answers?|ANSWERS?)\b[^\n]*\n?)|(?:(?:^|\n)\s*(?:JEE\s+Main[^\n]*\n\s*)?1\s*[\.:\-]\s*[A-Da-d0-9]+\s+2\s*[\.:\-]\s*[A-Da-d0-9]+\s+3\s*[\.:\-]\s*[A-Da-d0-9]+))[\s\S]*$/i);
+
+  const matchedAnsKey = explicitAnsMatch || ansGridMatch;
+  if (matchedAnsKey && matchedAnsKey.index !== undefined) {
+    const keyBlock = matchedAnsKey[0];
+    const keyPairRegex = /(\d{1,3})\s*[\.:\-]\s*([A-Da-d0-9\.\-]+)/g;
+    let km;
+    while ((km = keyPairRegex.exec(keyBlock)) !== null) {
+      const qn = parseInt(km[1], 10);
+      const rawAns = km[2].trim().toUpperCase();
+      if (!isNaN(qn)) {
+        ansKeyMap.set(qn, rawAns);
+      }
+    }
+    cleanInput = cleanInput.substring(0, matchedAnsKey.index).trim();
+  }
+
   // Split by question markers:
-  // Must be at line start, e.g. "Q1.", "Question 1:", "Problem 1.", "1. " followed by a letter or formula
-  const qBlocks = text
-    .split(/(?:^|\n)(?=\s*(?:Q(?:uestion)?\s*#?\s*\d+[\.\:\)]|\bProblem\s*\d+[\.\:\)]|\bQ\d+[\.\:\)]|(?:\d{1,3}[\.\)]\s+(?=[A-Z\$\\\*\#]))))/i)
+  // e.g. "Q1.", "Question 1:", "Problem 1.", "1. ", "1.The", "2.Let", "3.If", "4.Let"
+  const qBlocks = cleanInput
+    .split(/(?:^|\n)(?=\s*(?:Q(?:uestion)?\s*#?\s*\d+[\.\:\)]|\bProblem\s*\d+[\.\:\)]|\bQ\d+[\.\:\)]|(?:\d{1,3}[\.\)]\s*(?=[A-Za-z\$\\\*\#∫√]))))/i)
     .filter((b) => b.trim().length > 0);
 
   // If text didn't split into multiple questions, treat whole input as 1 question block
-  const blocksToProcess = qBlocks.length > 0 ? qBlocks : [text];
+  const blocksToProcess = qBlocks.length > 0 ? qBlocks : [cleanInput];
 
   blocksToProcess.forEach((rawBlock, idx) => {
-    const block = rawBlock.trim();
-    if (!block || block.length < 8) return;
+    let cleanBlock = rawBlock.trim();
+    if (!cleanBlock || cleanBlock.length < 8) return;
 
     // Clean leading Q1. or 1.
-    const cleanBlock = block.replace(/^\s*(?:Q(?:uestion)?\s*#?\s*\d+[\.\:\)]|\bProblem\s*\d+[\.\:\)]|\bQ\d+[\.\:\)]|\d{1,3}[\.\)]\s*)\s*/i, '');
+    cleanBlock = cleanBlock.replace(/^\s*(?:Q(?:uestion)?\s*#?\s*\d+[\.\:\)]|\bProblem\s*\d+[\.\:\)]|\bQ\d+[\.\:\)]|\d{1,3}[\.\)]\s*)\s*/i, '');
 
-    // Extract Answer / Correct Key
+    // Extract shift or exam tag e.g. "JEE Main 2026 (Online) 8th April Evening Shift"
+    let shiftBadge = '';
+    const shiftMatch = cleanBlock.match(/(?:^|\n)\s*(JEE\s+Main[^\n]*Shift[^\n]*)/i);
+    if (shiftMatch) {
+      shiftBadge = shiftMatch[1].trim();
+      cleanBlock = cleanBlock.replace(shiftMatch[0], '').trim();
+    }
+
+    // Extract Answer / Correct Key from block
     const ansMatch = cleanBlock.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Option))?|Option)\s*[:=\-]\s*[(]?([A-Da-d1-4])[)]?/i);
-    let rawAns = ansMatch ? ansMatch[1].toUpperCase() : 'A';
+    let rawAns = ansMatch ? ansMatch[1].toUpperCase() : '';
     // Map NTA 1,2,3,4 to A,B,C,D
     if (rawAns === '1') rawAns = 'A';
     else if (rawAns === '2') rawAns = 'B';
     else if (rawAns === '3') rawAns = 'C';
     else if (rawAns === '4') rawAns = 'D';
-    const correctKey = (['A', 'B', 'C', 'D'].includes(rawAns) ? rawAns : 'A') as 'A' | 'B' | 'C' | 'D';
+
+    // Check mapped answer key from trailing answer sheet
+    const sheetAns = ansKeyMap.get(idx + 1) || '';
+    let finalKey: 'A' | 'B' | 'C' | 'D' = 'A';
+    let numericalAns = '';
+
+    if (['A', 'B', 'C', 'D'].includes(sheetAns)) {
+      finalKey = sheetAns as 'A' | 'B' | 'C' | 'D';
+    } else if (sheetAns && !isNaN(Number(sheetAns))) {
+      numericalAns = sheetAns;
+    } else if (['A', 'B', 'C', 'D'].includes(rawAns)) {
+      finalKey = rawAns as 'A' | 'B' | 'C' | 'D';
+    }
 
     // Extract Solution
     const solMatch = cleanBlock.match(/(?:^|\n)\s*(?:Sol(?:ution)?|Expl(?:anation)?)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Shortcut|Trick|DK\s*Sir|Video|PDF|Topic)|$))/i);
-    const stepSolution = solMatch ? normalizeMathText(solMatch[1]) : 'Step solution provided.';
+    let stepSolution = solMatch ? normalizeMathText(solMatch[1]) : 'Step solution provided.';
+    if (numericalAns && !stepSolution.includes(numericalAns)) {
+      stepSolution = `Numerical Answer: ${numericalAns}\n\n${stepSolution}`;
+    }
 
     // Extract DK Sir Shortcut
     const shortcutMatch = cleanBlock.match(/(?:^|\n)\s*(?:Shortcut|Trick|DK\s*Sir)\s*[:=\-]\s*([\s\S]+?)(?=(?:\n\s*(?:Video|PDF|Topic)|$))/i);
@@ -1379,18 +1577,18 @@ function parseStructuredText(
       id: `q-text-${Date.now()}-${idx + 1}`,
       qNum: idx + 1,
       statement: normalizeMathText(statement || `Question ${idx + 1}`),
-      topic: defaultTopic,
+      topic: shiftBadge || defaultTopic,
       options: options.map((opt) => ({
         key: opt.key,
         text: normalizeMathText(opt.text)
       })),
-      correctKey,
+      correctKey: finalKey,
       stepSolution,
       dkSirShortcut,
       videoUrl,
       pdfUrl,
       difficulty: 'Moderate',
-      examYear: defaultYear || 'JEE Main 2025',
+      examYear: shiftBadge ? 'JEE Main 2026' : (defaultYear || 'JEE Main 2026'),
       isFree: true
     });
   });

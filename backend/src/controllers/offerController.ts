@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
-import { Offer } from '../models/Offer.js';
+import mongoose from 'mongoose';
+import { Offer, type IOffer } from '../models/Offer.js';
 
 const SEED_OFFERS = [
   {
@@ -69,20 +70,25 @@ export const getAllOffers = async (_req: Request, res: Response): Promise<void> 
 export const createOrUpdateOffer = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id, _id, ...offerData } = req.body;
-    const offerId = id || _id;
+    const offerId = (id || _id) as string | undefined;
 
     if (!offerData.title || !offerData.title.trim()) {
       res.status(400).json({ success: false, message: 'Offer title is required' });
       return;
     }
 
-    if (offerId) {
-      const updated = await Offer.findByIdAndUpdate(offerId, { $set: offerData }, { new: true, runValidators: true });
-      if (!updated) {
-        res.status(404).json({ success: false, message: 'Offer not found' });
-        return;
-      }
-      res.status(200).json({ success: true, message: 'Offer updated successfully', data: updated });
+    let existingOffer: IOffer | null = null;
+    if (offerId && mongoose.isValidObjectId(offerId)) {
+      existingOffer = await Offer.findById(offerId);
+    }
+    if (!existingOffer && offerData.offerType) {
+      existingOffer = await Offer.findOne({ offerType: offerData.offerType as any });
+    }
+
+    if (existingOffer) {
+      Object.assign(existingOffer, offerData);
+      await existingOffer.save();
+      res.status(200).json({ success: true, message: 'Offer updated successfully', data: existingOffer });
       return;
     }
 
@@ -96,7 +102,13 @@ export const createOrUpdateOffer = async (req: Request, res: Response): Promise<
 export const toggleOfferStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const offer = await Offer.findById(id);
+    let offer: IOffer | null = null;
+    if (mongoose.isValidObjectId(id)) {
+      offer = await Offer.findById(id);
+    }
+    if (!offer && (id === 'banner' || id === 'popup' || id === 'item_discount')) {
+      offer = await Offer.findOne({ offerType: id });
+    }
     if (!offer) {
       res.status(404).json({ success: false, message: 'Offer not found' });
       return;
@@ -118,7 +130,12 @@ export const toggleOfferStatus = async (req: Request, res: Response): Promise<vo
 export const deleteOffer = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const deleted = await Offer.findByIdAndDelete(id);
+    let deleted: IOffer | null = null;
+    if (mongoose.isValidObjectId(id)) {
+      deleted = await Offer.findByIdAndDelete(id);
+    } else if (id === 'banner' || id === 'popup' || id === 'item_discount') {
+      deleted = await Offer.findOneAndDelete({ offerType: id });
+    }
     if (!deleted) {
       res.status(404).json({ success: false, message: 'Offer not found' });
       return;

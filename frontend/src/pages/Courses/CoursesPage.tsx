@@ -16,7 +16,6 @@ import {
   PhoneCall,
   Phone,
   CheckCircle2,
-  Megaphone,
   ShieldCheck,
   ArrowRight,
   Star,
@@ -92,9 +91,6 @@ export const CoursesPage: React.FC = () => {
       window.removeEventListener('dk_payment_success', handleCmsUpdate);
     };
   }, []);
-
-  // Announcement banner dismiss state
-  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
 
   // Filter state derived directly from searchParams (single source of truth for URL sharing & Navbar navigation)
   const urlCategory = searchParams.get('category')?.toLowerCase();
@@ -624,34 +620,6 @@ export const CoursesPage: React.FC = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSchema) }}
       />
-
-      {/* Top Promotional Announcement Banner */}
-      {!isBannerDismissed && (
-        <aside className={styles.topPromoBanner} aria-label="Special scholarship announcement">
-          <Container size="wide">
-            <div className={styles.promoInner}>
-              <Link to="/test-series" className={styles.promoContent}>
-                <span className={styles.promoTag}>
-                  <Megaphone size={14} aria-hidden="true" />
-                  <span>Real Practice Begins!</span>
-                </span>
-                <span className={styles.promoText}>
-                  Up to 90% Scholarship on DK Academy Admission Test • Next CBT Slot Available This Sunday
-                </span>
-                <ChevronRight size={16} className={styles.promoChevron} aria-hidden="true" />
-              </Link>
-              <button
-                type="button"
-                className={styles.dismissBannerBtn}
-                onClick={() => setIsBannerDismissed(true)}
-                aria-label="Dismiss announcement banner"
-              >
-                <X size={15} />
-              </button>
-            </div>
-          </Container>
-        </aside>
-      )}
 
       {/* Breadcrumb Navigation */}
       <nav className={styles.breadcrumbNav} aria-label="Breadcrumb">
