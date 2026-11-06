@@ -147,13 +147,6 @@ export const CouponManagementWorkspace: React.FC = () => {
   useEffect(() => {
     loadCoupons();
     loadOffers();
-
-    const handleOfferEvents = () => {
-      loadOffers();
-    };
-
-    window.addEventListener(OFFERS_EVENT_KEY, handleOfferEvents);
-    return () => window.removeEventListener(OFFERS_EVENT_KEY, handleOfferEvents);
   }, []);
 
   // ─────────────────────────────────────────────────────────────
@@ -636,122 +629,6 @@ export const CouponManagementWorkspace: React.FC = () => {
         </button>
       </div>
 
-      {/* 2b. Quick Offer Controls & Status Overview Strip */}
-      <div className={styles.quickOfferOverviewStrip}>
-        {/* Banner Quick Control */}
-        <div className={styles.quickOfferCard}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: bannerForm.isActive ? '#eff6ff' : '#f1f5f9',
-                color: bannerForm.isActive ? '#2563eb' : '#64748b',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
-            >
-              <Megaphone size={16} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Top Announcement Banner
-              </div>
-              <div style={{ fontSize: '11.5px', color: bannerForm.isActive ? '#10b981' : '#64748b', fontWeight: 600 }}>
-                {bannerForm.isActive ? '● Active on All Pages' : '○ Banner Hidden'}
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className={`${styles.toggleDisableBtn} ${bannerForm.isActive ? styles.activeState : styles.inactiveState}`}
-            onClick={() => handleInstantToggleOffer('banner')}
-            title={bannerForm.isActive ? 'Click to disable top banner' : 'Click to enable top banner'}
-          >
-            {bannerForm.isActive ? 'Disable' : 'Enable'}
-          </button>
-        </div>
-
-        {/* Popup Quick Control */}
-        <div className={styles.quickOfferCard}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: popupForm.isActive ? '#fdf2f8' : '#f1f5f9',
-                color: popupForm.isActive ? '#db2777' : '#64748b',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
-            >
-              <Sparkles size={16} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Visitor Promotional Popup
-              </div>
-              <div style={{ fontSize: '11.5px', color: popupForm.isActive ? '#10b981' : '#64748b', fontWeight: 600 }}>
-                {popupForm.isActive ? '● Active on Visit' : '○ Popup Paused'}
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className={`${styles.toggleDisableBtn} ${popupForm.isActive ? styles.activeState : styles.inactiveState}`}
-            onClick={() => handleInstantToggleOffer('popup')}
-            title={popupForm.isActive ? 'Click to disable visitor popup' : 'Click to enable visitor popup'}
-          >
-            {popupForm.isActive ? 'Disable' : 'Enable'}
-          </button>
-        </div>
-
-        {/* Item Flash Sale Quick Control */}
-        <div className={styles.quickOfferCard}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: itemOfferForm.isActive ? '#ecfdf5' : '#f1f5f9',
-                color: itemOfferForm.isActive ? '#059669' : '#64748b',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
-            >
-              <Zap size={16} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Courses & Tests Flash Sale
-              </div>
-              <div style={{ fontSize: '11.5px', color: itemOfferForm.isActive ? '#10b981' : '#64748b', fontWeight: 600 }}>
-                {itemOfferForm.isActive
-                  ? `● Live (${itemOfferForm.discountValue}${itemOfferForm.discountType === 'percent' ? '%' : '₹'} off)`
-                  : '○ Sale Deactivated'}
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className={`${styles.toggleDisableBtn} ${itemOfferForm.isActive ? styles.activeState : styles.inactiveState}`}
-            onClick={() => handleInstantToggleOffer('item_discount')}
-            title={itemOfferForm.isActive ? 'Click to disable flash sale' : 'Click to enable flash sale'}
-          >
-            {itemOfferForm.isActive ? 'Disable' : 'Enable'}
-          </button>
-        </div>
-      </div>
-
       {/* ─────────────────────────────────────────────────────────────
           TAB 1: PROMO COUPONS
           ───────────────────────────────────────────────────────────── */}
@@ -1220,30 +1097,19 @@ export const CouponManagementWorkspace: React.FC = () => {
             {/* Form Column */}
             <div className={styles.formColumn}>
               <div>
-                <label className={styles.fieldLabel}>Offer Heading</label>
+                <label className={styles.fieldLabel}>Campaign Name (Internal Reference)</label>
                 <input
                   type="text"
                   className={styles.textInput}
                   value={popupForm.title}
                   onChange={(e) => setPopupForm({ ...popupForm, title: e.target.value })}
-                  placeholder="e.g. Special Admission Scholarship - Flat 30% Off"
+                  placeholder="e.g. Kota Flagship Admission Scholarship"
                   required
                 />
               </div>
 
               <div>
-                <label className={styles.fieldLabel}>Offer Description / Mentorship Details</label>
-                <textarea
-                  className={styles.textareaInput}
-                  value={popupForm.message || ''}
-                  onChange={(e) => setPopupForm({ ...popupForm, message: e.target.value })}
-                  placeholder="Enter details of the batch, mentorship, or scholarship..."
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <label className={styles.fieldLabel}>Banner Creative Image URL</label>
+                <label className={styles.fieldLabel}>Banner Graphic Image URL</label>
                 <input
                   type="text"
                   className={styles.textInput}
@@ -1290,55 +1156,19 @@ export const CouponManagementWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label className={styles.fieldLabel}>Action Button Text</label>
-                  <input
-                    type="text"
-                    className={styles.textInput}
-                    value={popupForm.buttonText}
-                    onChange={(e) => setPopupForm({ ...popupForm, buttonText: e.target.value })}
-                    placeholder="Claim Scholarship Now"
-                  />
-                </div>
-
-                <div>
-                  <label className={styles.fieldLabel}>Target Link URL</label>
-                  <input
-                    type="text"
-                    className={styles.textInput}
-                    value={popupForm.linkUrl}
-                    onChange={(e) => setPopupForm({ ...popupForm, linkUrl: e.target.value })}
-                    placeholder="/courses or /test-series"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label className={styles.fieldLabel}>Target Audience</label>
-                  <select
-                    className={styles.selectInput}
-                    value={popupForm.audience}
-                    onChange={(e) => setPopupForm({ ...popupForm, audience: e.target.value as any })}
-                  >
-                    <option value="all">All Visitors (Guest &amp; Logged In)</option>
-                    <option value="guest_only">New / Guest Visitors Only</option>
-                    <option value="loggedin_only">Logged-in Students Only</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className={styles.fieldLabel}>Frequency</label>
-                  <select
-                    className={styles.selectInput}
-                    value={popupForm.frequency}
-                    onChange={(e) => setPopupForm({ ...popupForm, frequency: e.target.value as any })}
-                  >
-                    <option value="every_visit">Every Visit &amp; Refresh</option>
-                    <option value="once_per_session">Once Per Browsing Session</option>
-                  </select>
-                </div>
+              <div>
+                <label className={styles.fieldLabel}>Target Redirect Link URL</label>
+                <input
+                  type="text"
+                  className={styles.textInput}
+                  value={popupForm.linkUrl}
+                  onChange={(e) => setPopupForm({ ...popupForm, linkUrl: e.target.value })}
+                  placeholder="/courses or /test-series or /payment/course-id"
+                  required
+                />
+                <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  When students click anywhere on the banner image, they will automatically be redirected to this URL with the discount applied.
+                </span>
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
@@ -1352,7 +1182,7 @@ export const CouponManagementWorkspace: React.FC = () => {
                   className={`${styles.toggleDisableBtn} ${popupForm.isActive ? styles.activeState : styles.inactiveState}`}
                   onClick={() => handleInstantToggleOffer('popup')}
                 >
-                  {popupForm.isActive ? 'Disable' : 'Enable'}
+                  {popupForm.isActive ? 'Disable Popup' : 'Enable Popup'}
                 </button>
 
                 <button
@@ -1367,78 +1197,103 @@ export const CouponManagementWorkspace: React.FC = () => {
               </div>
             </div>
 
-            {/* Live Miniature Preview */}
+            {/* Live Pure Banner Preview Column */}
             <div className={styles.previewColumn}>
               <div className={styles.previewHeading}>
-                <span>Popup Preview</span>
+                <span>Live Student Popup Modal Preview</span>
                 <span style={{ fontSize: '11px', color: popupForm.isActive ? '#10b981' : '#94a3b8' }}>
-                  {popupForm.isActive ? '● Live' : '○ Paused'}
+                  {popupForm.isActive ? '● Live on Refresh' : '○ Disabled'}
                 </span>
               </div>
 
+              {/* Simulated Dark Overlay Backdrop */}
               <div
                 style={{
-                  background: '#ffffff',
+                  background: 'rgba(15, 23, 42, 0.88)',
                   borderRadius: '14px',
-                  overflow: 'hidden',
-                  border: '1px solid #cbd5e1',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                  padding: '28px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: '260px',
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}
               >
-                <div style={{ height: '140px', background: '#0f172a', position: 'relative' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: '360px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.65)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    background: '#0f172a'
+                  }}
+                >
+                  {/* Floating Close 'X' Button on image */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: 'rgba(15, 23, 42, 0.8)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 5,
+                      border: '1px solid rgba(255, 255, 255, 0.3)'
+                    }}
+                  >
+                    <X size={14} />
+                  </div>
+
+                  {/* Pure Banner Image */}
                   <img
                     src={popupForm.imageUrl || '/img/dk-results-banner.jpeg'}
                     alt="Preview"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '260px',
+                      objectFit: 'contain',
+                      display: 'block'
+                    }}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/img/dk-results-banner.jpeg';
                     }}
                   />
-                  {popupForm.tagText && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        bottom: '8px',
-                        left: '8px',
-                        background: '#f59e0b',
-                        color: '#fff',
-                        fontSize: '9px',
-                        fontWeight: 700,
-                        padding: '2px 6px',
-                        borderRadius: '4px'
-                      }}
-                    >
-                      {popupForm.tagText}
-                    </span>
-                  )}
-                </div>
 
-                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
-                    {popupForm.title || 'Special Promotion Heading'}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: 1.4 }}>
-                    {popupForm.message || 'Description of the scholarship offer.'}
-                  </p>
+                  {/* Overlay Redirect Indicator Pill */}
                   <div
                     style={{
-                      marginTop: '6px',
-                      background: '#0052cc',
-                      color: '#fff',
+                      position: 'absolute',
+                      bottom: '8px',
+                      left: '8px',
+                      right: '8px',
+                      background: 'rgba(0, 0, 0, 0.8)',
+                      backdropFilter: 'blur(4px)',
+                      color: '#ffffff',
+                      fontSize: '10.5px',
+                      fontWeight: 600,
+                      padding: '5px 8px',
+                      borderRadius: '6px',
                       textAlign: 'center',
-                      padding: '8px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 700
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
                     }}
                   >
-                    {popupForm.buttonText || 'Claim Offer'}
+                    🔗 Click redirects to: {popupForm.linkUrl || '/courses'} (Offer Applied)
                   </div>
                 </div>
               </div>
 
               <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-                Targeting: {popupForm.audience === 'all' ? 'All visitors' : popupForm.audience === 'guest_only' ? 'Guest users' : 'Logged-in students'}. Click <strong>Test Popup Live</strong> to see the full overlay animation.
+                This is exactly what students see on visit &amp; refresh: only the pure promotional graphic. Clicking anywhere on the banner redirects them to the configured link and applies the offer.
               </p>
             </div>
           </form>
