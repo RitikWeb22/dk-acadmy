@@ -31,6 +31,7 @@ import { Container } from '../../ui/Container/Container';
 import { useStudentAuth } from '../../../context/AuthContext';
 import { cmsService, CMS_EVENT_KEY, DEFAULT_NAVBAR_ITEMS } from '../../../services/cmsService';
 import type { NavbarMenuItem, NavbarDropdownItem } from '../../../types/admin';
+import { GlobalAnnouncementBanner } from './GlobalAnnouncementBanner';
 import styles from './Navbar.module.scss';
 
 // Helper for Category Micro-Icons in Dropdown
@@ -304,6 +305,7 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <header className={`${styles.navbarWrapper} ${isScrolled ? styles.isScrolled : ''}`}>
+        <GlobalAnnouncementBanner />
         <Container size="wide" className={styles.navContainer}>
           {/* Top Brand Logo */}
           <Link to="/" className={styles.brand} aria-label="DK Academy - Return to Homepage">

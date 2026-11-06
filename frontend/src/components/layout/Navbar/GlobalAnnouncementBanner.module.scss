@@ -1,0 +1,141 @@
+.bannerBar {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(90deg, #1e1b4b 0%, #312e81 40%, #1e3a8a 100%);
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  z-index: 102;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: slideDown 300ms ease-out forwards;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.contentWrap {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+}
+
+.leftInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+  }
+}
+
+.tagBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.35);
+
+  .tagIcon {
+    color: #fef3c7;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.625rem;
+    padding: 2px 6px;
+  }
+}
+
+.bannerMessage {
+  margin: 0;
+  font-weight: 500;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: 768px) {
+    font-size: 0.75rem;
+  }
+}
+
+.rightActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ctaLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  color: #1e1b4b;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 180ms ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: #fef08a;
+    color: #1e1b4b;
+    transform: translateX(1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  @media (max-width: 480px) {
+    padding: 2px 8px;
+    font-size: 0.6875rem;
+  }
+}
+
+.dismissBtn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 150ms ease, background 150ms ease;
+
+  &:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+

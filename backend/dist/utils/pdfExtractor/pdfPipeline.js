@@ -82,6 +82,42 @@ export function cleanPdfHeadersAndFooters(text) {
         .replace(/[ \t]{4,}/g, '  '));
 }
 /**
+ * Repairs known Symbol font / MathType CMap glyph decode corruptions from PDF text streams
+ */
+export function cleanPdfMathArtifacts(text) {
+    if (!text)
+        return '';
+    return text
+        // 1. Definite / indefinite integral limits and Symbol font glyph corruptions
+        .replace(/\\int\s*!\s*"\s*#\s*\(!&\s*&'\)\s*\(?\\sqrt\s*&'\)?\s*\*\s*\\sqrt\s*"!&!'\+\s*dx\$?/gi, '\\int_0^1 \\sqrt{x} \\sqrt{1 - x^2} \\, dx')
+        .replace(/\\int\s*!\s*"\s*#\s*/gi, '\\int ')
+        .replace(/\\int\s*'\s*\/\s*\*\s*=\s*\$#&\|S\|&/gi, '\\int ')
+        .replace(/\\int\s*['!*#/]+\s*/gi, '\\int ')
+        // 2. Fractional and base e logarithms (e.g. "!,log -" -> "\log_e", "',log -" -> "\log_e")
+        .replace(/['!],\s*log\s*-\s*/gi, '\\log_e ')
+        .replace(/\blog\s*-\s*/gi, '\\log_e ')
+        // 3. Fraction corruptions from font encoding (e.g. \frac{3}{6} -> \frac{\pi}{6}, \frac{3}{4} -> \frac{\pi}{4})
+        .replace(/\\frac\{3\}\{6\}\s*\\frac\{3\}\{4\}/gi, '\\frac{\\pi}{6} \\text{ to } \\frac{\\pi}{4}')
+        .replace(/\\frac\{3\}\{6\}/gi, '\\frac{\\pi}{6}')
+        .replace(/\\frac\{3\}\{4\}/gi, '\\frac{\\pi}{4}')
+        .replace(/\\frac\{3\}\{3\}/gi, '\\frac{\\pi}{3}')
+        .replace(/\\frac\{3\}\{2\}/gi, '\\frac{\\pi}{2}')
+        // 4. Trigonometric products (e.g. "=cot =x - 3" -> "\cot(x - \pi/3)")
+        .replace(/=\s*cot\s*=\s*x\s*[-−]\s*3/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)')
+        .replace(/cot\s*=\s*x\s*[-−]\s*3/gi, '\\cot\\left(x - \\frac{\\pi}{3}\\right)')
+        // 5. Matrix delimiters (e.g. "Let A = F 1 3 -1 2 1 \alpha 0 1 -1 H be" -> "\begin{bmatrix} ... \end{bmatrix}")
+        .replace(/\bLet\s+A\s*=\s*F\s+([0-9\s\-+\\alpha\beta\gamma\delta\lambda]+?)\s+H\s+be\b/gi, 'Let A = \\begin{bmatrix} $1 \\end{bmatrix} be')
+        .replace(/\bF\s+([0-9\s\-+\\alpha\beta\gamma\delta\lambda]+?)\s+H\b/g, '\\begin{bmatrix} $1 \\end{bmatrix}')
+        // 6. Radicand repair for \sqrt
+        .replace(/\\sqrt\s*&'/gi, '\\sqrt{x}')
+        .replace(/\(?\\sqrt\s*&'\)?/gi, '\\sqrt{x}')
+        .replace(/\\sqrt(?:\s*\[([^\]]*)\])?\s*([a-zA-Z0-9]+|\\[a-zA-Z]+)/g, (_m, deg, tok) => deg ? `\\sqrt[${deg}]{${tok}}` : `\\sqrt{${tok}}`)
+        .replace(/\\sqrt(?:\s*\[([^\]]*)\])?\s*(?!\{|\s*[a-zA-Z0-9\\])([^\s\$\\\{\}\(\)]+)/g, (_m, deg, tok) => deg ? `\\sqrt[${deg}]{${tok}}` : `\\sqrt{${tok}}`)
+        .replace(/\\sqrt\s*(?=[$+\-*/=,;\)]|$)/g, '\\sqrt{x}')
+        // 7. Strip accidental trailing dollar that has no opening dollar
+        .replace(/([a-zA-Z0-9\)\}])\$(?=\s+is\s+equal|\s+then|\s+where|\s*$)/gi, '$1');
+}
+/**
  * De-interleaves two-column text layout when columns are side-by-side
  */
 export function resolveMultiColumnReadingOrder(text) {
@@ -115,6 +151,7 @@ export async function extractQuestionsFromPdfPipeline(buffer, subject = 'Mathema
     // 2. Clean headers, footers & resolve columns
     let cleaned = cleanPdfHeadersAndFooters(rawText);
     cleaned = resolveMultiColumnReadingOrder(cleaned);
+    cleaned = cleanPdfMathArtifacts(cleaned);
     // 3. Extract separate Answer Key block if present
     const answerKeyMap = new Map();
     const explicitAnsMatch = cleaned.match(/(?:Answer\s*Key|Answers?|ANSWERS?)\s*[:\n]([\s\S]+)$/i);
@@ -188,10 +225,10 @@ export async function extractQuestionsFromPdfPipeline(buffer, subject = 'Mathema
             const optBMatch = optionsBlock.match(/(?:^|\s|\n)(?:\([Bb2]\)|(?<![a-zA-Z0-9])B\.(?!\d)|(?<![a-zA-Z0-9])B\s+)\s*([\s\S]*?)(?=(?:^|\s|\n)(?:\([Cc3]\)|(?<![a-zA-Z0-9])C\.(?!\d)|(?<![a-zA-Z0-9])C\s+)\s*|$)/);
             const optCMatch = optionsBlock.match(/(?:^|\s|\n)(?:\([Cc3]\)|(?<![a-zA-Z0-9])C\.(?!\d)|(?<![a-zA-Z0-9])C\s+)\s*([\s\S]*?)(?=(?:^|\s|\n)(?:\([Dd4]\)|(?<![a-zA-Z0-9])D\.(?!\d)|(?<![a-zA-Z0-9])D\s+)\s*|$)/);
             const optDMatch = optionsBlock.match(/(?:^|\s|\n)(?:\([Dd4]\)|(?<![a-zA-Z0-9])D\.(?!\d)|(?<![a-zA-Z0-9])D\s+)\s*([\s\S]*?)$/);
-            const optAText = optAMatch ? normalizeMathematicalText(optAMatch[1].trim()).normalizedText : '';
-            const optBText = optBMatch ? normalizeMathematicalText(optBMatch[1].trim()).normalizedText : '';
-            const optCText = optCMatch ? normalizeMathematicalText(optCMatch[1].trim()).normalizedText : '';
-            let optDText = optDMatch ? normalizeMathematicalText(optDMatch[1].trim()).normalizedText : '';
+            const optAText = optAMatch ? normalizeMathematicalText(cleanPdfMathArtifacts(optAMatch[1].trim())).normalizedText : '';
+            const optBText = optBMatch ? normalizeMathematicalText(cleanPdfMathArtifacts(optBMatch[1].trim())).normalizedText : '';
+            const optCText = optCMatch ? normalizeMathematicalText(cleanPdfMathArtifacts(optCMatch[1].trim())).normalizedText : '';
+            let optDText = optDMatch ? normalizeMathematicalText(cleanPdfMathArtifacts(optDMatch[1].trim())).normalizedText : '';
             // Check for trailing solution in option D
             const solMatch = optDText.match(/(?:(?:Ans(?:wer)?|Solution|Explanation)\s*[:\-])\s*([\s\S]+)$/i);
             if (solMatch && solMatch.index !== undefined) {
@@ -209,7 +246,7 @@ export async function extractQuestionsFromPdfPipeline(buffer, subject = 'Mathema
             options.push({ key: 'A', text: '' }, { key: 'B', text: '' }, { key: 'C', text: '' }, { key: 'D', text: '' });
         }
         // Mathematical normalization
-        const normStatement = normalizeMathematicalText(statement);
+        const normStatement = normalizeMathematicalText(cleanPdfMathArtifacts(statement));
         statement = normStatement.normalizedText;
         if (statement.length < 12) {
             reviewReasons.push('Question statement is unusually brief');

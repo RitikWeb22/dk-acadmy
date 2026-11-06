@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2, Calendar, Timer, Lock } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2, Calendar, Timer, Lock, Sparkles } from 'lucide-react';
 import type { TestSeriesItem, TestAttempt } from '../../../types';
 import { requestFullScreen } from '../../../utils/fullscreen';
+import { offerService, OFFERS_EVENT_KEY } from '../../../services/offerService';
 import styles from './TestCard.module.scss';
 
 interface TestCardProps {
@@ -26,6 +27,26 @@ export const TestCard: React.FC<TestCardProps> = ({
   onUnlock,
 }) => {
   const status = attempt ? attempt.status : 'Not Started';
+
+  // Real-time special offers listener
+  const [offersTick, setOffersTick] = useState(0);
+  useEffect(() => {
+    const handler = () => setOffersTick((v) => v + 1);
+    window.addEventListener(OFFERS_EVENT_KEY, handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener(OFFERS_EVENT_KEY, handler);
+      window.removeEventListener('storage', handler);
+    };
+  }, []);
+
+  const rawPrice = test.price ? Number(test.price) : 299;
+  const effectiveOffer = useMemo(() => {
+    if (!isLocked) return null;
+    return offerService.getEffectiveItemOffer(test.id, 'test-series', rawPrice);
+  }, [isLocked, test.id, rawPrice, offersTick]);
+
+  const effectivePrice = effectiveOffer && effectiveOffer.hasOffer ? effectiveOffer.discountedPrice : rawPrice;
 
   // Check scheduling status
   const now = Date.now();
@@ -160,23 +181,53 @@ export const TestCard: React.FC<TestCardProps> = ({
 
           {/* Pricing / Lock Badge */}
           {isLocked ? (
-            <span
-              style={{
-                background: '#FEF3C7',
-                color: '#B45309',
-                border: '1px solid #FCD34D',
-                borderRadius: '4px',
-                fontSize: '10.5px',
-                fontWeight: 700,
-                padding: '2px 7px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Lock size={10} />
-              <span>₹{test.price || 299}</span>
-            </span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{
+                  background: '#FEF3C7',
+                  color: '#B45309',
+                  border: '1px solid #FCD34D',
+                  borderRadius: '4px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Lock size={10} />
+                {effectiveOffer?.hasOffer ? (
+                  <>
+                    <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>₹{rawPrice}</span>
+                    <span style={{ color: '#b91c1c', fontWeight: 800 }}>₹{effectivePrice}</span>
+                  </>
+                ) : (
+                  <span>₹{rawPrice}</span>
+                )}
+              </span>
+
+              {/* Custom Offer Badge */}
+              {effectiveOffer?.hasOffer && (
+                <span
+                  style={{
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: '#ffffff',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    boxShadow: '0 1px 3px rgba(220, 38, 38, 0.35)'
+                  }}
+                >
+                  <Sparkles size={9} />
+                  <span>{effectiveOffer.badgeText}</span>
+                </span>
+              )}
+            </div>
           ) : (
             <span
               style={{
@@ -387,10 +438,13 @@ export const TestCard: React.FC<TestCardProps> = ({
               gap: '8px'
             }}
             onClick={() => (onUnlock ? onUnlock(test) : onOpenInstructions(test.id))}
-            aria-label={`Unlock test: ${test.title} for ₹${test.price || 299}`}
+            aria-label={`Unlock test: ${test.title} for ₹${effectivePrice}`}
           >
             <Lock size={15} />
-            <span>Unlock Test (₹{test.price || 299})</span>
+            <span>
+              Unlock Test (₹{effectivePrice})
+              {effectiveOffer?.hasOffer && ` • ${effectiveOffer.badgeText}`}
+            </span>
             <ArrowRight size={15} />
           </button>
         ) : (

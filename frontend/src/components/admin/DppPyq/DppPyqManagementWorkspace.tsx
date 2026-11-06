@@ -49,7 +49,9 @@ import styles from './DppPyqManagementWorkspace.module.scss';
 import { apiClient } from '../../../services/apiClient';
 import { downloadQuestionsTemplateCsv, parseBulkQuestions, normalizeMathText } from '../../../utils/questionBulkParser';
 import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
+import { normalizePastedQuestionContent } from '../../../utils/universalMathEngine';
 import { MathText } from '../../ui/MathText/MathText';
+import { MathInput, parseContentToBlocks } from '../../ui/MathEngine';
 import { GeminiApiKeyModal } from '../../common/GeminiApiKeyModal/GeminiApiKeyModal';
 
 export type ProblemModuleType = 'DPP' | 'PYQ' | 'BITSAT';
@@ -3672,18 +3674,72 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
                 {/* Problem Statement Textarea & Live KaTeX preview */}
                 <div className={styles.statementEditorSection}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                     <label className={styles.sectionSmallLabel} style={{ margin: 0 }}>
                       Problem Statement (KaTeX LaTeX formulas supported):
                     </label>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const clipboardText = await navigator.clipboard.readText();
+                          if (!clipboardText || !clipboardText.trim()) {
+                            showToast('Clipboard is empty! Copy a question from Word or PDF first.');
+                            return;
+                          }
+                          const parsed = normalizePastedQuestionContent(clipboardText);
+                          if (parsed.hasQuestionWithOptions || (parsed.options && parsed.options.length > 0)) {
+                            handleUpdateActiveQuestion({
+                              statement: parsed.statement,
+                              options: parsed.options.map((o) => ({ key: o.key, text: o.text })),
+                              ...(parsed.correctKey ? { correctKey: parsed.correctKey } : {}),
+                              ...(parsed.stepSolution ? { stepSolution: parsed.stepSolution } : {}),
+                              ...(parsed.dkSirShortcut ? { dkSirShortcut: parsed.dkSirShortcut } : {})
+                            });
+                            showToast('✓ Auto-extracted Question Statement, 4 Options & Answer Key!');
+                          } else {
+                            handleUpdateActiveQuestion({
+                              statement: parsed.statement || clipboardText
+                            });
+                            showToast('✓ Pasted into statement.');
+                          }
+                        } catch {
+                          showToast('Clipboard access denied. Please paste directly using Ctrl+V in the box below.');
+                        }
+                      }}
+                      style={{
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Read question and options from clipboard and auto-fill"
+                    >
+                      <FileText size={13} />
+                      <span>Paste Word Question</span>
+                    </button>
                   </div>
-                  <textarea
-                    rows={4}
-                    className={styles.statementTextarea}
+                  <MathInput
                     value={editingItem.questions[editingQuestionIdx].statement}
-                    onChange={(e) => handleUpdateActiveQuestion({ statement: e.target.value })}
-                    onPaste={handleStatementPaste}
+                    onChange={(val) => handleUpdateActiveQuestion({ statement: val })}
+                    onExtractOptions={(statement, options, correctKey) => {
+                      handleUpdateActiveQuestion({
+                        statement,
+                        options,
+                        ...(correctKey ? { correctKey } : {})
+                      });
+                      showToast('✨ Auto-detected Question Statement & Options A, B, C, D from Word!');
+                    }}
                     placeholder="Enter or paste question statement (Word .docx OMML, LaTeX KaTeX $...$, fractions, piecewise functions supported)..."
+                    rows={5}
+                    defaultViewMode="edit"
                   />
                   <div className={styles.mathLivePreviewBox}>
                     <span className={styles.previewTag}>CANDIDATE VIEW PREVIEW (MATHJAX / KATEX):</span>
@@ -3710,10 +3766,10 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                           className={`${styles.optEditorRow} ${
                             isCorrect ? styles.optEditorCorrect : ''
                           }`}
-                          style={{ flexDirection: 'column', alignItems: 'stretch', gap: '6px' }}
+                          style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
-                            <label className={styles.optRadioWrap}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%' }}>
+                            <label className={styles.optRadioWrap} style={{ marginTop: '8px' }}>
                               <input
                                 type="radio"
                                 name={`correct-key-${editingQuestionIdx}`}
@@ -3722,24 +3778,19 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                               />
                               <span className={styles.optLetterKey}>{opt.key}</span>
                             </label>
-                            <input
-                              type="text"
-                              className={styles.optInputText}
-                              value={opt.text}
-                              onChange={(e) => handleUpdateOptionText(opt.key, e.target.value)}
-                              onPaste={(e) => handleOptionPaste(opt.key, e)}
-                              placeholder={`Enter Option ${opt.key} value or LaTeX equation ($...$)...`}
-                            />
+                            <div style={{ flex: 1 }}>
+                              <MathInput
+                                value={opt.text}
+                                onChange={(val) => handleUpdateOptionText(opt.key, val)}
+                                placeholder={`Enter Option ${opt.key} value or LaTeX equation ($...$)... Or paste from Word`}
+                                rows={2}
+                                defaultViewMode="edit"
+                              />
+                            </div>
                             {isCorrect && (
-                              <span className={styles.answerKeyTag}>✓ Correct Key</span>
+                              <span className={styles.answerKeyTag} style={{ marginTop: '8px' }}>✓ Correct Key</span>
                             )}
                           </div>
-                          {opt.text && (
-                            <div style={{ marginLeft: '32px', padding: '4px 10px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '6px', fontSize: '13px', color: '#0f172a' }}>
-                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginRight: '6px' }}>Option {opt.key} Math:</span>
-                              <MathText text={opt.text} />
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -4576,29 +4627,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                             <span style={{ fontSize: '14px', fontWeight: 800, color: '#1e40af', background: '#dbeafe', padding: '4px 10px', borderRadius: '6px' }}>
                               Q{activeBulkReviewIdx + 1} of {bulkParsedQuestions.length}
                             </span>
-                            {/* Question Type Selector */}
-                            <select
-                              value={currentQ.questionType || 'SINGLE_CORRECT'}
-                              onChange={(e) => handleUpdateBulkQuestion(activeBulkReviewIdx, { questionType: e.target.value })}
-                              style={{
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                border: '1px solid #cbd5e1',
-                                fontSize: '11.5px',
-                                fontWeight: 700,
-                                background: '#ffffff',
-                                color: '#0f172a',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <option value="SINGLE_CORRECT">Single Choice MCQ</option>
-                              <option value="MULTIPLE_CORRECT">Multiple Correct</option>
-                              <option value="NUMERICAL">Numerical Answer</option>
-                              <option value="INTEGER">Integer Type</option>
-                              <option value="ASSERTION_REASON">Assertion-Reason</option>
-                              <option value="PASSAGE">Passage Based</option>
-                              <option value="MATCH_FOLLOWING">Match Following</option>
-                            </select>
                             <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Marks: +4 / -1</span>
                           </div>
 
@@ -4741,52 +4769,58 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                           Answer Choices (Select Correct Key):
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
-                          {currentQ.options.map((opt) => {
-                            const isCorrect = currentQ.correctKey === opt.key;
-                            return (
-                              <div
-                                key={opt.key}
-                                onClick={() => handleUpdateBulkQuestion(activeBulkReviewIdx, { correctKey: opt.key })}
-                                style={{
-                                  border: isCorrect ? '2px solid #16a34a' : '1px solid #e2e8f0',
-                                  background: isCorrect ? '#f0fdf4' : '#ffffff',
-                                  borderRadius: '8px',
-                                  padding: '10px 14px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '10px',
-                                  cursor: 'pointer',
-                                  transition: 'border-color 0.15s'
-                                }}
-                              >
+                          {(() => {
+                            const studioDisplayOptions = (['A', 'B', 'C', 'D'] as const).map((key) => {
+                              const found = (currentQ.options || []).find((o) => o.key === key);
+                              return found || { key, text: '' };
+                            });
+                            return studioDisplayOptions.map((opt) => {
+                              const isCorrect = currentQ.correctKey === opt.key;
+                              return (
                                 <div
+                                  key={opt.key}
+                                  onClick={() => handleUpdateBulkQuestion(activeBulkReviewIdx, { correctKey: opt.key })}
                                   style={{
-                                    width: '26px',
-                                    height: '26px',
-                                    borderRadius: '50%',
-                                    background: isCorrect ? '#16a34a' : '#f1f5f9',
-                                    color: isCorrect ? '#ffffff' : '#475569',
+                                    border: isCorrect ? '2px solid #16a34a' : '1px solid #e2e8f0',
+                                    background: isCorrect ? '#f0fdf4' : '#ffffff',
+                                    borderRadius: '8px',
+                                    padding: '10px 14px',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '12px',
-                                    fontWeight: 800,
-                                    flexShrink: 0
+                                    gap: '10px',
+                                    cursor: 'pointer',
+                                    transition: 'border-color 0.15s'
                                   }}
                                 >
-                                  {opt.key}
+                                  <div
+                                    style={{
+                                      width: '26px',
+                                      height: '26px',
+                                      borderRadius: '50%',
+                                      background: isCorrect ? '#16a34a' : '#f1f5f9',
+                                      color: isCorrect ? '#ffffff' : '#475569',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '12px',
+                                      fontWeight: 800,
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    {opt.key}
+                                  </div>
+                                  <div style={{ fontSize: '13.5px', color: '#0f172a', flex: 1 }}>
+                                    <MathText text={opt.text || `Option ${opt.key}`} />
+                                  </div>
+                                  {isCorrect && (
+                                    <span style={{ fontSize: '10px', fontWeight: 800, color: '#16a34a', background: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>
+                                      CORRECT
+                                    </span>
+                                  )}
                                 </div>
-                                <div style={{ fontSize: '13.5px', color: '#0f172a', flex: 1 }}>
-                                  <MathText text={opt.text || `Option ${opt.key}`} />
-                                </div>
-                                {isCorrect && (
-                                  <span style={{ fontSize: '10px', fontWeight: 800, color: '#16a34a', background: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>
-                                    CORRECT
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
+                              );
+                            });
+                          })()}
                         </div>
                       </div>
 

@@ -14,19 +14,47 @@ import {
   X,
   AlertCircle,
   FileSpreadsheet,
-  Printer
+  Printer,
+  Megaphone,
+  Sparkles,
+  Zap,
+  ArrowRight,
+  ExternalLink,
+  Eye,
+  CheckCircle2,
+  Lock,
+  Layers,
+  ShoppingBag
 } from 'lucide-react';
 import { couponService, type CouponItem } from '../../../services/couponService';
+import {
+  offerService,
+  type BannerOfferData,
+  type PopupOfferData,
+  type ItemOfferData,
+  OFFERS_EVENT_KEY
+} from '../../../services/offerService';
+import { TRIGGER_PREVIEW_POPUP_EVENT } from '../../common/PromotionalPopupModal/PromotionalPopupModal';
 import { exportToExcel, exportToPDF } from '../../../utils/exportUtils';
 import { AdminConfirmModal } from '../Common/AdminConfirmModal';
 import styles from './CouponManagementWorkspace.module.scss';
 
+type WorkspaceTab = 'coupons' | 'banner_offers' | 'popup_offers' | 'item_offers';
+
 export const CouponManagementWorkspace: React.FC = () => {
-  const [coupons, setCoupons] = useState<CouponItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('coupons');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Multi-select for bulk delete
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // 1. COUPONS STATE & LOGIC
+  // ─────────────────────────────────────────────────────────────
+  const [coupons, setCoupons] = useState<CouponItem[]>([]);
+  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -34,17 +62,14 @@ export const CouponManagementWorkspace: React.FC = () => {
     coupon?: CouponItem;
   }>({ isOpen: false, type: 'single' });
 
-  // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'exhausted' | 'inactive'>('all');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<CouponItem | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Form State
   const [formCode, setFormCode] = useState('');
   const [formDiscountType, setFormDiscountType] = useState<'percent' | 'flat'>('percent');
   const [formDiscountValue, setFormDiscountValue] = useState<number>(10);
@@ -54,30 +79,143 @@ export const CouponManagementWorkspace: React.FC = () => {
   const [formDescription, setFormDescription] = useState('');
   const [formExpiryDate, setFormExpiryDate] = useState('');
   const [formIsActive, setFormIsActive] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
+  const [isSubmittingCoupon, setIsSubmittingCoupon] = useState(false);
 
   const loadCoupons = async () => {
-    setIsLoading(true);
+    setIsLoadingCoupons(true);
     try {
       const data = await couponService.getAllCoupons();
       setCoupons(data);
-    } catch (err: any) {
+    } catch {
       showToast('Error loading coupons list');
     } finally {
-      setIsLoading(false);
+      setIsLoadingCoupons(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // 2. OFFERS STATE (BANNER, POPUP, ITEM DISCOUNT)
+  // ─────────────────────────────────────────────────────────────
+  const [bannerForm, setBannerForm] = useState<BannerOfferData>({
+    offerType: 'banner',
+    title: 'Top Announcement Banner',
+    tagText: 'SPECIAL ADMISSION ALERT',
+    message: 'JEE Main & Advanced 2026-27 Batches Open! Avail up to 90% Merit Scholarship + Kota Study Material.',
+    linkText: 'Explore Batches',
+    linkUrl: '/courses',
+    isActive: true
+  });
+
+  const [popupForm, setPopupForm] = useState<PopupOfferData>({
+    offerType: 'popup',
+    title: 'Kota Flagship Batch - Limited Admission Offer!',
+    tagText: 'EXCLUSIVE SCHOLARSHIP',
+    message: 'Get direct mentorship under Dharmendra Kumar (DK Sir) with 20-30s math inspection shortcuts, Kota DPPs & CBT test series.',
+    imageUrl: '/img/dk-results-banner.jpeg',
+    buttonText: 'Claim Scholarship & Enroll Now',
+    linkUrl: '/courses',
+    audience: 'all',
+    frequency: 'once_per_session',
+    isActive: true
+  });
+
+  const [itemOfferForm, setItemOfferForm] = useState<ItemOfferData>({
+    offerType: 'item_discount',
+    title: 'IIT-JEE Merit Flash Sale',
+    badgeText: '🔥 SPECIAL 25% OFF',
+    discountType: 'percent',
+    discountValue: 25,
+    targetScope: 'all',
+    applicableItemIds: [],
+    message: 'Instant 25% discount applied across all premium flagship courses and CBT mock series.',
+    isActive: true
+  });
+
+  const [isSavingOffer, setIsSavingOffer] = useState(false);
+
+  const loadOffers = async () => {
+    try {
+      const res = await offerService.getAllOffers();
+      if (res.bannerOffer) {
+        setBannerForm(res.bannerOffer);
+      }
+      if (res.popupOffer) {
+        setPopupForm(res.popupOffer);
+      }
+      if (res.itemOffers && res.itemOffers.length > 0) {
+        setItemOfferForm(res.itemOffers[0]);
+      }
+    } catch {
+      console.warn('Failed loading offers');
     }
   };
 
   useEffect(() => {
     loadCoupons();
+    loadOffers();
+
+    const handleOfferEvents = () => {
+      loadOffers();
+    };
+
+    window.addEventListener(OFFERS_EVENT_KEY, handleOfferEvents);
+    return () => window.removeEventListener(OFFERS_EVENT_KEY, handleOfferEvents);
   }, []);
 
-  // Copy Code Handler
+  // ─────────────────────────────────────────────────────────────
+  // HANDLERS FOR OFFERS
+  // ─────────────────────────────────────────────────────────────
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingOffer(true);
+    try {
+      await offerService.saveOffer(bannerForm);
+      showToast('✓ Top page banner offer updated successfully!');
+    } catch {
+      showToast('Failed to save banner offer');
+    } finally {
+      setIsSavingOffer(false);
+    }
+  };
+
+  const handleSavePopup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingOffer(true);
+    try {
+      await offerService.saveOffer(popupForm);
+      showToast('✓ Visitor promotional popup updated successfully!');
+    } catch {
+      showToast('Failed to save popup offer');
+    } finally {
+      setIsSavingOffer(false);
+    }
+  };
+
+  const handleSaveItemOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingOffer(true);
+    try {
+      await offerService.saveOffer(itemOfferForm);
+      showToast(
+        itemOfferForm.isActive
+          ? `✓ "${itemOfferForm.badgeText}" applied across ${itemOfferForm.targetScope === 'all' ? 'all courses & test series' : itemOfferForm.targetScope}!`
+          : '✓ Flash sale offer deactivated.'
+      );
+    } catch {
+      showToast('Failed to save flash sale offer');
+    } finally {
+      setIsSavingOffer(false);
+    }
+  };
+
+  const handleTriggerTestPopup = () => {
+    window.dispatchEvent(new CustomEvent(TRIGGER_PREVIEW_POPUP_EVENT, { detail: popupForm }));
+    showToast('Launched live preview popup on screen');
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // HANDLERS FOR COUPONS
+  // ─────────────────────────────────────────────────────────────
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
@@ -85,8 +223,7 @@ export const CouponManagementWorkspace: React.FC = () => {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  // Toggle Active Handler
-  const handleToggleActive = async (coupon: CouponItem) => {
+  const handleToggleCouponActive = async (coupon: CouponItem) => {
     const id = coupon._id || coupon.id || coupon.code;
     const nextState = !coupon.isActive;
     try {
@@ -97,17 +234,15 @@ export const CouponManagementWorkspace: React.FC = () => {
         )
       );
       showToast(`${coupon.code} is now ${nextState ? 'Active' : 'Disabled'}`);
-    } catch (err: any) {
+    } catch {
       showToast('Failed to update status');
     }
   };
 
-  // Delete Request Handler (Replaces browser window.confirm with AdminConfirmModal)
-  const handleDelete = (coupon: CouponItem) => {
+  const handleDeleteCoupon = (coupon: CouponItem) => {
     setConfirmModal({ isOpen: true, type: 'single', coupon });
   };
 
-  // Bulk Delete Request Handler
   const handleRequestBulkDelete = () => {
     if (selectedIds.length === 0) return;
     setConfirmModal({ isOpen: true, type: 'bulk' });
@@ -140,113 +275,21 @@ export const CouponManagementWorkspace: React.FC = () => {
     }
   };
 
-  // Filtered coupons
-  const filteredCoupons = useMemo(() => {
-    return coupons.filter((c) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        c.code.toLowerCase().includes(q) ||
-        (c.label && c.label.toLowerCase().includes(q)) ||
-        (c.description && c.description.toLowerCase().includes(q));
-
-      if (!matchesSearch) return false;
-
-      const isExhausted = c.usageLimit > 0 && c.usedCount >= c.usageLimit;
-
-      if (statusFilter === 'active') return c.isActive && !isExhausted;
-      if (statusFilter === 'exhausted') return isExhausted;
-      if (statusFilter === 'inactive') return !c.isActive;
-      return true;
-    });
-  }, [coupons, searchQuery, statusFilter]);
-
-  // Aggregate stats
-  const stats = useMemo(() => {
-    const totalCoupons = coupons.length;
-    const activeCoupons = coupons.filter((c) => c.isActive && (c.usageLimit === 0 || c.usedCount < c.usageLimit)).length;
-    const totalRedeemed = coupons.reduce((acc, c) => acc + (c.usedCount || 0), 0);
-    const totalAvailableSlots = coupons.reduce(
-      (acc, c) => acc + Math.max(0, (c.usageLimit || 0) - (c.usedCount || 0)),
-      0
-    );
-    return { totalCoupons, activeCoupons, totalRedeemed, totalAvailableSlots };
-  }, [coupons]);
-
-  // Export to Excel / CSV
-  const handleExportExcel = () => {
-    const headers = [
-      'Coupon Code',
-      'Campaign Label',
-      'Description',
-      'Discount Type',
-      'Discount Value',
-      'Redeemed Count',
-      'Student Quota',
-      'Remaining Quota',
-      'Min Course Price',
-      'Status',
-      'Expiry Date'
-    ];
-    const rows = filteredCoupons.map((c) => [
-      c.code,
-      c.label || '',
-      c.description || '',
-      c.discountType === 'percent' ? 'Percentage' : 'Flat Off',
-      c.discountType === 'percent' ? `${c.discountValue}%` : `₹${c.discountValue}`,
-      c.usedCount || 0,
-      c.usageLimit || 0,
-      Math.max(0, (c.usageLimit || 0) - (c.usedCount || 0)),
-      c.minCoursePrice || 0,
-      c.isActive ? 'Active' : 'Disabled',
-      c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : 'Never'
-    ]);
-    exportToExcel(`DK_Academy_Coupons_${Date.now()}`, headers, rows);
-    showToast('Exported coupons to Excel (.xlsx / .csv)');
-  };
-
-  // Export to PDF Report
-  const handleExportPDF = () => {
-    const headers = [
-      'Coupon Code',
-      'Label',
-      'Discount',
-      'Redeemed / Quota',
-      'Min Order',
-      'Status'
-    ];
-    const rows = filteredCoupons.map((c) => [
-      c.code,
-      c.label || 'Promo Discount',
-      c.discountType === 'percent' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT`,
-      `${c.usedCount || 0} / ${c.usageLimit || '∞'}`,
-      `₹${(c.minCoursePrice || 0).toLocaleString('en-IN')}`,
-      c.isActive ? 'ACTIVE' : 'DISABLED'
-    ]);
-    exportToPDF({
-      title: 'Discount Coupons & Admissions Promo Codes',
-      subtitle: `Total Active Codes: ${stats.activeCoupons} | Total Redeemed: ${stats.totalRedeemed}`,
-      headers,
-      rows
-    });
-    showToast('PDF print preview generated');
-  };
-
-  // Multi-select helpers
-  const isAllSelected = filteredCoupons.length > 0 && filteredCoupons.every((c) => selectedIds.includes(c._id || c.id || c.code));
-  const toggleSelectAll = () => {
-    if (isAllSelected) {
-      setSelectedIds([]);
-    } else {
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
       setSelectedIds(filteredCoupons.map((c) => c._id || c.id || c.code));
+    } else {
+      setSelectedIds([]);
     }
   };
-  const toggleSelectOne = (id: string) => {
-    setSelectedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+
+  const handleToggleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   };
 
-  // Open Create Modal
-  const handleOpenCreate = () => {
+  const handleOpenCreateModal = () => {
     setEditingCoupon(null);
     setFormCode('');
     setFormDiscountType('percent');
@@ -258,15 +301,14 @@ export const CouponManagementWorkspace: React.FC = () => {
     setFormExpiryDate('');
     setFormIsActive(true);
     setFormError(null);
-    setIsModalOpen(true);
+    setIsCouponModalOpen(true);
   };
 
-  // Open Edit Modal
-  const handleOpenEdit = (coupon: CouponItem) => {
+  const handleOpenEditModal = (coupon: CouponItem) => {
     setEditingCoupon(coupon);
     setFormCode(coupon.code);
-    setFormDiscountType(coupon.discountType);
-    setFormDiscountValue(coupon.discountValue);
+    setFormDiscountType(coupon.discountType || 'percent');
+    setFormDiscountValue(coupon.discountValue || 10);
     setFormUsageLimit(coupon.usageLimit || 50);
     setFormMinCoursePrice(coupon.minCoursePrice || 0);
     setFormLabel(coupon.label || '');
@@ -274,29 +316,34 @@ export const CouponManagementWorkspace: React.FC = () => {
     setFormExpiryDate(coupon.expiryDate ? coupon.expiryDate.split('T')[0] : '');
     setFormIsActive(coupon.isActive);
     setFormError(null);
-    setIsModalOpen(true);
+    setIsCouponModalOpen(true);
   };
 
-  // Form Submit Handler
-  const handleSubmitForm = async (e: React.FormEvent) => {
+  const handleSaveCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
     const cleanCode = formCode.trim().toUpperCase();
     if (!cleanCode) {
-      setFormError('Please enter a coupon code.');
-      return;
-    }
-    if (formDiscountValue <= 0) {
-      setFormError('Please enter a valid discount value greater than 0.');
-      return;
-    }
-    if (formUsageLimit < 1) {
-      setFormError('Student usage limit must be at least 1 student.');
+      setFormError('Coupon code is required');
       return;
     }
 
-    setIsSubmitting(true);
+    if (!formDiscountValue || formDiscountValue <= 0) {
+      setFormError('Discount value must be greater than 0');
+      return;
+    }
+
+    if (formDiscountType === 'percent' && formDiscountValue > 100) {
+      setFormError('Percentage discount cannot exceed 100%');
+      return;
+    }
+
+    setIsSubmittingCoupon(true);
     try {
+      const generatedLabel = formLabel.trim() ||
+        (formDiscountType === 'percent' ? `${formDiscountValue}% OFF Discount` : `₹${formDiscountValue} Flat Discount`);
+
       if (editingCoupon) {
         const id = editingCoupon._id || editingCoupon.id || editingCoupon.code;
         const updated = await couponService.updateCoupon(id, {
@@ -304,19 +351,17 @@ export const CouponManagementWorkspace: React.FC = () => {
           discountValue: formDiscountValue,
           usageLimit: formUsageLimit,
           minCoursePrice: formMinCoursePrice,
-          label: formLabel || `${formDiscountValue}${formDiscountType === 'percent' ? '%' : '₹'} OFF`,
-          description: formDescription,
-          expiryDate: formExpiryDate || undefined,
+          label: generatedLabel,
+          description: formDescription.trim(),
+          expiryDate: formExpiryDate ? new Date(formExpiryDate).toISOString() : undefined,
           isActive: formIsActive
         });
         if (updated) {
           setCoupons((prev) =>
-            prev.map((c) =>
-              (c._id === id || c.id === id || c.code === editingCoupon.code) ? updated : c
-            )
+            prev.map((c) => (c._id === id || c.id === id || c.code === editingCoupon.code) ? updated : c)
           );
+          showToast(`Updated coupon ${cleanCode}`);
         }
-        showToast(`Coupon "${cleanCode}" updated successfully!`);
       } else {
         const created = await couponService.createCoupon({
           code: cleanCode,
@@ -324,20 +369,67 @@ export const CouponManagementWorkspace: React.FC = () => {
           discountValue: formDiscountValue,
           usageLimit: formUsageLimit,
           minCoursePrice: formMinCoursePrice,
-          label: formLabel || `${formDiscountValue}${formDiscountType === 'percent' ? '%' : '₹'} OFF Discount`,
-          description: formDescription,
-          expiryDate: formExpiryDate || undefined
+          label: generatedLabel,
+          description: formDescription.trim(),
+          expiryDate: formExpiryDate ? new Date(formExpiryDate).toISOString() : undefined,
+          isActive: formIsActive
         });
         setCoupons((prev) => [created, ...prev]);
         showToast(`Created new coupon "${cleanCode}" for ${formUsageLimit} students!`);
       }
-      setIsModalOpen(false);
+      setIsCouponModalOpen(false);
     } catch (err: any) {
       setFormError(err.message || 'Error saving coupon');
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingCoupon(false);
     }
   };
+
+  // Filtered coupons
+  const filteredCoupons = useMemo(() => {
+    return coupons.filter((c) => {
+      const matchesSearch =
+        c.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      if (!matchesSearch) return false;
+
+      const isExhausted = c.usageLimit > 0 && c.usedCount >= c.usageLimit;
+      if (statusFilter === 'active') return c.isActive && !isExhausted;
+      if (statusFilter === 'exhausted') return isExhausted;
+      if (statusFilter === 'inactive') return !c.isActive;
+
+      return true;
+    });
+  }, [coupons, searchQuery, statusFilter]);
+
+  // Overall Stats
+  const stats = useMemo(() => {
+    const totalCoupons = coupons.length;
+    const activeCoupons = coupons.filter((c) => c.isActive && (c.usageLimit === 0 || c.usedCount < c.usageLimit)).length;
+    const totalRedeemed = coupons.reduce((acc, c) => acc + (c.usedCount || 0), 0);
+    const totalAvailableSlots = coupons.reduce(
+      (acc, c) => acc + Math.max(0, (c.usageLimit || 0) - (c.usedCount || 0)),
+      0
+    );
+    return { totalCoupons, activeCoupons, totalRedeemed, totalAvailableSlots };
+  }, [coupons]);
+
+  // Mock calculation for live card preview in Tab 4
+  const mockCoursePrice = 18500;
+  const mockDiscountAmount =
+    itemOfferForm.discountType === 'percent'
+      ? Math.round((mockCoursePrice * Math.min(100, itemOfferForm.discountValue)) / 100)
+      : Math.min(mockCoursePrice, itemOfferForm.discountValue);
+  const mockDiscountedCoursePrice = Math.max(0, mockCoursePrice - mockDiscountAmount);
+
+  const mockTestPrice = 299;
+  const mockTestDiscount =
+    itemOfferForm.discountType === 'percent'
+      ? Math.round((mockTestPrice * Math.min(100, itemOfferForm.discountValue)) / 100)
+      : Math.min(mockTestPrice, itemOfferForm.discountValue);
+  const mockDiscountedTestPrice = Math.max(0, mockTestPrice - mockTestDiscount);
 
   return (
     <div className={styles.couponsWorkspaceShell}>
@@ -357,466 +449,1080 @@ export const CouponManagementWorkspace: React.FC = () => {
             <span>/</span>
             <span>ADMIN</span>
             <span>/</span>
-            <span>DISCOUNT COUPONS</span>
+            <span>DISCOUNTS AND OFFERS</span>
           </div>
-          <h1 className={styles.pageMainHeading}>Discount Coupons</h1>
+          <h1 className={styles.pageMainHeading}>Discounts and Offers</h1>
           <p className={styles.pageSubtitle}>
-            Create promo codes, define discount percentages or flat concessions, and manage admissions discounts.
+            Manage promotional discount coupons, site-wide announcement banners, visitor popups, and 1-click sales discounts with custom badges.
           </p>
         </div>
 
         <div className={styles.headerActionsGroup}>
-          {selectedIds.length > 0 && (
-            <button
-              type="button"
-              className={styles.bulkDeleteBtn}
-              onClick={handleRequestBulkDelete}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                background: '#dc2626',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)'
-              }}
-              title="Delete all selected coupons"
-            >
-              <Trash2 size={14} />
-              <span>Delete Selected ({selectedIds.length})</span>
-            </button>
-          )}
-
           <button
             type="button"
             className={styles.syncBtn}
-            onClick={handleExportExcel}
-            title="Download coupons list in Excel (.xlsx / .csv)"
+            onClick={() => {
+              loadCoupons();
+              loadOffers();
+              showToast('Refreshed coupons and offers from database');
+            }}
+            title="Reload coupons and offers from database"
           >
-            <FileSpreadsheet size={14} />
-            <span>Export as Excel</span>
-          </button>
-
-          <button
-            type="button"
-            className={styles.syncBtn}
-            onClick={handleExportPDF}
-            title="Generate printable PDF report"
-          >
-            <Printer size={14} />
-            <span>Export as PDF</span>
-          </button>
-
-          <button
-            type="button"
-            className={styles.syncBtn}
-            onClick={loadCoupons}
-            disabled={isLoading}
-            title="Reload coupons from database"
-          >
-            <RefreshCw size={14} className={isLoading ? styles.spinIcon : ''} />
-            <span>{isLoading ? 'Syncing...' : 'Sync Live'}</span>
-          </button>
-
-          <button
-            type="button"
-            className={styles.createCouponBtn}
-            onClick={handleOpenCreate}
-            title="Create a new discount coupon"
-          >
-            <Plus size={16} />
-            <span>+ Create Discount Coupon</span>
+            <RefreshCw size={14} className={isLoadingCoupons ? styles.spinning : ''} />
+            <span>Sync</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Bento Stats KPI Grid */}
-      <div className={styles.bentoStatsGrid}>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIconTile} ${styles.blueTile}`}>
-            <Tag size={20} />
-          </div>
-          <div className={styles.statMeta}>
-            <span className={styles.statValue}>{stats.activeCoupons}</span>
-            <span className={styles.statLabel}>Active Promo Codes</span>
-          </div>
-        </div>
+      {/* 2. Workspace Navigation Tabs */}
+      <div className={styles.workspaceTabsBar} role="tablist" aria-label="Discounts and Offers Sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'coupons'}
+          className={`${styles.workspaceTabBtn} ${activeTab === 'coupons' ? styles.workspaceTabBtnActive : ''}`}
+          onClick={() => setActiveTab('coupons')}
+        >
+          <Tag size={16} />
+          <span>Promo Coupons</span>
+          <span className={styles.tabBadgeLive}>{stats.totalCoupons}</span>
+        </button>
 
-        <div className={styles.statCard}>
-          <div className={`${styles.statIconTile} ${styles.emeraldTile}`}>
-            <Users size={20} />
-          </div>
-          <div className={styles.statMeta}>
-            <span className={styles.statValue}>{stats.totalRedeemed}</span>
-            <span className={styles.statLabel}>Students Applied</span>
-          </div>
-        </div>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'banner_offers'}
+          className={`${styles.workspaceTabBtn} ${activeTab === 'banner_offers' ? styles.workspaceTabBtnActive : ''}`}
+          onClick={() => setActiveTab('banner_offers')}
+        >
+          <Megaphone size={16} />
+          <span>Top Page Banner Offer</span>
+          <span className={bannerForm.isActive ? styles.tabBadgeLive : styles.tabBadgeOff}>
+            {bannerForm.isActive ? 'Live' : 'Hidden'}
+          </span>
+        </button>
 
-        <div className={styles.statCard}>
-          <div className={`${styles.statIconTile} ${styles.amberTile}`}>
-            <ShieldCheck size={20} />
-          </div>
-          <div className={styles.statMeta}>
-            <span className={styles.statValue}>{stats.totalAvailableSlots}</span>
-            <span className={styles.statLabel}>Remaining Quota Slots</span>
-          </div>
-        </div>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'popup_offers'}
+          className={`${styles.workspaceTabBtn} ${activeTab === 'popup_offers' ? styles.workspaceTabBtnActive : ''}`}
+          onClick={() => setActiveTab('popup_offers')}
+        >
+          <Sparkles size={16} />
+          <span>Visitor Popup Banner</span>
+          <span className={popupForm.isActive ? styles.tabBadgeLive : styles.tabBadgeOff}>
+            {popupForm.isActive ? 'Live' : 'Hidden'}
+          </span>
+        </button>
 
-        <div className={styles.statCard}>
-          <div className={`${styles.statIconTile} ${styles.purpleTile}`}>
-            <Percent size={20} />
-          </div>
-          <div className={styles.statMeta}>
-            <span className={styles.statValue}>{stats.totalCoupons}</span>
-            <span className={styles.statLabel}>Total Campaigns</span>
-          </div>
-        </div>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'item_offers'}
+          className={`${styles.workspaceTabBtn} ${activeTab === 'item_offers' ? styles.workspaceTabBtnActive : ''}`}
+          onClick={() => setActiveTab('item_offers')}
+        >
+          <Zap size={16} />
+          <span>Courses & Test Item Sales</span>
+          <span className={itemOfferForm.isActive ? styles.tabBadgeLive : styles.tabBadgeOff}>
+            {itemOfferForm.isActive ? 'Sale Active' : 'Off'}
+          </span>
+        </button>
       </div>
 
-      {/* 3. Search and Filter Bar */}
-      <div className={styles.filterActionBar}>
-        <div className={styles.searchBoxWrapper}>
-          <Search size={15} color="#94a3b8" />
-          <input
-            type="text"
-            placeholder="Search coupon code or campaign..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      {/* ─────────────────────────────────────────────────────────────
+          TAB 1: PROMO COUPONS
+          ───────────────────────────────────────────────────────────── */}
+      {activeTab === 'coupons' && (
+        <>
+          {/* Summary Metric Cards */}
+          <div className={styles.metricGrid}>
+            <div className={styles.metricCard}>
+              <div className={styles.metricHeader}>
+                <span className={styles.metricLabel}>Total Coupons</span>
+                <Tag size={16} className={styles.metricIconBlue} />
+              </div>
+              <div className={styles.metricValue}>{stats.totalCoupons}</div>
+              <div className={styles.metricSubtext}>{stats.activeCoupons} currently live for students</div>
+            </div>
 
-        <div className={styles.filterControlsRight}>
-          <select
-            className={styles.filterSelect}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-          >
-            <option value="all">All Statuses ({coupons.length})</option>
-            <option value="active">Active &amp; Open</option>
-            <option value="exhausted">Limit Reached (Full)</option>
-            <option value="inactive">Disabled</option>
-          </select>
-        </div>
-      </div>
+            <div className={styles.metricCard}>
+              <div className={styles.metricHeader}>
+                <span className={styles.metricLabel}>Total Redemptions</span>
+                <Users size={16} className={styles.metricIconGreen} />
+              </div>
+              <div className={styles.metricValue}>{stats.totalRedeemed}</div>
+              <div className={styles.metricSubtext}>Times promo codes were redeemed</div>
+            </div>
 
-      {/* 4. Coupons Data Table */}
-      <div className={styles.tableContainerCard}>
-        {filteredCoupons.length === 0 ? (
-          <div className={styles.emptyStateBox}>
-            <AlertCircle size={36} color="#94a3b8" />
-            <h3>No discount coupons found</h3>
-            <p>
-              {searchQuery
-                ? `No coupon matches "${searchQuery}". Try a different query.`
-                : 'Click "+ Create Discount Coupon" above to set up your first student discount promo code.'}
-            </p>
+            <div className={styles.metricCard}>
+              <div className={styles.metricHeader}>
+                <span className={styles.metricLabel}>Available Student Slots</span>
+                <ShieldCheck size={16} className={styles.metricIconPurple} />
+              </div>
+              <div className={styles.metricValue}>{stats.totalAvailableSlots}</div>
+              <div className={styles.metricSubtext}>Remaining slots before codes exhaust</div>
+            </div>
           </div>
-        ) : (
-          <table className={styles.couponsTable}>
-            <thead>
-              <tr>
-                <th style={{ width: '40px', textAlign: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all coupons"
-                  />
-                </th>
-                <th>Coupon Code &amp; Campaign</th>
-                <th>Discount Value</th>
-                <th>Student Quota &amp; Progress</th>
-                <th>Min Course Fee</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCoupons.map((coupon) => {
-                const used = coupon.usedCount || 0;
-                const limit = coupon.usageLimit || 50;
-                const remaining = Math.max(0, limit - used);
-                const percentUsed = Math.min(100, Math.round((used / limit) * 100));
-                const isExhausted = limit > 0 && used >= limit;
-                const couponKey = coupon._id || coupon.id || coupon.code;
-                const isChecked = selectedIds.includes(couponKey);
 
-                let progressColorClass = styles.fillGreen;
-                let remainingBadgeClass = styles.plentyQuota;
-                if (isExhausted) {
-                  progressColorClass = styles.fillRed;
-                  remainingBadgeClass = styles.exhaustedQuota;
-                } else if (percentUsed >= 70) {
-                  progressColorClass = styles.fillAmber;
-                  remainingBadgeClass = styles.lowQuota;
-                }
+          {/* Action Row & Filters */}
+          <div className={styles.controlsRow}>
+            <div className={styles.searchBox}>
+              <Search size={16} className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search coupon code or discount label..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search coupons"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className={styles.clearSearchBtn}
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
 
-                return (
-                  <tr key={couponKey} style={{ background: isChecked ? 'rgba(59, 130, 246, 0.08)' : undefined }}>
-                    <td style={{ textAlign: 'center' }}>
+            <div className={styles.filterGroup}>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                aria-label="Filter coupons by status"
+                className={styles.statusSelect}
+              >
+                <option value="all">All Statuses ({coupons.length})</option>
+                <option value="active">Active & Available</option>
+                <option value="exhausted">Usage Limit Reached</option>
+                <option value="inactive">Disabled / Paused</option>
+              </select>
+
+              <button
+                type="button"
+                className={styles.createCouponBtn}
+                onClick={handleOpenCreateModal}
+              >
+                <Plus size={16} />
+                <span>Create Coupon</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Coupons Table */}
+          <div className={styles.tableCard}>
+            {filteredCoupons.length === 0 ? (
+              <div className={styles.emptyState}>
+                <Tag size={40} className={styles.emptyIcon} />
+                <h3>No discount coupons found</h3>
+                <p>Create a promo code to offer concessions to enrolling aspirants.</p>
+                <button
+                  type="button"
+                  className={styles.emptyCreateBtn}
+                  onClick={handleOpenCreateModal}
+                >
+                  <Plus size={15} />
+                  <span>Create First Coupon</span>
+                </button>
+              </div>
+            ) : (
+              <table className={styles.couponsTable}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '40px' }}>
                       <input
                         type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleSelectOne(couponKey)}
-                        aria-label={`Select ${coupon.code}`}
+                        checked={selectedIds.length > 0 && selectedIds.length === filteredCoupons.length}
+                        onChange={handleSelectAll}
+                        aria-label="Select all coupons"
                       />
-                    </td>
-                    {/* Code & Campaign */}
-                    <td>
-                      <div>
-                        <div className={styles.codePillGroup}>
-                          <span>{coupon.code}</span>
-                          <button
-                            type="button"
-                            className={styles.copyCodeBtn}
-                            onClick={() => handleCopy(coupon.code)}
-                            title="Copy code"
-                          >
-                            {copiedCode === coupon.code ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
-                          </button>
-                        </div>
-                        <div className={styles.couponLabelTitle}>{coupon.label}</div>
-                        {coupon.description && (
-                          <div className={styles.couponDescriptionText}>{coupon.description}</div>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Discount Value */}
-                    <td>
-                      <span
-                        className={`${styles.discountPill} ${
-                          coupon.discountType === 'percent' ? styles.percentDiscount : styles.flatDiscount
-                        }`}
-                      >
-                        {coupon.discountType === 'percent'
-                          ? `${coupon.discountValue}% OFF`
-                          : `₹${coupon.discountValue.toLocaleString('en-IN')} FLAT`}
-                      </span>
-                    </td>
-
-                    {/* Usage Quota & Progress Bar */}
-                    <td>
-                      <div className={styles.usageQuotaCell}>
-                        <div className={styles.usageTextRow}>
-                          <span className={styles.usageCountFraction}>
-                            <strong>{used}</strong> / {limit} students
-                          </span>
-                          <span className={`${styles.usageRemainingPill} ${remainingBadgeClass}`}>
-                            {isExhausted ? 'Quota Full' : `${remaining} left`}
-                          </span>
-                        </div>
-                        <div className={styles.progressBarTrack}>
-                          <div
-                            className={`${styles.progressBarFill} ${progressColorClass}`}
-                            style={{ width: `${percentUsed}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Min Course Fee */}
-                    <td>
-                      {coupon.minCoursePrice && coupon.minCoursePrice > 0 ? (
-                        <span>₹{coupon.minCoursePrice.toLocaleString('en-IN')}</span>
-                      ) : (
-                        <span style={{ color: '#94a3b8' }}>None</span>
-                      )}
-                    </td>
-
-                    {/* Active / Inactive Toggle Switch */}
-                    <td>
-                      <label className={styles.switchToggle} title={coupon.isActive ? 'Deactivate' : 'Activate'}>
-                        <input
-                          type="checkbox"
-                          checked={coupon.isActive}
-                          onChange={() => handleToggleActive(coupon)}
-                        />
-                        <span className={styles.switchSlider} />
-                      </label>
-                    </td>
-
-                    {/* Actions */}
-                    <td>
-                      <div className={styles.actionBtnsRow}>
-                        <button
-                          type="button"
-                          className={styles.actionIconBtn}
-                          onClick={() => handleOpenEdit(coupon)}
-                          title="Edit coupon details and limit"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.actionIconBtn} ${styles.deleteAction}`}
-                          onClick={() => handleDelete(coupon)}
-                          title="Delete coupon"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+                    </th>
+                    <th>Code</th>
+                    <th>Discount</th>
+                    <th>Student Limit</th>
+                    <th>Redeemed</th>
+                    <th>Min. Fee</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {filteredCoupons.map((coupon) => {
+                    const id = coupon._id || coupon.id || coupon.code;
+                    const isExhausted = coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit;
+                    const percentUsed = coupon.usageLimit > 0 ? Math.min(100, Math.round((coupon.usedCount / coupon.usageLimit) * 100)) : 0;
+                    const isSelected = selectedIds.includes(id);
 
-      {/* 5. Create / Edit Coupon Modal */}
-      {isModalOpen && (
-        <div className={styles.modalOverlay} onClick={() => !isSubmitting && setIsModalOpen(false)}>
-          <div className={styles.modalContentCard} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
+                    return (
+                      <tr key={id} className={isSelected ? styles.rowSelected : ''}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelectOne(id)}
+                            aria-label={`Select coupon ${coupon.code}`}
+                          />
+                        </td>
+                        <td>
+                          <div className={styles.codeWrap}>
+                            <span className={styles.couponCodeText}>{coupon.code}</span>
+                            <button
+                              type="button"
+                              className={styles.copyBtn}
+                              onClick={() => handleCopy(coupon.code)}
+                              title="Copy code to clipboard"
+                            >
+                              {copiedCode === coupon.code ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+                            </button>
+                          </div>
+                          <div className={styles.couponSubLabel}>{coupon.label}</div>
+                        </td>
+                        <td>
+                          <span className={styles.discountPill}>
+                            {coupon.discountType === 'percent' ? (
+                              <>
+                                <Percent size={12} />
+                                <span>{coupon.discountValue}% OFF</span>
+                              </>
+                            ) : (
+                              <span>₹{coupon.discountValue.toLocaleString('en-IN')} FLAT</span>
+                            )}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={styles.limitText}>
+                            {coupon.usageLimit > 0 ? `${coupon.usageLimit} Students` : 'Unlimited'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={styles.usageProgressWrap}>
+                            <div className={styles.usageNums}>
+                              <strong>{coupon.usedCount || 0}</strong>
+                              <span>/ {coupon.usageLimit || '∞'}</span>
+                            </div>
+                            {coupon.usageLimit > 0 && (
+                              <div className={styles.progressBarBg}>
+                                <div
+                                  className={styles.progressBarFill}
+                                  style={{
+                                    width: `${percentUsed}%`,
+                                    background: isExhausted ? '#ef4444' : percentUsed > 75 ? '#f59e0b' : '#10b981'
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={styles.minPriceText}>
+                            {coupon.minCoursePrice && coupon.minCoursePrice > 0 ? `₹${coupon.minCoursePrice.toLocaleString('en-IN')}` : 'Any'}
+                          </span>
+                        </td>
+                        <td>
+                          {isExhausted ? (
+                            <span className={`${styles.statusBadge} ${styles.statusExhausted}`}>Exhausted</span>
+                          ) : coupon.isActive ? (
+                            <span className={`${styles.statusBadge} ${styles.statusActive}`}>Active</span>
+                          ) : (
+                            <span className={`${styles.statusBadge} ${styles.statusInactive}`}>Disabled</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div className={styles.rowActions}>
+                            <button
+                              type="button"
+                              className={styles.actionIconBtn}
+                              onClick={() => handleToggleCouponActive(coupon)}
+                              title={coupon.isActive ? 'Disable this coupon' : 'Activate this coupon'}
+                            >
+                              <ShieldCheck size={15} color={coupon.isActive ? '#10b981' : '#94a3b8'} />
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.actionIconBtn}
+                              onClick={() => handleOpenEditModal(coupon)}
+                              title="Edit coupon parameters"
+                            >
+                              <Edit2 size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.actionIconBtn} ${styles.deleteIconBtn}`}
+                              onClick={() => handleDeleteCoupon(coupon)}
+                              title="Delete coupon"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          TAB 2: TOP PAGE BANNER OFFER
+          ───────────────────────────────────────────────────────────── */}
+      {activeTab === 'banner_offers' && (
+        <div className={styles.offerWorkspaceCard}>
+          <div className={styles.offerCardHeader}>
+            <div className={styles.offerTitleRow}>
+              <h2>Top Announcement Banner (Har Page Ke Banner Pr)</h2>
+              <p>This banner is permanently pinned at the top header of every single public page across the website.</p>
+            </div>
+
+            <div
+              className={styles.switchWrap}
+              onClick={() => setBannerForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
+            >
+              <span className={`${styles.switchIndicator} ${bannerForm.isActive ? styles.switchActive : ''}`} />
+              <span>{bannerForm.isActive ? 'BANNER LIVE ON ALL PAGES' : 'BANNER DISABLED / HIDDEN'}</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveBanner} className={styles.offerGrid}>
+            {/* Form Column */}
+            <div className={styles.formColumn}>
               <div>
-                <h2>{editingCoupon ? `Edit Coupon: ${editingCoupon.code}` : 'Create New Discount Coupon'}</h2>
-                <p>Configure concession value and maximum student redemption limit.</p>
+                <label className={styles.fieldLabel}>Tag Text (Badge Pill)</label>
+                <input
+                  type="text"
+                  className={styles.textInput}
+                  value={bannerForm.tagText}
+                  onChange={(e) => setBannerForm({ ...bannerForm, tagText: e.target.value })}
+                  placeholder="e.g. SPECIAL ADMISSION ALERT, DIWALI SPECIAL"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={styles.fieldLabel}>Announcement Message</label>
+                <textarea
+                  className={styles.textareaInput}
+                  value={bannerForm.message}
+                  onChange={(e) => setBannerForm({ ...bannerForm, message: e.target.value })}
+                  placeholder="Enter the message displayed to users on every page..."
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label className={styles.fieldLabel}>Action Button Text</label>
+                  <input
+                    type="text"
+                    className={styles.textInput}
+                    value={bannerForm.linkText}
+                    onChange={(e) => setBannerForm({ ...bannerForm, linkText: e.target.value })}
+                    placeholder="e.g. Explore Batches"
+                  />
+                </div>
+
+                <div>
+                  <label className={styles.fieldLabel}>Target Link URL</label>
+                  <input
+                    type="text"
+                    className={styles.textInput}
+                    value={bannerForm.linkUrl}
+                    onChange={(e) => setBannerForm({ ...bannerForm, linkUrl: e.target.value })}
+                    placeholder="/courses or /test-series"
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className={styles.saveOfferBtn} disabled={isSavingOffer}>
+                <Check size={16} />
+                <span>{isSavingOffer ? 'Saving Banner...' : 'Save & Update Top Banner'}</span>
+              </button>
+            </div>
+
+            {/* Live Preview Column */}
+            <div className={styles.previewColumn}>
+              <div className={styles.previewHeading}>
+                <span>Live Website Header Preview</span>
+                <span style={{ fontSize: '11px', color: bannerForm.isActive ? '#10b981' : '#94a3b8' }}>
+                  {bannerForm.isActive ? '● Active' : '○ Disabled'}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  background: 'linear-gradient(90deg, #1e1b4b 0%, #312e81 40%, #1e3a8a 100%)',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                  <span
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      padding: '2px 7px',
+                      borderRadius: '9999px',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Sparkles size={10} />
+                    <span>{bannerForm.tagText || 'OFFER'}</span>
+                  </span>
+                  <span style={{ fontSize: '12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {bannerForm.message || 'Announcement message preview'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <span
+                    style={{
+                      background: '#ffffff',
+                      color: '#1e1b4b',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: '5px'
+                    }}
+                  >
+                    {bannerForm.linkText || 'Claim Offer'}
+                  </span>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
+                This bar is automatically rendered sticky at the very top of the desktop & mobile navigation header on all pages.
+              </p>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          TAB 3: VISITOR POPUP BANNER OFFER
+          ───────────────────────────────────────────────────────────── */}
+      {activeTab === 'popup_offers' && (
+        <div className={styles.offerWorkspaceCard}>
+          <div className={styles.offerCardHeader}>
+            <div className={styles.offerTitleRow}>
+              <h2>Visitor Promotional Popup (Image & Link Modal)</h2>
+              <p>Promotional modal popup that automatically appears when users visit the website.</p>
+            </div>
+
+            <div
+              className={styles.switchWrap}
+              onClick={() => setPopupForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
+            >
+              <span className={`${styles.switchIndicator} ${popupForm.isActive ? styles.switchActive : ''}`} />
+              <span>{popupForm.isActive ? 'POPUP ACTIVE ON VISIT' : 'POPUP PAUSED'}</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSavePopup} className={styles.offerGrid}>
+            {/* Form Column */}
+            <div className={styles.formColumn}>
+              <div>
+                <label className={styles.fieldLabel}>Offer Heading</label>
+                <input
+                  type="text"
+                  className={styles.textInput}
+                  value={popupForm.title}
+                  onChange={(e) => setPopupForm({ ...popupForm, title: e.target.value })}
+                  placeholder="e.g. Special Admission Scholarship - Flat 30% Off"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={styles.fieldLabel}>Offer Description / Mentorship Details</label>
+                <textarea
+                  className={styles.textareaInput}
+                  value={popupForm.message || ''}
+                  onChange={(e) => setPopupForm({ ...popupForm, message: e.target.value })}
+                  placeholder="Enter details of the batch, mentorship, or scholarship..."
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <label className={styles.fieldLabel}>Banner Creative Image URL</label>
+                <input
+                  type="text"
+                  className={styles.textInput}
+                  value={popupForm.imageUrl}
+                  onChange={(e) => setPopupForm({ ...popupForm, imageUrl: e.target.value })}
+                  placeholder="/img/dk-results-banner.jpeg or https://..."
+                  required
+                />
+                <div className={styles.presetImagesList}>
+                  <span style={{ fontSize: '11px', color: '#64748b', alignSelf: 'center' }}>Presets:</span>
+                  <button
+                    type="button"
+                    className={styles.presetBtn}
+                    onClick={() => setPopupForm({ ...popupForm, imageUrl: '/img/dk-results-banner.jpeg' })}
+                  >
+                    Results Banner
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.presetBtn}
+                    onClick={() =>
+                      setPopupForm({
+                        ...popupForm,
+                        imageUrl:
+                          'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80'
+                      })
+                    }
+                  >
+                    Classroom Batch
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.presetBtn}
+                    onClick={() =>
+                      setPopupForm({
+                        ...popupForm,
+                        imageUrl:
+                          'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80'
+                      })
+                    }
+                  >
+                    Test Series Special
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label className={styles.fieldLabel}>Action Button Text</label>
+                  <input
+                    type="text"
+                    className={styles.textInput}
+                    value={popupForm.buttonText}
+                    onChange={(e) => setPopupForm({ ...popupForm, buttonText: e.target.value })}
+                    placeholder="Claim Scholarship Now"
+                  />
+                </div>
+
+                <div>
+                  <label className={styles.fieldLabel}>Target Link URL</label>
+                  <input
+                    type="text"
+                    className={styles.textInput}
+                    value={popupForm.linkUrl}
+                    onChange={(e) => setPopupForm({ ...popupForm, linkUrl: e.target.value })}
+                    placeholder="/courses or /test-series"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label className={styles.fieldLabel}>Target Audience</label>
+                  <select
+                    className={styles.selectInput}
+                    value={popupForm.audience}
+                    onChange={(e) => setPopupForm({ ...popupForm, audience: e.target.value as any })}
+                  >
+                    <option value="all">All Visitors (Guest & Logged In)</option>
+                    <option value="guest_only">New / Guest Visitors Only</option>
+                    <option value="loggedin_only">Logged-in Students Only</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={styles.fieldLabel}>Frequency</label>
+                  <select
+                    className={styles.selectInput}
+                    value={popupForm.frequency}
+                    onChange={(e) => setPopupForm({ ...popupForm, frequency: e.target.value as any })}
+                  >
+                    <option value="once_per_session">Once Per Browsing Session</option>
+                    <option value="every_visit">Every Visit</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button type="submit" className={styles.saveOfferBtn} style={{ flex: 1 }} disabled={isSavingOffer}>
+                  <Check size={16} />
+                  <span>{isSavingOffer ? 'Saving...' : 'Save & Publish Popup'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.testTriggerBtn}
+                  onClick={handleTriggerTestPopup}
+                  title="Test how the popup looks on screen right now"
+                >
+                  <Eye size={16} />
+                  <span>Test Popup Live</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Live Miniature Preview */}
+            <div className={styles.previewColumn}>
+              <div className={styles.previewHeading}>
+                <span>Popup Preview</span>
+                <span style={{ fontSize: '11px', color: popupForm.isActive ? '#10b981' : '#94a3b8' }}>
+                  {popupForm.isActive ? '● Live' : '○ Paused'}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  border: '1px solid #cbd5e1',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                }}
+              >
+                <div style={{ height: '140px', background: '#0f172a', position: 'relative' }}>
+                  <img
+                    src={popupForm.imageUrl || '/img/dk-results-banner.jpeg'}
+                    alt="Preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/img/dk-results-banner.jpeg';
+                    }}
+                  />
+                  {popupForm.tagText && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        bottom: '8px',
+                        left: '8px',
+                        background: '#f59e0b',
+                        color: '#fff',
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      {popupForm.tagText}
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                    {popupForm.title || 'Special Promotion Heading'}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: 1.4 }}>
+                    {popupForm.message || 'Description of the scholarship offer.'}
+                  </p>
+                  <div
+                    style={{
+                      marginTop: '6px',
+                      background: '#0052cc',
+                      color: '#fff',
+                      textAlign: 'center',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 700
+                    }}
+                  >
+                    {popupForm.buttonText || 'Claim Offer'}
+                  </div>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
+                Targeting: {popupForm.audience === 'all' ? 'All visitors' : popupForm.audience === 'guest_only' ? 'Guest users' : 'Logged-in students'}. Click <strong>Test Popup Live</strong> to see the full overlay animation.
+              </p>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          TAB 4: COURSES & TEST SERIES ITEM SALES (1-CLICK & CUSTOM BADGE)
+          ───────────────────────────────────────────────────────────── */}
+      {activeTab === 'item_offers' && (
+        <div className={styles.offerWorkspaceCard}>
+          <div className={styles.offerCardHeader}>
+            <div className={styles.offerTitleRow}>
+              <h2>Courses & Test Series Item Offers (1-Click Apply & Custom Badges)</h2>
+              <p>
+                Apply instant percentage or flat discounts directly to Course and Test Series cards with a prominent Custom Badge.
+              </p>
+            </div>
+
+            <div
+              className={styles.switchWrap}
+              style={{
+                background: itemOfferForm.isActive ? '#ecfdf5' : '#f8fafc',
+                borderColor: itemOfferForm.isActive ? '#a7f3d0' : '#e2e8f0',
+                color: itemOfferForm.isActive ? '#065f46' : '#64748b'
+              }}
+              onClick={() => setItemOfferForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
+            >
+              <span className={`${styles.switchIndicator} ${itemOfferForm.isActive ? styles.switchActive : ''}`} />
+              <span>{itemOfferForm.isActive ? '1-CLICK SALE ACTIVE ON SITE' : 'SALE DEACTIVATED'}</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveItemOffer} className={styles.offerGrid}>
+            {/* Form Inputs */}
+            <div className={styles.formColumn}>
+              <div>
+                <label className={styles.fieldLabel}>Offer Campaign Name</label>
+                <input
+                  type="text"
+                  className={styles.textInput}
+                  value={itemOfferForm.title}
+                  onChange={(e) => setItemOfferForm({ ...itemOfferForm, title: e.target.value })}
+                  placeholder="e.g. Diwali Mahabachat Sale, IIT Ranker Special"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={styles.fieldLabel}>
+                  Custom Badge Text (Dikhne wala badge)
+                </label>
+                <input
+                  type="text"
+                  className={styles.textInput}
+                  value={itemOfferForm.badgeText}
+                  onChange={(e) => setItemOfferForm({ ...itemOfferForm, badgeText: e.target.value })}
+                  placeholder="e.g. 🔥 DIWALI 25% OFF, ⚡ FLASH SALE, SPECIAL 30% OFF"
+                  required
+                />
+                <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  Yeh custom badge Course cards and Test Series cards par prominently display hoga.
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label className={styles.fieldLabel}>Discount Type</label>
+                  <select
+                    className={styles.selectInput}
+                    value={itemOfferForm.discountType}
+                    onChange={(e) => setItemOfferForm({ ...itemOfferForm, discountType: e.target.value as any })}
+                  >
+                    <option value="percent">Percentage (%)</option>
+                    <option value="flat">Flat Cash Concession (₹)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={styles.fieldLabel}>
+                    Discount Value {itemOfferForm.discountType === 'percent' ? '(%)' : '(₹)'}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={itemOfferForm.discountType === 'percent' ? 100 : 50000}
+                    className={styles.textInput}
+                    value={itemOfferForm.discountValue}
+                    onChange={(e) => setItemOfferForm({ ...itemOfferForm, discountValue: Number(e.target.value) })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={styles.fieldLabel}>Target Scope (Kin chizo par apply hoga)</label>
+                <select
+                  className={styles.selectInput}
+                  value={itemOfferForm.targetScope}
+                  onChange={(e) => setItemOfferForm({ ...itemOfferForm, targetScope: e.target.value as any })}
+                >
+                  <option value="all">All Paid Items (Courses & Test Series)</option>
+                  <option value="courses">All Courses Only</option>
+                  <option value="test-series">All Test Series CBT Mocks Only</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={styles.fieldLabel}>Campaign Subtitle / Details</label>
+                <textarea
+                  className={styles.textareaInput}
+                  value={itemOfferForm.message || ''}
+                  onChange={(e) => setItemOfferForm({ ...itemOfferForm, message: e.target.value })}
+                  placeholder="e.g. Instant 25% scholarship concession applied on flagship batches."
+                  rows={2}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className={styles.saveOfferBtn}
+                style={{
+                  background: itemOfferForm.isActive
+                    ? 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)'
+                    : '#0052cc'
+                }}
+                disabled={isSavingOffer}
+              >
+                <Zap size={16} />
+                <span>
+                  {isSavingOffer
+                    ? 'Applying...'
+                    : itemOfferForm.isActive
+                    ? 'Save & Apply Live Sale Across Site'
+                    : 'Save Changes (Sale Disabled)'}
+                </span>
+              </button>
+            </div>
+
+            {/* Live Card Preview Column */}
+            <div className={styles.previewColumn}>
+              <div className={styles.previewHeading}>
+                <span>Live Card & Price Calculation Preview</span>
+                <span style={{ fontSize: '11px', color: itemOfferForm.isActive ? '#15803d' : '#94a3b8' }}>
+                  {itemOfferForm.isActive ? '● Live' : '○ Inactive'}
+                </span>
+              </div>
+
+              <div className={styles.mockCardsWrap}>
+                {/* 1. Mock Course Card */}
+                <div className={styles.mockCardItem}>
+                  <div className={styles.mockCardHeader}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#0052cc' }}>Course Card Preview</span>
+                    <span className={styles.mockCustomBadge}>
+                      <Sparkles size={10} />
+                      <span>{itemOfferForm.badgeText || 'SPECIAL OFFER'}</span>
+                    </span>
+                  </div>
+
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                    JEE Main & Advanced 2-Yr Ultimate Flagship Batch
+                  </h4>
+
+                  <div className={styles.mockPricingRow}>
+                    <span className={styles.mockCurrentPrice}>
+                      ₹{mockDiscountedCoursePrice.toLocaleString('en-IN')}
+                    </span>
+                    <span className={styles.mockOriginalPrice}>
+                      ₹{mockCoursePrice.toLocaleString('en-IN')}
+                    </span>
+                    <span className={styles.mockSavingsPill}>
+                      Save ₹{mockDiscountAmount.toLocaleString('en-IN')} (
+                      {itemOfferForm.discountType === 'percent'
+                        ? `${itemOfferForm.discountValue}% OFF`
+                        : `Flat ₹${itemOfferForm.discountValue} OFF`}
+                      )
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Mock Test Series Card */}
+                <div className={styles.mockCardItem}>
+                  <div className={styles.mockCardHeader}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#7c3aed' }}>Test Series Card Preview</span>
+                    <span className={styles.mockCustomBadge}>
+                      <Sparkles size={10} />
+                      <span>{itemOfferForm.badgeText || 'SPECIAL OFFER'}</span>
+                    </span>
+                  </div>
+
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                    All India CBT Mock Test Series (NTA Simulated)
+                  </h4>
+
+                  <div className={styles.mockPricingRow}>
+                    <span className={styles.mockCurrentPrice}>
+                      ₹{mockDiscountedTestPrice.toLocaleString('en-IN')}
+                    </span>
+                    <span className={styles.mockOriginalPrice}>
+                      ₹{mockTestPrice.toLocaleString('en-IN')}
+                    </span>
+                    <span className={styles.mockSavingsPill}>
+                      Save ₹{mockTestDiscount.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
+                When active, the custom badge automatically appears on all Course cards and Test Series cards, and the price discount is automatically reflected both on the card and during checkout.
+              </p>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          COUPON CREATE / EDIT MODAL
+          ───────────────────────────────────────────────────────────── */}
+      {isCouponModalOpen && (
+        <div className={styles.modalBackdrop} onClick={() => setIsCouponModalOpen(false)}>
+          <div className={styles.couponModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleGroup}>
+                <div className={styles.modalIconWrap}>
+                  <Tag size={20} color="#0052cc" />
+                </div>
+                <div>
+                  <h3>{editingCoupon ? `Edit Coupon: ${editingCoupon.code}` : 'Create New Discount Coupon'}</h3>
+                  <p>Configure redemption parameters, discount percentage or flat amount, and usage limit.</p>
+                </div>
               </div>
               <button
                 type="button"
-                className={styles.modalCloseBtn}
-                onClick={() => setIsModalOpen(false)}
-                disabled={isSubmitting}
+                className={styles.closeModalBtn}
+                onClick={() => setIsCouponModalOpen(false)}
+                aria-label="Close modal"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitForm}>
-              <div className={styles.modalFormBody}>
-                {formError && (
-                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px', fontWeight: 500 }}>
-                    ⚠️ {formError}
-                  </div>
-                )}
-                {/* Coupon Code */}
-                <div className={styles.formFieldGroup}>
-                  <label>Coupon Code (Auto-Uppercase) *</label>
+            <form onSubmit={handleSaveCoupon} className={styles.modalForm}>
+              {formError && (
+                <div className={styles.formErrorBanner}>
+                  <AlertCircle size={15} />
+                  <span>{formError}</span>
+                </div>
+              )}
+
+              <div className={styles.formRow}>
+                <div className={styles.formCol}>
+                  <label>Coupon Code *</label>
                   <input
                     type="text"
-                    required
-                    placeholder="e.g. JEE50, KOTA10, SCHOLAR2026"
                     value={formCode}
-                    disabled={!!editingCoupon}
-                    onChange={(e) => setFormCode(e.target.value.toUpperCase())}
+                    onChange={(e) => setFormCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                    placeholder="e.g. KOTA25"
+                    disabled={Boolean(editingCoupon)}
+                    required
                   />
-                  <span className={styles.fieldHelperText}>
-                    Students will enter this exact code during checkout.
-                  </span>
+                  <span className={styles.fieldHelperText}>Uppercase alphanumeric letters only</span>
                 </div>
 
-                {/* Discount Type & Value */}
-                <div className={styles.formRowTwoCol}>
-                  <div className={styles.formFieldGroup}>
-                    <label>Discount Type</label>
-                    <select
-                      value={formDiscountType}
-                      onChange={(e) => setFormDiscountType(e.target.value as any)}
-                    >
-                      <option value="percent">Percentage (% OFF)</option>
-                      <option value="flat">Flat Amount (₹ OFF)</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formFieldGroup}>
-                    <label>Discount Value *</label>
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      max={formDiscountType === 'percent' ? 100 : 100000}
-                      value={formDiscountValue}
-                      onChange={(e) => setFormDiscountValue(Number(e.target.value))}
-                    />
-                    <span className={styles.fieldHelperText}>
-                      {formDiscountType === 'percent' ? 'e.g. 15 for 15% discount' : 'e.g. 1000 for ₹1,000 flat'}
-                    </span>
-                  </div>
+                <div className={styles.formCol}>
+                  <label>Discount Type *</label>
+                  <select
+                    value={formDiscountType}
+                    onChange={(e) => setFormDiscountType(e.target.value as any)}
+                  >
+                    <option value="percent">Percentage (%) Concession</option>
+                    <option value="flat">Flat Concession (₹)</option>
+                  </select>
                 </div>
+              </div>
 
-                {/* Student Usage Limit (The Key Feature requested by user) */}
-                <div className={`${styles.formFieldGroup} ${styles.highlightLimitField}`}>
-                  <label>Student Redemption Limit (Max Number of Students) *</label>
+              <div className={styles.formRow}>
+                <div className={styles.formCol}>
+                  <label>Discount Value *</label>
                   <input
                     type="number"
+                    min="1"
+                    max={formDiscountType === 'percent' ? 100 : 50000}
+                    value={formDiscountValue}
+                    onChange={(e) => setFormDiscountValue(Number(e.target.value))}
                     required
-                    min={1}
-                    value={formUsageLimit}
-                    onChange={(e) => setFormUsageLimit(Number(e.target.value))}
                   />
                   <span className={styles.fieldHelperText}>
-                    Only this many students can successfully apply this coupon. Once reached (e.g. 50/50), subsequent
-                    students will see "This coupon code has reached its maximum limit."
+                    {formDiscountType === 'percent' ? 'e.g. 15 for 15% discount' : 'e.g. 1000 for ₹1,000 discount'}
                   </span>
                 </div>
 
-                {/* Min Course Price & Expiry */}
-                <div className={styles.formRowTwoCol}>
-                  <div className={styles.formFieldGroup}>
-                    <label>Minimum Course Price (₹)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      placeholder="e.g. 1000"
-                      value={formMinCoursePrice}
-                      onChange={(e) => setFormMinCoursePrice(Number(e.target.value))}
-                    />
-                  </div>
+                <div className={styles.formCol}>
+                  <label>Student Limit (Max Redemptions) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10000"
+                    value={formUsageLimit}
+                    onChange={(e) => setFormUsageLimit(Number(e.target.value))}
+                    required
+                  />
+                  <span className={styles.fieldHelperText}>Number of students who can redeem this code</span>
+                </div>
+              </div>
 
-                  <div className={styles.formFieldGroup}>
-                    <label>Expiry Date (Optional)</label>
-                    <input
-                      type="date"
-                      value={formExpiryDate}
-                      onChange={(e) => setFormExpiryDate(e.target.value)}
-                    />
-                  </div>
+              <div className={styles.formRow}>
+                <div className={styles.formCol}>
+                  <label>Minimum Course Price (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formMinCoursePrice}
+                    onChange={(e) => setFormMinCoursePrice(Number(e.target.value))}
+                    placeholder="1000"
+                  />
+                  <span className={styles.fieldHelperText}>Valid only for courses at or above this value</span>
                 </div>
 
-                {/* Campaign Label & Description */}
-                <div className={styles.formFieldGroup}>
-                  <label>Campaign Title / Label</label>
+                <div className={styles.formCol}>
+                  <label>Expiry Date (Optional)</label>
                   <input
-                    type="text"
-                    placeholder="e.g. 15% OFF Early Bird Kota Admission"
-                    value={formLabel}
-                    onChange={(e) => setFormLabel(e.target.value)}
+                    type="date"
+                    value={formExpiryDate}
+                    onChange={(e) => setFormExpiryDate(e.target.value)}
                   />
                 </div>
+              </div>
 
-                <div className={styles.formFieldGroup}>
-                  <label>Description / Terms</label>
+              <div className={styles.formRowFull}>
+                <label>Offer Label (Public display) *</label>
+                <input
+                  type="text"
+                  value={formLabel}
+                  onChange={(e) => setFormLabel(e.target.value)}
+                  placeholder="e.g. 15% OFF Early Bird Merit Scholarship"
+                />
+              </div>
+
+              <div className={styles.formRowFull}>
+                <label>Internal Description / Notes</label>
+                <textarea
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  placeholder="e.g. For Janakpuri classroom students enrolling in advance"
+                  rows={2}
+                />
+              </div>
+
+              <div className={styles.checkboxRow}>
+                <label className={styles.checkboxLabel}>
                   <input
-                    type="text"
-                    placeholder="e.g. Applicable on all JEE 2026 1-year and 2-year batches"
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
+                    type="checkbox"
+                    checked={formIsActive}
+                    onChange={(e) => setFormIsActive(e.target.checked)}
                   />
-                </div>
+                  <span>Active & Redeemable Immediately</span>
+                </label>
               </div>
 
               <div className={styles.modalFooter}>
                 <button
                   type="button"
                   className={styles.cancelModalBtn}
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={isSubmitting}
+                  onClick={() => setIsCouponModalOpen(false)}
                 >
                   Cancel
                 </button>
-                <button type="submit" className={styles.submitModalBtn} disabled={isSubmitting}>
-                  {isSubmitting
-                    ? 'Saving...'
-                    : editingCoupon
-                    ? 'Update Coupon'
-                    : `Create Coupon (${formUsageLimit} Students Max)`}
+                <button
+                  type="submit"
+                  className={styles.submitModalBtn}
+                  disabled={isSubmittingCoupon}
+                >
+                  {isSubmittingCoupon ? 'Saving...' : editingCoupon ? 'Update Coupon' : 'Create Coupon'}
                 </button>
               </div>
             </form>
@@ -824,27 +1530,19 @@ export const CouponManagementWorkspace: React.FC = () => {
         </div>
       )}
 
-      {/* Confirmation Modal (Replaces browser window.confirm) */}
+      {/* Confirmation Modal */}
       <AdminConfirmModal
         isOpen={confirmModal.isOpen}
-        onClose={() => setConfirmModal({ isOpen: false, type: 'single' })}
-        onConfirm={handleConfirmAction}
-        title={
-          confirmModal.type === 'bulk'
-            ? `Bulk Delete ${selectedIds.length} Coupon(s)?`
-            : `Delete Coupon "${confirmModal.coupon?.code}"?`
-        }
+        title={confirmModal.type === 'bulk' ? `Delete ${selectedIds.length} Coupons?` : 'Delete Discount Coupon?'}
         message={
           confirmModal.type === 'bulk'
             ? `Are you sure you want to permanently delete all ${selectedIds.length} selected discount coupons? Students will no longer be able to redeem these codes.`
-            : `Are you sure you want to permanently delete coupon "${confirmModal.coupon?.code}"? This promo code will be immediately deactivated.`
+            : `Are you sure you want to delete coupon code "${confirmModal.coupon?.code}"? Students will no longer be able to use it during enrollment.`
         }
-        confirmText={
-          confirmModal.type === 'bulk'
-            ? `Delete ${selectedIds.length} Coupons`
-            : 'Delete Coupon'
-        }
+        confirmText={confirmModal.type === 'bulk' ? `Delete All (${selectedIds.length})` : 'Delete Coupon'}
         variant="danger"
+        onConfirm={handleConfirmAction}
+        onClose={() => setConfirmModal({ isOpen: false, type: 'single' })}
       />
     </div>
   );

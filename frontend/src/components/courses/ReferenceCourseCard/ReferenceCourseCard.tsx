@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Star,
@@ -8,10 +8,12 @@ import {
   ArrowRight,
   CheckCircle2,
   Play,
-  BookOpen
+  BookOpen,
+  Sparkles
 } from 'lucide-react';
 import type { Course } from '../../../types';
 import { useStudentAuth } from '../../../context/AuthContext';
+import { offerService, OFFERS_EVENT_KEY } from '../../../services/offerService';
 import styles from './ReferenceCourseCard.module.scss';
 
 interface ReferenceCourseCardProps {
@@ -52,6 +54,18 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
   const navigate = useNavigate();
   const { student, isAuthenticated } = useStudentAuth();
 
+  // Listen for real-time offer updates across the site
+  const [offersTick, setOffersTick] = useState(0);
+  useEffect(() => {
+    const handleOffersUpdate = () => setOffersTick((v) => v + 1);
+    window.addEventListener(OFFERS_EVENT_KEY, handleOffersUpdate);
+    window.addEventListener('storage', handleOffersUpdate);
+    return () => {
+      window.removeEventListener(OFFERS_EVENT_KEY, handleOffersUpdate);
+      window.removeEventListener('storage', handleOffersUpdate);
+    };
+  }, []);
+
   // 1. Genuine Free Course Determination
   const isFree = useMemo(() => {
     return Boolean(
@@ -61,6 +75,49 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
       (course.badge && course.badge.toLowerCase().includes('free'))
     );
   }, [course.tier, course.numericPrice, course.price, course.badge]);
+
+  // Base Pricing & Dynamic Item Offer Calculations
+  const numericCurrent = useMemo(() => {
+    if (isFree) return 0;
+    if (typeof course.numericPrice === 'number') return course.numericPrice;
+    if (typeof course.price === 'string') {
+      const num = parseFloat(course.price.replace(/[^0-9.]/g, ''));
+      return isNaN(num) ? 4999 : num;
+    }
+    return 4999;
+  }, [isFree, course.numericPrice, course.price]);
+
+  const numericOriginal = useMemo(() => {
+    if (isFree) return 0;
+    if (typeof course.originalPrice === 'string') {
+      const num = parseFloat(course.originalPrice.replace(/[^0-9.]/g, ''));
+      return isNaN(num) ? 0 : num;
+    }
+    return 0;
+  }, [isFree, course.originalPrice]);
+
+  const effectiveOffer = useMemo(() => {
+    if (isFree) return null;
+    return offerService.getEffectiveItemOffer(course.id || (course as any)._id, 'course', numericCurrent);
+  }, [isFree, course.id, (course as any)._id, numericCurrent, offersTick]);
+
+  const finalPayable = effectiveOffer && effectiveOffer.hasOffer ? effectiveOffer.discountedPrice : numericCurrent;
+  const originalStrikethrough = numericOriginal > 0 ? numericOriginal : (effectiveOffer && effectiveOffer.hasOffer ? numericCurrent : 0);
+  const hasDiscount = (originalStrikethrough > finalPayable) && finalPayable > 0;
+
+  const discountPercent = useMemo(() => {
+    if (!hasDiscount) return 0;
+    if (effectiveOffer && effectiveOffer.hasOffer) {
+      return effectiveOffer.discountPercent;
+    }
+    if (course.discountPercentage && course.discountPercentage > 0) {
+      return course.discountPercentage;
+    }
+    return Math.round(((originalStrikethrough - finalPayable) / originalStrikethrough) * 100);
+  }, [hasDiscount, effectiveOffer, course.discountPercentage, originalStrikethrough, finalPayable]);
+
+  const formattedCurrentPrice = formatIndianPrice(finalPayable, isFree);
+  const formattedOriginalPrice = hasDiscount ? `₹${originalStrikethrough.toLocaleString('en-IN')}` : '';
 
   // 2. Genuine Database Purchase Verification
   const isPurchased = useMemo(() => {
@@ -91,8 +148,11 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
     return course.category || 'Comprehensive';
   }, [isFree, course.courseType, course.targetExam, course.category, course.tags]);
 
-  // 4. Promotional Badge (Top-right, at most 1, only if genuine)
+  // 4. Promotional Badge (Top-right, at most 1, prioritizes dynamic offer badge)
   const promoBadge = useMemo(() => {
+    if (effectiveOffer && effectiveOffer.hasOffer && effectiveOffer.badgeText) {
+      return effectiveOffer.badgeText;
+    }
     const promoTag = course.tags?.find((t) =>
       ['popular', 'bestseller', 'new batch', 'new', 'trending', 'best value', 'top rated'].includes(t.toLowerCase())
     );
@@ -103,7 +163,7 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
     if (course.badge && course.badge.toLowerCase().includes('new')) return 'New Batch';
     if (course.badge) return course.badge;
     return null;
-  }, [course.isPopular, course.isBestValue, course.badge, course.tags]);
+  }, [effectiveOffer, course.isPopular, course.isBestValue, course.badge, course.tags]);
 
   // 5. Target Audience / Category Sub-line (Item 2 in hierarchy)
   const targetAudienceText = useMemo(() => {
@@ -167,38 +227,6 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
 
     return items.slice(0, 3);
   }, [course.duration, course.courseType, course.mode, course.subjects]);
-
-  // 9. Pricing & Discount Calculations
-  const numericCurrent = useMemo(() => {
-    if (isFree) return 0;
-    if (typeof course.numericPrice === 'number') return course.numericPrice;
-    if (typeof course.price === 'string') {
-      const num = parseFloat(course.price.replace(/[^0-9.]/g, ''));
-      return isNaN(num) ? 4999 : num;
-    }
-    return 4999;
-  }, [isFree, course.numericPrice, course.price]);
-
-  const numericOriginal = useMemo(() => {
-    if (isFree) return 0;
-    if (typeof course.originalPrice === 'string') {
-      const num = parseFloat(course.originalPrice.replace(/[^0-9.]/g, ''));
-      return isNaN(num) ? 0 : num;
-    }
-    return 0;
-  }, [isFree, course.originalPrice]);
-
-  const hasDiscount = numericOriginal > numericCurrent && numericCurrent > 0;
-  const discountPercent = useMemo(() => {
-    if (!hasDiscount) return 0;
-    if (course.discountPercentage && course.discountPercentage > 0) {
-      return course.discountPercentage;
-    }
-    return Math.round(((numericOriginal - numericCurrent) / numericOriginal) * 100);
-  }, [hasDiscount, course.discountPercentage, numericOriginal, numericCurrent]);
-
-  const formattedCurrentPrice = formatIndianPrice(course.price || numericCurrent, isFree);
-  const formattedOriginalPrice = hasDiscount ? `₹${numericOriginal.toLocaleString('en-IN')}` : '';
 
   // 10. Thumbnail Image Resolution
   const thumbnailSrc =
@@ -415,7 +443,12 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
             )}
           </div>
           {hasDiscount && discountPercent > 0 && (
-            <span className={styles.discountPill}>{discountPercent}% OFF</span>
+            <span
+              className={styles.discountPill}
+              style={effectiveOffer?.hasOffer ? { background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', color: '#ffffff', fontWeight: 700 } : undefined}
+            >
+              {discountPercent}% OFF
+            </span>
           )}
         </div>
 

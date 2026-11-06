@@ -23,6 +23,7 @@ import type { NormalizedQuestion, ContentBlock } from './questionSchema/normaliz
 import { createDefaultNormalizedQuestion } from './questionSchema/normalizedQuestion.js';
 import { classifyQuestion, extractSolutionAndShortcuts } from './questionClassifier.js';
 import { validateQuestionLatexStructure } from './mathLatexValidator.js';
+import { extractStatementAndOptionsPreserving } from './universalMathEngine/index.js';
 
 // Use `any` for all DOM node types (backend has no lib: ["DOM"] in tsconfig)
 type AnyDoc = any;
@@ -477,11 +478,29 @@ export async function extractQuestionsFromDocxNative(
   const answerKeyMap = new Map<number, string>();
   let answerKeyStartIndex = -1;
 
+  // 1a. Explicit heading search (Answer Key, Answers, KEYS, Solutions, etc.)
   for (let i = 0; i < paragraphs.length; i++) {
     const pText = paragraphs[i].text.trim();
-    if (/(?:^|\s)(?:Answer\s*Key|Answers?|ANSWERS?)\s*[:\n]/i.test(pText)) {
+    if (/(?:^|\s)(?:Answer\s*Key|Answers?|ANSWERS?|Key\s*Answers?|Solutions?|Answer\s*Sheet|KEYS?)\b/i.test(pText)) {
       answerKeyStartIndex = i;
       break;
+    }
+  }
+
+  // 1b. Trailing answer grid detection (runs of "1. A", "2. B", "3. C" at the bottom of the document)
+  if (answerKeyStartIndex === -1) {
+    let trailingAnsCount = 0;
+    for (let i = paragraphs.length - 1; i >= 0; i--) {
+      const pText = paragraphs[i].text.trim();
+      if (!pText) continue;
+      if (/^(?:Q\.?\s*)?\d{1,3}\s*[\.:\-]\s*[A-Da-d0-9\.\-]+\s*$/i.test(pText)) {
+        trailingAnsCount++;
+      } else {
+        if (trailingAnsCount >= 3) {
+          answerKeyStartIndex = i + 1;
+        }
+        break;
+      }
     }
   }
 
@@ -490,13 +509,14 @@ export async function extractQuestionsFromDocxNative(
       .slice(answerKeyStartIndex)
       .map((p) => p.text)
       .join('\n');
-    const keyPairRegex = /(\d{1,3})\s*[\.:\-]\s*([A-Da-d0-9\.\-]+)/g;
+    const keyPairRegex = /(?:Q\.?\s*)?(\d{1,3})\s*[\.:\-]\s*([A-Da-d0-9\.\-]+)/gi;
     let km;
     while ((km = keyPairRegex.exec(keyText)) !== null) {
       const qn = parseInt(km[1], 10);
       const rawAns = km[2].trim().toUpperCase();
       if (!isNaN(qn)) {
-        answerKeyMap.set(qn, rawAns);
+        const keyMap: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+        answerKeyMap.set(qn, keyMap[rawAns] || rawAns);
       }
     }
   }
@@ -504,7 +524,7 @@ export async function extractQuestionsFromDocxNative(
   const contentParagraphs =
     answerKeyStartIndex !== -1 ? paragraphs.slice(0, answerKeyStartIndex) : paragraphs;
 
-  // 2. Identify Question Boundaries
+  // 2. Identify Question Boundaries with Option-Cycle Awareness
   interface RawQuestionGroup {
     qNum: number;
     lines: DocxParagraph[];
@@ -512,7 +532,8 @@ export async function extractQuestionsFromDocxNative(
 
   const groups: RawQuestionGroup[] = [];
   let currentGroup: RawQuestionGroup | null = null;
-  const qDelim = /^(?:(?:Q\.?|Question)\s*)?(\d{1,3})\s*[\.:\)]\s*(.*)$/i;
+  const qDelim = /^(?:(?:Q\.?|Question|Problem)\s*)?(\d{1,3})\s*[\.:\)]\s*(.*)$/i;
+  const qStarter = /^(?:Let\b|If\b|The\s+value\b|Consider\b|Find\b|Evaluate\b|A\s+(?:function|straight|circle|particle|uniform|box|bag|coin|die|matrix|triangle|variable)\b|For\b|In\b|Which\b|Given\b|Suppose\b|When\b|Show\b)/i;
 
   let expectedQ = 1;
 
@@ -523,24 +544,47 @@ export async function extractQuestionsFromDocxNative(
     const match = text.match(qDelim);
     const parsedQNum = match ? parseInt(match[1], 10) : NaN;
 
-    if (
+    // Check if current group already has completed its options (has Option D)
+    const currentGroupText = currentGroup ? currentGroup.lines.map((l) => l.text).join('\n') : '';
+    const currentGroupHasOptionD = currentGroup
+      ? /(?:\([Dd4]\)|\[[Dd4]\]|\bD\s*[\.\)\:\-]\s*|\bD\s+[^\s])/i.test(currentGroupText)
+      : false;
+
+    const isExplicitQ =
       match &&
       !isNaN(parsedQNum) &&
       parsedQNum >= expectedQ &&
-      parsedQNum <= expectedQ + 5
-    ) {
+      parsedQNum <= expectedQ + 5;
+
+    const isNextQByOptionCycle =
+      currentGroupHasOptionD &&
+      (qStarter.test(text) ||
+        /^(?:\([Aa1]\)|\[[Aa1]\]|\bA\s*[\.\)\:\-]\s*|\bA\s+[0-9\-\+\(\$\\\u0370-\u03FF])/i.test(text));
+
+    if (isExplicitQ) {
       if (currentGroup) {
         groups.push(currentGroup);
       }
       currentGroup = {
         qNum: parsedQNum,
-        lines: [{ ...para, text: match[2].trim() }]
+        lines: [{ ...para, text: match[2].trim() || para.text }]
       };
       expectedQ = parsedQNum + 1;
+    } else if (isNextQByOptionCycle) {
+      if (currentGroup) {
+        groups.push(currentGroup);
+      }
+      currentGroup = {
+        qNum: expectedQ++,
+        lines: [para]
+      };
     } else if (currentGroup) {
       currentGroup.lines.push(para);
     } else {
-      // Preface or instructions
+      currentGroup = {
+        qNum: expectedQ++,
+        lines: [para]
+      };
     }
   }
 
@@ -548,7 +592,7 @@ export async function extractQuestionsFromDocxNative(
     groups.push(currentGroup);
   }
 
-  // Fallback if no sequential question delimiters were found
+  // Fallback if no questions were grouped
   if (groups.length === 0 && contentParagraphs.length > 0) {
     let chunkLines: DocxParagraph[] = [];
     let qCount = 1;
@@ -564,43 +608,56 @@ export async function extractQuestionsFromDocxNative(
     }
   }
 
-  // 3. Process each group into a NormalizedQuestion
+  // 3. Process each group into a NormalizedQuestion using preserved math splitting
   let successfulCount = 0;
   let needsReviewCount = 0;
 
   for (let idx = 0; idx < groups.length; idx++) {
     const group = groups[idx];
-    const fullText = group.lines.map((l) => l.text).join('\n');
+    const fullText = group.lines.map((l) => l.text).join('\n').trim();
+    if (!fullText) continue;
 
-    let statementText = '';
+    const extracted = extractStatementAndOptionsPreserving(fullText);
+    let statementText = extracted.statement || fullText;
+
+    // Discard empty statements or stray answer key fragments
+    if (!statementText.trim() || statementText.trim() === 'Question') {
+      if (!extracted.options || extracted.options.length === 0) continue;
+    }
+
+    // Deduplicate options strictly to A, B, C, D (at most 4 unique keys)
     const options: Array<{ key: string; text: string }> = [];
-    let explanationText = '';
-    const reviewReasons: string[] = [];
+    const seenKeys = new Set<string>();
+    for (const opt of extracted.options || []) {
+      const rawK = (opt.key || '').toUpperCase();
+      const validK = ['A', 'B', 'C', 'D'].includes(rawK) ? rawK : undefined;
+      if (validK && !seenKeys.has(validK)) {
+        seenKeys.add(validK);
+        options.push({ key: validK, text: opt.text });
+      }
+    }
 
-    // Parse options: (A), (B), (C), (D) or (1), (2), (3), (4)
-    const optSplitRegex = /(?:^|\n)\s*(?:\(([A-Da-d1-4])\)|([A-Da-d])\.(?!\d))\s*/;
-    const parts = fullText.split(optSplitRegex);
-
-    if (parts.length > 1) {
-      statementText = parts[0].trim();
-      for (let i = 1; i < parts.length; i += 3) {
-        const rawKey = (parts[i] || parts[i + 1] || '').toUpperCase();
-        const keyMap: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
-        const key = keyMap[rawKey] || rawKey || 'A';
-        const optBody = (parts[i + 2] || '').trim();
-
-        // Check if explanation or solution is trailing in last option
-        const solMatch = optBody.match(/(?:(?:Ans(?:wer)?|Solution|Explanation)\s*[:\-])\s*([\s\S]+)$/i);
-        if (solMatch && solMatch.index !== undefined) {
-          options.push({ key, text: optBody.substring(0, solMatch.index).trim() });
-          explanationText = solMatch[1].trim();
-        } else {
-          options.push({ key, text: optBody });
+    // Fill missing options if none were parsed
+    if (options.length === 0) {
+      // Check for legacy paragraph split fallback
+      const optSplitRegex = /(?:^|\n)\s*(?:\(([A-Da-d1-4])\)|([A-Da-d])\.(?!\d))\s*/;
+      const parts = fullText.split(optSplitRegex);
+      if (parts.length > 1) {
+        statementText = parts[0].trim();
+        for (let i = 1; i < parts.length; i += 3) {
+          const rawKey = (parts[i] || parts[i + 1] || '').toUpperCase();
+          const keyMap: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+          const key = keyMap[rawKey] || rawKey || 'A';
+          if (!seenKeys.has(key) && ['A', 'B', 'C', 'D'].includes(key)) {
+            seenKeys.add(key);
+            options.push({ key, text: (parts[i + 2] || '').trim() });
+          }
         }
       }
-    } else {
-      statementText = fullText.trim();
     }
+
+    let explanationText = extracted.stepSolution || '';
+    const reviewReasons: string[] = [];
 
     // Classify question type
     const classification = classifyQuestion(statementText, options, targetExam);
@@ -609,7 +666,7 @@ export async function extractQuestionsFromDocxNative(
     const { stepSolution, dkSirShortcut, answerKey: inlineAns } = extractSolutionAndShortcuts(explanationText);
 
     // Determine correct answer
-    const matchedKey = answerKeyMap.get(group.qNum) || inlineAns || 'A';
+    const matchedKey = answerKeyMap.get(group.qNum) || extracted.correctKey || inlineAns || 'A';
 
     // Validate LaTeX
     const validation = validateQuestionLatexStructure({
