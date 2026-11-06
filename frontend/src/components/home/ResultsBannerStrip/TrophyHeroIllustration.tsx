@@ -6,7 +6,7 @@ export const TrophyHeroIllustration: React.FC<{ className?: string }> = ({ class
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={className}
-    style={{ overflow: 'visible', width: '100%', height: 'auto', maxWidth: '320px' }}
+    style={{ overflow: 'visible', width: '100%', height: 'auto', maxWidth: '420px' }}
   >
     <defs>
       {/* Background Soft Blue Glow */}
