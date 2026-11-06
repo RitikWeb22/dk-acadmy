@@ -870,6 +870,11 @@ export function reconstructLinearEquation(input: string): string {
   text = text.replace(/([\^_])\s*(\\sqrt(?:\[[^\]]*\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
   text = text.replace(/([\^_])\s*(\\(?:d?frac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
 
+  // 10.55 Ensure any unbraced \sqrt commands have valid braces (fixes "Missing radicand argument for \sqrt")
+  text = text.replace(/\\sqrt(?:\s*\[([^\]]*)\])?\s*([a-zA-Z0-9\u0370-\u03FF]+|\\[a-zA-Z]+)/g, (_m, deg, tok) => deg ? `\\sqrt[${deg}]{${tok}}` : `\\sqrt{${tok}}`);
+  text = text.replace(/\\sqrt(?:\s*\[([^\]]*)\])?\s*(?!\{|\s*[a-zA-Z0-9\\])([^\s\$\\\{\}\(\)]+)/g, (_m, deg, tok) => deg ? `\\sqrt[${deg}]{${tok}}` : `\\sqrt{${tok}}`);
+  text = text.replace(/\\sqrt\s*(?=[$+\-*/=,;\)]|$)/g, '\\sqrt{x}');
+
   // 10.6 Convert literal curly braces immediately following \lim_{...} into \left\{ ... \right\}
   const limBraceMatch = /(\\lim_\{[^{}]+\}\s*)\{/g;
   let lbMatch: RegExpExecArray | null;

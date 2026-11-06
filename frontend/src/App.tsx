@@ -9,6 +9,7 @@ import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute/Admi
 import { AdminLayout } from './components/admin/AdminLayout/AdminLayout';
 import { TopLoadingBar, PageTransitionWrapper, PageLoader } from './components/ui/PageTransition';
 import { FloatingLeadWidget } from './components/leads/FloatingLeadWidget/FloatingLeadWidget';
+import { PromotionalPopupModal } from './components/common/PromotionalPopupModal/PromotionalPopupModal';
 import { initSocketClient } from './services/socketClient';
 
 // Helper for dynamic named imports with React.lazy
@@ -453,6 +454,7 @@ export const App: React.FC = () => {
             </PageTransitionWrapper>
             <Footer />
             <FloatingLeadWidget />
+            <PromotionalPopupModal />
           </div>
         )}
           </ToastProvider>

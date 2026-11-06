@@ -63,16 +63,26 @@ function parseAnswer(raw, hasOptions) {
     }
     return {};
 }
-/** Finds every "(A)", "A.", "A)", "(1)", "1.", "[A]", "Option A:" style marker. */
+/** Finds every "(A)", "A.", "A)", "(1)", "1.", "[A]", "Option A:", or bare horizontal "A 2e..." style marker. */
 function findMarkers(text) {
-    const re = /(^|[\s\n])(?:\bOption\s+)?(?:\(([A-Da-d1-4])\)|\[([A-Da-d1-4])\]|([A-Da-d1-4])([.):\-]))(?=\s|[$0-9a-zA-Z\\{\[(\-]|$)/gi;
+    const re = /(^|[\s\n])(?:\bOption\s+)?(?:\(([A-Da-d1-4])\)|\[([A-Da-d1-4])\]|([A-Da-d1-4])([.):\-])|\b([A-Da-d])\s+(?=[0-9\-\+\(\$\\\u0370-\u03FF]))(?=\s|[$0-9a-zA-Z\\{\[(\-]|$)/gi;
     const markers = [];
     let m;
     while ((m = re.exec(text)) !== null) {
-        const raw = m[2] ?? m[3] ?? m[4];
+        const raw = m[2] ?? m[3] ?? m[4] ?? m[6];
         const key = toOptionKey(raw);
         if (!key)
             continue;
+        // Filter out prose variables (e.g. "point A", "matrix A", "set A", "arc AC", "A divides")
+        const matchIdx = m.index + m[1].length;
+        const beforeSnippet = text.substring(Math.max(0, matchIdx - 20), matchIdx).toLowerCase();
+        const afterSnippet = text.substring(matchIdx, Math.min(text.length, matchIdx + 20)).toLowerCase();
+        if (/\b(?:point|set|matrix|vector|vertex|arc|plane|line|segment|triangle|centre|internally)\s*$/i.test(beforeSnippet)) {
+            continue;
+        }
+        if (/^[A-Da-d]\s+(?:divides?|and|is|are|lies|has|be|such|of|satisfy|satisfies|belongs?)\b/i.test(afterSnippet)) {
+            continue;
+        }
         const shape = m[2] !== undefined ? 'paren' : m[3] !== undefined ? 'bracket' : (m[5] || 'bare');
         const kind = /\d/.test(raw) ? 'n' : raw === raw.toUpperCase() ? 'U' : 'l';
         markers.push({
@@ -152,6 +162,9 @@ function splitStatementAndOptions(body) {
             text = text.split(/\n[ \t]*\n/)[0];
         }
         text = text.trim();
+        // Clean trailing punctuation artifact on option value (e.g. "2e - 1 ." -> "2e - 1")
+        text = text.replace(/([0-9a-zA-Z\)\}\]]+)\s*\.\s*$/, '$1').trim();
+        text = text.replace(/^[:\-\.]\s*/, '').trim();
         if (!text)
             return { statement: body.trim(), options: [] };
         options.push({ key: seq[i].key, text });

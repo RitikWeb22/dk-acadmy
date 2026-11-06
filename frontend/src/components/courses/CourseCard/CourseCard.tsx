@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { Check, Calendar, Video, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Check, Calendar, Video, ArrowRight, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import type { Course } from '../../../types';
 import { useStudentAuth } from '../../../context/AuthContext';
+import { offerService, OFFERS_EVENT_KEY } from '../../../services/offerService';
 import { Badge } from '../../ui/Badge/Badge';
 import { Button } from '../../ui/Button/Button';
 import styles from './CourseCard.module.scss';
@@ -34,6 +35,19 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     );
   }, [course.id, course._id, (course as any).slug, isAuthenticated, student]);
 
+  const [offersTick, setOffersTick] = useState(0);
+  useEffect(() => {
+    const handler = () => setOffersTick((v) => v + 1);
+    window.addEventListener(OFFERS_EVENT_KEY, handler);
+    return () => window.removeEventListener(OFFERS_EVENT_KEY, handler);
+  }, []);
+
+  const rawPrice = course.numericPrice || (typeof course.price === 'string' ? parseFloat(course.price.replace(/[^0-9.]/g, '')) : 4999);
+  const effectiveOffer = useMemo(() => {
+    if (isFree) return null;
+    return offerService.getEffectiveItemOffer(course.id || (course as any)._id, 'course', rawPrice);
+  }, [isFree, course.id, (course as any)._id, rawPrice, offersTick]);
+
   const targetLink = useMemo(() => {
     if (isPurchased) return `/learn/${course.id}`;
     if (isFree) return `/learn/${course.id}`;
@@ -56,6 +70,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
 
       <div className={styles.header}>
         <div className={styles.badgesRow}>
+          {effectiveOffer?.hasOffer && (
+            <Badge variant="accent" size="sm">
+              {effectiveOffer.badgeText}
+            </Badge>
+          )}
           {course.tags && course.tags.length > 0 ? (
             course.tags.slice(0, 3).map((tag, idx) => (
               <Badge key={idx} variant={tag.toLowerCase().includes('popular') ? 'accent' : idx === 0 ? 'primary' : 'outline'} size="sm">

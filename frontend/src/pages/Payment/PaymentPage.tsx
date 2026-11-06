@@ -23,6 +23,7 @@ import { COURSES_CATALOG, FREE_COURSES_CATALOG } from '../../data/coursesData';
 import { cmsService } from '../../services/cmsService';
 import { paymentService } from '../../services/paymentService';
 import { couponService } from '../../services/couponService';
+import { offerService } from '../../services/offerService';
 import type { Course } from '../../types';
 import styles from './PaymentPage.module.scss';
 
@@ -172,16 +173,25 @@ export const PaymentPage: React.FC = () => {
     return parsed ? parseInt(parsed, 10) : 18500;
   }, [course]);
 
+  // Active Flash Sale / Special Offer Discount
+  const activeItemOffer = useMemo(() => {
+    return offerService.getEffectiveItemOffer(course.id || (course as any)._id, 'course', baseMRP);
+  }, [course, baseMRP]);
+
+  const offerDiscount = activeItemOffer.hasOffer ? activeItemOffer.discountAmount : 0;
+
   // Coupon & GST Calculations
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
+    const eligibleAmount = Math.max(0, baseMRP - offerDiscount);
     if (appliedCoupon.data.type === 'percent') {
-      return Math.round((baseMRP * appliedCoupon.data.value) / 100);
+      return Math.round((eligibleAmount * appliedCoupon.data.value) / 100);
     }
-    return Math.min(appliedCoupon.data.value, baseMRP);
-  }, [appliedCoupon, baseMRP]);
+    return Math.min(appliedCoupon.data.value, eligibleAmount);
+  }, [appliedCoupon, baseMRP, offerDiscount]);
 
-  const finalPayableTotal = Math.max(0, baseMRP - couponDiscount);
+  const totalDiscount = offerDiscount + couponDiscount;
+  const finalPayableTotal = Math.max(0, baseMRP - totalDiscount);
 
   // Taxable Base = Net Payable / 1.18
   const taxableBaseFee = useMemo(() => {
@@ -610,6 +620,17 @@ export const PaymentPage: React.FC = () => {
                     ₹{taxableBaseFee.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
+
+                {/* Active Special Offer Discount */}
+                {activeItemOffer.hasOffer && (
+                  <div className={`${styles.summaryRow} ${styles.couponDiscountRow}`} style={{ color: '#dc2626' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <Sparkles size={13} />
+                      <span>Sale Offer ({activeItemOffer.badgeText})</span>
+                    </span>
+                    <span>− ₹{offerDiscount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
 
                 {/* Coupon Discount */}
                 <div className={`${styles.summaryRow} ${styles.couponDiscountRow}`}>

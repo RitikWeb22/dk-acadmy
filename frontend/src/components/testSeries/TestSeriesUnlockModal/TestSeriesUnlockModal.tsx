@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Lock, CheckCircle2, Sparkles, FileText, ArrowRight, ShieldCheck, Video, Clock, Award } from 'lucide-react';
 import type { TestSeriesItem } from '../../../types';
+import { offerService } from '../../../services/offerService';
 import styles from './TestSeriesUnlockModal.module.scss';
 
 interface TestSeriesUnlockModalProps {
@@ -21,7 +22,12 @@ export const TestSeriesUnlockModal: React.FC<TestSeriesUnlockModalProps> = ({
 }) => {
   if (!isOpen || !test || typeof document === 'undefined') return null;
 
-  const price = test.price ? Number(test.price) : 299;
+  const rawPrice = test.price ? Number(test.price) : 299;
+  const effectiveOffer = useMemo(() => {
+    return offerService.getEffectiveItemOffer(test.id, 'test-series', rawPrice);
+  }, [test.id, rawPrice]);
+
+  const price = effectiveOffer.hasOffer ? effectiveOffer.discountedPrice : rawPrice;
 
   return createPortal(
     <div
@@ -101,8 +107,20 @@ export const TestSeriesUnlockModal: React.FC<TestSeriesUnlockModalProps> = ({
           {/* Pricing Row */}
           <div className={styles.pricingCard}>
             <div className={styles.priceLeft}>
-              <span className={styles.pricingTag}>Examination Access Fee</span>
+              <span className={styles.pricingTag}>
+                Examination Access Fee
+                {effectiveOffer.hasOffer && (
+                  <span style={{ marginLeft: '8px', color: '#dc2626', fontWeight: 700 }}>
+                    ({effectiveOffer.badgeText})
+                  </span>
+                )}
+              </span>
               <div className={styles.priceNums}>
+                {effectiveOffer.hasOffer && (
+                  <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '1rem', marginRight: '6px' }}>
+                    ₹{rawPrice}
+                  </span>
+                )}
                 <span className={styles.mainPrice}>₹{price}</span>
                 <span className={styles.validityText}>• Lifetime Retakes & Solutions</span>
               </div>
@@ -121,7 +139,11 @@ export const TestSeriesUnlockModal: React.FC<TestSeriesUnlockModalProps> = ({
             onClick={onPayAndUnlock}
           >
             <Lock size={16} />
-            <span>{isProcessing ? 'Processing Payment...' : `Pay ₹${price} & Unlock Test Now`}</span>
+            <span>
+              {isProcessing
+                ? 'Processing Payment...'
+                : `Pay ₹${price} & Unlock Test Now ${effectiveOffer.hasOffer ? `(${effectiveOffer.badgeText})` : ''}`}
+            </span>
             <ArrowRight size={16} />
           </button>
 
