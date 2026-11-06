@@ -48,7 +48,11 @@ export function splitIntoQuestionSegments(rawText: string): string[] {
  * Parses a single question text block into structured components.
  */
 export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
-  let text = rawBlock.trim();
+  // Normalize unicode spaces and strip invisible Word/PDF mathematical formatting markers
+  let text = rawBlock
+    .replace(/[\u200B-\u200D\uFEFF\u2060\u2061]/g, '')
+    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
+    .trim();
 
   // 1. Remove leading question numbers e.g. "1.", "2.", "Q.1:", "Question 2:"
   text = text.replace(/^\s*(?:Q(?:uestion)?\.?\s*\d+|\d+[\.\:\)])\s*/i, '').trim();
@@ -99,18 +103,39 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
   }
 
   // 5. Extract Options (A, B, C, D)
-  // Support: (A) ... (B) ... (C) ... (D) ... or (1) ... (2) ... (3) ... (4) ...
-  // or A) ... B) ... C) ... D) ... or [A] ... [B] ... [C] ... [D] ...
+  // Supports:
+  // - Bare letters: A -21.   B 21.   C 19.   D 0
+  // - Parenthesis/brackets: (A) ... (B) ... or [A] ... [B] ...
+  // - Dotted/colon: A. ... B. ... C. ... D. ... or Option A: ...
+  // - Numbered: (1) ... (2) ... (3) ... (4) ... or 1. ... 2. ...
   const optionsMap: Record<string, string> = { A: '', B: '', C: '', D: '' };
 
-  // Match letter options: (A), (B), (C), (D) or Option A: or [A], [B], [C], [D] or A), B), C), D)
-  const letterRegex = /(?:^|[\n\r\t]|\s{2,}|\s)(?:Option\s*\(?([A-D])\)?[:.]?|\(?([A-D])[\)\.]|\[([A-D])\])(?:\s+|$)/gi;
-  let matches = [...text.matchAll(letterRegex)];
+  // Strategy 1: Standard markers with parens, brackets, or Option label: (A), [A], Option A, A., A:, A)
+  const standardMarkerRegex = /(?:^|[\n\r]|\s{2,}|\s)(?:\(([A-D1-4])\)|\[([A-D1-4])\]|Option\s*\(?([A-D1-4])\)?[:.]?|([A-D])[\.:\)])(?:\s+|$)/gi;
+  let matches = [...text.matchAll(standardMarkerRegex)];
 
-  // If not letters, try numbers in parentheses or brackets: (1), (2), (3), (4)
+  // Strategy 2: Bare letter markers (e.g. "A -21.   B 21.   C 19.   D 0" or newline "A 10\nB 20")
+  // Note: Delimiters are space, dot, colon, or closing paren. Minus/hyphen is explicitly excluded so negative numbers like "-21" are preserved!
   if (matches.length < 2) {
-    const numberRegex = /(?:^|[\n\r\t]|\s{2,}|\s)(?:Option\s*\(?([1-4])\)?[:.]?|\(([1-4])\)|\[([1-4])\])(?:\s+|$)/gi;
-    matches = [...text.matchAll(numberRegex)];
+    const bareLetterRegex = /(?:^|[\n\r]|\s{2,})(?:Option\s+)?([A-D])(?:\s*[\.:\)]|\s+)(?=\S)/gi;
+    const bareMatches = [...text.matchAll(bareLetterRegex)];
+    const keys = bareMatches.map((m) => (m[1] || '').toUpperCase());
+    if (keys.includes('A') && keys.includes('B')) {
+      matches = bareMatches;
+    }
+  }
+
+  // Strategy 3: Single-line sequential A ... B ... C ... D ...
+  if (matches.length < 2) {
+    const singleLineMatch = text.match(/(?:^|[\n\r])\s*A\s*[\.:\)]?\s+([\s\S]+?)\s+B\s*[\.:\)]?\s+([\s\S]+?)\s+C\s*[\.:\)]?\s+([\s\S]+?)\s+D\s*[\.:\)]?\s+([\s\S]+)$/i);
+    if (singleLineMatch) {
+      const statement = text.slice(0, singleLineMatch.index).trim();
+      optionsMap.A = singleLineMatch[1].trim().replace(/\s*\.$/, '');
+      optionsMap.B = singleLineMatch[2].trim().replace(/\s*\.$/, '');
+      optionsMap.C = singleLineMatch[3].trim().replace(/\s*\.$/, '');
+      optionsMap.D = singleLineMatch[4].trim().replace(/\s*\.$/, '');
+      text = statement;
+    }
   }
 
   if (matches.length >= 2) {
@@ -120,11 +145,13 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
 
     for (let i = 0; i < matches.length; i++) {
       const cur = matches[i];
-      const rawK = (cur[1] || cur[2] || cur[3] || '').toUpperCase();
+      const rawK = (cur[1] || cur[2] || cur[3] || cur[4] || '').toUpperCase();
       const k = mapNum[rawK] || (rawK as 'A' | 'B' | 'C' | 'D');
       const start = (cur.index ?? 0) + cur[0].length;
       const end = (i + 1 < matches.length) ? (matches[i + 1].index ?? text.length) : text.length;
-      const optVal = text.slice(start, end).trim();
+      let optVal = text.slice(start, end).trim();
+      // Strip trailing punctuation dot if present (e.g. "-21." -> "-21")
+      optVal = optVal.replace(/\s*\.$/, '');
       if (['A', 'B', 'C', 'D'].includes(k)) {
         optionsMap[k] = optVal;
       }

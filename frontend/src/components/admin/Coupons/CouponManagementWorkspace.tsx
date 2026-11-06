@@ -1435,13 +1435,13 @@ export const CouponManagementWorkspace: React.FC = () => {
                 <div
                   style={{
                     position: 'relative',
-                    width: '100%',
-                    maxWidth: '360px',
-                    borderRadius: '12px',
+                    width: 'auto',
+                    maxWidth: '420px',
+                    borderRadius: '14px',
                     overflow: 'hidden',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.65)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    background: '#0f172a'
+                    boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.45)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    background: 'transparent'
                   }}
                 >
                   {/* Floating Close 'X' Button on image */}
@@ -1453,13 +1453,13 @@ export const CouponManagementWorkspace: React.FC = () => {
                       width: '26px',
                       height: '26px',
                       borderRadius: '50%',
-                      background: 'rgba(15, 23, 42, 0.8)',
+                      background: 'rgba(15, 23, 42, 0.85)',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       zIndex: 5,
-                      border: '1px solid rgba(255, 255, 255, 0.3)'
+                      border: '1px solid rgba(255, 255, 255, 0.4)'
                     }}
                   >
                     <X size={14} />
@@ -1472,9 +1472,10 @@ export const CouponManagementWorkspace: React.FC = () => {
                     style={{
                       width: '100%',
                       height: 'auto',
-                      maxHeight: '260px',
+                      maxHeight: '280px',
                       objectFit: 'contain',
-                      display: 'block'
+                      display: 'block',
+                      borderRadius: '14px'
                     }}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/img/dk-results-banner.jpeg';

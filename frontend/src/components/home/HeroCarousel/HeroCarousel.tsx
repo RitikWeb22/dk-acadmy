@@ -161,6 +161,11 @@ export const HeroCarousel: React.FC = () => {
                 >
                   {slide.bannerImage ? (
                     <div className={styles.imageBannerWrapper}>
+                      <div
+                        className={styles.imageBannerBackdropGlow}
+                        style={{ backgroundImage: `url(${slide.bannerImage})` }}
+                        aria-hidden="true"
+                      />
                       <Link
                         to={slide.primaryCta.to}
                         className={styles.imageBannerLink}
