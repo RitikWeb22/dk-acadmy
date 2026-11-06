@@ -1,77 +1,80 @@
 // ==========================================================================
-// DK Academy - Official Results & Social Proof Strip
-// Aligned with DESIGN_SYSTEM.md:
-// - Colors: Primary Deep Electric Indigo (#2563EB), Crisp Bg (#F8FAFC), Card (#FFFFFF)
-// - Typography: Plus Jakarta Sans / Inter, Tight Tracking (-0.02em)
-// - Card Architecture: Uniform border-radius: 14px, 1px solid #E2E8F0, soft elevation
-// - Fully Responsive: Desktop (4 cols), Tablet (2-3 cols), Mobile (1-2 cols)
+// DK Academy - Official IIT JEE Merit List & Selection Records
+// World-Class EdTech Architecture:
+// - Colors: White + Royal Blue (#0755D9) + Soft Gold (#FFC629) + Dark Navy (#10234A)
+// - Background: #F7F9FF, Text: #172B50, Success Green: #16A34A
+// - Card Radius: 20px (18-22px spec), Horizontal card composition on Desktop
+// - Fluid Grid: 4 columns desktop, 2 columns tablet, 1 column mobile
 // ==========================================================================
 
 $font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-// Colors
-$color-primary: #2563EB;
-$color-primary-dark: #1D4ED8;
-$color-primary-light: #EFF6FF;
-$color-primary-border: #BFDBFE;
-
-$color-dark-surface: #0A0F1D;
-$color-page-bg: #F8FAFC;
+// Brand Palette Spec
+$color-primary: #0755D9;
+$color-primary-dark: #053EA0;
+$color-primary-light: #EBF2FE;
+$color-navy: #10234A;
+$color-gold: #FFC629;
+$color-gold-hover: #E6B01F;
+$color-page-bg: #F7F9FF;
 $color-card-bg: #FFFFFF;
 $color-border: #E2E8F0;
-$color-border-hover: #CBD5E1;
+$color-border-subtle: #E7ECF7;
+$color-text-main: #172B50;
+$color-text-muted: #5B6B8A;
+$color-success: #16A34A;
+$color-success-bg: #ECFDF5;
+$color-success-border: #A7F3D0;
 
-$color-ink: #0F172A;
-$color-body: #475569;
-$color-muted: #64748B;
-
-$color-emerald: #059669;
-$color-emerald-bg: #ECFDF5;
-$color-emerald-border: #A7F3D0;
-
-$color-amber: #D97706;
-$color-amber-bg: #FEF3C7;
-
-// Uniform Radius (DESIGN_SYSTEM.md: 14px)
-$radius-card: 14px;
-$radius-button: 10px;
+$radius-card: 20px;
 $radius-pill: 9999px;
-$radius-badge: 6px;
 
-// Elevation
-$shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
-$shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+$shadow-card: 0 4px 20px rgba(7, 85, 217, 0.06);
+$shadow-hover: 0 12px 30px rgba(7, 85, 217, 0.13);
 
 .section {
   width: 100%;
   font-family: $font-family;
   background-color: $color-page-bg;
-  color: $color-ink;
+  color: $color-text-main;
   position: relative;
   overflow: hidden;
-  padding: 48px 0;
-  border-top: 1px solid $color-border;
-  border-bottom: 1px solid $color-border;
+  padding: 64px 0;
+  border-top: 1px solid #EDF2F9;
+  border-bottom: 1px solid #EDF2F9;
 
-  @media (max-width: 640px) {
-    padding: 32px 0;
+  @media (max-width: 768px) {
+    padding: 40px 0;
   }
 }
 
+// Ambient Background Layer
 .ambientGlow {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 800px;
-  height: 280px;
-  background: radial-gradient(ellipse at center, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
+  width: 900px;
+  height: 320px;
+  background: radial-gradient(ellipse at center, rgba(7, 85, 217, 0.08) 0%, rgba(255, 198, 41, 0.03) 50%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.subtleGridPattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(rgba(7, 85, 217, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
   pointer-events: none;
   z-index: 0;
 }
 
 .sectionContainer {
-  max-width: 1280px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 0 24px;
   position: relative;
@@ -82,139 +85,218 @@ $shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15,
   }
 }
 
-// ----------------------------------------------------
-// 1. SECTION HEADER
-// ----------------------------------------------------
-.headerBlock {
+// --------------------------------------------------------------------------
+// 1. HERO SECTION
+// --------------------------------------------------------------------------
+.heroSection {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 32px;
+  margin-bottom: 32px;
   flex-wrap: wrap;
 
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 20px;
   }
 }
 
-.headerLeft {
-  max-width: 720px;
+.heroLeft {
+  max-width: 740px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
+  gap: 12px;
 }
 
-.eyebrowPill {
+.heroBadge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background-color: $color-primary-light;
-  color: $color-primary;
-  border: 1px solid $color-primary-border;
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 4px 12px;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 1px solid #DBE5FA;
+  box-shadow: 0 2px 8px rgba(7, 85, 217, 0.06);
+  padding: 6px 14px;
   border-radius: $radius-pill;
-  width: fit-content;
-}
-
-.mainTitle {
-  font-size: clamp(22px, 3.2vw, 36px);
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  color: $color-ink;
-  margin: 0;
-}
-
-.accentSpan {
+  font-size: 13px;
+  font-weight: 700;
   color: $color-primary;
-}
+  letter-spacing: -0.01em;
 
-.subtext {
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: $color-body;
-  margin: 0;
+  .badgeTrophyEmoji {
+    font-size: 15px;
+    line-height: 1;
+  }
 
-  @media (max-width: 640px) {
-    font-size: 13.5px;
+  .badgeText {
+    font-weight: 800;
   }
 }
 
-.headerRight {
+.heroTitle {
+  font-size: clamp(24px, 3.4vw, 40px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: $color-navy;
+  margin: 0;
+}
+
+.highlightWord {
+  color: $color-primary;
+  position: relative;
+  display: inline-block;
+
+  .goldUnderline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 4px;
+    background: linear-gradient(90deg, $color-gold 0%, rgba(255, 198, 41, 0.4) 100%);
+    border-radius: 4px;
+  }
+}
+
+.heroSubtitle {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: $color-text-muted;
+  margin: 0;
+  max-width: 640px;
+
+  @media (max-width: 640px) {
+    font-size: 14px;
+  }
+}
+
+.heroRight {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.trophyIllustrationBox {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #FFFFFF;
+  border: 1px solid #DBE5FA;
+  padding: 10px 18px;
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(7, 85, 217, 0.06);
+  position: relative;
+  overflow: hidden;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.trophyGlowRing {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(255, 198, 41, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.trophyIconWrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border: 1px solid rgba(255, 198, 41, 0.6);
+  border-radius: 12px;
+
+  .goldTrophyIcon {
+    color: #B45309;
+    stroke-width: 2.2;
+  }
+
+  .trophySparkleTop {
+    position: absolute;
+    top: -5px;
+    right: -4px;
+    font-size: 11px;
+    color: #D97706;
+  }
+
+  .trophySparkleRight {
+    position: absolute;
+    bottom: -3px;
+    left: -4px;
+    font-size: 10px;
+    color: #D97706;
+  }
+}
+
+.trophyBadgeContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.trophyStatVal {
+  font-size: 15px;
+  font-weight: 800;
+  color: $color-navy;
+  line-height: 1.2;
+}
+
+.trophyStatLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.viewAllCtaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: $color-primary;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 22px;
+  border-radius: $radius-pill;
+  text-decoration: none;
+  transition: all 0.22s ease-in-out;
+  box-shadow: 0 4px 14px rgba(7, 85, 217, 0.25);
+  white-space: nowrap;
+
+  &:hover {
+    background: $color-primary-dark;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(7, 85, 217, 0.35);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// --------------------------------------------------------------------------
+// 2. EXAM FILTERS (PILL STYLE)
+// --------------------------------------------------------------------------
+.filterPillsRow {
   display: flex;
   align-items: center;
   gap: 10px;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-}
-
-.exploreAllBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background-color: $color-primary;
-  color: #FFFFFF;
-  font-size: 13.5px;
-  font-weight: 700;
-  padding: 8px 18px;
-  border-radius: $radius-button;
-  text-decoration: none;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-  transition: all 180ms ease;
-  cursor: pointer;
-
-  &:hover {
-    background-color: $color-primary-dark;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-  }
-
-  @media (max-width: 640px) {
-    padding: 8px 14px;
-    font-size: 13px;
-  }
-}
-
-.counselingBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #FFFFFF;
-  color: $color-ink;
-  border: 1px solid $color-border;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 14px;
-  border-radius: $radius-button;
-  cursor: pointer;
-  transition: all 180ms ease;
-
-  &:hover {
-    background-color: #F1F5F9;
-    border-color: $color-border-hover;
-  }
-}
-
-// ----------------------------------------------------
-// 2. FILTER CHIPS
-// ----------------------------------------------------
-.filterChipsRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 30px;
   overflow-x: auto;
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
@@ -225,323 +307,305 @@ $shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15,
   }
 }
 
-.filterChip {
+.filterPill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 16px;
-  background-color: $color-card-bg;
-  color: $color-body;
-  border: 1px solid $color-border;
+  padding: 9px 20px;
   border-radius: $radius-pill;
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
+  background: #FFFFFF;
+  border: 1px solid #D6E0F5;
+  color: $color-text-main;
+  font-size: 13.5px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 180ms ease;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(7, 85, 217, 0.03);
 
   &:hover {
-    border-color: $color-primary-border;
+    border-color: $color-primary;
     color: $color-primary;
-    background-color: $color-primary-light;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(7, 85, 217, 0.08);
+  }
+
+  &.filterPillActive {
+    background: $color-primary;
+    border-color: $color-primary;
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(7, 85, 217, 0.28);
+
+    &:hover {
+      background: $color-primary-dark;
+      color: #FFFFFF;
+    }
   }
 }
 
-.filterChipActive {
-  background-color: $color-primary !important;
-  color: #FFFFFF !important;
-  border-color: $color-primary !important;
-  font-weight: 700;
-}
-
-// ----------------------------------------------------
-// 3. ACHIEVERS GRID (Uniform & Responsive)
-// ----------------------------------------------------
-.achieversGrid {
+// --------------------------------------------------------------------------
+// 3. STUDENT ACHIEVEMENT CARDS (HORIZONTAL DESKTOP COMPOSITION)
+// --------------------------------------------------------------------------
+.studentCardsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
-  margin-bottom: 28px;
+  gap: 20px;
+  margin-bottom: 44px;
 
-  @media (max-width: 1080px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  @media (max-width: 768px) {
+  @media (max-width: 1240px) {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
   }
 
-  @media (max-width: 480px) {
-    gap: 10px;
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 
-// ----------------------------------------------------
-// 4. ACHIEVER CARD (Modern portrait card, 14px radius)
-// ----------------------------------------------------
-.standardCard {
-  position: relative;
-  background-color: $color-card-bg;
-  border: 1px solid $color-border;
+.achievementCard {
+  background: $color-card-bg;
   border-radius: $radius-card;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  border: 1px solid #E1E8F6;
   box-shadow: $shadow-card;
-  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease, border-color 260ms ease;
-  isolation: isolate;
-
-  // Top accent line that grows on hover
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 3px;
-    width: 0;
-    background: linear-gradient(90deg, $color-primary 0%, #60A5FA 100%);
-    z-index: 5;
-    transition: width 320ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
+  display: flex;
+  flex-direction: row; // Modern Horizontal Layout on Desktop
+  align-items: stretch;
+  overflow: hidden;
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s ease, border-color 0.24s ease;
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 18px 40px -12px rgba(37, 99, 235, 0.22), 0 6px 12px -6px rgba(15, 23, 42, 0.08);
-    border-color: $color-primary-border;
+    box-shadow: $shadow-hover;
+    border-color: #BFDBFE;
+  }
 
-    &::before {
-      width: 100%;
-    }
-
-    .cardImg {
-      transform: scale(1.04);
-    }
+  @media (max-width: 480px) {
+    flex-direction: column;
   }
 }
 
-.cardPhotoArea {
+// Left Column: Student Photo
+.cardPhotoWrap {
+  width: 125px;
+  min-width: 125px;
   position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 5;
-  background: linear-gradient(160deg, #1E293B 0%, $color-dark-surface 100%);
+  background: #E8EEFB;
   overflow: hidden;
+
+  @media (max-width: 480px) {
+    width: 100%;
+    min-width: 100%;
+    height: 180px;
+  }
 }
 
-.cardImg {
+.studentPhoto {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 18%;
-  transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  object-position: center top;
   display: block;
+  transition: transform 0.35s ease;
+
+  .achievementCard:hover & {
+    transform: scale(1.04);
+  }
 }
 
 .monogramFallback {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-}
-
-.photoScrim {
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 55%;
-  background: linear-gradient(
-    to top,
-    rgba(10, 15, 29, 0.92) 0%,
-    rgba(10, 15, 29, 0.6) 45%,
-    rgba(10, 15, 29, 0) 100%
-  );
-  pointer-events: none;
-  z-index: 1;
-}
-
-.examTag {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 2;
-  font-size: 10.5px;
-  font-weight: 700;
-  background: rgba(10, 15, 29, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: linear-gradient(135deg, $color-primary 0%, $color-navy 100%);
   color: #FFFFFF;
-  padding: 4px 9px;
-  border-radius: $radius-pill;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  letter-spacing: 0.02em;
+  font-size: 24px;
+  font-weight: 800;
 }
 
-.verifiedBadge {
+// Exam category badge on image
+.photoExamBadge {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  font-size: 10.5px;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.95);
-  color: $color-emerald;
-  border: 1px solid $color-emerald-border;
-  padding: 3px 8px;
-  border-radius: $radius-pill;
+  top: 8px;
+  left: 8px;
+  background: rgba(16, 35, 74, 0.88);
+  backdrop-filter: blur(4px);
+  color: #FFFFFF;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+// Green "✓ Selected" status badge
+.photoSelectedBadge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  justify-content: center;
+  gap: 4px;
+  background: $color-success;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 5px;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
+
+  .selectedIcon {
+    stroke-width: 2.5;
+  }
 }
 
-.verifiedShieldIcon {
-  color: $color-emerald;
-}
-
-.photoOverlayInfo {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
-  padding: 14px 14px 12px;
+// Right Column: Student Details
+.cardDetailsWrap {
+  flex: 1;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  color: #FFFFFF;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.rankIndex {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #93C5FD;
+.identityHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.cardName {
+.studentName {
   font-size: 16px;
   font-weight: 800;
-  letter-spacing: -0.01em;
-  color: #FFFFFF;
+  color: $color-navy;
   margin: 0;
   line-height: 1.25;
+  letter-spacing: -0.015em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-.cardCollegeLine {
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
+.collegeRow {
   display: flex;
   align-items: center;
   gap: 5px;
-  line-height: 1.4;
-  min-width: 0;
+  color: $color-text-muted;
 
-  span {
+  .collegeIcon {
+    color: $color-primary;
+    flex-shrink: 0;
+  }
+
+  .collegeText {
+    font-size: 12px;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 }
 
-.collegeIcon {
-  color: #93C5FD;
-  flex-shrink: 0;
-}
-
-.cardBody {
-  padding: 12px 14px;
+.scoreRow {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  background: linear-gradient(180deg, #FFFFFF 0%, $color-page-bg 100%);
-  border-top: 1px solid $color-border;
+  background: #F8FAFE;
+  border: 1px solid #EBF1FD;
+  padding: 8px 10px;
+  border-radius: 12px;
 }
 
-.cardPercentileWrap {
+.percentileBox {
   display: flex;
   align-items: baseline;
   gap: 2px;
 }
 
-.cardPercentileVal {
-  font-size: 22px;
-  font-weight: 800;
+.percentileNumber {
+  font-size: 18px;
+  font-weight: 900;
   color: $color-primary;
-  letter-spacing: -0.03em;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
-.cardPercentileSuffix {
+.percentileSuffix {
   font-size: 11px;
   font-weight: 700;
   color: $color-primary;
 }
 
 .rankPill {
-  font-size: 10.5px;
-  font-weight: 700;
-  background-color: $color-primary-light;
-  color: $color-primary-dark;
-  border: 1px solid $color-primary-border;
+  display: inline-flex;
+  align-items: center;
   padding: 3px 8px;
   border-radius: $radius-pill;
+  background: #FFFFFF;
+  border: 1px solid #D9E4FA;
+  font-size: 11px;
+  font-weight: 700;
+  color: $color-navy;
   white-space: nowrap;
-  max-width: 55%;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-@media (max-width: 480px) {
-  .cardName {
-    font-size: 14px;
-  }
-
-  .cardPercentileVal {
-    font-size: 18px;
-  }
-
-  .photoOverlayInfo {
-    padding: 10px 10px 9px;
-  }
-
-  .cardBody {
-    padding: 10px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .rankPill {
-    max-width: 100%;
-  }
-}
-
-// ----------------------------------------------------
-// 5. MERIT SUMMARY BANNER (Compact & Elegant)
-// ----------------------------------------------------
-.meritSummaryBanner {
-  background-color: $color-card-bg;
-  border: 1px solid $color-border;
-  border-radius: $radius-card;
-  padding: 20px 24px;
-  box-shadow: $shadow-card;
+.footerCategoryRow {
   display: flex;
-  flex-direction: column;
-  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed #EAF0FA;
+}
+
+.categoryIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  .indicatorDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: $color-primary;
+  }
+}
+
+.auditedTag {
+  font-size: 10px;
+  font-weight: 600;
+  color: #15803D;
+  background: #F0FDF4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #DCFCE7;
+}
+
+// --------------------------------------------------------------------------
+// 4. AUDITED MERIT AFFIDAVIT BANNER DECK
+// --------------------------------------------------------------------------
+.meritSummaryBanner {
+  background: #FFFFFF;
+  border: 1px solid #DBE5FA;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 18px rgba(7, 85, 217, 0.05);
 
   @media (max-width: 640px) {
-    padding: 16px;
-    gap: 14px;
+    padding: 18px 14px;
   }
 }
 
@@ -549,7 +613,8 @@ $shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
 
   @media (max-width: 768px) {
@@ -561,19 +626,18 @@ $shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15,
 .meritTitleBlock {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .meritIconCircle {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background-color: $color-primary-light;
-  border: 1px solid $color-primary-border;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: $color-primary-light;
+  color: $color-primary;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: $color-primary;
   flex-shrink: 0;
 }
 
@@ -585,47 +649,47 @@ $shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15,
 }
 
 .meritHeading {
-  font-size: 15px;
-  font-weight: 700;
-  color: $color-ink;
+  font-size: 17px;
+  font-weight: 800;
+  color: $color-navy;
   margin: 0;
 }
 
 .meritTrustPill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background-color: $color-emerald-bg;
-  color: $color-emerald;
-  border: 1px solid $color-emerald-border;
+  gap: 5px;
+  background: #ECFDF5;
+  color: #166534;
+  border: 1px solid #A7F3D0;
   font-size: 11px;
   font-weight: 700;
-  padding: 1.5px 8px;
+  padding: 3px 8px;
   border-radius: $radius-pill;
 }
 
 .meritSub {
-  font-size: 12.5px;
-  color: $color-body;
+  font-size: 13px;
+  color: $color-text-muted;
   margin: 2px 0 0;
 }
 
 .viewAffidavitBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background-color: #FFFFFF;
+  gap: 7px;
+  background: #FFFFFF;
   color: $color-primary;
-  border: 1px solid $color-primary-border;
-  font-size: 12.5px;
+  border: 1.5px solid #BFDBFE;
+  font-size: 13px;
   font-weight: 700;
-  padding: 7px 14px;
-  border-radius: $radius-button;
+  padding: 9px 16px;
+  border-radius: $radius-pill;
   cursor: pointer;
-  transition: all 180ms ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: $color-primary-light;
+    background: $color-primary-light;
     border-color: $color-primary;
     transform: translateY(-1px);
   }
@@ -634,54 +698,55 @@ $shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15,
 .meritStatsRow {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  padding-top: 14px;
-  border-top: 1px solid $color-border;
+  gap: 16px;
 
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
   }
 }
 
 .meritStatItem {
+  background: #F8FAFE;
+  border: 1px solid #EBF1FD;
+  border-radius: 14px;
+  padding: 14px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background-color: $color-page-bg;
-  border-radius: 10px;
-  border: 1px solid $color-border;
+  gap: 12px;
 }
 
 .statIconBadge {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
 
-.badgeBlue {
-  background: #eff6ff;
-  color: #2563eb;
-}
+  &.badgeBlue {
+    background: #DBEAFE;
+    color: #1D4ED8;
+  }
 
-.badgeEmerald {
-  background: #ecfdf5;
-  color: #059669;
-}
+  &.badgeEmerald {
+    background: #D1FAE5;
+    color: #047857;
+  }
 
-.badgeAmber {
-  background: #fffbeb;
-  color: #d97706;
-}
+  &.badgeAmber {
+    background: #FEF3C7;
+    color: #B45309;
+  }
 
-.badgePurple {
-  background: #faf5ff;
-  color: #7c3aed;
+  &.badgePurple {
+    background: #F3E8FF;
+    color: #7E22CE;
+  }
 }
 
 .statCol {
@@ -690,54 +755,52 @@ $shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15,
 }
 
 .meritStatVal {
-  font-size: 16px;
-  font-weight: 800;
-  color: $color-ink;
-  line-height: 1.2;
+  font-size: 18px;
+  font-weight: 900;
+  color: $color-navy;
+  line-height: 1.15;
 }
 
 .meritStatLabel {
   font-size: 11px;
   font-weight: 600;
-  color: $color-muted;
+  color: $color-text-muted;
 }
 
-// ----------------------------------------------------
-// 6. LIGHTBOX MODAL
-// ----------------------------------------------------
+// --------------------------------------------------------------------------
+// 5. LIGHTBOX MODAL
+// --------------------------------------------------------------------------
 .modalBackdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(6px);
-  z-index: 9999;
+  background: rgba(16, 35, 74, 0.85);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  animation: fadeIn 150ms ease-out;
+  padding: 20px;
+  z-index: 99999;
 }
 
 .modalContent {
-  background-color: #FFFFFF;
-  border-radius: $radius-card;
-  max-width: 900px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  max-width: 960px;
   width: 100%;
   max-height: 90vh;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  border: 1px solid $color-border;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
 }
 
 .modalHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
-  border-bottom: 1px solid $color-border;
-  background-color: #FFFFFF;
+  padding: 16px 20px;
+  border-bottom: 1px solid #E2E8F0;
+  background: #F8FAFC;
 }
 
 .modalHeaderTitle {
@@ -745,24 +808,24 @@ $shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15,
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 700;
-  color: $color-ink;
+  font-weight: 800;
+  color: $color-navy;
 }
 
 .modalCloseBtn {
   background: transparent;
   border: none;
-  color: $color-muted;
   cursor: pointer;
+  color: $color-text-muted;
   padding: 4px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 150ms ease;
 
   &:hover {
-    color: $color-ink;
+    background: #E2E8F0;
+    color: $color-navy;
   }
 }
 
@@ -772,21 +835,147 @@ $shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15,
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #0f172a;
 }
 
 .modalBannerImg {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  display: block;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+// --------------------------------------------------------------------------
+// 6. DARK MODE SUPPORT
+// --------------------------------------------------------------------------
+:global(.darkMode),
+:global(.dark),
+:global([data-theme='dark']) {
+  .section {
+    background-color: #0B1120;
+    color: #F1F5F9;
+    border-color: #1E293B;
   }
-  to {
-    opacity: 1;
+
+  .ambientGlow {
+    background: radial-gradient(ellipse at center, rgba(7, 85, 217, 0.15) 0%, transparent 75%);
+  }
+
+  .heroBadge {
+    background: #1E293B;
+    border-color: #334155;
+    color: #60A5FA;
+  }
+
+  .heroTitle {
+    color: #F8FAFC;
+  }
+
+  .heroSubtitle {
+    color: #94A3B8;
+  }
+
+  .trophyIllustrationBox {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  .trophyStatVal {
+    color: #F8FAFC;
+  }
+
+  .filterPill {
+    background: #1E293B;
+    border-color: #334155;
+    color: #CBD5E1;
+
+    &:hover {
+      border-color: #60A5FA;
+      color: #60A5FA;
+    }
+
+    &.filterPillActive {
+      background: $color-primary;
+      border-color: $color-primary;
+      color: #FFFFFF;
+    }
+  }
+
+  .achievementCard {
+    background: #151F32;
+    border-color: #27354F;
+
+    &:hover {
+      border-color: #3B82F6;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  .studentName {
+    color: #F8FAFC;
+  }
+
+  .collegeRow {
+    color: #94A3B8;
+  }
+
+  .scoreRow {
+    background: #0F172A;
+    border-color: #1E293B;
+  }
+
+  .rankPill {
+    background: #1E293B;
+    border-color: #334155;
+    color: #F8FAFC;
+  }
+
+  .footerCategoryRow {
+    border-top-color: #1E293B;
+  }
+
+  .meritSummaryBanner {
+    background: #151F32;
+    border-color: #27354F;
+  }
+
+  .meritHeading {
+    color: #F8FAFC;
+  }
+
+  .meritSub {
+    color: #94A3B8;
+  }
+
+  .viewAffidavitBtn {
+    background: #1E293B;
+    border-color: #334155;
+    color: #60A5FA;
+
+    &:hover {
+      background: #27354F;
+    }
+  }
+
+  .meritStatItem {
+    background: #0F172A;
+    border-color: #1E293B;
+  }
+
+  .meritStatVal {
+    color: #F8FAFC;
+  }
+
+  .modalContent {
+    background: #151F32;
+  }
+
+  .modalHeader {
+    background: #0F172A;
+    border-color: #27354F;
+  }
+
+  .modalHeaderTitle {
+    color: #F8FAFC;
   }
 }

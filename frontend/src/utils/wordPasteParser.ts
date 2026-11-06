@@ -98,84 +98,53 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
     text = text.replace(examTagMatch[0], '').trim();
   }
 
-  // 5. Extract Options
+  // 5. Extract Options (A, B, C, D)
   // Support: (A) ... (B) ... (C) ... (D) ... or (1) ... (2) ... (3) ... (4) ...
   // or A) ... B) ... C) ... D) ... or [A] ... [B] ... [C] ... [D] ...
   const optionsMap: Record<string, string> = { A: '', B: '', C: '', D: '' };
-  let hasRealOptions = false;
 
-  // Try Pattern 1: (A)/(B)/(C)/(D) or [A]/[B]/[C]/[D] or A)/B)/C)/D)
-  const optionRegexLetters = /(?:^|\n|\s{2,}|\t)(?:\(?([A-D])[\)\.]|\[([A-D])\])\s*([\s\S]*?)(?=(?:(?:\(?([A-D])[\)\.]|\[([A-D])\])|\n\s*(?:Ans|Solution|Shortcut)|$))/gi;
-  const letterMatches = [...text.matchAll(optionRegexLetters)];
+  // Match letter options: (A), (B), (C), (D) or Option A: or [A], [B], [C], [D] or A), B), C), D)
+  const letterRegex = /(?:^|[\n\r\t]|\s{2,}|\s)(?:Option\s*\(?([A-D])\)?[:.]?|\(?([A-D])[\)\.]|\[([A-D])\])(?:\s+|$)/gi;
+  let matches = [...text.matchAll(letterRegex)];
 
-  if (letterMatches.length >= 4) {
-    hasRealOptions = true;
-    letterMatches.forEach((m) => {
-      const key = (m[1] || m[2]).toUpperCase();
-      if (['A', 'B', 'C', 'D'].includes(key)) {
-        optionsMap[key] = m[3].trim();
-      }
-    });
-
-    // Remove options from statement
-    const firstOptionIndex = text.search(/(?:^|\n|\s{2,}|\t)(?:\(?([A-D])[\)\.]|\[([A-D])\])/i);
-    if (firstOptionIndex !== -1) {
-      text = text.substring(0, firstOptionIndex).trim();
-    }
-  } else {
-    // Try Pattern 2: (1)/(2)/(3)/(4) or 1)/2)/3)/4)
-    const optionRegexNumbers = /(?:^|\n|\s{2,}|\t)(?:\(?([1-4])[\)\.]|\[([1-4])\])\s*([\s\S]*?)(?=(?:(?:\(?([1-4])[\)\.]|\[([1-4])\])|\n\s*(?:Ans|Solution|Shortcut)|$))/gi;
-    const numberMatches = [...text.matchAll(optionRegexNumbers)];
-
-    if (numberMatches.length >= 4) {
-      hasRealOptions = true;
-      const numToLetter: Record<string, 'A' | 'B' | 'C' | 'D'> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
-      numberMatches.forEach((m) => {
-        const numKey = m[1] || m[2];
-        const letterKey = numToLetter[numKey];
-        if (letterKey) {
-          optionsMap[letterKey] = m[3].trim();
-        }
-      });
-
-      const firstOptionIndex = text.search(/(?:^|\n|\s{2,}|\t)(?:\(?([1-4])[\)\.]|\[([1-4])\])/);
-      if (firstOptionIndex !== -1) {
-        text = text.substring(0, firstOptionIndex).trim();
-      }
-    }
+  // If not letters, try numbers in parentheses or brackets: (1), (2), (3), (4)
+  if (matches.length < 2) {
+    const numberRegex = /(?:^|[\n\r\t]|\s{2,}|\s)(?:Option\s*\(?([1-4])\)?[:.]?|\(([1-4])\)|\[([1-4])\])(?:\s+|$)/gi;
+    matches = [...text.matchAll(numberRegex)];
   }
 
-  // 6. Determine Question Type
-  // If no options are present or if the statement ends with "is equal to _" / numerical blank
-  const isNumerical =
-    !hasRealOptions ||
-    Boolean(numericalAnswer) ||
-    /is\s*equal\s*to\s*(?:_|\:|\.+|$)/i.test(text) ||
-    /find\s+the\s+value\s+of\s*$/i.test(text) ||
-    /integer\s*answer/i.test(text);
+  if (matches.length >= 2) {
+    const mapNum: Record<string, 'A' | 'B' | 'C' | 'D'> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+    const firstOptionIdx = matches[0].index ?? 0;
+    const extractedStatement = text.slice(0, firstOptionIdx).trim();
 
-  const finalType: 'SINGLE_CORRECT' | 'NUMERICAL' = isNumerical && !hasRealOptions ? 'NUMERICAL' : 'SINGLE_CORRECT';
+    for (let i = 0; i < matches.length; i++) {
+      const cur = matches[i];
+      const rawK = (cur[1] || cur[2] || cur[3] || '').toUpperCase();
+      const k = mapNum[rawK] || (rawK as 'A' | 'B' | 'C' | 'D');
+      const start = (cur.index ?? 0) + cur[0].length;
+      const end = (i + 1 < matches.length) ? (matches[i + 1].index ?? text.length) : text.length;
+      const optVal = text.slice(start, end).trim();
+      if (['A', 'B', 'C', 'D'].includes(k)) {
+        optionsMap[k] = optVal;
+      }
+    }
+    text = extractedStatement;
+  }
 
-  const finalOptions: { key: 'A' | 'B' | 'C' | 'D'; text: string }[] = hasRealOptions
-    ? [
-        { key: 'A', text: optionsMap.A },
-        { key: 'B', text: optionsMap.B },
-        { key: 'C', text: optionsMap.C },
-        { key: 'D', text: optionsMap.D }
-      ]
-    : [
-        { key: 'A', text: '' },
-        { key: 'B', text: '' },
-        { key: 'C', text: '' },
-        { key: 'D', text: '' }
-      ];
+  // 6. Question Always Has Options (Single Correct MCQ with Option A, B, C, D)
+  const finalOptions: { key: 'A' | 'B' | 'C' | 'D'; text: string }[] = [
+    { key: 'A', text: optionsMap.A || '' },
+    { key: 'B', text: optionsMap.B || '' },
+    { key: 'C', text: optionsMap.C || '' },
+    { key: 'D', text: optionsMap.D || '' }
+  ];
 
   return {
     statement: text.trim(),
     options: finalOptions,
-    type: finalType,
+    type: 'SINGLE_CORRECT',
     correctKey,
-    numericalAnswer: numericalAnswer || undefined,
     examTag: examTag || undefined,
     solution: solution || undefined,
     shortcut: shortcut || undefined
