@@ -266,7 +266,7 @@ export const getSampleQuestionsForSubject = (
   ];
 };
 
-const SAMPLE_QUESTIONS: ProblemQuestionItem[] = getSampleQuestionsForSubject('Mathematics');
+const SAMPLE_QUESTIONS: ProblemQuestionItem[] = [];
 
 const INITIAL_PROBLEMS: DppPyqItem[] = [
   {
@@ -278,12 +278,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'DPP',
     subject: 'Chemistry',
     categoryLabel: 'Chemistry DPP',
-    questionsCount: 4,
-    solutionNote: '4 with video solution',
+    questionsCount: 0,
+    solutionNote: 'Drafting questions',
     status: 'Published',
     createdAtFormatted: '12 Oct 2026',
-    attemptsCount: 1420,
-    questions: SAMPLE_QUESTIONS
+    attemptsCount: 0,
+    questions: []
   },
   {
     id: 'dpp-pyq-2',
@@ -294,12 +294,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'DPP',
     subject: 'Physics',
     categoryLabel: 'Physics DPP',
-    questionsCount: 5,
-    solutionNote: '5 with step PDF',
+    questionsCount: 0,
+    solutionNote: 'Drafting questions',
     status: 'Published',
     createdAtFormatted: '11 Oct 2026',
-    attemptsCount: 1890,
-    questions: SAMPLE_QUESTIONS
+    attemptsCount: 0,
+    questions: []
   },
   {
     id: 'dpp-pyq-3',
@@ -310,12 +310,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'PYQ',
     subject: 'Mathematics',
     categoryLabel: 'Maths PYQ',
-    questionsCount: 25,
-    solutionNote: '25 with DK Sir 20s tricks',
+    questionsCount: 0,
+    solutionNote: 'Drafting questions',
     status: 'Published',
     createdAtFormatted: '09 Oct 2026',
-    attemptsCount: 2450,
-    questions: SAMPLE_QUESTIONS
+    attemptsCount: 0,
+    questions: []
   },
   {
     id: 'dpp-pyq-4',
@@ -326,12 +326,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'BITSAT',
     subject: 'Mathematics',
     categoryLabel: 'BITSAT Speed Drill',
-    questionsCount: 30,
-    solutionNote: 'Strict 45s timer logic',
+    questionsCount: 0,
+    solutionNote: 'Strict 45s timer format',
     status: 'Published',
     createdAtFormatted: '06 Oct 2026',
-    attemptsCount: 1640,
-    questions: SAMPLE_QUESTIONS
+    attemptsCount: 0,
+    questions: []
   },
   {
     id: 'dpp-pyq-5',
@@ -342,12 +342,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'DPP',
     subject: 'Mathematics',
     categoryLabel: 'Maths DPP',
-    questionsCount: 6,
+    questionsCount: 0,
     solutionNote: 'Drafting answer keys',
     status: 'Draft',
     createdAtFormatted: '04 Oct 2026',
     attemptsCount: 0,
-    questions: SAMPLE_QUESTIONS
+    questions: []
   },
   {
     id: 'dpp-pyq-6',
@@ -358,13 +358,13 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'BITSAT',
     subject: 'Mixed',
     categoryLabel: 'BITSAT Speed Drill',
-    questionsCount: 30,
+    questionsCount: 0,
     solutionNote: 'Ready for auto-release',
     status: 'Scheduled',
     scheduledDate: '30 Oct 2026 • 09:00 AM',
     createdAtFormatted: '01 Oct 2026',
     attemptsCount: 0,
-    questions: SAMPLE_QUESTIONS
+    questions: []
   },
   {
     id: 'dpp-pyq-7',
@@ -375,12 +375,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'PYQ',
     subject: 'Physics',
     categoryLabel: 'Physics PYQ',
-    questionsCount: 35,
-    solutionNote: '35 published',
+    questionsCount: 0,
+    solutionNote: 'Ready for questions',
     status: 'Published',
     createdAtFormatted: '28 Sep 2026',
-    attemptsCount: 1540,
-    questions: SAMPLE_QUESTIONS
+    attemptsCount: 0,
+    questions: []
   },
   {
     id: 'dpp-pyq-8',
@@ -391,12 +391,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'DPP',
     subject: 'Chemistry',
     categoryLabel: 'Chemistry DPP',
-    questionsCount: 8,
+    questionsCount: 0,
     solutionNote: 'Pending diagrams',
     status: 'Draft',
     createdAtFormatted: '24 Sep 2026',
     attemptsCount: 0,
-    questions: SAMPLE_QUESTIONS
+    questions: []
   },
   {
     id: 'dpp-pyq-9',
@@ -407,12 +407,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'PYQ',
     subject: 'Chemistry',
     categoryLabel: 'Chemistry PYQ',
-    questionsCount: 22,
-    solutionNote: '22 with enthalpy shortcuts',
+    questionsCount: 0,
+    solutionNote: 'Ready for questions',
     status: 'Published',
     createdAtFormatted: '20 Sep 2026',
-    attemptsCount: 1120,
-    questions: SAMPLE_QUESTIONS
+    attemptsCount: 0,
+    questions: []
   },
   {
     id: 'dpp-pyq-10',
@@ -423,12 +423,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'DPP',
     subject: 'Physics',
     categoryLabel: 'Physics DPP',
-    questionsCount: 10,
-    solutionNote: '10 with detailed video solutions',
+    questionsCount: 0,
+    solutionNote: 'Ready for questions',
     status: 'Published',
     createdAtFormatted: '18 Sep 2026',
-    attemptsCount: 1320,
-    questions: SAMPLE_QUESTIONS
+    attemptsCount: 0,
+    questions: []
   },
   {
     id: 'dpp-pyq-11',
@@ -439,13 +439,13 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'BITSAT',
     subject: 'Physics',
     categoryLabel: 'BITSAT Speed Drill',
-    questionsCount: 25,
+    questionsCount: 0,
     solutionNote: 'Speed timing test format',
     status: 'Scheduled',
     scheduledDate: '05 Nov 2026 • 10:00 AM',
     createdAtFormatted: '15 Sep 2026',
     attemptsCount: 0,
-    questions: SAMPLE_QUESTIONS
+    questions: []
   },
   {
     id: 'dpp-pyq-12',
@@ -456,12 +456,12 @@ const INITIAL_PROBLEMS: DppPyqItem[] = [
     moduleType: 'DPP',
     subject: 'Mathematics',
     categoryLabel: 'Maths DPP',
-    questionsCount: 12,
+    questionsCount: 0,
     solutionNote: 'Under faculty editorial review',
     status: 'Draft',
     createdAtFormatted: '10 Sep 2026',
     attemptsCount: 0,
-    questions: SAMPLE_QUESTIONS
+    questions: []
   }
 ];
 
@@ -1036,27 +1036,37 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
       const res = await apiClient.get<any>('/dpp-pyq');
       const items = Array.isArray(res) ? res : res?.data || [];
       if (Array.isArray(items) && items.length > 0) {
-        const formatted: DppPyqItem[] = items.map((item: any, idx: number) => ({
-          ...item,
-          id: item.id || item._id || `dpp-pyq-${idx + 1}`,
-          indexNo: idx + 1,
-          badgeCode:
-            item.badgeCode ||
-            (item.moduleType === 'BITSAT'
-              ? 'BITSAT'
-              : `${item.moduleType} • ${item.subject?.slice(0, 3)?.toUpperCase() || 'MTH'}`),
-          categoryLabel: item.categoryLabel || `${item.subject || 'Mathematics'} ${item.moduleType || 'DPP'}`,
-          questionsCount: item.questions?.length || item.questionsCount || 0,
-          createdAtFormatted: item.createdAt
-            ? new Date(item.createdAt).toLocaleDateString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-              })
-            : 'Recently',
-          attemptsCount: item.attemptsCount || 0,
-          questions: item.questions && item.questions.length > 0 ? item.questions : SAMPLE_QUESTIONS
-        }));
+        const formatted: DppPyqItem[] = items.map((item: any, idx: number) => {
+          const rawQs = Array.isArray(item.questions) ? item.questions : [];
+          const isDummy =
+            rawQs.length === 4 &&
+            rawQs.every(
+              (q: any) =>
+                q.id && (String(q.id).startsWith('q-sample-') || String(q.id).startsWith('q-math-'))
+            );
+          const cleanQs = isDummy ? [] : rawQs;
+          return {
+            ...item,
+            id: item.id || item._id || `dpp-pyq-${idx + 1}`,
+            indexNo: idx + 1,
+            badgeCode:
+              item.badgeCode ||
+              (item.moduleType === 'BITSAT'
+                ? 'BITSAT'
+                : `${item.moduleType} • ${item.subject?.slice(0, 3)?.toUpperCase() || 'MTH'}`),
+            categoryLabel: item.categoryLabel || `${item.subject || 'Mathematics'} ${item.moduleType || 'DPP'}`,
+            questionsCount: cleanQs.length,
+            createdAtFormatted: item.createdAt
+              ? new Date(item.createdAt).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
+                })
+              : 'Recently',
+            attemptsCount: item.attemptsCount || 0,
+            questions: cleanQs
+          };
+        });
         setProblemSets(formatted);
       }
     } catch (err: any) {
@@ -1380,7 +1390,20 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
   };
 
   const handleOpenEditModal = (item: DppPyqItem) => {
-    setEditingItem(JSON.parse(JSON.stringify(item)));
+    const cloned: DppPyqItem = JSON.parse(JSON.stringify(item));
+    let rawQs = Array.isArray(cloned.questions) ? cloned.questions : [];
+    if (
+      rawQs.length === 4 &&
+      rawQs.every(
+        (q) =>
+          q.id && (String(q.id).startsWith('q-sample-') || String(q.id).startsWith('q-math-'))
+      )
+    ) {
+      rawQs = [];
+    }
+    cloned.questions = rawQs;
+    cloned.questionsCount = rawQs.length;
+    setEditingItem(cloned);
     setEditingQuestionIdx(0);
     setEditModalTab('QUESTIONS');
     setOpenDropdownId(null);
@@ -3425,11 +3448,42 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                 <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
-                      Question Palette ({editingItem.questions.length})
+                      Question Palette ({(editingItem.questions || []).length})
                     </span>
-                    <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px' }}>
-                      ✓ {editingItem.questions.filter((q) => Boolean(q.statement && q.statement.trim().length > 10)).length} Ready
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px' }}>
+                        ✓ {(editingItem.questions || []).filter((q) => Boolean(q.statement && q.statement.trim().length > 10)).length} Ready
+                      </span>
+                      {(editingItem.questions || []).length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm('Clear all questions in this problem set to start empty?')) {
+                              setEditingItem({
+                                ...editingItem,
+                                questions: [],
+                                questionsCount: 0
+                              });
+                              setEditingQuestionIdx(0);
+                              showToast('Cleared all questions. Palette is now empty.');
+                            }
+                          }}
+                          style={{
+                            background: '#fee2e2',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            borderRadius: '4px',
+                            padding: '1px 6px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                          title="Clear all questions to start empty"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
@@ -3500,42 +3554,49 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
 
                 {/* 3. Question Buttons Grid */}
                 <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', alignContent: 'start', flex: 1, overflowY: 'auto' }}>
-                  {editingItem.questions.map((q, idx) => {
-                    const isCurrent = editingQuestionIdx === idx;
-                    const isFilled = Boolean(q.statement && q.statement.trim().length > 10);
-                    const isLocked = q.isFree === false;
-                    return (
-                      <button
-                        key={q.id || idx}
-                        type="button"
-                        onClick={() => setEditingQuestionIdx(idx)}
-                        style={{
-                          height: '42px',
-                          borderRadius: '8px',
-                          border: isCurrent ? '2px solid #2563eb' : isFilled ? '1px solid #cbd5e1' : '1px dashed #f87171',
-                          background: isCurrent ? '#eff6ff' : '#ffffff',
-                          color: isCurrent ? '#1d4ed8' : '#334155',
-                          fontWeight: 800,
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          position: 'relative',
-                          transition: 'all 0.15s ease',
-                          boxShadow: isCurrent ? '0 0 0 2px rgba(37, 99, 235, 0.2)' : 'none'
-                        }}
-                        title={`Question ${idx + 1} (${isLocked ? 'Locked' : 'Free'})`}
-                      >
-                        <span style={{ lineHeight: 1 }}>Q{idx + 1}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px', fontSize: '9px' }}>
-                          {isFilled && <span style={{ color: '#16a34a' }}>✓</span>}
-                          {isLocked && <span>🔒</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
+                  {(!editingItem.questions || editingItem.questions.length === 0) ? (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '24px 8px', color: '#94a3b8', fontSize: '11.5px' }}>
+                      <p style={{ margin: 0, fontWeight: 600 }}>Palette is empty (0 Questions)</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '10.5px', color: '#64748b' }}>Click <strong>+ Add Q</strong> or <strong>Paste Word Question</strong> to begin</p>
+                    </div>
+                  ) : (
+                    editingItem.questions.map((q, idx) => {
+                      const isCurrent = editingQuestionIdx === idx;
+                      const isFilled = Boolean(q.statement && q.statement.trim().length > 10);
+                      const isLocked = q.isFree === false;
+                      return (
+                        <button
+                          key={q.id || idx}
+                          type="button"
+                          onClick={() => setEditingQuestionIdx(idx)}
+                          style={{
+                            height: '42px',
+                            borderRadius: '8px',
+                            border: isCurrent ? '2px solid #2563eb' : isFilled ? '1px solid #cbd5e1' : '1px dashed #f87171',
+                            background: isCurrent ? '#eff6ff' : '#ffffff',
+                            color: isCurrent ? '#1d4ed8' : '#334155',
+                            fontWeight: 800,
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            transition: 'all 0.15s ease',
+                            boxShadow: isCurrent ? '0 0 0 2px rgba(37, 99, 235, 0.2)' : 'none'
+                          }}
+                          title={`Question ${idx + 1} (${isLocked ? 'Locked' : 'Free'})`}
+                        >
+                          <span style={{ lineHeight: 1 }}>Q{idx + 1}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px', fontSize: '9px' }}>
+                            {isFilled && <span style={{ color: '#16a34a' }}>✓</span>}
+                            {isLocked && <span>🔒</span>}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
