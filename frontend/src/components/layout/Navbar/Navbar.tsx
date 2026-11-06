@@ -304,8 +304,8 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
+      <GlobalAnnouncementBanner />
       <header className={`${styles.navbarWrapper} ${isScrolled ? styles.isScrolled : ''}`}>
-        <GlobalAnnouncementBanner />
         <Container size="wide" className={styles.navContainer}>
           {/* Top Brand Logo */}
           <Link to="/" className={styles.brand} aria-label="DK Academy - Return to Homepage">
