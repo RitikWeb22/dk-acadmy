@@ -162,10 +162,12 @@ class OfferService {
     }
   }
 
-  private saveLocalData(data: AllOffersPayload) {
+  private saveLocalData(data: AllOffersPayload, emitEvent = true) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      window.dispatchEvent(new CustomEvent(OFFERS_EVENT_KEY, { detail: data }));
+      if (emitEvent) {
+        window.dispatchEvent(new CustomEvent(OFFERS_EVENT_KEY, { detail: data }));
+      }
     } catch (err) {
       console.warn('[OfferService] Failed saving to localStorage:', err);
     }
@@ -181,7 +183,8 @@ class OfferService {
           popupOffer: res.data.popupOffer || null,
           itemOffers: res.data.itemOffers || []
         };
-        this.saveLocalData(payload);
+        // Save silently without triggering re-fetch storms
+        this.saveLocalData(payload, false);
         return payload;
       }
     } catch (err) {
