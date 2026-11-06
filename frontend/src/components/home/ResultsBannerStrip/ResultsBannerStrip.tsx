@@ -4,26 +4,23 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   X,
-  Sparkles,
-  GraduationCap,
-  FileCheck,
-  Target,
-  TrendingUp,
-  Award,
   Trophy,
-  CheckCircle2
+  CheckCircle2,
+  Landmark
 } from 'lucide-react';
 import { Container } from '../../ui/Container/Container';
 import { cmsService, CMS_EVENT_KEY } from '../../../services/cmsService';
+import { TrophyHeroIllustration } from './TrophyHeroIllustration';
 import styles from './ResultsBannerStrip.module.scss';
 
 export interface Ranker {
   id: string;
   name: string;
-  percentile: string;
-  rank: string;
+  score: string;
+  scoreDenominator: string;
   college: string;
-  exam: string;
+  examCategory: 'IIT Advanced' | 'IIT Main' | 'BITSAT';
+  examIndicator: string;
   image: string;
   badgeColor?: string;
 }
@@ -32,72 +29,79 @@ export const TOP_RANKERS_LIST: Ranker[] = [
   {
     id: 'ranker-1',
     name: 'Rishabh Anand',
-    percentile: '99.81 %ile',
-    rank: 'AIR 2146',
-    college: 'IIT Bombay · CS',
-    exam: 'JEE Advanced',
+    score: '99.81',
+    scoreDenominator: '/100',
+    college: 'IIT Bombay - CSE',
+    examCategory: 'IIT Advanced',
+    examIndicator: 'IIT Adv.',
     image: '/img/IMG_5099.JPG.jpeg',
     badgeColor: '#0755D9'
   },
   {
-    id: 'ranker-shaurya',
-    name: 'Shaurya Singh',
-    percentile: '99.50 %ile',
-    rank: 'Top 0.5% (2026)',
-    college: 'National Merit Ranker',
-    exam: 'JEE Main',
-    image: '/img/shaurya-singh.jpg',
-    badgeColor: '#0755D9'
-  },
-  {
     id: 'ranker-2',
-    name: 'Chirayu Sethia',
-    percentile: '99.50 %ile',
-    rank: 'AIR 6781 · BITS 292',
-    college: 'BITS Pilani · CS',
-    exam: 'BITSAT',
+    name: 'Swayam Singh',
+    score: '99.50',
+    scoreDenominator: '/100',
+    college: 'BITS Pilani - CSE',
+    examCategory: 'BITSAT',
+    examIndicator: 'BITSAT',
     image: '/img/achivers3.jpeg',
     badgeColor: '#16A34A'
   },
   {
     id: 'ranker-3',
-    name: 'Ashutosh Shukla',
-    percentile: '99.44 %ile',
-    rank: 'Top 0.5% Rank',
-    college: 'IIT Roorkee · Electrical',
-    exam: 'JEE Main',
-    image: '/img/achivers2.jpeg',
+    name: 'Okhayan Sethi',
+    score: '99.50',
+    scoreDenominator: '/100',
+    college: 'IIT Roorkee - CSE',
+    examCategory: 'IIT Main',
+    examIndicator: 'JEE Main',
+    image: '/img/shaurya-singh.jpg',
     badgeColor: '#0755D9'
   },
   {
     id: 'ranker-4',
-    name: 'Tejas Itankar',
-    percentile: '98.99 %ile',
-    rank: 'Top Scorer',
-    college: 'IIT Kharagpur · Engg',
-    exam: 'JEE Main',
-    image: '/img/achivers4.jpeg',
-    badgeColor: '#FFC629'
+    name: 'Rudraksh Shukla',
+    score: '99.44',
+    scoreDenominator: '/100',
+    college: 'IIT Kanpur - Electrical',
+    examCategory: 'IIT Main',
+    examIndicator: 'JEE Main',
+    image: '/img/achivers2.jpeg',
+    badgeColor: '#0755D9'
   },
   {
     id: 'ranker-5',
-    name: 'Harsh Kumar',
-    percentile: '97.56 %ile',
-    rank: 'AIR 10964',
-    college: 'IIT Delhi · Mechanical',
-    exam: 'JEE Advanced',
-    image: '/img/achivers5.jpeg',
+    name: 'Dipesh Kumar',
+    score: '98.99',
+    scoreDenominator: '/100',
+    college: 'IIT Delhi - CSE',
+    examCategory: 'IIT Main',
+    examIndicator: 'JEE Main',
+    image: '/img/achivers4.jpeg',
     badgeColor: '#0755D9'
   },
   {
     id: 'ranker-6',
-    name: 'Tanishq Gupta',
-    percentile: '97.75 %ile',
-    rank: '100/100 in Maths',
-    college: 'DTU Delhi',
-    exam: 'JEE Main',
+    name: 'Harshit Kumar',
+    score: '97.56',
+    scoreDenominator: '/100',
+    college: 'IIT Bombay - Mechanical',
+    examCategory: 'IIT Advanced',
+    examIndicator: 'IIT Adv.',
+    image: '/img/achivers5.jpeg',
+    badgeColor: '#0755D9'
+  },
+  {
+    id: 'ranker-7',
+    name: 'Tushar Gupta',
+    score: '97.73',
+    scoreDenominator: '/100',
+    college: 'IIT Delhi - ECE',
+    examCategory: 'IIT Main',
+    examIndicator: 'JEE Main',
     image: '/img/achivers1.jpeg',
-    badgeColor: '#DC2626'
+    badgeColor: '#0755D9'
   }
 ];
 
@@ -140,13 +144,13 @@ export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, t
   const filteredRankers = useMemo(() => {
     if (selectedExam === 'All') return TOP_RANKERS_LIST;
     if (selectedExam === 'IIT Advanced') {
-      return TOP_RANKERS_LIST.filter((r) => r.exam.toLowerCase().includes('advanced'));
+      return TOP_RANKERS_LIST.filter((r) => r.examCategory === 'IIT Advanced');
     }
     if (selectedExam === 'IIT Main') {
-      return TOP_RANKERS_LIST.filter((r) => r.exam.toLowerCase().includes('main'));
+      return TOP_RANKERS_LIST.filter((r) => r.examCategory === 'IIT Main');
     }
     if (selectedExam === 'BITSAT') {
-      return TOP_RANKERS_LIST.filter((r) => r.exam.toLowerCase().includes('bits'));
+      return TOP_RANKERS_LIST.filter((r) => r.examCategory === 'BITSAT');
     }
     return TOP_RANKERS_LIST;
   }, [selectedExam]);
@@ -161,56 +165,76 @@ export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, t
       .slice(0, 2);
   };
 
-  const parsePercentileParts = (raw: string) => {
-    const cleanNum = raw.replace(/%ile/gi, '').trim();
-    return {
-      number: cleanNum,
-      suffix: '%ile'
-    };
-  };
-
   return (
     <section className={styles.section} id="merit-records" aria-label="Official IIT JEE Merit List & Selection Records">
-      {/* Background ambient lighting and subtle decorative shapes */}
+      {/* Decorative Dots matrix on bottom corners */}
+      <div className={styles.decorativeDotsLeft} aria-hidden="true" />
+      <div className={styles.decorativeDotsRight} aria-hidden="true" />
+
+      {/* Subtle Background Glow and curved wave */}
       <div className={styles.ambientGlow} aria-hidden="true" />
-      <div className={styles.subtleGridPattern} aria-hidden="true" />
+      <div className={styles.ambientWave} aria-hidden="true" />
 
       <Container size="wide" className={styles.sectionContainer}>
-        {/* 1. Hero Section */}
-        <div className={styles.heroSection}>
-          <div className={styles.heroLeft}>
+        {/* Top Hero Showcase Row */}
+        <div className={styles.heroRow}>
+          {/* Left Column: Badge, Heading, Subtitle & Exam Filters */}
+          <div className={styles.heroLeftCol}>
             {/* Small premium badge: "🏆 Our Results Speak" */}
             <div className={styles.heroBadge}>
-              <span className={styles.badgeTrophyEmoji}>🏆</span>
               <span className={styles.badgeText}>{displayBadge}</span>
             </div>
 
-            {/* Main heading: "Official IIT JEE Merit List & Selection Records" with royal blue & subtle gold underline */}
-            <h2 className={styles.heroTitle}>
-              Official IIT JEE Merit List &amp;{' '}
-              <span className={styles.highlightWord}>
+            {/* Main heading with royal blue and subtle gold underline */}
+            <h2 className={styles.heroHeading}>
+              Official IIT JEE Merit List &amp;
+              <br />
+              <span className={styles.selectionHighlight}>
                 Selection Records
-                <span className={styles.goldUnderline} aria-hidden="true" />
+                <svg
+                  className={styles.goldCurvedLine}
+                  viewBox="0 0 280 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 8.5C80 2 195 2 277 8.5"
+                    stroke="#FFC629"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </span>
             </h2>
 
             {/* Supporting description */}
-            <p className={styles.heroSubtitle}>{displaySubtitle}</p>
+            <p className={styles.heroDescription}>{displaySubtitle}</p>
+
+            {/* Pill-style Exam Filters: All | IIT Advanced | IIT Main | BITSAT */}
+            <div className={styles.examFiltersRow} role="tablist" aria-label="Filter results by exam">
+              {(['All', 'IIT Advanced', 'IIT Main', 'BITSAT'] as const).map((filterKey) => {
+                const isActive = selectedExam === filterKey;
+                return (
+                  <button
+                    key={filterKey}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    className={`${styles.filterPillBtn} ${isActive ? styles.filterPillActive : ''}`}
+                    onClick={() => setSelectedExam(filterKey)}
+                  >
+                    <span>{filterKey}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Right side: Premium Trophy Illustration & CTA */}
-          <div className={styles.heroRight}>
-            <div className={styles.trophyIllustrationBox}>
-              <div className={styles.trophyGlowRing} />
-              <div className={styles.trophyIconWrap}>
-                <Trophy size={40} className={styles.goldTrophyIcon} />
-                <span className={styles.trophySparkleTop}>✦</span>
-                <span className={styles.trophySparkleRight}>★</span>
-              </div>
-              <div className={styles.trophyBadgeContent}>
-                <span className={styles.trophyStatVal}>Top 0.1%</span>
-                <span className={styles.trophyStatLabel}>National Percentile League</span>
-              </div>
+          {/* Right Column: 3D Trophy Illustration, Ribbon & CTA Button */}
+          <div className={styles.heroRightCol}>
+            <div className={styles.trophyWrapper}>
+              <TrophyHeroIllustration className={styles.trophySvg} />
             </div>
 
             <Link to="/results" className={styles.viewAllCtaBtn} aria-label="View All Selected Students">
@@ -220,169 +244,67 @@ export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, t
           </div>
         </div>
 
-        {/* 2. Exam Filters: All | IIT Advanced | IIT Main | BITSAT */}
-        <div className={styles.filterPillsRow} role="tablist" aria-label="Filter results by exam">
-          {(['All', 'IIT Advanced', 'IIT Main', 'BITSAT'] as const).map((examKey) => {
-            const isActive = selectedExam === examKey;
-            return (
-              <button
-                key={examKey}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                className={`${styles.filterPill} ${isActive ? styles.filterPillActive : ''}`}
-                onClick={() => setSelectedExam(examKey)}
-              >
-                <span>{examKey}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Student Achievement Cards Grid (Horizontal card layout on Desktop) */}
+        <div className={styles.cardsGrid}>
+          {filteredRankers.map((ranker) => (
+            <div key={ranker.id} className={styles.studentCard}>
+              {/* Left Side: Student Photo with Exam Badge */}
+              <div className={styles.photoContainer}>
+                <img
+                  src={ranker.image}
+                  alt={ranker.name}
+                  className={styles.studentImage}
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                    const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+                <div className={styles.monogramFallback} style={{ display: 'none' }}>
+                  <span>{getInitials(ranker.name)}</span>
+                </div>
 
-        {/* 3. Student Achievement Cards: Modern Horizontal Card Layout on Desktop */}
-        <div className={styles.studentCardsGrid}>
-          {filteredRankers.map((ranker, idx) => {
-            const { number: pNumber, suffix: pSuffix } = parsePercentileParts(ranker.percentile);
+                {/* Exam Category Pill Badge on Image */}
+                <span className={styles.categoryBadgeOnPhoto}>{ranker.examCategory}</span>
+              </div>
 
-            return (
-              <div key={ranker.id} className={styles.achievementCard}>
-                {/* Left Side: Student Photograph */}
-                <div className={styles.cardPhotoWrap}>
-                  <img
-                    src={ranker.image}
-                    alt={`${ranker.name} - ${ranker.rank}`}
-                    className={styles.studentPhoto}
-                    loading="lazy"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                      const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
-                      if (fallback) fallback.style.display = 'flex';
-                    }}
-                  />
-                  <div className={styles.monogramFallback} style={{ display: 'none' }}>
-                    <span>{getInitials(ranker.name)}</span>
-                  </div>
-
-                  {/* Exam category badge on image */}
-                  <span className={styles.photoExamBadge}>{ranker.exam}</span>
-
-                  {/* Green "✓ Selected" status badge */}
-                  <span className={styles.photoSelectedBadge}>
-                    <CheckCircle2 size={11} className={styles.selectedIcon} />
-                    <span>✓ Selected</span>
+              {/* Right Side: Details, Selected Tag, Institute, Score & Indicator */}
+              <div className={styles.detailsContainer}>
+                {/* Top: Green "✓ Selected" status badge */}
+                <div className={styles.selectedRow}>
+                  <span className={styles.selectedBadge}>
+                    <CheckCircle2 size={12} className={styles.checkIcon} aria-hidden="true" />
+                    <span>Selected</span>
                   </span>
                 </div>
 
-                {/* Right Side: Student Details */}
-                <div className={styles.cardDetailsWrap}>
-                  <div className={styles.identityHeader}>
-                    <h3 className={styles.studentName} title={ranker.name}>
-                      {ranker.name}
-                    </h3>
-                    <div className={styles.collegeRow}>
-                      <GraduationCap size={13} className={styles.collegeIcon} aria-hidden="true" />
-                      <span className={styles.collegeText}>{ranker.college}</span>
-                    </div>
-                  </div>
-
-                  <div className={styles.scoreRow}>
-                    <div className={styles.percentileBox}>
-                      <span className={styles.percentileNumber}>{pNumber}</span>
-                      <span className={styles.percentileSuffix}>{pSuffix}</span>
-                    </div>
-                    <span className={styles.rankPill}>{ranker.rank}</span>
-                  </div>
-
-                  <div className={styles.footerCategoryRow}>
-                    <span className={styles.categoryIndicator}>
-                      <span className={styles.indicatorDot} />
-                      {ranker.exam}
-                    </span>
-                    <span className={styles.auditedTag}>100% Marksheet Verified</span>
+                {/* Center: Student Name and Selected Institute */}
+                <div className={styles.studentMetaBlock}>
+                  <h3 className={styles.studentName} title={ranker.name}>
+                    {ranker.name}
+                  </h3>
+                  <div className={styles.instituteRow} title={ranker.college}>
+                    <Landmark size={12} className={styles.landmarkIcon} aria-hidden="true" />
+                    <span className={styles.instituteText}>{ranker.college}</span>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
 
-        {/* 4. Audited Merit Affidavit Deck Banner */}
-        <div className={styles.meritSummaryBanner}>
-          <div className={styles.meritHeader}>
-            <div className={styles.meritTitleBlock}>
-              <div className={styles.meritIconCircle}>
-                <FileCheck size={20} aria-hidden="true" />
-              </div>
-              <div>
-                <div className={styles.meritHeadlineRow}>
-                  <h3 className={styles.meritHeading}>Official NTA Scorecards &amp; Selection Records</h3>
-                  <span className={styles.meritTrustPill}>
-                    <Sparkles size={11} /> 100% Marksheet Verified
-                  </span>
+                {/* Bottom: Percentile Score + Category Indicator */}
+                <div className={styles.scoreBottomRow}>
+                  <div className={styles.scoreBlock}>
+                    <span className={styles.scoreNumber}>{ranker.score}</span>
+                    <span className={styles.scoreDenominator}>{ranker.scoreDenominator}</span>
+                  </div>
+                  <span className={styles.examIndicator}>{ranker.examIndicator}</span>
                 </div>
-                <p className={styles.meritSub}>
-                  Audited &amp; verified selections from Dwarka Sector 12 &amp; Janakpuri centers
-                </p>
               </div>
             </div>
-
-            <button
-              type="button"
-              className={styles.viewAffidavitBtn}
-              onClick={() => setIsBannerModalOpen(true)}
-              aria-label="View official merit certificate affidavit"
-            >
-              <FileCheck size={14} aria-hidden="true" />
-              <span>View Merit Affidavit</span>
-              <ArrowRight size={13} aria-hidden="true" />
-            </button>
-          </div>
-
-          <div className={styles.meritStatsRow}>
-            <div className={styles.meritStatItem}>
-              <div className={`${styles.statIconBadge} ${styles.badgeBlue}`}>
-                <Trophy size={16} />
-              </div>
-              <div className={styles.statCol}>
-                <span className={styles.meritStatVal}>1,420+</span>
-                <span className={styles.meritStatLabel}>IITian Selections</span>
-              </div>
-            </div>
-
-            <div className={styles.meritStatItem}>
-              <div className={`${styles.statIconBadge} ${styles.badgeEmerald}`}>
-                <Target size={16} />
-              </div>
-              <div className={styles.statCol}>
-                <span className={styles.meritStatVal}>98.8%</span>
-                <span className={styles.meritStatLabel}>Batch Pass Rate</span>
-              </div>
-            </div>
-
-            <div className={styles.meritStatItem}>
-              <div className={`${styles.statIconBadge} ${styles.badgeAmber}`}>
-                <Award size={16} />
-              </div>
-              <div className={styles.statCol}>
-                <span className={styles.meritStatVal}>100/100</span>
-                <span className={styles.meritStatLabel}>Maths Centum Scores</span>
-              </div>
-            </div>
-
-            <div className={styles.meritStatItem}>
-              <div className={`${styles.statIconBadge} ${styles.badgePurple}`}>
-                <TrendingUp size={16} />
-              </div>
-              <div className={styles.statCol}>
-                <span className={styles.meritStatVal}>AIR 24</span>
-                <span className={styles.meritStatLabel}>Top National Rank</span>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </Container>
 
-      {/* Full-Resolution Poster Modal Lightbox */}
+      {/* Poster Lightbox Modal (Preserved for Affidavit Verification) */}
       {isBannerModalOpen && typeof document !== 'undefined' && createPortal(
         <div
           className={styles.modalBackdrop}

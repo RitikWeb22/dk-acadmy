@@ -5,73 +5,7 @@ import { QuestionBank } from '../models/QuestionBank.js';
 import { PdfImportHistory } from '../models/PdfImportHistory.js';
 import { extractQuestionsFromPdfBuffer, extractQuestionsFromDocxBuffer, parseQuestionsFromText } from '../utils/pdfQuestionExtractor.js';
 import { broadcastDppPyqCreated, broadcastDppPyqUpdated, broadcastDppPyqDeleted } from '../sockets/socket.js';
-const SEED_QUESTIONS = [
-    {
-        id: 'q-sample-1',
-        qNum: 1,
-        statement: 'In SN2 nucleophilic substitution reaction at an asymmetric carbon, the absolute stereochemical outcome and transition state geometry involve:',
-        topic: 'Reaction Mechanism',
-        options: [
-            { key: 'A', text: '100% inversion of configuration with trigonal bipyramidal transition state' },
-            { key: 'B', text: 'Complete retention of configuration via frontside attack' },
-            { key: 'C', text: 'Racemization via planar carbocation intermediate' },
-            { key: 'D', text: '50% retention and 50% elimination product' }
-        ],
-        correctKey: 'A',
-        dkSirShortcut: 'DK Sir Rule: SN2 = Backside Attack = Walden Inversion! Always count 5-coordinate T.S.',
-        stepSolution: 'In SN2 mechanism, the attacking nucleophile enters from the opposite face to the leaving group (180° angle). This forces inversion of configuration at the stereocenter and passes through a pentacoordinate trigonal bipyramidal transition state.',
-        difficulty: 'Moderate'
-    },
-    {
-        id: 'q-sample-2',
-        qNum: 2,
-        statement: 'A uniform solid cylinder of mass M and radius R rolls without slipping down an inclined plane of inclination θ. The magnitude of frictional force acting on it is:',
-        topic: 'Rotational Dynamics',
-        options: [
-            { key: 'A', text: '(1/3) M g sin θ' },
-            { key: 'B', text: '(1/2) M g sin θ' },
-            { key: 'C', text: '(2/3) M g sin θ' },
-            { key: 'D', text: 'M g sin θ' }
-        ],
-        correctKey: 'A',
-        dkSirShortcut: 'DK Sir Rotational Shortcut: f = (I_cm / (I_cm + M*R^2)) * M*g*sinθ. For solid cylinder, fraction = (1/2)/(3/2) = 1/3!',
-        stepSolution: 'Using translational equation: M*g*sinθ - f = M*a. Using rotational equation about CM: f*R = I*α = (1/2)*M*R^2*(a/R) ⇒ f = (1/2)*M*a. Solving both yields f = (1/3)*M*g*sinθ.',
-        difficulty: 'Moderate'
-    },
-    {
-        id: 'q-sample-3',
-        qNum: 3,
-        statement: 'Evaluate the definite integral: I = ∫[0 to π] (x * sin x) / (1 + cos² x) dx. The exact value of I is:',
-        topic: 'Definite Integration',
-        options: [
-            { key: 'A', text: 'π² / 4' },
-            { key: 'B', text: 'π² / 2' },
-            { key: 'C', text: 'π / 4' },
-            { key: 'D', text: 'π² / 8' }
-        ],
-        correctKey: 'A',
-        dkSirShortcut: "DK Sir King's Property: When x is multiplied by f(sin x), Integral = (π / 2) * ∫[0 to π] (sin x)/(1 + cos²x) dx = π²/4 in 20 seconds!",
-        stepSolution: "Apply King's property: I = ∫[0 to π] ((π - x) sin x)/(1 + cos²x) dx. Adding with original gives 2I = π * ∫[0 to π] sin x/(1 + cos²x) dx. Substitute u = cos x, du = -sin x dx ⇒ I = π²/4.",
-        difficulty: 'Challenging',
-        examYear: 'JEE Main 2024'
-    },
-    {
-        id: 'q-sample-4',
-        qNum: 4,
-        statement: 'If the vectors a = 2i - j + k, b = i + 2j - 3k, and c = 3i + λj + 5k are coplanar, then the scalar parameter λ equals:',
-        topic: 'Vectors & 3D',
-        options: [
-            { key: 'A', text: '-4' },
-            { key: 'B', text: '2' },
-            { key: 'C', text: '-2' },
-            { key: 'D', text: '4' }
-        ],
-        correctKey: 'A',
-        dkSirShortcut: 'DK Sir Determinant Rule: For coplanar vectors, scalar triple product [a b c] = 0. Expand 3x3 determinant quickly along row 1.',
-        stepSolution: 'Determinant | 2, -1, 1 | | 1, 2, -3 | | 3, λ, 5 | = 2(10 + 3λ) - (-1)(5 - (-9)) + 1(λ - 6) = 7λ + 28 = 0 ⇒ λ = -4.',
-        difficulty: 'Easy'
-    }
-];
+const SEED_QUESTIONS = [];
 const SEED_DPP_PYQ_ITEMS = [
     {
         id: 'dpp-pyq-1',
@@ -273,7 +207,17 @@ export const getAllDppPyq = async (req, res) => {
             ];
         }
         const items = await DppPyq.find(filter).sort({ createdAt: -1 });
-        res.status(200).json(items);
+        const sanitizedItems = items.map((item) => {
+            const doc = item.toObject ? item.toObject() : item;
+            if (Array.isArray(doc.questions) &&
+                doc.questions.length === 4 &&
+                doc.questions.every((q) => q.id && (String(q.id).startsWith('q-sample-') || String(q.id).startsWith('q-math-')))) {
+                doc.questions = [];
+                doc.questionsCount = 0;
+            }
+            return doc;
+        });
+        res.status(200).json(sanitizedItems);
     }
     catch (error) {
         console.error('Error fetching DPP/PYQ items:', error);
@@ -293,7 +237,14 @@ export const getDppPyqByIdOrSlug = async (req, res) => {
             res.status(404).json({ error: 'DPP/PYQ item not found' });
             return;
         }
-        res.status(200).json(item);
+        const doc = item.toObject ? item.toObject() : item;
+        if (Array.isArray(doc.questions) &&
+            doc.questions.length === 4 &&
+            doc.questions.every((q) => q.id && (String(q.id).startsWith('q-sample-') || String(q.id).startsWith('q-math-')))) {
+            doc.questions = [];
+            doc.questionsCount = 0;
+        }
+        res.status(200).json(doc);
     }
     catch (error) {
         console.error('Error fetching DPP/PYQ item:', error);
