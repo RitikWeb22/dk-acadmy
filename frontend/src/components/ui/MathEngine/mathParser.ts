@@ -1,4 +1,5 @@
 import { autoWrapMathDelimiters, normalizeMathText } from '../../../utils/questionBulkParser';
+import { wrapMathInDollars, convertWordEquationToLatex } from '../../../utils/wordPasteParser';
 
 /**
  * Mathematical Structured Content Block Definition
@@ -126,6 +127,36 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
         rawSource: part
       });
     } else {
+      // Plain text block: check if it contains un-delimited math or LaTeX expressions
+      const hasUnwrappedMath =
+        /\\(?:frac|dfrac|sqrt|lim|int|sum|prod|log_e|ln|sin|cos|tan|cot|sec|csc|alpha|beta|gamma|delta|theta|lambda|pi|sigma|phi|omega|infty|to|cdot|times|leq|geq|neq|pm|mp|mathbb|hat|vec|left|right)\b|\^\{[^{}]+\}|_[0-9a-zA-Z]+|\b(?:dy|dx|dt|dz)\b|\b[a-zA-Z]\s*=\s*[a-zA-Z]\s*\(|\b[a-zA-Z]\s*\([a-zA-Z0-9_+\-/*\\^\{\}\s.,]+\)\s*=|\b[a-zA-Z]\s*\([a-zA-Z0-9_+\-/*\\^\{\}\s./]+\)\s+(?:is\s+equal\s+to|equals\b)/i.test(part);
+
+      if (hasUnwrappedMath) {
+        const wrapped = wrapMathInDollars(convertWordEquationToLatex(part));
+        if (wrapped.includes('$')) {
+          const subParts = wrapped.split(/(\$[^\$\n]+?\$)/g);
+          for (const sp of subParts) {
+            if (!sp) continue;
+            if (sp.startsWith('$') && sp.endsWith('$') && sp.length >= 2) {
+              blocks.push({
+                id: `blk-${blockIdx++}`,
+                type: 'math_inline',
+                content: sp.slice(1, -1).trim(),
+                rawSource: sp
+              });
+            } else {
+              blocks.push({
+                id: `blk-${blockIdx++}`,
+                type: 'text',
+                content: sp,
+                rawSource: sp
+              });
+            }
+          }
+          continue;
+        }
+      }
+
       // Plain text block
       blocks.push({
         id: `blk-${blockIdx++}`,

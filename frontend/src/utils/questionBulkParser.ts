@@ -252,6 +252,36 @@ export function autoWrapMathDelimiters(text: string): string {
   // 2b. Protect standalone integrals with limits, differentials and optional equation:
   s = s.replace(/(?<![a-zA-Z_\$])((?:[a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*)?(?:-?\s*[0-9]+(?:\.[0-9]+)?\s*)?\\(?:int|iint|iiint)(?!\s*\\frac)\s*(?:_\{?[^{}\s]+\}?)?(?:\^\{?[^{}\s]+\}?)?\s*[\s\S]+?(?:\\,)?\s*(?:dx|dt|dy|dz|d\\theta)(?:\s*=\s*[^,;.\n]+)?)(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
 
+  // 2c. Protect differential equations:
+  // e.g. 2x^{2} dy=(2xy+y^{2}) \, dx
+  // e.g. x^{3} dy+xy \, dx=x^{2} dy+2y \, dx
+  // e.g. y(x+1) \, dx-x^{2} dy=0
+  // e.g. (x^2+1) \frac{dy}{dx} + 2xy = 4x^2
+  const proseBlock = '(?!\\b(?:if|let|and|the|of|to|is|in|on|at|by|for|be)\\b)';
+  const singleVar = `(?<![a-zA-Z])${proseBlock}[0-9]*(?:[a-zA-Z](?:\\^\\{?[^{}\\s]+\\}?|_\\{?[^{}\\s]+\\}?)*){1,3}(?![a-zA-Z])`;
+  const parenGroup = '\\([^()\\n]+\\)(?:\\^\\{?[^{}\\s]+\\}?)*';
+  const varFactor = `(?:${singleVar}|${parenGroup}|[0-9]+|\\\\frac\\{[^{}]+\\}\\{[^{}]+\\})`;
+  const diffOp = '(?:\\\\,)?\\s*\\b(?:dy|dx|dt|dz)\\b';
+  const diffTerm = `(?:-?\\s*(?:${varFactor}\\s*)*${diffOp})`;
+  const diffExpr = `(?:${diffTerm}(?:\\s*[-+]\\s*${diffTerm})*)`;
+  const diffEqRegex = new RegExp(`(?<![a-zA-Z0-9_\\$])(${diffExpr}\\s*=\\s*(?:${diffExpr}|0|-?[0-9]+))(?![a-zA-Z0-9_\\$])`, 'gi');
+  s = s.replace(diffEqRegex, (_, m) => protect(m));
+
+  // 2c-1. Protect function initial condition equations: e.g. y(2)=e, y(1)=e, y(0)=1, f(0)=0
+  s = s.replace(
+    /(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([a-zA-Z0-9_+\-/*\\^\{\}\s.,]+\)\s*=\s*[-+*/a-zA-Z0-9_\\^{}()]+)(?=\s*[,;.]|\s+(?:and|if|then|where|when|for)\b|$)/g,
+    (fullMatch, eq) => {
+      const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
+      if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where)\b/i.test(nonLatex)) {
+        return fullMatch;
+      }
+      return protect(eq);
+    }
+  );
+
+  // 2c-2. Protect function curve definitions: e.g. y=f(x) or y = f(x)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*=\s*[a-zA-Z]\s*\([a-zA-Z0-9_+\-/*\s\\]+\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
   // 2c. Protect function equations and evaluations:
   // e.g. 5f(x) + 4f\left(\frac{1}{x}\right) = \frac{1}{x} + 3
   // e.g. I(9) = 12 + 7\log_e 7, f(0) = 0, f(1) = 1/\alpha\beta \tan^{-1}(\alpha/\beta)
@@ -337,6 +367,16 @@ export function autoWrapMathDelimiters(text: string): string {
 
   // 7. Protect and wrap coordinate tuples: e.g. (\alpha, \beta) or (-1, -1, 2)
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\(\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?)\s*(?:,\s*(?:-?[0-9]+(?:\.[0-9]+)?|\\[a-zA-Z]+(?:_[0-9a-zA-Z\{\}]+)?))?\s*\))(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m));
+
+  // 7b. Protect coordinate tuples after words like point or at: e.g. point (1,2)
+  s = s.replace(/(?<=\b(?:point|at|through)\s+)(\(\s*-?[0-9]+(?:\.[0-9]+)?\s*,\s*-?[0-9]+(?:\.[0-9]+)?\s*(?:,\s*-?[0-9]+(?:\.[0-9]+)?)?\s*\))(?![a-zA-Z0-9_\$])/gi, (_, m) => protect(m));
+
+  // 7c. Protect function evaluation or variable query before "is equal to" / "equals"
+  // e.g. "then f( \frac{1}{2} ) is equal to", "then y(4) is equal to", "Then a is equal to"
+  s = s.replace(
+    /(?<=\b(?:Then|and|if|where)\s+)([a-zA-Z](?:\s*\([a-zA-Z0-9_+\-/*\\^\{\}\s.,]+\))?)(?=\s+(?:is\s+equal\s+to|equals\b|exists\b))/gi,
+    (_, m) => protect(m.trim())
+  );
 
   // 8. Wrap remaining standalone LaTeX commands / variables outside $:
   // e.g. \vec{a}, \vec{b}, \lambda, \alpha, \beta, \hat{i}, \sqrt{10}, 9\alpha^2
