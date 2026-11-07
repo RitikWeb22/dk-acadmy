@@ -148,7 +148,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         </button>
 
         <nav className={styles.breadcrumbs} aria-label="Breadcrumbs">
-          <span className={styles.crumbParent}>Admin Console</span>
+          <span className={styles.crumbParent}>Admin</span>
           <ChevronRight size={13} className={styles.crumbSeparator} />
           <h1 className={styles.crumbCurrent} aria-current="page">
             {getBreadcrumbLabel(activeMenu)}

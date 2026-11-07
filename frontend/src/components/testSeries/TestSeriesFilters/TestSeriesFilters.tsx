@@ -16,9 +16,10 @@ interface PrimaryTabItem {
 }
 
 const PRIMARY_EXAM_TABS: PrimaryTabItem[] = [
+  { value: 'All', label: 'All Tests', icon: Layers },
   { value: 'AllIndia', label: 'All India CBT Mock', icon: Layers },
-  { value: 'JEE Main', label: 'JEE Main Filter', icon: GraduationCap },
-  { value: 'JEE Advanced', label: 'JEE Advanced Engine', icon: Flame },
+  { value: 'JEE Main', label: 'JEE Main', icon: GraduationCap },
+  { value: 'JEE Advanced', label: 'JEE Advanced', icon: Flame },
   { value: 'BITSAT', label: 'BITSAT Speed CBT', icon: Zap },
   { value: 'PartTest', label: 'Part Tests Engine', icon: BookOpen },
   { value: 'MathSpeed', label: 'DK Sir Math Speed', icon: Zap, badge: 'HOT' },
@@ -83,20 +84,6 @@ export const TestSeriesFilters: React.FC<TestSeriesFiltersProps> = ({
               </button>
             );
           })}
-          {examCounts['All'] !== undefined && (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={selectedExam === 'All'}
-              className={`${styles.primaryTabBtn} ${selectedExam === 'All' ? styles.primaryTabActive : ''}`}
-              onClick={() => onSelectExam('All')}
-              title="View all tests without category filter"
-            >
-              <Layers size={16} className={styles.tabIcon} aria-hidden="true" />
-              <span className={styles.tabTitle}>All Tests</span>
-              <span className={styles.tabCountPill}>{examCounts['All']}</span>
-            </button>
-          )}
         </div>
       )}
 

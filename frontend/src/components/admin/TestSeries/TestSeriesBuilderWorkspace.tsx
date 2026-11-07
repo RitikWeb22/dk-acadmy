@@ -2975,29 +2975,37 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     try {
       if (editingSeriesId) {
-        await apiClient.put(`/test-series/${editingSeriesId}`, payload);
-        cmsService.updateTestSeries(editingSeriesId, payload).catch(() => {});
-        window.dispatchEvent(new CustomEvent('dk_test_series_updated', { detail: payload }));
+        const res = await apiClient.put<any>(`/test-series/${editingSeriesId}`, payload);
+        if (res && res.success === false) {
+          throw new Error(res.message || 'Failed to update test series in MongoDB');
+        }
+        const updatedData = res?.data || payload;
+        cmsService.updateTestSeries(editingSeriesId, updatedData).catch(() => {});
+        window.dispatchEvent(new CustomEvent('dk_test_series_updated', { detail: updatedData }));
         notificationService.addNotification({
-          title: `📝 CBT Test Updated: ${payload.title}`,
-          description: `${payload.format} • ${payload.totalMarks} Marks • Status: ${payload.status}`,
+          title: `📝 CBT Test Updated: ${updatedData.title}`,
+          description: `${updatedData.format} • ${updatedData.totalMarks} Marks • Status: ${updatedData.status}`,
           type: 'test_series',
           timestamp: Date.now(),
           unread: true
         });
-        showToast(builderStatus === 'Draft' ? '✓ CBT Examination saved as Draft!' : builderStatus === 'Scheduled' ? '✓ CBT Examination updated and schedule saved!' : '✓ CBT Examination updated and published live!');
+        showToast(builderStatus === 'Draft' ? '✓ CBT Examination saved as Draft in DB!' : builderStatus === 'Scheduled' ? '✓ CBT Examination updated and schedule saved!' : '✓ CBT Examination updated and published live!');
       } else {
-        await apiClient.post<any>('/test-series', payload);
-        cmsService.saveTestSeries([payload, ...cmsService.getTestSeries().filter((t) => t.id !== payload.id)]);
+        const res = await apiClient.post<any>('/test-series', payload);
+        if (res && res.success === false) {
+          throw new Error(res.message || 'Failed to save test series to MongoDB');
+        }
+        const savedData = res?.data || payload;
+        cmsService.saveTestSeries([savedData, ...cmsService.getTestSeries().filter((t) => t.id !== savedData.id && t.id !== payload.id)]);
         notificationService.addNotification({
-          title: `📝 New ${payload.format} Live: ${payload.title}`,
-          description: `${payload.examType} • ${payload.totalMarks} Marks • ${payload.durationMinutes} mins • Status: ${payload.status}`,
+          title: `📝 New ${savedData.format} Live: ${savedData.title}`,
+          description: `${savedData.examType} • ${savedData.totalMarks} Marks • ${savedData.durationMinutes} mins • Status: ${savedData.status}`,
           type: 'test_series',
           timestamp: Date.now(),
           unread: true
         });
-        window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: payload }));
-        showToast(builderStatus === 'Draft' ? '✓ CBT Examination saved as Draft!' : builderStatus === 'Scheduled' ? '✓ CBT Examination scheduled successfully!' : '✓ CBT Examination published live!');
+        window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: savedData }));
+        showToast(builderStatus === 'Draft' ? '✓ CBT Examination saved to Database as Draft!' : builderStatus === 'Scheduled' ? '✓ CBT Examination scheduled successfully!' : '✓ CBT Examination published live to Database!');
       }
 
       // Optimistically update testSeriesList so it appears immediately on admin table

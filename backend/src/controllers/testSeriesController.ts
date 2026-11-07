@@ -498,6 +498,27 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
       else if (d === 'easy') payload.difficulty = 'Easy';
     }
 
+    // Normalize status enum ('Published' | 'Draft' | 'Scheduled' | 'Archived')
+    if (payload.status) {
+      const s = String(payload.status).toLowerCase();
+      if (s === 'draft') payload.status = 'Draft';
+      else if (s === 'scheduled') payload.status = 'Scheduled';
+      else if (s === 'archived') payload.status = 'Archived';
+      else payload.status = 'Published';
+    } else {
+      payload.status = 'Published';
+    }
+
+    // Normalize format enum ('Full Mock' | 'Part Test' | 'Chapter Test')
+    if (payload.format) {
+      const f = String(payload.format).toLowerCase();
+      if (f.includes('part')) payload.format = 'Part Test';
+      else if (f.includes('chapter')) payload.format = 'Chapter Test';
+      else payload.format = 'Full Mock';
+    } else {
+      payload.format = 'Full Mock';
+    }
+
     // Normalize examType & format if PartTest / MathSpeed
     if (payload.examType === 'PartTest' || payload.format === 'Part Test') {
       payload.format = 'Part Test';
@@ -506,6 +527,21 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
     } else if (payload.examType === 'MathSpeed') {
       payload.badgeCode = 'MATH SPEED';
       payload.examType = 'JEE Main';
+    } else if (payload.examType) {
+      const et = String(payload.examType);
+      if (et.toLowerCase().includes('adv')) payload.examType = 'JEE Advanced';
+      else if (et.toLowerCase().includes('bits')) payload.examType = 'BITSAT';
+      else payload.examType = 'JEE Main';
+    } else {
+      payload.examType = 'JEE Main';
+    }
+
+    // Normalize accessMode & accessLevel
+    if (payload.accessMode) {
+      payload.accessMode = String(payload.accessMode).toLowerCase() === 'paid' ? 'paid' : 'free';
+    }
+    if (payload.accessLevel) {
+      payload.accessLevel = String(payload.accessLevel).toUpperCase().includes('FREE') ? 'FREE_LEAD_MAGNET' : 'BATCH_INCLUDED';
     }
 
     // Set badge code
@@ -623,6 +659,46 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
       if (d === 'moderate' || d === 'medium') updates.difficulty = 'Medium';
       else if (d === 'challenging' || d === 'hard' || d === 'advanced') updates.difficulty = 'Hard';
       else if (d === 'easy') updates.difficulty = 'Easy';
+    }
+
+    // Normalize status enum ('Published' | 'Draft' | 'Scheduled' | 'Archived')
+    if (updates.status) {
+      const s = String(updates.status).toLowerCase();
+      if (s === 'draft') updates.status = 'Draft';
+      else if (s === 'scheduled') updates.status = 'Scheduled';
+      else if (s === 'archived') updates.status = 'Archived';
+      else updates.status = 'Published';
+    }
+
+    // Normalize format enum ('Full Mock' | 'Part Test' | 'Chapter Test')
+    if (updates.format) {
+      const f = String(updates.format).toLowerCase();
+      if (f.includes('part')) updates.format = 'Part Test';
+      else if (f.includes('chapter')) updates.format = 'Chapter Test';
+      else updates.format = 'Full Mock';
+    }
+
+    // Normalize examType & format if PartTest / MathSpeed
+    if (updates.examType === 'PartTest' || updates.format === 'Part Test') {
+      updates.format = 'Part Test';
+      if (updates.examType === 'PartTest') updates.examType = 'JEE Main';
+      updates.badgeCode = 'PART TEST';
+    } else if (updates.examType === 'MathSpeed') {
+      updates.badgeCode = 'MATH SPEED';
+      updates.examType = 'JEE Main';
+    } else if (updates.examType) {
+      const et = String(updates.examType);
+      if (et.toLowerCase().includes('adv')) updates.examType = 'JEE Advanced';
+      else if (et.toLowerCase().includes('bits')) updates.examType = 'BITSAT';
+      else updates.examType = 'JEE Main';
+    }
+
+    // Normalize accessMode & accessLevel
+    if (updates.accessMode) {
+      updates.accessMode = String(updates.accessMode).toLowerCase() === 'paid' ? 'paid' : 'free';
+    }
+    if (updates.accessLevel) {
+      updates.accessLevel = String(updates.accessLevel).toUpperCase().includes('FREE') ? 'FREE_LEAD_MAGNET' : 'BATCH_INCLUDED';
     }
 
     // Normalize questions array if updated

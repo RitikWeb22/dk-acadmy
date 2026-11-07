@@ -5,6 +5,12 @@
 
 export const requestFullScreen = async (element?: HTMLElement): Promise<boolean> => {
   try {
+    // Avoid triggering native browser fullscreen on small screens/mobile devices
+    // as mobile browsers stretch, zoom, or distort responsive viewports in fullscreen
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return false;
+    }
+
     const target = element || document.documentElement;
     if (document.fullscreenElement) {
       return true;

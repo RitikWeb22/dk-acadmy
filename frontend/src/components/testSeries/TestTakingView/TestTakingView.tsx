@@ -95,9 +95,9 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     };
   }, []);
 
-  // Auto-enter fullscreen upon mount if not already in fullscreen
+  // Auto-enter fullscreen upon mount if not already in fullscreen (only for desktop screens)
   useEffect(() => {
-    if (fullScreenLock && !isFullScreenActive()) {
+    if (fullScreenLock && !isFullScreenActive() && typeof window !== 'undefined' && window.innerWidth >= 768) {
       requestFullScreen().then((success) => {
         if (success) {
           setIsFullscreenActiveState(true);
@@ -116,6 +116,7 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     const handleFullscreenChange = () => {
       const isFs = isFullScreenActive();
       setIsFullscreenActiveState(isFs);
+      if (typeof window !== 'undefined' && window.innerWidth < 768) return;
       if (proctorArmed && fullScreenLock && !isFs && !isDisqualified) {
         setIsFullscreenWarningOpen(true);
         setTabStrikes((prev) => {
@@ -520,9 +521,8 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
           <div className={styles.proctorStatusRow}>
             <span className={`${styles.proctorShieldBadge} ${tabStrikes > 0 ? styles.proctorShieldBadgeWarning : ''}`}>
               <ShieldAlert size={12} />
-              Proctored {tabSwitchLimit < 999 && `(Strikes: ${tabStrikes}/${tabSwitchLimit})`}
+              Proctored {tabSwitchLimit < 999 && `(${tabStrikes}/${tabSwitchLimit})`}
             </span>
-            <span className={styles.cloudSyncBadge}>{cloudSyncText}</span>
             {fullScreenLock && !isFullscreenActiveState && (
               <button
                 type="button"
@@ -540,16 +540,6 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
             durationMinutes={test.durationMinutes}
             onTimeExpire={handleTimerExpire}
           />
-
-          <button
-            type="button"
-            className={`${styles.headerCalcBtn} ${isCalcPopupOpen ? styles.headerCalcBtnActive : ''}`}
-            onClick={() => setIsCalcPopupOpen((prev) => !prev)}
-            title="Open Virtual Scientific / Scratchpad Calculator"
-          >
-            <Calculator size={15} />
-            <span>Calculator</span>
-          </button>
 
           <button
             type="button"
