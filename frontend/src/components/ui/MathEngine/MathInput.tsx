@@ -90,7 +90,7 @@ export const MathInput: React.FC<MathInputProps> = ({
     const resolved = resolveMathInputPaste(e.clipboardData);
     if (resolved.aborted) return;
     const result = resolved.result;
-    setPasteWarning(resolved.usedPlainFallback ? (result.warnings.filter(Boolean).slice(-1)[0] || 'This paste needs review.') : null);
+    setPasteWarning(null);
 
     // 1. Check if pasted content contains question options (e.g. (A)/(B)/(C)/(D) or 1-4)
     if (onExtractOptions && result.hasQuestionWithOptions) {
@@ -165,11 +165,7 @@ export const MathInput: React.FC<MathInputProps> = ({
         </div>
       </div>
 
-      {pasteWarning && (
-        <div role="status" style={{ background: '#fff7ed', color: '#9a3412', padding: '8px 12px', fontSize: '0.82rem', borderBottom: '1px solid #fed7aa' }}>
-          {pasteWarning}
-        </div>
-      )}
+
 
       {/* Editor Body */}
       <div className={styles.editorBody} style={compact ? { minHeight: 'auto' } : undefined}>

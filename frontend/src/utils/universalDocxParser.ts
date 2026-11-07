@@ -116,14 +116,15 @@ export function normalizePastedQuestion(
 
   if (plainText.trim()) {
     const wordQuestions = parseWordQuestions(plainText);
-    if (wordQuestions.length > 0 && (wordQuestions[0].options.length === 4 || wordQuestions[0].type === 'NUMERICAL')) {
+    if (wordQuestions.length > 0) {
       const q0 = wordQuestions[0];
+      const hasActualOptions = q0.options.filter(o => o.text && o.text.trim().length > 0).length >= 2;
       return {
         sourceType: 'unicode-plain-text',
         fullNormalizedText: q0.statement,
-        hasQuestionWithOptions: q0.options.length === 4,
+        hasQuestionWithOptions: hasActualOptions,
         statement: q0.statement,
-        options: q0.options,
+        options: hasActualOptions ? q0.options : [],
         correctKey: q0.correctKey,
         numericalAnswer: q0.numericalAnswer,
         stepSolution: q0.solution,
