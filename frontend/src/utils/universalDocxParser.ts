@@ -16,6 +16,7 @@ import {
   normalizePastedQuestionContent
 } from './universalMathEngine';
 import type { NormalizedOption as EngineNormalizedOption } from './universalMathEngine/types';
+import { parseWordQuestions } from './wordPasteParser';
 
 export interface NormalizedOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -103,6 +104,37 @@ export function normalizeUnicodeMathText(raw: string): string {
 export function normalizePastedQuestion(
   clipboardPayload: DataTransfer | { html?: string; text: string } | string | any
 ): NormalizedQuestionResult {
+  // Check if raw plain text contains questions that parseWordQuestions can extract
+  let plainText = '';
+  if (typeof clipboardPayload === 'string') {
+    plainText = clipboardPayload;
+  } else if (clipboardPayload && typeof clipboardPayload.getData === 'function') {
+    plainText = clipboardPayload.getData('text/plain') || clipboardPayload.getData('text') || '';
+  } else if (clipboardPayload && typeof clipboardPayload === 'object') {
+    plainText = clipboardPayload.text || clipboardPayload.plain || '';
+  }
+
+  if (plainText.trim()) {
+    const wordQuestions = parseWordQuestions(plainText);
+    if (wordQuestions.length > 0 && (wordQuestions[0].options.length === 4 || wordQuestions[0].type === 'NUMERICAL')) {
+      const q0 = wordQuestions[0];
+      return {
+        sourceType: 'unicode-plain-text',
+        fullNormalizedText: q0.statement,
+        hasQuestionWithOptions: q0.options.length === 4,
+        statement: q0.statement,
+        options: q0.options,
+        correctKey: q0.correctKey,
+        numericalAnswer: q0.numericalAnswer,
+        stepSolution: q0.solution,
+        dkSirShortcut: q0.shortcut,
+        warnings: [],
+        confidence: 1,
+        needsReview: false
+      };
+    }
+  }
+
   const result = normalizePastedQuestionContent(clipboardPayload);
 
   // Map internal engine format back to adapter's strict union
@@ -148,6 +180,18 @@ export function extractQuestionStatementAndOptions(rawText: string): {
     return {
       statement: '',
       options: []
+    };
+  }
+  const wordQuestions = parseWordQuestions(rawText);
+  if (wordQuestions.length > 0 && (wordQuestions[0].options.length === 4 || wordQuestions[0].statement)) {
+    const q0 = wordQuestions[0];
+    return {
+      statement: q0.statement,
+      options: q0.options,
+      correctKey: q0.correctKey,
+      numericalAnswer: q0.numericalAnswer,
+      stepSolution: q0.solution,
+      dkSirShortcut: q0.shortcut
     };
   }
   return extractStatementAndOptionsPreserving(rawText);

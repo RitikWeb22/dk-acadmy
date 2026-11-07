@@ -41,6 +41,8 @@ import { MathText } from '../../ui/MathText/MathText';
 import { apiClient } from '../../../services/apiClient';
 import { normalizeMathText } from '../../../utils/questionBulkParser';
 import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
+import { PasteWordQuestionModal } from '../Common/PasteWordQuestionModal';
+import type { ParsedWordQuestion } from '../../../utils/wordPasteParser';
 import styles from './PyqManagementStudio.module.scss';
 
 interface Props {
@@ -194,6 +196,39 @@ export const PyqCreateWizard: React.FC<Props> = ({
   // Question Bank Selector Modal
   const [isQbModalOpen, setIsQbModalOpen] = useState(false);
   const [qbSearch, setQbSearch] = useState('');
+
+  // Paste Word / PDF Question Modal
+  const [isPasteWordModalOpen, setIsPasteWordModalOpen] = useState(false);
+
+  const handleWordQuestionsAddedToPyq = (parsedList: ParsedWordQuestion[]) => {
+    if (!parsedList || parsedList.length === 0) return;
+    const first = parsedList[0];
+    updateActiveQuestion('statement', first.statement);
+    updateActiveQuestion('options', first.options);
+    if (first.correctKey) updateActiveQuestion('correctKey', first.correctKey);
+    if (first.solution) updateActiveQuestion('stepSolution', first.solution);
+    if (first.shortcut) updateActiveQuestion('dkSirShortcut', first.shortcut);
+
+    // If multiple questions parsed, append the rest
+    if (parsedList.length > 1) {
+      const additionalQuestions: PyqQuestion[] = parsedList.slice(1).map((p, pIdx) => ({
+        id: `q-pasted-${Date.now()}-${pIdx}`,
+        qNum: questions.length + pIdx + 1,
+        statement: p.statement,
+        subject: subject,
+        chapter: selectedChapters[0] || 'General',
+        questionType: (p.type === 'NUMERICAL' ? 'Numerical Value (Integer or Decimal)' : 'Single Correct MCQ') as any,
+        options: p.options,
+        correctKey: p.correctKey || 'A',
+        stepSolution: p.solution || '',
+        dkSirShortcut: p.shortcut || '',
+        topic: questions[activeQuestionIndex]?.topic || '',
+        difficulty: (p.type === 'NUMERICAL' ? 'Challenging' : 'Moderate') as 'Easy' | 'Moderate' | 'Challenging',
+        isFree: true
+      }));
+      setQuestions((prev) => [...prev, ...additionalQuestions]);
+    }
+  };
 
   // --- Step 3 State: Paper-Level Settings & Resources ---
   const [durationMinutes, setDurationMinutes] = useState<number>(
@@ -1123,6 +1158,26 @@ export const PyqCreateWizard: React.FC<Props> = ({
                       </button>
                       <button
                         type="button"
+                        style={{
+                          padding: '0.2rem 0.6rem',
+                          fontSize: '0.75rem',
+                          background: '#f0fdf4',
+                          border: '1px solid #86efac',
+                          color: '#15803d',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: 600
+                        }}
+                        onClick={() => setIsPasteWordModalOpen(true)}
+                        title="Paste question with options from Word, PDF, or notes"
+                      >
+                        <span>📋 Paste Word / PDF</span>
+                      </button>
+                      <button
+                        type="button"
                         className={styles.btnSecondary}
                         style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
                         onClick={() => setIsStatementPreview(!isStatementPreview)}
@@ -1756,6 +1811,14 @@ export const PyqCreateWizard: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* Paste Word / PDF Question Modal */}
+      <PasteWordQuestionModal
+        isOpen={isPasteWordModalOpen}
+        onClose={() => setIsPasteWordModalOpen(false)}
+        onAddQuestions={handleWordQuestionsAddedToPyq}
+        title="Paste Word / PDF PYQ Question"
+      />
     </div>
   );
 };
