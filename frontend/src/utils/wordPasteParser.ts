@@ -39,6 +39,77 @@ export function cleanWordMathArtifacts(text: string): string {
 }
 
 /**
+ * Robust balanced matrix and cases parser:
+ * Identifies Word / UnicodeMath matrices and piecewise case functions
+ * including {■(...)┤, [■(...)┤, [■(...)], (■(...)), |■(...)|, etc.
+ * Uses balanced parenthesis counting to safely preserve nested brackets/parens.
+ */
+export function parseWordMatricesAndCases(input: string): string {
+  let s = input;
+
+  const markerRegex = /([{\[(\|]?)\s*(?:■|\\matrix|\\eqarray|\\cases)\s*\(/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = markerRegex.exec(s)) !== null) {
+    const fullMatchStart = match.index;
+    const openDelimiter = match[1];
+    const parenStartIndex = match.index + match[0].length;
+
+    let depth = 1;
+    let parenEndIndex = -1;
+
+    for (let i = parenStartIndex; i < s.length; i++) {
+      if (s[i] === '(') depth++;
+      else if (s[i] === ')') {
+        depth--;
+        if (depth === 0) {
+          parenEndIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (parenEndIndex === -1) {
+      continue;
+    }
+
+    const body = s.slice(parenStartIndex, parenEndIndex);
+
+    let afterParenIndex = parenEndIndex + 1;
+    while (afterParenIndex < s.length && /\s/.test(s[afterParenIndex])) {
+      afterParenIndex++;
+    }
+
+    let closeDelimiter = '';
+    let replaceEndIndex = parenEndIndex + 1;
+
+    if (afterParenIndex < s.length && /[┤│\]\)\|}]/.test(s[afterParenIndex])) {
+      closeDelimiter = s[afterParenIndex];
+      replaceEndIndex = afterParenIndex + 1;
+    }
+
+    let env = 'matrix';
+    if (closeDelimiter === '┤' || closeDelimiter === '│' || openDelimiter === '{' || match[0].includes('cases')) {
+      env = 'cases';
+    } else if (openDelimiter === '[' || closeDelimiter === ']') {
+      env = 'bmatrix';
+    } else if (openDelimiter === '(' || closeDelimiter === ')') {
+      env = 'pmatrix';
+    } else if (openDelimiter === '|' || closeDelimiter === '|') {
+      env = 'vmatrix';
+    }
+
+    const rows = body.split('@').map((r) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
+    const latexReplacement = `\\begin{${env}} ${rows} \\end{${env}}`;
+
+    s = s.slice(0, fullMatchStart) + latexReplacement + s.slice(replaceEndIndex);
+    markerRegex.lastIndex = fullMatchStart + latexReplacement.length;
+  }
+
+  return s;
+}
+
+/**
  * Reconstructs Word linear UnicodeMath equations, integrals, summations, limits,
  * fractions, powers, and inverse trig functions into standardized LaTeX syntax.
  */
@@ -46,25 +117,8 @@ export function convertWordEquationToLatex(raw: string): string {
   if (!raw) return '';
   let s = cleanWordMathArtifacts(raw);
 
-  // 0a. Word linear Piecewise Cases: {■(row1@row2@...)┤ or {■(...) or {\matrix(...) or \cases(...)
-  s = s.replace(/\{\s*(?:■|\\matrix|\\eqarray|\\cases)?\s*\(([\s\S]+?)\)\s*(?:┤|│|\}|(?=\s*(?:where|when|for|\n|if|$)))/g, (_, body) => {
-    const rows = body.split('@').map((r: string) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
-    return `\\begin{cases} ${rows} \\end{cases}`;
-  });
-
-  // 0b. Word linear Matrices: [■(...)], (■(...)), |■(...)|
-  s = s.replace(/\[\s*(?:■|\\matrix)?\s*\(([\s\S]+?)\)\s*\]/g, (_, body) => {
-    const rows = body.split('@').map((r: string) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
-    return `\\begin{bmatrix} ${rows} \\end{bmatrix}`;
-  });
-  s = s.replace(/\(\s*(?:■|\\matrix)?\s*\(([\s\S]+?)\)\s*\)/g, (_, body) => {
-    const rows = body.split('@').map((r: string) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
-    return `\\begin{pmatrix} ${rows} \\end{pmatrix}`;
-  });
-  s = s.replace(/\|\s*(?:■|\\matrix)?\s*\(([\s\S]+?)\)\s*\|/g, (_, body) => {
-    const rows = body.split('@').map((r: string) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
-    return `\\begin{vmatrix} ${rows} \\end{vmatrix}`;
-  });
+  // 0. Robust balanced matrix and cases parser (supports {■(...)┤, [■(...)┤, [■(...)], etc.)
+  s = parseWordMatricesAndCases(s);
 
   // Strip remaining solitary ┤, ├, │ delimiters if any
   s = s.replace(/[┤├│]/g, '');
@@ -384,9 +438,9 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
 
   // 4. Extract Exam / Shift Tag (e.g. JEE Main 2024 (Online) 6th April Evening Shift)
   let examTag = '';
-  const examTagMatch = text.match(/\b(JEE\s*(?:Main|Advanced)?(?:\s*\d{4})?[^\n]*?(?:Shift|Morning|Evening|Paper\s*\d|Session\s*\d)?)\b/i) ||
-                       text.match(/\[(JEE\s*(?:Main|Advanced)?[^\]]+)\]/i) ||
-                       text.match(/\b(BITSAT\s*\d{4}[^\n]*)/i);
+  const examTagMatch = text.match(/(?:\[|\b|\s{2,})(JEE\s*(?:Main|Advanced)?\s*(?:-\s*\d{4}|\d{4}|\([^\)]+\)|Online|Offline)[^\n\r]*)/i) ||
+                       text.match(/\b(JEE\s*(?:Main|Advanced)?[^\n\r]*?(?:Shift|Morning|Evening|Paper\s*\d|Session\s*\d|Jan(?:uary)?|Apr(?:il)?|June|July|Feb(?:ruary)?)[^\n\r]*)/i) ||
+                       text.match(/\b(BITSAT\s*\d{4}[^\n\r]*)/i);
 
   if (examTagMatch) {
     examTag = examTagMatch[1].trim().replace(/^\[|\]$/g, '');
