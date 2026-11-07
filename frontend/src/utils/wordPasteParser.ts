@@ -28,7 +28,7 @@ export function cleanWordMathArtifacts(text: string): string {
   return text
     .replace(/[\u200B-\u200F\u2060-\u2064\uFEFF\u00AD\u034F\u180E\uFFF9-\uFFFC]/g, '')
     .replace(/[\u2000-\u200A\u202F\u205F\u00A0\u3000]/g, ' ')
-    .replace(/[▒□┤├│〖〗]/g, '')
+    .replace(/[▒□〖〗]/g, '')
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/\u2032/g, "'")
@@ -45,6 +45,29 @@ export function cleanWordMathArtifacts(text: string): string {
 export function convertWordEquationToLatex(raw: string): string {
   if (!raw) return '';
   let s = cleanWordMathArtifacts(raw);
+
+  // 0a. Word linear Piecewise Cases: {■(row1@row2@...)┤ or {■(...) or {\matrix(...) or \cases(...)
+  s = s.replace(/\{\s*(?:■|\\matrix|\\eqarray|\\cases)?\s*\(([\s\S]+?)\)\s*(?:┤|│|\}|(?=\s*(?:where|when|for|\n|if|$)))/g, (_, body) => {
+    const rows = body.split('@').map((r: string) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
+    return `\\begin{cases} ${rows} \\end{cases}`;
+  });
+
+  // 0b. Word linear Matrices: [■(...)], (■(...)), |■(...)|
+  s = s.replace(/\[\s*(?:■|\\matrix)?\s*\(([\s\S]+?)\)\s*\]/g, (_, body) => {
+    const rows = body.split('@').map((r: string) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
+    return `\\begin{bmatrix} ${rows} \\end{bmatrix}`;
+  });
+  s = s.replace(/\(\s*(?:■|\\matrix)?\s*\(([\s\S]+?)\)\s*\)/g, (_, body) => {
+    const rows = body.split('@').map((r: string) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
+    return `\\begin{pmatrix} ${rows} \\end{pmatrix}`;
+  });
+  s = s.replace(/\|\s*(?:■|\\matrix)?\s*\(([\s\S]+?)\)\s*\|/g, (_, body) => {
+    const rows = body.split('@').map((r: string) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
+    return `\\begin{vmatrix} ${rows} \\end{vmatrix}`;
+  });
+
+  // Strip remaining solitary ┤, ├, │ delimiters if any
+  s = s.replace(/[┤├│]/g, '');
 
   // 1. Word linear limits: (lim)┬(k→∞) or lim┬(k→∞) or (lim)_(k→∞) or lim_(x→0)
   s = s.replace(/(?:\(?\\?lim\)?)\s*[┬┴]\s*\(([^()]+)\)/gi, (_m, cond) => {
@@ -86,17 +109,52 @@ export function convertWordEquationToLatex(raw: string): string {
   // 6. Standard math functions
   s = s.replace(/(?<![\\a-zA-Z])(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b(?![a-zA-Z])/gi, '\\$1');
 
-  // 7. Greek letters & symbols
-  s = s.replace(/[π𝜋]/g, '\\pi')
-       .replace(/[α𝛼]/g, '\\alpha')
-       .replace(/[β𝛽]/g, '\\beta')
-       .replace(/[γ𝛾]/g, '\\gamma')
-       .replace(/[θ𝜃]/g, '\\theta')
-       .replace(/[λ𝜆]/g, '\\lambda')
-       .replace(/[μ𝜇]/g, '\\mu')
-       .replace(/[σ𝜎]/g, '\\sigma')
-       .replace(/[ω𝜔]/g, '\\omega')
-       .replace(/∞/g, '\\infty')
+  // 7. Mathematical arrows and set relations
+  s = s.replace(/\b([a-zA-Z])\s*:\s*([RNZQ])\s*(?:[→⟶]|->|\\to)\s*([RNZQ])\b/g, '$1 : \\mathbb{$2} \\to \\mathbb{$3}');
+  s = s.replace(/[→⟶]|(?<=[0-9a-zA-Z\s])->(?=[0-9a-zA-Z\s])/g, ' \\to ');
+  s = s.replace(/∈/g, ' \\in ');
+  s = s.replace(/∉/g, ' \\notin ');
+  s = s.replace(/⊂/g, ' \\subset ');
+  s = s.replace(/⊆/g, ' \\subseteq ');
+  s = s.replace(/∪/g, ' \\cup ');
+  s = s.replace(/∩/g, ' \\cap ');
+  s = s.replace(/∀/g, ' \\forall ');
+  s = s.replace(/∃/g, ' \\exists ');
+  s = s.replace(/±/g, ' \\pm ');
+  s = s.replace(/∓/g, ' \\mp ');
+  s = s.replace(/×/g, ' \\times ');
+  s = s.replace(/÷/g, ' \\div ');
+  s = s.replace(/[·∙]/g, ' \\cdot ');
+
+  // Sets after relations: \in R -> \in \mathbb{R}
+  s = s.replace(/(\\in|\\notin|\\subset|\\subseteq|\\to)\s*([RNZQ])\b/g, '$1 \\mathbb{$2}');
+  s = s.replace(/\b(on|in)\s+R\b/g, '$1 \\mathbb{R}');
+
+  // 8. Vectors: combining accents or caret/arrow e.g. î, ĵ, k̂ or a⃗
+  s = s.replace(/([a-zA-Z])[\u0302̂]/g, '\\hat{$1}');
+  s = s.replace(/([a-zA-Z])[\u20D7⃗]/g, '\\vec{$1}');
+
+  // 9. Square roots: √x or √(x+1)
+  s = s.replace(/√\s*\(([^()]+)\)/g, '\\sqrt{$1}');
+  s = s.replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}');
+  s = s.replace(/√/g, '\\sqrt');
+
+  // 10. Derivatives: dy/dx or d^2y/dx^2
+  s = s.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\frac{$1}{$2}');
+
+  // 11. Greek letters & symbols (always followed by space so \pi x never becomes invalid \pix)
+  s = s.replace(/[π𝜋]/g, '\\pi ')
+       .replace(/[α𝛼]/g, '\\alpha ')
+       .replace(/[β𝛽]/g, '\\beta ')
+       .replace(/[γ𝛾]/g, '\\gamma ')
+       .replace(/[θ𝜃]/g, '\\theta ')
+       .replace(/[λ𝜆]/g, '\\lambda ')
+       .replace(/[μ𝜇]/g, '\\mu ')
+       .replace(/[σ𝜎]/g, '\\sigma ')
+       .replace(/[ω𝜔]/g, '\\omega ')
+       .replace(/[ϕφ𝜙]/g, '\\phi ')
+       .replace(/[Δ𝛥]/g, '\\Delta ')
+       .replace(/∞/g, '\\infty ')
        .replace(/[≤\u2264]/g, '\\leq ')
        .replace(/[≥\u2265]/g, '\\geq ')
        .replace(/≠/g, '\\neq ');
@@ -148,7 +206,7 @@ export function wrapMathInDollars(text: string): string {
   }
 
   // Check if string contains English prose words:
-  const proseRegex = /\b(?:Let|Then|If|When|Where|Find|Calculate|Given|Suppose|Show|Prove|The|Hence|Therefore|is|are|was|were|equal|to|for|with|and|or|in|of|by|on|at|all|value|values|such|that)\b/i;
+  const proseRegex = /\b(?:Let|Then|If|When|Where|Find|Calculate|Given|Suppose|Show|Prove|The|Hence|Therefore|is|are|was|were|equal|to|for|with|and|or|in|of|by|on|at|all|value|values|such|that|which|following|true|false|statements?|continuous|discontinuous|exists|at|least|points?)\b/i;
   const words = s.split(/\s+/);
   const hasProse = proseRegex.test(s) && words.length > 2;
 
@@ -175,40 +233,56 @@ export function wrapMathInDollars(text: string): string {
     return ` ${key} `;
   };
 
-  // Step 2: Full integral equations or expressions
+  // Step 2a: Piecewise and Matrix environments: e.g. f(x) = \begin{cases} ... \end{cases}
+  s = s.replace(/(?<!\$)(f\s*\([a-zA-Z0-9]+\)\s*=\s*\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\}[\s\S]+?\\end\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\}|\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\}[\s\S]+?\\end\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\})(?!\$)/g,
+    (_, m) => protect(m));
+
+  // Step 2b: Function mappings: e.g. f : \mathbb{R} \to \mathbb{R}
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*:\s*(?:\\mathbb\{[A-Z]\}|[A-Z])\s*\\to\s*(?:\\mathbb\{[A-Z]\}|[A-Z]))(?![a-zA-Z0-9_\$])/g,
+    (_, m) => protect(m));
+
+  // Step 2c: Set membership expressions: e.g. a,b,c \in \mathbb{R} or x \in [0, 1]
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z\\]+(?:\s*,\s*[a-zA-Z\\]+)*\s*\\in\s*(?:\\mathbb\{[A-Z]\}|\[[^\]]+\]|\([^\)]+\)|[A-Z]))(?![a-zA-Z0-9_\$])/g,
+    (_, m) => protect(m));
+
+  // Step 3: Full integral equations or expressions
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*[\s\S]+?\\,\s*dx(?:\s*=\s*[^,;\n]+)?)(?=\s*,|\s+where|\s+for|\s+and|$)/gi,
     (_, m) => protect(m));
 
-  // Step 3: Full equations starting with variable: e.g. S_{k} = \sum_{r=1}^{k} \tan^{-1}\left(\frac{6^{r}}{2^{2r+1}+3^{2r+1}}\right)
+  // Step 4: Full equations starting with variable: e.g. S_{k} = \sum_{r=1}^{k} \tan^{-1}\left(\frac{6^{r}}{2^{2r+1}+3^{2r+1}}\right)
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\b[A-Za-z](?:_\{[^{}]+\}|_[A-Za-z0-9]+)?\s*=\s*(?:\\sum|\\prod|\\lim)[\s\S]+?)(?=\s*\.|\s+Then\b|\s+and\b|\s+where\b|$)/gi,
     (_, m) => protect(m));
 
-  // Step 4a: Full limits/summations with fractions or expressions before prose: e.g. \lim_{x\to 7}\frac{18-[1-x]}{[x-3a]} exists
+  // Step 5a: Full limits/summations with fractions or expressions before prose: e.g. \lim_{x\to 7}\frac{18-[1-x]}{[x-3a]} exists
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*(?:\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[A-Za-z0-9_^{}\\()\[\]+\-*/]+))(?=\s+(?:exists|is|equal|where|then|and|for|\.|\,)|$)/gi,
     (_, m) => protect(m));
 
-  // Step 4b: Standalone limits/summations before prose: e.g. \lim_{k\to\infty} S_{k} is equal to
+  // Step 5b: Standalone limits/summations before prose: e.g. \lim_{k\to\infty} S_{k} is equal to
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*[A-Za-z0-9_^{}\\()]+)(?=\s+is\b|\s*=\s*|\s*[,;.]|\s+where\b|\s+and\b|$)/gi,
     (_, m) => protect(m));
 
-  // Step 4c: Bracketed variable definitions like [t] or [x] when preceded by "where" or followed by "is"
+  // Step 5c: Bracketed variable definitions like [t] or [x] when preceded by "where" or followed by "is"
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\[[a-zA-Z0-9_\-]+\])(?=\s+(?:is|denotes|represents|where))/gi,
     (_, m) => protect(m));
 
-  // Step 4d: Relational inequalities: e.g. \leq t, \le t, \ge t, > 0
+  // Step 5d: Relational inequalities: e.g. \leq t, \le t, \ge t, > 0
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:leq|ge|le|geq|neq)\s+[a-zA-Z0-9_\\]+)(?![a-zA-Z0-9_\$])/gi,
     (_, m) => protect(m));
 
-  // Step 5: Inequalities or bounds: e.g. \alpha, \beta > 0
+  // Step 6a: Multi-term algebraic relations/equations: e.g. a+b+c=1 or a+b+c \neq 1 or x^2+y^2=1
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z0-9_\\]+(?:\s*[-+*/]\s*[a-zA-Z0-9_\\]+)+\s*(?:=|\\neq|\\leq|\\geq|<|>)\s*[-+*/a-zA-Z0-9_\\]+)(?![a-zA-Z0-9_\$])/gi,
+    (_, m) => protect(m));
+
+  // Step 6b: Inequalities or bounds: e.g. \alpha, \beta > 0
   s = s.replace(/(?<![a-zA-Z0-9_\$])((\\[a-zA-Z]+|[a-zA-Z])(?:\s*,\s*(\\[a-zA-Z]+|[a-zA-Z]))*\s*[><=]\s*[0-9]+)(?![a-zA-Z0-9_\$])/gi,
     (_, m) => protect(m));
 
-  // Step 6: Polynomials or expressions: e.g. \alpha^4 - \beta^4 or \alpha^{4} - \beta^{4} or x^2 + y^2
+  // Step 6c: Polynomials or expressions: e.g. \alpha^4 - \beta^4 or \alpha^{4} - \beta^{4} or x^2 + y^2
   s = s.replace(/(?<![a-zA-Z0-9_\$])((\\[a-zA-Z]+|[a-zA-Z])(?:\^\{[^{}]+\}|\^[0-9a-zA-Z]+)\s*[-+*/]\s*(\\[a-zA-Z]+|[a-zA-Z])(?:\^\{[^{}]+\}|\^[0-9a-zA-Z]+))(?![a-zA-Z0-9_\$])/gi,
     (_, m) => protect(m));
 
   // Step 7: Standalone math commands
-  s = s.replace(/(?<!\$)((\\(?:tan|cot|sin|cos|sec|csc)\^\{[^}]+\}|\\(?:frac|dfrac|sqrt|log_e|ln|alpha|beta|gamma|theta|lambda|pi|sum|lim|int))\S*(?:\s*[=+*/\-]\s*\S+)*)(?!\$)/g,
+  s = s.replace(/(?<!\$)((\\(?:tan|cot|sin|cos|sec|csc)\^\{[^}]+\}|\\(?:frac|dfrac|sqrt|log_e|ln|alpha|beta|gamma|theta|lambda|pi|sum|lim|int|mathbb\{[A-Z]\}|neq|leq|geq|in|to|subset|subseteq|cap|cup|pm|mp|times|div|cdot|hat\{[^{}]+\}|vec\{[^{}]+\}|Delta|phi))\S*(?:\s*[=+*/\-]\s*\S+)*)(?!\$)/g,
     (_, m) => protect(m));
 
   // Step 8: Restore protected blocks
