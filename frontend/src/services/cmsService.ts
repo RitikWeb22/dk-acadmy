@@ -1804,10 +1804,10 @@ export const cmsService = {
     return [];
   },
 
-  async fetchTestSeriesFromAPI(): Promise<TestSeriesItem[]> {
-    if (inFlightTestSeries) return inFlightTestSeries;
+  async fetchTestSeriesFromAPI(force = false): Promise<TestSeriesItem[]> {
+    if (!force && inFlightTestSeries) return inFlightTestSeries;
     const now = Date.now();
-    if (now - lastTestSeriesFetchTime < 3000) return this.getTestSeries();
+    if (!force && now - lastTestSeriesFetchTime < 3000) return this.getTestSeries();
     lastTestSeriesFetchTime = now;
 
     inFlightTestSeries = (async () => {

@@ -446,7 +446,7 @@ export const FacultyManagementWorkspace: React.FC = () => {
       <section className={styles.headerSection}>
         <div className={styles.headerLeftCol}>
           <nav className={styles.breadcrumbBar} aria-label="Breadcrumb">
-            <span className={styles.breadcrumbRoot}>Admin Console</span>
+            <span className={styles.breadcrumbRoot}>Admin</span>
             <ChevronRight size={13} className={styles.breadcrumbArrow} />
             <span className={styles.breadcrumbRoot}>Data</span>
             <ChevronRight size={13} className={styles.breadcrumbArrow} />

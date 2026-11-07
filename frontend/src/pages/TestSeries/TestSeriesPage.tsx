@@ -52,9 +52,9 @@ export const TestSeriesPage: React.FC = () => {
     if (urlExam === 'JEE Main') return 'JEE Main';
     if (urlExam === 'JEE Advanced') return 'JEE Advanced';
     if (urlExam === 'BITSAT') return 'BITSAT';
-    if (urlExam === 'All') return 'All';
     if (urlExam === 'AllIndia' || urlFilter === 'all-india') return 'AllIndia';
-    return 'AllIndia';
+    if (urlExam === 'All') return 'All';
+    return 'All';
   }, [urlExam, urlFormat, urlSubject, urlFilter]);
 
   // Derive initial or URL-synced format filter
@@ -140,8 +140,8 @@ export const TestSeriesPage: React.FC = () => {
     // Sync latest from MongoDB
     const syncTestSeries = async () => {
       try {
-        const items = await cmsService.fetchTestSeriesFromAPI();
-        if (Array.isArray(items)) {
+        const items = await cmsService.fetchTestSeriesFromAPI(true);
+        if (Array.isArray(items) && items.length > 0) {
           setTestSeriesList(items);
         }
       } catch (err) {
@@ -151,29 +151,61 @@ export const TestSeriesPage: React.FC = () => {
 
     syncTestSeries();
 
-    const handleUpdate = (e: any) => {
-      if (e?.detail?.type && e.detail.type !== 'test_series') return;
-      setTestSeriesList(cmsService.getTestSeries());
+    const handleUpsert = (e: any) => {
+      const incoming = e?.detail?.data || e?.detail;
+      if (incoming && incoming.title && (incoming.id || incoming._id || incoming.slug)) {
+        const targetId = incoming.id || incoming._id;
+        setTestSeriesList((prev) => {
+          const exists = prev.some(
+            (t) => (targetId && (t.id === targetId || (t as any)._id === targetId)) || (incoming.slug && t.slug === incoming.slug)
+          );
+          if (exists) {
+            return prev.map((t) =>
+              (targetId && (t.id === targetId || (t as any)._id === targetId)) || (incoming.slug && t.slug === incoming.slug)
+                ? { ...t, ...incoming }
+                : t
+            );
+          } else {
+            return [incoming, ...prev];
+          }
+        });
+      }
+      cmsService.fetchTestSeriesFromAPI(true).then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          setTestSeriesList(items);
+        }
+      }).catch(() => {});
     };
 
     const handleDeleteEvent = (e: any) => {
-      const deletedId = e.detail?.id;
+      const deletedId = typeof e?.detail === 'string' ? e.detail : e?.detail?.id || e?.detail?.data?.id;
       if (deletedId) {
-        setTestSeriesList((prev) => prev.filter((t) => t.id !== deletedId && t.slug !== deletedId));
+        setTestSeriesList((prev) => prev.filter((t) => t.id !== deletedId && (t as any)._id !== deletedId && t.slug !== deletedId));
       } else {
-        setTestSeriesList(cmsService.getTestSeries());
+        cmsService.fetchTestSeriesFromAPI(true).then((items) => {
+          if (Array.isArray(items)) setTestSeriesList(items);
+        }).catch(() => {});
       }
     };
 
-    window.addEventListener(CMS_EVENT_KEY, handleUpdate);
-    window.addEventListener('dk_test_series_created', handleUpdate);
-    window.addEventListener('dk_test_series_updated', handleUpdate);
+    window.addEventListener(CMS_EVENT_KEY, handleUpsert);
+    window.addEventListener('dk_test_series_created', handleUpsert);
+    window.addEventListener('dk_test_series_updated', handleUpsert);
     window.addEventListener('dk_test_series_deleted', handleDeleteEvent);
 
+    const pollInterval = setInterval(() => {
+      cmsService.fetchTestSeriesFromAPI(true).then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          setTestSeriesList(items);
+        }
+      }).catch(() => {});
+    }, 6000);
+
     return () => {
-      window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
-      window.removeEventListener('dk_test_series_created', handleUpdate);
-      window.removeEventListener('dk_test_series_updated', handleUpdate);
+      clearInterval(pollInterval);
+      window.removeEventListener(CMS_EVENT_KEY, handleUpsert);
+      window.removeEventListener('dk_test_series_created', handleUpsert);
+      window.removeEventListener('dk_test_series_updated', handleUpsert);
       window.removeEventListener('dk_test_series_deleted', handleDeleteEvent);
     };
   }, []);
@@ -206,13 +238,12 @@ export const TestSeriesPage: React.FC = () => {
       test.badgeCode === 'MATH SPEED' ||
       (test as any).examType === 'MathSpeed' ||
       test.title?.toLowerCase().includes('math speed') ||
-      test.title?.toLowerCase().includes('dk sir math') ||
-      (Array.isArray(test.subjects) && test.subjects.length === 1 && test.subjects[0] === 'Mathematics')
+      test.title?.toLowerCase().includes('speed drill') ||
+      test.subtitle?.toLowerCase().includes('math speed')
     );
   };
 
   const isTestAllIndia = (test: TestSeriesItem): boolean => {
-    if (isTestPart(test) || isTestMathSpeed(test)) return false;
     return (
       test.format === 'Full Mock' ||
       test.badgeCode === 'FULL CBT' ||
@@ -221,8 +252,7 @@ export const TestSeriesPage: React.FC = () => {
       test.title?.toLowerCase().includes('full mock') ||
       test.title?.toLowerCase().includes('cbt mock') ||
       (test as any).examType === 'AllIndia' ||
-      test.examType === 'JEE Main' ||
-      test.examType === 'JEE Advanced'
+      (test.format !== 'Chapter Test' && (test.examType === 'JEE Main' || test.examType === 'JEE Advanced' || test.examType === 'BITSAT'))
     );
   };
 
@@ -242,9 +272,9 @@ export const TestSeriesPage: React.FC = () => {
       if (isTestAllIndia(test)) counts.AllIndia += 1;
       if (isTestPart(test)) counts.PartTest += 1;
       if (isTestMathSpeed(test)) counts.MathSpeed += 1;
-      if (test.examType === 'JEE Main' && !isTestPart(test) && !isTestMathSpeed(test)) counts['JEE Main'] += 1;
-      if (test.examType === 'JEE Advanced' && !isTestPart(test) && !isTestMathSpeed(test)) counts['JEE Advanced'] += 1;
-      if (test.examType === 'BITSAT' || test.title?.toLowerCase().includes('bitsat')) counts.BITSAT += 1;
+      if (test.examType === 'JEE Main' || test.badgeCode?.includes('JEE MAIN') || test.title?.toLowerCase().includes('jee main')) counts['JEE Main'] += 1;
+      if (test.examType === 'JEE Advanced' || test.badgeCode?.includes('JEE ADVANCED') || test.title?.toLowerCase().includes('jee advanced')) counts['JEE Advanced'] += 1;
+      if (test.examType === 'BITSAT' || test.badgeCode?.includes('BITSAT') || test.title?.toLowerCase().includes('bitsat')) counts.BITSAT += 1;
     });
 
     return counts;
@@ -354,11 +384,11 @@ export const TestSeriesPage: React.FC = () => {
       } else if (selectedExam === 'MathSpeed') {
         if (!isTestMathSpeed(test)) return false;
       } else if (selectedExam === 'JEE Main') {
-        if (test.examType !== 'JEE Main' || isTestPart(test) || isTestMathSpeed(test)) return false;
+        if (test.examType !== 'JEE Main' && !test.badgeCode?.includes('JEE MAIN') && !test.title?.toLowerCase().includes('jee main')) return false;
       } else if (selectedExam === 'JEE Advanced') {
-        if (test.examType !== 'JEE Advanced' || isTestPart(test) || isTestMathSpeed(test)) return false;
+        if (test.examType !== 'JEE Advanced' && !test.badgeCode?.includes('JEE ADVANCED') && !test.title?.toLowerCase().includes('jee advanced')) return false;
       } else if (selectedExam === 'BITSAT') {
-        if (test.examType !== 'BITSAT' && !test.title?.toLowerCase().includes('bitsat')) return false;
+        if (test.examType !== 'BITSAT' && !test.title?.toLowerCase().includes('bitsat') && !test.badgeCode?.includes('BITSAT')) return false;
       } else if (selectedExam !== 'All' && test.examType !== selectedExam) {
         return false;
       }

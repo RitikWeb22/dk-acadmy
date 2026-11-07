@@ -128,7 +128,7 @@ export const AdminLoginPage: React.FC = () => {
             <ChevronRight size={13} className={styles.breadcrumbDivider} />
             <span className={styles.breadcrumbCurrent}>Institutional Access</span>
             <ChevronRight size={13} className={styles.breadcrumbDivider} />
-            <span className={styles.breadcrumbActive}>Faculty &amp; Admin Console</span>
+            <span className={styles.breadcrumbActive}>Faculty &amp; Admin</span>
           </nav>
 
           <div className={styles.securityPill}>

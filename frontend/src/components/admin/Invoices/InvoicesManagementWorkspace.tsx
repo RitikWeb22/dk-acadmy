@@ -573,7 +573,7 @@ export const InvoicesManagementWorkspace: React.FC = () => {
       <div className={styles.pageHeaderBar}>
         <div className={styles.breadcrumbTitleCol}>
           <div className={styles.breadcrumbNav}>
-            <span className={styles.bcRoot}>Admin Console</span>
+            <span className={styles.bcRoot}>Admin</span>
             <span className={styles.bcDivider}>/</span>
             <span className={styles.bcSub}>Data</span>
             <span className={styles.bcDivider}>/</span>

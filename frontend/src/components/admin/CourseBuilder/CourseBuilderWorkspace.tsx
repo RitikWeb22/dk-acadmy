@@ -1104,7 +1104,7 @@ export const CourseBuilderWorkspace: React.FC = () => {
       <section className={styles.pageHeader}>
         <div className={styles.titleArea}>
           <nav className={styles.breadcrumbBar} aria-label="Breadcrumb">
-            <span className={styles.breadcrumbRoot}>Admin Console</span>
+            <span className={styles.breadcrumbRoot}>Admin</span>
             <ChevronRight size={13} className={styles.breadcrumbArrow} />
             <span className={styles.breadcrumbRoot}>Academics</span>
             <ChevronRight size={13} className={styles.breadcrumbArrow} />
