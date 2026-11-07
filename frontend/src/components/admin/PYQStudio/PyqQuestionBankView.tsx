@@ -15,6 +15,8 @@ import {
 import type { QuestionBankItem, QuestionType, QuestionDifficulty, SubjectDomain } from './types';
 import { SUBJECT_CHAPTERS, EXAM_YEARS } from './types';
 import { MathText } from '../../ui/MathText/MathText';
+import { PasteWordQuestionModal } from '../Common/PasteWordQuestionModal';
+import type { ParsedWordQuestion } from '../../../utils/wordPasteParser';
 import styles from './PyqManagementStudio.module.scss';
 
 interface Props {
@@ -36,6 +38,20 @@ export const PyqQuestionBankView: React.FC<Props> = ({
   // Modal State for Create / Edit
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<QuestionBankItem | null>(null);
+  const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
+
+  const handleWordQuestionsAddedToBank = (parsedList: ParsedWordQuestion[]) => {
+    if (!parsedList || parsedList.length === 0 || !editingItem) return;
+    const first = parsedList[0];
+    setEditingItem({
+      ...editingItem,
+      statement: first.statement,
+      options: first.options,
+      correctKey: first.correctKey || 'A',
+      stepSolution: first.solution || editingItem.stepSolution,
+      dkSirShortcut: first.shortcut || editingItem.dkSirShortcut
+    });
+  };
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -379,7 +395,28 @@ export const PyqQuestionBankView: React.FC<Props> = ({
               </div>
 
               <div className={styles.formGroup}>
-                <label>Question Statement (LaTeX supported)</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <label style={{ margin: 0 }}>Question Statement (LaTeX supported)</label>
+                  <button
+                    type="button"
+                    style={{
+                      padding: '0.2rem 0.5rem',
+                      fontSize: '0.75rem',
+                      background: '#f0fdf4',
+                      border: '1px solid #86efac',
+                      color: '#15803d',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontWeight: 600
+                    }}
+                    onClick={() => setIsPasteModalOpen(true)}
+                  >
+                    📋 Paste Word / PDF
+                  </button>
+                </div>
                 <textarea
                   rows={3}
                   className={styles.formControl}
@@ -474,6 +511,14 @@ export const PyqQuestionBankView: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* Paste Word / PDF Question Modal */}
+      <PasteWordQuestionModal
+        isOpen={isPasteModalOpen}
+        onClose={() => setIsPasteModalOpen(false)}
+        onAddQuestions={handleWordQuestionsAddedToBank}
+        title="Paste Word / PDF Question into Bank"
+      />
     </div>
   );
 };

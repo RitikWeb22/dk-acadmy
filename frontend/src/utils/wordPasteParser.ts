@@ -209,9 +209,9 @@ export function convertWordEquationToLatex(raw: string): string {
        .replace(/[ϕφ𝜙]/g, '\\phi ')
        .replace(/[Δ𝛥]/g, '\\Delta ')
        .replace(/∞/g, '\\infty ')
-       .replace(/[≤\u2264]/g, '\\leq ')
-       .replace(/[≥\u2265]/g, '\\geq ')
-       .replace(/≠/g, '\\neq ');
+       .replace(/(?:<=|[≤\u2264]|\\le\b)/g, '\\leq ')
+       .replace(/(?:>=|[≥\u2265]|\\ge\b)/g, '\\geq ')
+       .replace(/(?:!=|[≠\u2260])/g, '\\neq ');
 
   // 8. Multi-character or parenthesized exponents: 2^(2r+1) -> 2^{2r+1}, e^((2-4x)) -> e^{2-4x}
   s = s.replace(/([0-9a-zA-Z\)\]\}]|\\\w+)\s*\^\s*\(\s*\(([^()]+)\)\s*\)/g, '$1^{$2}');
@@ -321,6 +321,10 @@ export function wrapMathInDollars(text: string): string {
 
   // Step 5d: Relational inequalities: e.g. \leq t, \le t, \ge t, > 0
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:leq|ge|le|geq|neq)\s+[a-zA-Z0-9_\\]+)(?![a-zA-Z0-9_\$])/gi,
+    (_, m) => protect(m));
+
+  // Step 5e: Variable query before "is equal to" / "equals": e.g. "Then a is equal to" -> "Then $a$ is equal to"
+  s = s.replace(/(?<=\b(?:Then|and|if|where)\s+)([a-zA-Z])(?=\s+(?:is\s+equal\s+to|equals\b))/gi,
     (_, m) => protect(m));
 
   // Step 6a: Multi-term algebraic relations/equations: e.g. a+b+c=1 or a+b+c \neq 1 or x^2+y^2=1
