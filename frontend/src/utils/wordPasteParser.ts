@@ -97,8 +97,8 @@ export function convertWordEquationToLatex(raw: string): string {
        .replace(/[σ𝜎]/g, '\\sigma')
        .replace(/[ω𝜔]/g, '\\omega')
        .replace(/∞/g, '\\infty')
-       .replace(/≤/g, '\\le ')
-       .replace(/≥/g, '\\ge ')
+       .replace(/[≤\u2264]/g, '\\leq ')
+       .replace(/[≥\u2265]/g, '\\geq ')
        .replace(/≠/g, '\\neq ');
 
   // 8. Multi-character or parenthesized exponents: 2^(2r+1) -> 2^{2r+1}, e^((2-4x)) -> e^{2-4x}
@@ -116,12 +116,12 @@ export function convertWordEquationToLatex(raw: string): string {
   s = s.replace(/\\pi\s*\/\s*([0-9]+)/g, '\\frac{\\pi}{$1}');
   s = s.replace(/(?<![a-zA-Z0-9\\])([0-9]+)\s*\/\s*([0-9]+)(?![a-zA-Z0-9])/g, '\\frac{$1}{$2}');
 
-  // (a+1)/b or (\alpha+1)/\beta
-  s = s.replace(/\(\s*([0-9a-zA-Z\\^{}_+\-\s]+?)\s*\)\s*\/\s*([\\a-zA-Z0-9_]+)/g, '\\frac{$1}{$2}');
+  // (a+1)/b or (\alpha+1)/\beta or (18-[1-x]) / ([x-3a])
+  s = s.replace(/\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]]+?)\s*\)\s*\/\s*([\\a-zA-Z0-9_]+)/g, '\\frac{$1}{$2}');
   // NUM / (DEN)
-  s = s.replace(/([0-9a-zA-Z\\^{}_]+)\s*\/\s*\(\s*([0-9a-zA-Z\\^{}_+\-\s]+?)\s*\)/g, '\\frac{$1}{$2}');
+  s = s.replace(/([0-9a-zA-Z\\^{}_]+)\s*\/\s*\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]]+?)\s*\)/g, '\\frac{$1}{$2}');
   // (NUM) / (DEN)
-  s = s.replace(/\(\s*([0-9a-zA-Z\\^{}_+\-\s]+?)\s*\)\s*\/\s*([0-9a-zA-Z\\^{}_+\-\s]+?)\s*\)/g, '\\frac{$1}{$2}');
+  s = s.replace(/\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]]+?)\s*\)\s*\/\s*\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]]+?)\s*\)/g, '\\frac{$1}{$2}');
 
   // 11. Tall parentheses \left( \frac{...}{...} \right) with arbitrary nested braces
   s = s.replace(/(\\(?:tan|cot|sin|cos|sec|csc)(?:\^\{[^}]+\})?|\\(?:log_e|ln|log))\s*\(\s*(\\frac\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})\s*\)/g,
@@ -183,8 +183,20 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\b[A-Za-z](?:_\{[^{}]+\}|_[A-Za-z0-9]+)?\s*=\s*(?:\\sum|\\prod|\\lim)[\s\S]+?)(?=\s*\.|\s+Then\b|\s+and\b|\s+where\b|$)/gi,
     (_, m) => protect(m));
 
-  // Step 4: Standalone limits/summations before prose: e.g. \lim_{k\to\infty} S_{k}
+  // Step 4a: Full limits/summations with fractions or expressions before prose: e.g. \lim_{x\to 7}\frac{18-[1-x]}{[x-3a]} exists
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*(?:\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[A-Za-z0-9_^{}\\()\[\]+\-*/]+))(?=\s+(?:exists|is|equal|where|then|and|for|\.|\,)|$)/gi,
+    (_, m) => protect(m));
+
+  // Step 4b: Standalone limits/summations before prose: e.g. \lim_{k\to\infty} S_{k} is equal to
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*[A-Za-z0-9_^{}\\()]+)(?=\s+is\b|\s*=\s*|\s*[,;.]|\s+where\b|\s+and\b|$)/gi,
+    (_, m) => protect(m));
+
+  // Step 4c: Bracketed variable definitions like [t] or [x] when preceded by "where" or followed by "is"
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\[[a-zA-Z0-9_\-]+\])(?=\s+(?:is|denotes|represents|where))/gi,
+    (_, m) => protect(m));
+
+  // Step 4d: Relational inequalities: e.g. \leq t, \le t, \ge t, > 0
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:leq|ge|le|geq|neq)\s+[a-zA-Z0-9_\\]+)(?![a-zA-Z0-9_\$])/gi,
     (_, m) => protect(m));
 
   // Step 5: Inequalities or bounds: e.g. \alpha, \beta > 0
@@ -311,12 +323,12 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
   const optionsMap: Record<string, string> = { A: '', B: '', C: '', D: '' };
 
   // Strategy 1: Standard markers with parens, brackets, or Option label: (A), [A], Option A, A., A:, A), (1), [1], 1., 1)
-  const standardMarkerRegex = /(?:^|[\n\r]|\s{2,}|\s)(?:\(([A-D1-4])\)|\[([A-D1-4])\]|Option\s*\(?([A-D1-4])\)?[:.]?|([A-D1-4])[\.:\)])(?:\s+|$)/gi;
+  const standardMarkerRegex = /(?:^|[\n\r]|\s{2,})(?:\(([A-D1-4])\)|\[([A-D1-4])\]|Option\s*\(?([A-D1-4])\)?[:.]?|([A-D1-4])[\.:\)])(?:\s+|$)/gi;
   let matches = [...text.matchAll(standardMarkerRegex)];
 
-  // Strategy 2: Bare letter or bare number markers (e.g. "A -21. B 21." or "1 -21. 2 21. 3 19. 4 0" or newline "A 10\nB 20")
+  // Strategy 2: Bare letter or bare number markers (e.g. newline "A -6\nB -2", or multiple spaces "A -21.  B 21.")
   if (matches.length < 2) {
-    const bareMarkerRegex = /(?:^|[\n\r]|\s{2,}|\s)(?:Option\s+)?([A-D1-4])(?:\s*[\.:\)]|\s+)(?=\S)/gi;
+    const bareMarkerRegex = /(?:^|[\n\r]|\s{2,})(?:Option\s+)?([A-D1-4])(?:\s*[\.:\)]|\s+)(?=\S)/gi;
     const bareMatches = [...text.matchAll(bareMarkerRegex)];
     const keys = bareMatches.map((m) => (m[1] || '').toUpperCase());
     if ((keys.includes('A') && keys.includes('B')) || (keys.includes('1') && keys.includes('2'))) {
