@@ -222,17 +222,7 @@ export const TestSeriesPage: React.FC = () => {
     return testSeriesList.find((t) => t.id === instructionsModalTestId || (t as any)._id === instructionsModalTestId || t.slug === instructionsModalTestId) || null;
   }, [instructionsModalTestId, testSeriesList]);
 
-  // Categorization helpers for CBT tests
-  const isTestPart = (test: TestSeriesItem): boolean => {
-    return (
-      test.format === 'Part Test' ||
-      test.badgeCode === 'PART TEST' ||
-      (test as any).examType === 'PartTest' ||
-      test.title?.toLowerCase().includes('part test') ||
-      test.subtitle?.toLowerCase().includes('part test')
-    );
-  };
-
+  // Helpers for CBT tests categorization
   const isTestMathSpeed = (test: TestSeriesItem): boolean => {
     return (
       test.badgeCode === 'MATH SPEED' ||
@@ -240,6 +230,17 @@ export const TestSeriesPage: React.FC = () => {
       test.title?.toLowerCase().includes('math speed') ||
       test.title?.toLowerCase().includes('speed drill') ||
       test.subtitle?.toLowerCase().includes('math speed')
+    );
+  };
+
+  const isTestPart = (test: TestSeriesItem): boolean => {
+    if (isTestMathSpeed(test)) return false;
+    return (
+      test.format === 'Part Test' ||
+      test.badgeCode === 'PART TEST' ||
+      (test as any).examType === 'PartTest' ||
+      test.title?.toLowerCase().includes('part test') ||
+      test.subtitle?.toLowerCase().includes('part test')
     );
   };
 
@@ -256,10 +257,15 @@ export const TestSeriesPage: React.FC = () => {
     );
   };
 
+  // Visible tests for students: Published or Scheduled (hide Draft and Archived)
+  const visibleStudentTests = useMemo(() => {
+    return testSeriesList.filter((test) => test.status !== 'Draft' && test.status !== 'Archived');
+  }, [testSeriesList]);
+
   // Derive counts per exam from actual test data
   const examCounts = useMemo<Record<ExamFilterValue, number>>(() => {
     const counts: Record<ExamFilterValue, number> = {
-      All: testSeriesList.length,
+      All: visibleStudentTests.length,
       AllIndia: 0,
       'JEE Main': 0,
       'JEE Advanced': 0,
@@ -268,7 +274,7 @@ export const TestSeriesPage: React.FC = () => {
       MathSpeed: 0,
     };
 
-    testSeriesList.forEach((test) => {
+    visibleStudentTests.forEach((test) => {
       if (isTestAllIndia(test)) counts.AllIndia += 1;
       if (isTestPart(test)) counts.PartTest += 1;
       if (isTestMathSpeed(test)) counts.MathSpeed += 1;
@@ -278,12 +284,12 @@ export const TestSeriesPage: React.FC = () => {
     });
 
     return counts;
-  }, [testSeriesList]);
+  }, [visibleStudentTests]);
 
   // Total questions count across all tests
   const totalQuestions = useMemo(() => {
-    return testSeriesList.reduce((sum, t) => sum + (t.questions?.length || 0), 0);
-  }, [testSeriesList]);
+    return visibleStudentTests.reduce((sum, t) => sum + (t.questions?.length || 0), 0);
+  }, [visibleStudentTests]);
 
   // Attempted tests count
   const attemptedTestsCount = useMemo(() => {
@@ -375,7 +381,7 @@ export const TestSeriesPage: React.FC = () => {
 
   // Filtered test catalog
   const filteredTests = useMemo(() => {
-    return testSeriesList.filter((test) => {
+    return visibleStudentTests.filter((test) => {
       // 1. Strict Exam Categorization
       if (selectedExam === 'AllIndia') {
         if (!isTestAllIndia(test)) return false;
@@ -394,8 +400,12 @@ export const TestSeriesPage: React.FC = () => {
       }
 
       // 2. Format filter
-      if (selectedFormat !== 'All' && test.format !== selectedFormat) {
-        return false;
+      if (selectedFormat !== 'All') {
+        if (selectedFormat === 'Part Test') {
+          if (!isTestPart(test)) return false;
+        } else if (test.format !== selectedFormat) {
+          return false;
+        }
       }
 
       // 3. Subject / DK Sir Math Speed filter
@@ -440,7 +450,7 @@ export const TestSeriesPage: React.FC = () => {
 
       return true;
     });
-  }, [selectedExam, selectedFormat, selectedSubject, selectedDifficulty, selectedStatus, searchQuery, attempts, testSeriesList]);
+  }, [selectedExam, selectedFormat, selectedSubject, selectedDifficulty, selectedStatus, searchQuery, attempts, visibleStudentTests]);
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||

@@ -590,12 +590,6 @@ export function normalizeMathText(raw: string): string {
   text = text.replace(/\\pi\/6/g, '\\frac{\\pi}{6}');
   text = text.replace(/\\pi\/3/g, '\\frac{\\pi}{3}');
   text = text.replace(/\\pi\/2/g, '\\frac{\\pi}{2}');
-  text = text.replace(/3\/6/g, '\\frac{\\pi}{6}');
-  text = text.replace(/3\/4/g, '\\frac{\\pi}{4}');
-  text = text.replace(/3\/2/g, '\\frac{\\pi}{2}');
-  text = text.replace(/3\/!\$/g, '(\\pi - 2x)');
-  text = text.replace(/3\/!/g, '\\pi - 2');
-  text = text.replace(/3\//g, '\\pi - ');
   text = text.replace(/['1]\s*[\r\n]+\s*,\s*,?/g, '\\frac{1}{2}');
 
   // Collapse duplicated \left and \right delimiters early

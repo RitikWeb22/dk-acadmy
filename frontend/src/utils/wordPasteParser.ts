@@ -1,5 +1,3 @@
-import { normalizeMathText } from './questionBulkParser';
-
 /**
  * Universal Word / PDF Question Parser
  * Parses single or multiple questions copied from Microsoft Word, PDF, or websites.
@@ -193,8 +191,8 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])((\\[a-zA-Z]+|[a-zA-Z])(?:\s*,\s*(\\[a-zA-Z]+|[a-zA-Z]))*\s*[><=]\s*[0-9]+)(?![a-zA-Z0-9_\$])/gi,
     (_, m) => protect(m));
 
-  // Step 6: Polynomials or expressions: e.g. \alpha^4 - \beta^4
-  s = s.replace(/(?<![a-zA-Z0-9_\$])((\\[a-zA-Z]+|[a-zA-Z])\^[0-9a-zA-Z]+\s*[-+*/]\s*(\\[a-zA-Z]+|[a-zA-Z])\^[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/gi,
+  // Step 6: Polynomials or expressions: e.g. \alpha^4 - \beta^4 or \alpha^{4} - \beta^{4} or x^2 + y^2
+  s = s.replace(/(?<![a-zA-Z0-9_\$])((\\[a-zA-Z]+|[a-zA-Z])(?:\^\{[^{}]+\}|\^[0-9a-zA-Z]+)\s*[-+*/]\s*(\\[a-zA-Z]+|[a-zA-Z])(?:\^\{[^{}]+\}|\^[0-9a-zA-Z]+))(?![a-zA-Z0-9_\$])/gi,
     (_, m) => protect(m));
 
   // Step 7: Standalone math commands
@@ -318,7 +316,7 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
 
   // Strategy 2: Bare letter or bare number markers (e.g. "A -21. B 21." or "1 -21. 2 21. 3 19. 4 0" or newline "A 10\nB 20")
   if (matches.length < 2) {
-    const bareMarkerRegex = /(?:^|[\n\r]|\s{2,})(?:Option\s+)?([A-D1-4])(?:\s*[\.:\)]|\s+)(?=\S)/gi;
+    const bareMarkerRegex = /(?:^|[\n\r]|\s{2,}|\s)(?:Option\s+)?([A-D1-4])(?:\s*[\.:\)]|\s+)(?=\S)/gi;
     const bareMatches = [...text.matchAll(bareMarkerRegex)];
     const keys = bareMatches.map((m) => (m[1] || '').toUpperCase());
     if ((keys.includes('A') && keys.includes('B')) || (keys.includes('1') && keys.includes('2'))) {
@@ -375,10 +373,21 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
         optionsMap.D = last4[3].replace(/\s*\.$/, '');
         text = lines.slice(0, -4).join('\n').trim();
       }
+    } else if (lines.length >= 3) {
+      // Case 4c: Last 2 lines each have 2 tokens separated by tabs or 2+ spaces (2x2 grid)
+      const line1Tokens = lines[lines.length - 2].split(/\t+|\s{2,}/).map((t) => t.trim()).filter(Boolean);
+      const line2Tokens = lines[lines.length - 1].split(/\t+|\s{2,}/).map((t) => t.trim()).filter(Boolean);
+      if (line1Tokens.length === 2 && line2Tokens.length === 2) {
+        optionsMap.A = line1Tokens[0].replace(/\s*\.$/, '');
+        optionsMap.B = line1Tokens[1].replace(/\s*\.$/, '');
+        optionsMap.C = line2Tokens[0].replace(/\s*\.$/, '');
+        optionsMap.D = line2Tokens[1].replace(/\s*\.$/, '');
+        text = lines.slice(0, -2).join('\n').trim();
+      }
     } else if (lines.length >= 2) {
-      // Case 4b: Last line has 4 tokens separated by tabs or 3+ spaces
+      // Case 4b: Last line has 4 tokens separated by tabs or 2+ spaces
       const lastLine = lines[lines.length - 1];
-      const tokens = lastLine.split(/\t+|\s{3,}/).map((t) => t.trim()).filter(Boolean);
+      const tokens = lastLine.split(/\t+|\s{2,}/).map((t) => t.trim()).filter(Boolean);
       if (tokens.length === 4) {
         optionsMap.A = tokens[0].replace(/\s*\.$/, '');
         optionsMap.B = tokens[1].replace(/\s*\.$/, '');
@@ -390,12 +399,12 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
   }
 
   // 6. Mathematical & LaTeX Normalization (KaTeX / MathJax Compatibility)
-  const normStatement = wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(text.trim())));
+  const normStatement = wrapMathInDollars(convertWordEquationToLatex(text.trim()));
   const finalOptions: { key: 'A' | 'B' | 'C' | 'D'; text: string }[] = [
-    { key: 'A', text: wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(optionsMap.A || ''))) },
-    { key: 'B', text: wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(optionsMap.B || ''))) },
-    { key: 'C', text: wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(optionsMap.C || ''))) },
-    { key: 'D', text: wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(optionsMap.D || ''))) }
+    { key: 'A', text: wrapMathInDollars(convertWordEquationToLatex(optionsMap.A || '')) },
+    { key: 'B', text: wrapMathInDollars(convertWordEquationToLatex(optionsMap.B || '')) },
+    { key: 'C', text: wrapMathInDollars(convertWordEquationToLatex(optionsMap.C || '')) },
+    { key: 'D', text: wrapMathInDollars(convertWordEquationToLatex(optionsMap.D || '')) }
   ];
 
   return {
@@ -404,8 +413,8 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
     type: 'SINGLE_CORRECT',
     correctKey,
     examTag: examTag || undefined,
-    solution: solution ? wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(solution))) : undefined,
-    shortcut: shortcut ? wrapMathInDollars(normalizeMathText(convertWordEquationToLatex(shortcut))) : undefined
+    solution: solution ? wrapMathInDollars(convertWordEquationToLatex(solution)) : undefined,
+    shortcut: shortcut ? wrapMathInDollars(convertWordEquationToLatex(shortcut)) : undefined
   };
 }
 

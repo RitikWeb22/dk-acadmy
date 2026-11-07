@@ -56,10 +56,15 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
   const singleDollarText = cleanRawText.split('$$').join('$');
 
   let text: string;
+  const hasExistingDelimiters = /\$[^\$\n]+?\$|\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}/.test(singleDollarText);
+
   if (isPureLatexFormula(singleDollarText.trim())) {
     // Already-valid LaTeX (from OMML converter or linear parser) — wrap directly
     // without running normalizeMathText which can corrupt nested structures.
     text = `$${singleDollarText.trim()}$`;
+  } else if (hasExistingDelimiters) {
+    // Math expressions are already delimited with $...$ or $$...$$ — preserve them intact
+    text = singleDollarText;
   } else {
     // Normalize Word equations, unicode math, powers, and fractions
     const normalized = normalizeMathText(singleDollarText);
