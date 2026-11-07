@@ -447,8 +447,8 @@ export const getTestSeriesByIdOrSlug = async (req: Request, res: Response): Prom
     }
 
     const raw = item.toObject ? item.toObject() : { ...item };
-    const requesterRole = (req as any).user?.role;
-    const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER'].includes(requesterRole);
+    const requesterRole = String((req as any).user?.role || '').toUpperCase();
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRole);
     if (!isAdmin && raw.solutionRelease) {
       raw.solutionRelease = {
         enabled: Boolean(raw.solutionRelease.enabled),
@@ -982,7 +982,8 @@ export const getTestSeriesSubmissionSolution = async (req: AuthRequest, res: Res
     // Ownership & Role Verification
     const requesterId = (req.user as any)?.id || (req.user as any)?._id;
     const isOwner = requesterId && String(submission.studentId) === String(requesterId);
-    const isAdmin = Boolean(req.user && ['ADMIN', 'SUPER_ADMIN', 'TEACHER'].includes(req.user.role));
+    const requesterRoleUpper = String(req.user?.role || '').toUpperCase();
+    const isAdmin = Boolean(req.user && ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRoleUpper));
     const isGuest = String(submission.studentId).startsWith('guest-') || !requesterId;
 
     if (!isOwner && !isAdmin && !isGuest) {

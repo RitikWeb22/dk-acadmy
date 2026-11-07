@@ -44,7 +44,19 @@ const PRIMARY_NAV_ITEMS: AdminNavItem[] = [
     label: 'Courses',
     path: '/admin/courses',
     icon: BookOpen,
-    roles: ['SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER']
+    roles: ['SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR']
+  },
+  {
+    label: 'Test Series',
+    path: '/admin/test-series',
+    icon: BookOpen,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR']
+  },
+  {
+    label: 'DPP & PYQ',
+    path: '/admin/dpp-pyq',
+    icon: BookOpen,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR']
   },
   {
     label: 'Reviews',

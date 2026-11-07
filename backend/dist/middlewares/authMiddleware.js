@@ -117,9 +117,23 @@ export const directoryProtect = async (req, res, next) => {
 };
 export const authorize = (...roles) => {
     return (req, res, next) => {
-        const userRole = (req.user?.role || '').toUpperCase();
-        const normalizedRoles = roles.map((r) => r.toUpperCase());
-        if (!req.user || !normalizedRoles.includes(userRole)) {
+        const rawRole = String(req.user?.role || '').toUpperCase().replace(/[\s_-]+/g, '_');
+        // Super admin has unrestricted authorization
+        if (rawRole === 'SUPER_ADMIN' || rawRole === 'DIRECTOR') {
+            next();
+            return;
+        }
+        // Map role aliases
+        let userRole = rawRole;
+        if (rawRole === 'AUTHOR' || rawRole === 'CONTENT_MANAGER' || rawRole === 'CONTENT_AUTHOR') {
+            userRole = 'CMS_MANAGER';
+        }
+        else if (rawRole === 'FACULTY' || rawRole === 'HOD' || rawRole === 'LEAD_HOD' || rawRole === 'PROFESSOR') {
+            userRole = 'TEACHER';
+        }
+        const normalizedRoles = roles.map((r) => r.toUpperCase().replace(/[\s_-]+/g, '_'));
+        const isAuthorized = normalizedRoles.includes(userRole) || normalizedRoles.includes(rawRole);
+        if (!req.user || !isAuthorized) {
             res.status(403).json({
                 success: false,
                 message: `Role (${req.user?.role}) is not authorized to access this resource`

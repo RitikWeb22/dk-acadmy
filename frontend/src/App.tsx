@@ -132,12 +132,44 @@ export const App: React.FC = () => {
                   }
                 />
 
-                {/* Dedicated Teacher / Faculty Portal Workspace */}
+                {/* Dedicated Teacher / Faculty / Author Portal Workspace */}
                 <Route
                   path="/teacher"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
                       <AdminDashboardPage initialMenu="courses" />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teacher/courses"
+                  element={
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
+                      <AdminDashboardPage initialMenu="courses" />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teacher/test-series"
+                  element={
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
+                      <AdminDashboardPage initialMenu="test-series" />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teacher/pyq"
+                  element={
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
+                      <AdminDashboardPage initialMenu="pyq-studio" />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teacher/dpp"
+                  element={
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
+                      <AdminDashboardPage initialMenu="dpp-pyq" />
                     </AdminProtectedRoute>
                   }
                 />
@@ -150,7 +182,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/admin"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'LEAD_MANAGER', 'COUNSELOR']}>
                       <AdminDashboardPage />
                     </AdminProtectedRoute>
                   }
@@ -158,7 +190,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/admin/dashboard"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'LEAD_MANAGER', 'COUNSELOR']}>
                       <AdminDashboardPage />
                     </AdminProtectedRoute>
                   }
@@ -214,7 +246,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/admin/courses"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
                       <AdminDashboardPage initialMenu="courses" />
                     </AdminProtectedRoute>
                   }
@@ -222,7 +254,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/admin/courses/create"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
                       <AdminDashboardPage initialMenu="courses" />
                     </AdminProtectedRoute>
                   }
@@ -230,7 +262,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/admin/test-series"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
                       <AdminDashboardPage initialMenu="test-series" />
                     </AdminProtectedRoute>
                   }
@@ -238,7 +270,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/admin/test-series/create"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
                       <AdminDashboardPage initialMenu="test-series" />
                     </AdminProtectedRoute>
                   }
@@ -246,7 +278,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/admin/dpp-pyq"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
                       <AdminDashboardPage initialMenu="dpp-pyq" />
                     </AdminProtectedRoute>
                   }
@@ -258,7 +290,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/admin/pyq"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
                       <AdminDashboardPage initialMenu="pyq-studio" />
                     </AdminProtectedRoute>
                   }
@@ -266,7 +298,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/admin/free-lectures"
                   element={
-                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER']}>
+                    <AdminProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR']}>
                       <AdminDashboardPage initialMenu="free-lectures" />
                     </AdminProtectedRoute>
                   }

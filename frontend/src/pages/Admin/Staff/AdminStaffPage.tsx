@@ -281,6 +281,8 @@ export const AdminStaffPage: React.FC = () => {
                         SUPER ADMIN
                       </option>
                       <option value="ADMIN">ADMIN</option>
+                      <option value="AUTHOR">AUTHOR / CURRICULUM</option>
+                      <option value="TEACHER">TEACHER / FACULTY</option>
                       <option value="CMS_MANAGER">CMS MANAGER</option>
                       <option value="LEAD_MANAGER">LEAD MANAGER</option>
                       <option value="COUNSELOR">COUNSELOR</option>
@@ -365,6 +367,8 @@ export const AdminStaffPage: React.FC = () => {
                       <option value="SUPER_ADMIN">SUPER ADMIN (Full Ownership)</option>
                     )}
                     <option value="ADMIN">ADMIN (Operations &amp; Student Management)</option>
+                    <option value="AUTHOR">AUTHOR (Curriculum &amp; Test Series Creator)</option>
+                    <option value="TEACHER">TEACHER (Faculty &amp; Video LMS)</option>
                     <option value="CMS_MANAGER">CMS MANAGER (Content &amp; Media Only)</option>
                     <option value="LEAD_MANAGER">LEAD MANAGER (Pipelines &amp; Assignment)</option>
                     <option value="COUNSELOR">COUNSELOR (Assigned Leads Only)</option>

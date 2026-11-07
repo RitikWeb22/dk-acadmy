@@ -814,6 +814,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           totalTests: item.totalQuestions || item.questions?.length || 1,
           testsBreakdown: `${item.totalQuestions || item.questions?.length || 1} problems • ${item.totalMarks || 300} marks`,
           status: (item.status || 'Published') as any,
+          createdAt: item.createdAt || new Date().toISOString(),
           createdAtFormatted: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
           attemptsCount: item.attemptsCount || 0,
           durationMinutes: Number(item.durationMinutes) > 0 ? Number(item.durationMinutes) : 180,
