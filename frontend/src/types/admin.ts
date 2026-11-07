@@ -7,6 +7,7 @@ export type AdminRole =
   | 'TEACHER'
   | 'ADMIN'
   | 'CMS_MANAGER'
+  | 'AUTHOR'
   | 'LEAD_MANAGER'
   | 'COUNSELOR'
   | 'STUDENT';

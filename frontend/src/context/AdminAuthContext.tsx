@@ -10,7 +10,7 @@ interface AdminAuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateAdminProfile: (updates: Partial<AdminUser>, newPassword?: string) => Promise<{ success: boolean; error?: string }>;
-  hasRole: (roles: AdminRole | AdminRole[]) => boolean;
+  hasRole: (roles: AdminRole | AdminRole[] | string | string[]) => boolean;
   hasPermission: (permissions: PermissionId | PermissionId[]) => boolean;
   auditLogs: AdminAuditLog[];
   refreshAuditLogs: () => void;
@@ -106,13 +106,37 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 
   const hasRole = useCallback(
-    (required: AdminRole | AdminRole[]): boolean => {
+    (required: AdminRole | AdminRole[] | string | string[]): boolean => {
       if (!session?.user) return false;
-      const userRole = session.user.role;
-      if (Array.isArray(required)) {
-        return required.includes(userRole);
+      const cleanUserRole = String(session.user.role || '').toUpperCase().replace(/[\s_-]+/g, '_');
+      if (cleanUserRole === 'SUPER_ADMIN' || cleanUserRole === 'DIRECTOR') return true;
+
+      const rolesArray = (Array.isArray(required) ? required : [required]) as string[];
+      const normalizedRequired = rolesArray.map((r) => String(r).toUpperCase().replace(/[\s_-]+/g, '_'));
+
+      // Role aliases mapping:
+      // AUTHOR, CONTENT_AUTHOR, CMS_MANAGER are content creation & authoring roles
+      if (['AUTHOR', 'CONTENT_AUTHOR', 'CMS_MANAGER'].includes(cleanUserRole)) {
+        if (normalizedRequired.some((r) => ['AUTHOR', 'CMS_MANAGER', 'TEACHER', 'ADMIN'].includes(r))) {
+          return true;
+        }
       }
-      return userRole === required;
+
+      // TEACHER, FACULTY, HOD, LEAD_HOD are academic roles
+      if (['TEACHER', 'FACULTY', 'HOD', 'LEAD_HOD', 'PROFESSOR'].includes(cleanUserRole)) {
+        if (normalizedRequired.some((r) => ['TEACHER', 'FACULTY', 'ADMIN', 'AUTHOR'].includes(r))) {
+          return true;
+        }
+      }
+
+      // ADMIN has access to all operational & authoring modules
+      if (cleanUserRole === 'ADMIN') {
+        if (!normalizedRequired.includes('SUPER_ADMIN') || normalizedRequired.includes('ADMIN')) {
+          return true;
+        }
+      }
+
+      return normalizedRequired.includes(cleanUserRole);
     },
     [session]
   );

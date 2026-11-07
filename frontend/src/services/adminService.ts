@@ -125,6 +125,17 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleDefinition> = {
       'reports.view'
     ]
   },
+  AUTHOR: {
+    role: 'AUTHOR',
+    label: 'Curriculum & Test Author',
+    description: 'Authors and edits mock test series, questions, PYQ question archives, and daily practice problem sets.',
+    badgeColor: '#0ea5e9',
+    defaultPermissions: [
+      'cms.courses.manage',
+      'cms.media.manage',
+      'reports.view'
+    ]
+  },
   STUDENT: {
     role: 'STUDENT',
     label: 'Enrolled Student',
