@@ -18,6 +18,7 @@ import {
 import type { NormalizedOption as EngineNormalizedOption } from './universalMathEngine/types';
 import { parseWordQuestions, cleanWordMathArtifacts } from './wordPasteParser';
 import { extractMathFromHtml, normalizeMathString, normalizeOptionMath } from './mathImportRenderSystem/pasteHandler';
+import { htmlResultLosesContent } from './pasteContentGuard';
 
 export interface NormalizedOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -119,9 +120,13 @@ export function normalizePastedQuestion(
   }
 
   let textToUse = plainText;
+  const hasWordLinear = /[■█┤]|\\matrix|\\eqarray|\\cases/.test(plainText);
+
   if (htmlText && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(htmlText) || /<table|<tr|<p|<span|<div/i.test(htmlText))) {
     const converted = extractMathFromHtml(htmlText);
-    if (converted.trim()) {
+    const isComplete = converted.trim() && !htmlResultLosesContent(plainText, converted);
+    const preservesLinear = !hasWordLinear || /\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|aligned)\}/.test(converted);
+    if (isComplete && preservesLinear) {
       textToUse = converted;
     }
   }

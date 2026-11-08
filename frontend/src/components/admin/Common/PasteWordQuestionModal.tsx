@@ -71,9 +71,13 @@ export const PasteWordQuestionModal: React.FC<PasteWordQuestionModalProps> = ({
     const plain = cd.getData('text/plain') || cd.getData('text') || '';
 
     let textToUse = plain;
+    const hasWordLinear = /[■█┤]|\\matrix|\\eqarray|\\cases/.test(plain);
+
     if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html) || /<table|<tr|<p|<span|<div/i.test(html))) {
       const converted = extractMathFromHtml(html);
-      if (converted.trim() && !htmlResultLosesContent(plain, converted)) {
+      const isComplete = converted.trim() && !htmlResultLosesContent(plain, converted);
+      const preservesLinear = !hasWordLinear || /\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|aligned)\}/.test(converted);
+      if (isComplete && preservesLinear) {
         textToUse = converted;
       }
     }
@@ -92,7 +96,9 @@ export const PasteWordQuestionModal: React.FC<PasteWordQuestionModalProps> = ({
     const sample = `If ∫_0^1 1/(5+2x-2x^2 )(1+e^((2-4x)) ) dx=1/α log_e((α+1)/β),α,β>0, then α^4-β^4 is equal to.
 A -21.       B 21.       C 19.         D 0
 Ans: B`;
-    setPasteText(sample);
+    const cleaned = cleanWordMathArtifacts(sample);
+    setPasteText(cleaned);
+    setParsedList(parseWordQuestions(cleaned));
   };
 
   return createPortal(
@@ -139,7 +145,17 @@ Ans: B`;
             <textarea
               className={styles.pasteTextarea}
               value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setPasteText(val);
+                if (val.trim()) {
+                  const cleaned = cleanWordMathArtifacts(val);
+                  const parsed = parseWordQuestions(cleaned);
+                  setParsedList(parsed);
+                } else {
+                  setParsedList([]);
+                }
+              }}
               onPaste={handlePaste}
               placeholder={`Paste question and options from Word/PDF here...\n\nExample:\nIf ∫_0^1 1/(5+2x-2x^2 )(1+e^((2-4x)) ) dx=1/α log_e((α+1)/β),α,β>0, then α^4-β^4 is equal to.\nA -21.       B 21.       C 19.         D 0\nAns: B`}
               rows={4}
