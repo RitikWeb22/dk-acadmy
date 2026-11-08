@@ -10,6 +10,24 @@ export function sanitizeFormula(str: string): string {
     .replace(/\$/g, '')
     // Clean invisible Word formatting characters & hair spaces
     .replace(/[\u200A\u200B\u200C\u200D\u2060\u2061\u2062\u2063\u2064\uFEFF\u00A0]/g, ' ')
+    // Repair HTML entities if present in math string
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    // Repair Word linear differential residue: dy/(" " \, dx) or dy/(dx) or dy/dx
+    .replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z]\^?[0-9]?)\s*\)/g, '\\dfrac{$1}{$2}')
+    .replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\dfrac{$1}{$2}')
+    .replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1')
+    // Repair empty fractions
+    .replace(/\\(?:d?frac)\{\s*\}\{\s*\}/g, '\\frac{a}{b}')
+    .replace(/\\(?:d?frac)\{\s*\}\{([^{}]+)\}/g, '\\frac{1}{$1}')
+    .replace(/\\(?:d?frac)\{([^{}]+)\}\{\s*\}/g, '\\frac{$1}{1}')
+    // Clean redundant parens inside sqrt: \sqrt{(1+x^6)} -> \sqrt{1+x^6}
+    .replace(/\\sqrt\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}')
+    .replace(/\\sqrt\{\s*\(([^()]+)\)\s*\}/g, '\\sqrt{$1}')
+    // Tall delimiters for \exp{ \frac... } or \exp( \frac... )
+    .replace(/\\exp\s*\{\s*\\(?:d?frac)/g, '\\exp\\left\\{\\dfrac')
+    .replace(/\\exp\s*\(\s*\\(?:d?frac)/g, '\\exp\\left(\\dfrac')
     // Ensure infty and common Greek letters have backslash if inside math formula
     .replace(/(?<!\\)\binfty\b/g, '\\infty')
     .replace(/(?<!\\)\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)\b/g, '\\$1')

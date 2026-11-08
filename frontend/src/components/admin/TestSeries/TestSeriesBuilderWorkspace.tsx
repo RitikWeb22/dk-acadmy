@@ -70,10 +70,12 @@ import { GeminiApiKeyModal } from '../../common/GeminiApiKeyModal/GeminiApiKeyMo
 
 import { PART_TESTS_DATA } from '../../../data/partTestsData';
 import { MathText } from '../../ui/MathText/MathText';
-import { MathInput, parseContentToBlocks } from '../../ui/MathEngine';
+import { MathInput, parseContentToBlocks, ValidationDashboard, ValidationBadge } from '../../ui/MathEngine';
 import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
 import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
 import { PasteWordQuestionModal } from '../Common/PasteWordQuestionModal';
+import { BulkDocxImportModal } from './BulkDocxImportModal';
+import { AiRepairModal } from './AiRepairModal';
 import type { ParsedWordQuestion } from '../../../utils/wordPasteParser';
 
 // ─────────────────────────────────────────────────────────────
@@ -678,6 +680,53 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const [bufferEntryMinutes, setBufferEntryMinutes] = useState<number>(30);
   const [cutoffTierPredictor, setCutoffTierPredictor] = useState<boolean>(true);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [isBulkDocxModalOpen, setIsBulkDocxModalOpen] = useState(false);
+  const [isAiRepairModalOpen, setIsAiRepairModalOpen] = useState(false);
+  const [validationFilter, setValidationFilter] = useState<'ALL' | 'GREEN' | 'YELLOW' | 'RED'>('ALL');
+
+  // Real-time Math Validation & Health Dashboard
+  const questionValidations = useMemo(() => {
+    const map: Record<string, { status: 'GREEN' | 'YELLOW' | 'RED'; issues: Array<{ message: string }> }> = {};
+    questions.forEach((q) => {
+      const text = q.questionText || '';
+      const hasUnbalancedBrace = (text.match(/\{/g) || []).length !== (text.match(/\}/g) || []).length;
+      const hasUnbalancedDollar = ((text.match(/\$/g) || []).length % 2) !== 0;
+      const hasCheck = /\[CHECK(?::\s*[^\]]*)?\]/i.test(text);
+      const hasEmptyFrac = /\\(?:d?frac)\{\s*\}\{\s*\}/.test(text);
+
+      const issues: Array<{ message: string }> = [];
+      if (hasUnbalancedBrace) issues.push({ message: 'Unbalanced curly braces in formula' });
+      if (hasUnbalancedDollar) issues.push({ message: 'Unbalanced math dollar delimiters' });
+      if (hasCheck) issues.push({ message: 'Unresolved [CHECK] marker' });
+      if (hasEmptyFrac) issues.push({ message: 'Empty fraction expression' });
+
+      let status: 'GREEN' | 'YELLOW' | 'RED' = 'GREEN';
+      if (issues.length > 0) {
+        status = 'RED';
+      } else if (q.shortcutTrick?.includes('OCR') || (q as any).formulaKey?.includes('ocr') || (q as any).formulaKey?.includes('ai')) {
+        status = 'YELLOW';
+      }
+
+      map[q.id] = { status, issues };
+    });
+    return map;
+  }, [questions]);
+
+  const batchValidationStats = useMemo(() => {
+    const vals = Object.values(questionValidations);
+    const total = vals.length;
+    const redCount = vals.filter((v) => v.status === 'RED').length;
+    const yellowCount = vals.filter((v) => v.status === 'YELLOW').length;
+    const greenCount = vals.filter((v) => v.status === 'GREEN').length;
+
+    return {
+      total,
+      greenCount,
+      yellowCount,
+      redCount,
+      canPublishAll: redCount === 0
+    };
+  }, [questionValidations]);
 
   // Scheduled Solution Release Configuration State
   const [solutionReleaseEnabled, setSolutionReleaseEnabled] = useState<boolean>(true);
@@ -2396,6 +2445,76 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     showToast(`✓ All Fetched! Auto-filled ${parsedList.length} question statement and options.`);
   };
 
+  const handleDocxQuestionsImported = (importedList: any[]) => {
+    if (!importedList || importedList.length === 0) return;
+
+    setQuestions((prev) => {
+      let newQuestions = [...prev];
+      let firstTargetId: string | undefined;
+
+      let curIdx = currentEditingQuestion
+        ? newQuestions.findIndex((q) => q.id === currentEditingQuestion.id)
+        : -1;
+
+      if (curIdx === -1) {
+        curIdx = newQuestions.findIndex((q) => !q.questionText || !q.questionText.trim());
+        if (curIdx === -1) curIdx = 0;
+      }
+
+      importedList.forEach((imported, idx) => {
+        const slotIdx = curIdx + idx;
+        const qObj: QuestionItem = {
+          id: imported.id || `q-docx-${Date.now()}-${idx + 1}`,
+          index: slotIdx + 1,
+          subject: (imported.subject as any) || activeSubjectTab,
+          section: imported.section || (idx >= 20 ? 'B' : 'A'),
+          type: imported.type || (idx >= 20 ? 'NUMERICAL' : 'SINGLE_CORRECT'),
+          difficulty: 'MEDIUM',
+          topicTag: imported.examTag || 'General',
+          questionText: imported.statement,
+          statementBlocks: parseContentToBlocks(imported.statement),
+          options: (imported.options || []).map((opt: any) => ({
+            key: opt.key as 'A' | 'B' | 'C' | 'D',
+            text: opt.text,
+            blocks: parseContentToBlocks(opt.text)
+          })),
+          correctKey: (imported.correctAnswer as any) || 'A',
+          numericalAnswer: imported.type === 'NUMERICAL' ? imported.correctAnswer : undefined,
+          solutionDerivation: imported.stepSolution || '',
+          shortcutTrick: imported.dkSirShortcut || ''
+        };
+
+        if (slotIdx < newQuestions.length) {
+          if (idx === 0) firstTargetId = newQuestions[slotIdx].id;
+          newQuestions[slotIdx] = {
+            ...newQuestions[slotIdx],
+            ...qObj,
+            id: newQuestions[slotIdx].id
+          };
+        } else {
+          if (idx === 0) firstTargetId = qObj.id;
+          newQuestions.push(qObj);
+        }
+      });
+
+      if (firstTargetId) {
+        setSelectedQuestionId(firstTargetId);
+      }
+      return newQuestions;
+    });
+
+    showToast(`✓ Bulk Import Successful! Created ${importedList.length} questions from .DOCX.`);
+  };
+
+  const handleAiRepairApplied = (repairedText: string) => {
+    if (!currentEditingQuestion) return;
+    updateCurrentQuestion({
+      questionText: repairedText,
+      statementBlocks: parseContentToBlocks(repairedText)
+    });
+    showToast('✨ Applied AI-repaired LaTeX to question statement!');
+  };
+
   const handleApplySmartPaste = () => {
     if (!smartPasteText.trim()) return;
 
@@ -2869,6 +2988,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     if (questions.length === 0) {
       showToast('Please author at least 1 question for the CBT examination.');
+      return;
+    }
+
+    // Mathematical Quality Gate: Block publishing if ANY question has RED status
+    if (batchValidationStats.redCount > 0) {
+      showToast(`⚠️ Publishing blocked: ${batchValidationStats.redCount} question(s) contain invalid LaTeX syntax or unbalanced delimiters. Please resolve all RED questions.`);
+      const firstRed = questions.find((q) => questionValidations[q.id]?.status === 'RED');
+      if (firstRed) {
+        setSelectedQuestionId(firstRed.id);
+      }
       return;
     }
 
@@ -4661,6 +4790,17 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                       <button
                         type="button"
+                        onClick={() => setIsBulkDocxModalOpen(true)}
+                        className={styles.addNewQuestionBtn}
+                        style={{ background: '#059669', color: '#FFFFFF', border: '1px solid #047857' }}
+                        title="Upload Word (.docx) file to import all questions in one go"
+                      >
+                        <FileText size={14} />
+                        <span>Bulk Import .DOCX</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={handlePasteWordQuestionClick}
                         className={styles.addNewQuestionBtn}
                         style={{ background: '#2563EB', color: '#FFFFFF', border: '1px solid #1D4ED8' }}
@@ -4680,6 +4820,27 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       </button>
                     </div>
                   </div>
+
+                  {/* Math Engine Health & KaTeX Quality Dashboard */}
+                  <ValidationDashboard
+                    stats={batchValidationStats}
+                    currentFilter={validationFilter}
+                    onFilterChange={setValidationFilter}
+                    onJumpToFirstRed={() => {
+                      const firstRed = questions.find((q) => questionValidations[q.id]?.status === 'RED');
+                      if (firstRed) {
+                        setSelectedQuestionId(firstRed.id);
+                        showToast(`Jumped to Question ${questions.findIndex((q) => q.id === firstRed.id) + 1}`);
+                      }
+                    }}
+                    onTriggerAiRepairAll={() => {
+                      const firstRed = questions.find((q) => questionValidations[q.id]?.status === 'RED');
+                      if (firstRed) {
+                        setSelectedQuestionId(firstRed.id);
+                        setIsAiRepairModalOpen(true);
+                      }
+                    }}
+                  />
 
                   {/* Section A & Section B Real-Time Palettes (Green for filled, Red for pending) */}
                   <div className={styles.sectionsSplitTrackerGrid}>
@@ -4877,10 +5038,39 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                       <div className={styles.qBodySection}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <label className={styles.sectionLabel} style={{ marginBottom: 0 }}>
-                            Question Statement (LaTeX / KaTeX Syntax Supported)
-                          </label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <label className={styles.sectionLabel} style={{ marginBottom: 0 }}>
+                              Question Statement (LaTeX / KaTeX Syntax Supported)
+                            </label>
+                            <ValidationBadge
+                              status={questionValidations[currentEditingQuestion.id]?.status || 'GREEN'}
+                              issues={questionValidations[currentEditingQuestion.id]?.issues}
+                              compact
+                            />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setIsAiRepairModalOpen(true)}
+                              className={styles.smartPasteActionBtn}
+                              title="Auto-repair LaTeX syntax with Google Gemini 2.5 Flash"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                background: '#F0FDF4',
+                                color: '#166534',
+                                border: '1px solid #BBF7D0',
+                                borderRadius: '6px',
+                                padding: '4px 9px',
+                                fontSize: '11.5px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Sparkles size={13} color="#16a34a" />
+                              <span>✨ AI Repair</span>
+                            </button>
                             <button
                               type="button"
                               onClick={handlePasteWordQuestionClick}
@@ -7343,6 +7533,23 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         isOpen={isPasteWordModalOpen}
         onClose={() => setIsPasteWordModalOpen(false)}
         onAddQuestions={handleWordQuestionsAdded}
+      />
+
+      {/* Bulk DOCX Document Import Modal (Pandoc / OMML) */}
+      <BulkDocxImportModal
+        isOpen={isBulkDocxModalOpen}
+        onClose={() => setIsBulkDocxModalOpen(false)}
+        onQuestionsImported={handleDocxQuestionsImported}
+        defaultSubject={activeSubjectTab}
+        targetExam={wizardTargetExam}
+      />
+
+      {/* Gemini AI LaTeX Repair Modal */}
+      <AiRepairModal
+        isOpen={isAiRepairModalOpen}
+        onClose={() => setIsAiRepairModalOpen(false)}
+        originalText={currentEditingQuestion?.questionText || ''}
+        onApplyRepaired={handleAiRepairApplied}
       />
 
     </div>

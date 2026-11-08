@@ -788,6 +788,12 @@ export function reconstructLinearEquation(input) {
     pre = pre.replace(/([a-zA-Z])\s*["']\s*["']\s*([0-9a-zA-Z])/g, '$1 $2');
     pre = pre.replace(/"\s*"/g, ' ').replace(/'\s+'/g, ' ');
     pre = pre.replace(/([0-9a-zA-Z])\s*\\,\s*(?=[0-9a-zA-Z])/g, '$1 ');
+    // Repair Word linear differential residues: dy/(" " \, dx) or dy/(dx) or dy/dx
+    pre = pre.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z]\^?[0-9]?)\s*\)/g, '\\dfrac{$1}{$2}');
+    pre = pre.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\dfrac{$1}{$2}');
+    pre = pre.replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1');
+    pre = pre.replace(/\\sqrt\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}');
+    pre = pre.replace(/\\sqrt\{\s*\(([^()]+)\)\s*\}/g, '\\sqrt{$1}');
     const already = pre.trim();
     // If the text already contains real LaTeX commands (output of ommlNodeToLatex / convertHtmlWithMath),
     // skip the linear and Unicode conversion steps that would corrupt existing LaTeX.
@@ -809,6 +815,10 @@ export function reconstructLinearEquation(input) {
         text = text.replace(/(\([A-Da-d1-4]\)\s*)(-?\d+)\s*\/\s*(\d+)\b/g, '$1\\frac{$2}{$3}');
         // Normalise parenthesized exponents/subscripts that may survive OMML conversion
         text = normalizeParenthesizedScripts(text);
+        // Convert linear fractions if / appears outside LaTeX braces
+        if (/\/[^a-zA-Z]/.test(text) || /\b[a-zA-Z0-9_\)\]\}]\s*\/\s*[a-zA-Z0-9_\(\[\{]/.test(text)) {
+            text = reconstructFractions(text);
+        }
         // Brace unbraced \sqrt or \frac in superscripts/subscripts
         text = text.replace(/([\^_])\s*(\\sqrt(?:\[[^\]]*\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
         text = text.replace(/([\^_])\s*(\\(?:d?frac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
