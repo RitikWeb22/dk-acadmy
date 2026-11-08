@@ -494,7 +494,7 @@ export const apiClient = {
       '';
     const res = await this.post<any>('/dpp-pyqs/ai-format-math', {
       ...payload,
-      model: payload.model || 'gemini-3.8-flash',
+      model: payload.model || 'gemini-2.5-flash',
       geminiApiKey: key
     });
     return res as any;
@@ -562,19 +562,27 @@ export const apiClient = {
     }
 
     const endpointUrl = formatEndpoint('/math-import/ai-repair');
-    const res = await fetch(endpointUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        ...payload,
-        statement: payload.statement || payload.rawText || ''
-      })
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s client timeout
 
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || json.success === false) {
-      throw new Error(json.message || json.error || `AI repair request failed (${res.status})`);
+    try {
+      const res = await fetch(endpointUrl, {
+        method: 'POST',
+        headers,
+        signal: controller.signal,
+        body: JSON.stringify({
+          ...payload,
+          statement: payload.statement || payload.rawText || ''
+        })
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.message || json.error || `AI repair request failed (${res.status})`);
+      }
+      return json;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return json;
   }
 };

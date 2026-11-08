@@ -2588,7 +2588,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       const res = await apiClient.formatMathWithAi({
         statement: '',
         options: [{ key: optionKey, text: targetOpt.text }],
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       const formattedText = res?.data?.options?.[0]?.text || normalizeMathText(targetOpt.text);
       const newOpts = currentEditingQuestion.options.map((o) =>
@@ -2615,7 +2615,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       const res = await apiClient.formatMathWithAi({
         statement: currentEditingQuestion.questionText,
         options: [],
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       const cleanStmt = res?.data?.correctedQuestion || res?.data?.statement || normalizeMathText(currentEditingQuestion.questionText);
       const cleanBlocks = parseContentToBlocks(cleanStmt);
@@ -2650,7 +2650,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       const res = await apiClient.formatMathWithAi({
         statement: '',
         options: currentEditingQuestion.options.map((o) => ({ key: o.key, text: o.text })),
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       const cleanOpts = res?.data?.correctedOptions || res?.data?.options;
       if (cleanOpts && cleanOpts.length > 0) {
@@ -2689,7 +2689,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         options: extracted.options || [],
         stepSolution: '',
         dkSirShortcut: '',
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
 
       const newStatement = res?.data?.correctedQuestion || res?.data?.statement || normalizeMathText(extracted.statement);
@@ -2740,7 +2740,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         options: currentEditingQuestion.options?.map((o) => ({ key: o.key, text: o.text })),
         stepSolution: currentEditingQuestion.solutionDerivation,
         dkSirShortcut: currentEditingQuestion.shortcutTrick,
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       if (res?.data) {
         const cleanStmt = res.data.statement || normalizeMathText(currentEditingQuestion.questionText);
@@ -2782,7 +2782,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         options: curQ.options,
         stepSolution: curQ.stepSolution,
         dkSirShortcut: curQ.dkSirShortcut,
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
       if (res?.data) {
         handleUpdateParsedDocxQuestion(activeDocxReviewIdx, {
@@ -2827,7 +2827,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
             options: q.options,
             stepSolution: q.stepSolution,
             dkSirShortcut: q.dkSirShortcut,
-            model: 'gemini-3.8-flash'
+            model: 'gemini-2.5-flash'
           });
           if (res?.data) {
             handleUpdateParsedDocxQuestion(i, {

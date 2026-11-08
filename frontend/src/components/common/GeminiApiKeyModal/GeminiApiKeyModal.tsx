@@ -17,7 +17,7 @@ export const GeminiApiKeyModal: React.FC<GeminiApiKeyModalProps> = ({
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
-  const [model, setModel] = useState('gemini-3.8-flash');
+  const [model, setModel] = useState('gemini-2.5-flash');
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -61,7 +61,7 @@ export const GeminiApiKeyModal: React.FC<GeminiApiKeyModalProps> = ({
 
       await apiClient.updateGeminiConfig({
         apiKey: trimmed,
-        model: 'gemini-3.8-flash'
+        model: 'gemini-2.5-flash'
       });
 
       setIsConfigured(Boolean(trimmed.length > 5));
