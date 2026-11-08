@@ -72,9 +72,9 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
 
   // Delimiters supported:
   // 1. Display math: $$ ... $$ and \[ ... \]
-  // 2. Inline math: $ ... $ and \( ... \)
+  // 2. Inline math: $ ... $ and \( ... \) (including multiline inline math)
   // 3. AMS Environments without wrappers: \begin{cases}...\end{cases}, \begin{bmatrix}...\end{bmatrix}, etc.
-  const regex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[^\$\n]+?\$|\\\([\s\S]*?\\\)|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}[\s\S]*?\\end\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\})/g;
+  const regex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$(?:\\\$|[^\$])+?\$|\\\([\s\S]*?\\\)|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}[\s\S]*?\\end\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\})/g;
 
   const parts = text.split(regex);
   const blocks: MathContentBlock[] = [];

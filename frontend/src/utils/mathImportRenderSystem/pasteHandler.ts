@@ -168,6 +168,12 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
   s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
+  // Strip illegal prime / quote superscripts on digits e.g. 0^' or 0^{'} or 0' -> 0
+  s = s.replace(/(\d+)\s*\^\s*\{?\s*['′]\s*\}?/g, '$1')
+       .replace(/(\d+)\s*['′]/g, '$1')
+       .replace(/([a-zA-Z\\]+)\s*\^\s*\{?\s*['′]\s*\}?/g, "$1' ")
+       .replace(/\^\s*\{?\s*['′]\s*\}?/g, "'");
+
   // Mathematical alphanumeric symbols (Word math italics)
   s = s.replace(/[\u{1D44E}-\u{1D467}]/gu, (c) => {
     const code = c.codePointAt(0);
@@ -299,7 +305,7 @@ export function normalizeMathString(raw: string): string {
 
   // Wrap bare LaTeX in $...$
   const protectedBlocks: string[] = [];
-  s = s.replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[^\$\n]+?\$|\\\([\s\S]*?\\\)/g, (m) => {
+  s = s.replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$(?:\\\$|[^\$])+?\$|\\\([\s\S]*?\\\)/g, (m) => {
     const key = `\u27E6MATH_${protectedBlocks.length}\u27E7`;
     protectedBlocks.push(m);
     return key;
