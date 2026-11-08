@@ -128,6 +128,24 @@ export function parseWordMatricesAndCases(input: string): string {
                    .replace(/</g, ' < ')
                    .replace(/>/g, ' > ');
         col2 = col2.replace(/\s+/g, ' ').trim();
+        // Clean invisible Word formatting chars from col1
+        col1 = col1.replace(/[\u2061\u200B-\u200D\uFEFF]/g, '');
+        // Linear fractions: 1/x -> \dfrac{1}{x}
+        col1 = col1.replace(/(?<![a-zA-Z0-9_\\])(\d+)\s*\/\s*([a-zA-Z])(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+        // Linear fractions: x/a -> \dfrac{x}{a}
+        col1 = col1.replace(/(?<=[(,=+\-*\/]\s*)([a-zA-Z])\s*\/\s*([a-zA-Z0-9])(?=\s*[),=+;\-*\/])/g, '\\dfrac{$1}{$2}');
+        // Parens fractions: (A)/(B) -> \dfrac{A}{B}
+        col1 = col1.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
+        // Radicals: √(expr) -> \sqrt{expr}
+        col1 = col1.replace(/√\s*\(([^()]+)\)/g, '\\sqrt{$1}');
+        col1 = col1.replace(/\\sqrt\s*\(([^()]+)\)/g, '\\sqrt{$1}');
+        // log_e -> \log_e
+        col1 = col1.replace(/(?<!\\)\blog_e\b/g, '\\log_e');
+        // Trig powers: cos^2x -> \cos^2 x
+        col1 = col1.replace(/(?<!\\)\b(sin|cos|tan|cot|sec|csc)\^([0-9]+)\s*([a-zA-Z])/g, '\\$1^{$2} $3');
+        // Tall parens after log_e: \log_e(\dfrac{...}{...}) -> \log_e\left(\dfrac{...}{...}\right)
+        col1 = col1.replace(/\\log_e\s*\(\s*(\\dfrac\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})\s*\)/g, '\\log_e\\left($1\\right)');
+
         col1 = col1.replace(/[≥\u2265]/g, ' \\ge ').replace(/[≤\u2264]/g, ' \\le ');
 
         return `${col1} & ${col2}`;
@@ -375,11 +393,18 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(
     new RegExp(`(?<![a-zA-Z0-9_\\$])(-?[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?\\b(?:dy|dx|dt|dz)\\b[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?=\\s*[^,;.\\n]+?)(?=\\s*[,;.]|\\s+${proseDiffStopsEq}|$)`, 'gi'),
     (fullMatch, eq: string) => {
-      const stripped = eq.replace(/\\[a-zA-Z]+/g, ' ');
+      let activeEq = eq.trim();
+      let prefix = '';
+      const introMatch = activeEq.match(/^(.*?\b(?:differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)(.+)$/i);
+      if (introMatch) {
+        prefix = introMatch[1];
+        activeEq = introMatch[2];
+      }
+      const stripped = activeEq.replace(/\\[a-zA-Z]+/g, ' ');
       if (/\b(?:let|the|for|with|where|when|if|then|is|are|curve|passes|passing|through|solution)\b/i.test(stripped)) {
         return fullMatch;
       }
-      return protect(eq);
+      return (prefix ? prefix + ' ' : '') + protect(activeEq);
     }
   );
 
@@ -433,10 +458,21 @@ export function wrapMathInDollars(text: string): string {
     /(?<=\b(?:Then|and|if|where)\s+)([a-zA-Z](?:\s*\([a-zA-Z0-9_+\-/*\\^\{\}\s.,]+\))?)(?=\s+(?:is\s+equal\s+to|equals\b|exists\b))/gi,
     (_, m) => {
       let clean = m.trim();
-      if (clean.includes('\\frac')) {
-        clean = clean.replace(/\(\s*(\\frac\{[^{}]+\}\{[^{}]+\})\s*\)/, '\\left($1\\right)');
+      clean = clean.replace(/(\d+)\s*\/\s*(\d+)/g, '\\dfrac{$1}{$2}');
+      if (clean.includes('\\frac') || clean.includes('\\dfrac')) {
+        clean = clean.replace(/\(\s*(\\(?:d?frac)\{[^{}]+\}\{[^{}]+\})\s*\)/, '\\left($1\\right)');
       }
       return protect(clean);
+    }
+  );
+
+  // Step 5f: Multi-term fraction expressions before "is equal to" / "equals" or punctuation
+  // e.g. "then 1/a+1/b+4/k is equal to" -> "then $\dfrac{1}{a} + \dfrac{1}{b} + \dfrac{4}{k}$ is equal to"
+  s = s.replace(
+    /(?<=\b(?:then|and|if|where)\s+)(\d+\/[a-zA-Z0-9]+(?:\s*[+\-*/]\s*\d+\/[a-zA-Z0-9]+)+)(?=\s+(?:is\s+equal\s+to|equals\b|is\b)|\s*[,;.]|$)/gi,
+    (_, m) => {
+      const formatted = m.replace(/(\d+)\/([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
+      return protect(formatted);
     }
   );
 

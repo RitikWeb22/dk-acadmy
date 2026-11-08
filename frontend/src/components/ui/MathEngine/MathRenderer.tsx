@@ -43,7 +43,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
   blocks: propBlocks,
   displayMode = false,
   className = '',
-  engine = 'auto'
+  engine = 'katex'
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -69,9 +69,9 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
     return parseContentToBlocks(cleanedContent);
   }, [cleanedContent, propBlocks]);
 
-  // MathJax pass for advanced LaTeX environments
+  // MathJax pass ONLY when explicitly requested via engine="mathjax" to prevent main-thread DOM lockups
   useEffect(() => {
-    if ((engine === 'mathjax' || engine === 'auto') && window.MathJax?.typesetPromise && containerRef.current) {
+    if (engine === 'mathjax' && window.MathJax?.typesetPromise && containerRef.current) {
       window.MathJax.typesetPromise([containerRef.current]).catch((err) => {
         console.warn('[MathJax Typeset Warning]:', err);
       });
