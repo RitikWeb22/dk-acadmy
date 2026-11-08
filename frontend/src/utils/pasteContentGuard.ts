@@ -42,9 +42,20 @@ function equationCount(text: string): number {
 
 export function htmlResultLosesContent(plain: string, htmlText: string): boolean {
   if (!plain.trim()) return false;
+  if (!htmlText.trim()) return true;
+
   const htmlProse = new Set(proseTokens(htmlText));
-  if (proseTokens(plain).some((token) => !htmlProse.has(token))) return true;
+  const missingProse = proseTokens(plain).filter((token) => !htmlProse.has(token));
+  if (missingProse.length >= 3) return true;
+
   const htmlNumbers = new Set(numberTokens(htmlText));
-  if (numberTokens(plain).some((token) => !htmlNumbers.has(token))) return true;
-  return equationCount(htmlText) < equationCount(plain);
+  const missingNumbers = numberTokens(plain).filter((token) => !htmlNumbers.has(token));
+  if (missingNumbers.length >= 3) return true;
+
+  // Only consider equation loss if HTML produced zero math while plain text had equations
+  const htmlEqs = equationCount(htmlText);
+  const plainEqs = equationCount(plain);
+  if (plainEqs > 0 && htmlEqs === 0) return true;
+
+  return false;
 }

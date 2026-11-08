@@ -5,6 +5,11 @@ import { TestSubmission } from '../models/TestSubmission.js';
 import { PART_TESTS_DATA } from '../data/partTestsData.js';
 import { normalizeMathematicalText } from '../utils/universalMathEngine/index.js';
 import {
+  normalizeCanonicalMath,
+  validateQuestion,
+  summarizeBatchValidation
+} from '../services/mathImport/index.js';
+import {
   broadcastTestSeriesCreated,
   broadcastTestSeriesUpdated,
   broadcastTestSeriesDeleted
@@ -558,15 +563,15 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
           : 'JEE MAIN';
     }
 
-    // Normalize questions array
+    // Normalize questions array with Canonical KaTeX Math and enforce Storage Rule
     if (Array.isArray(payload.questions)) {
       payload.questions = payload.questions.map((q: any, idx: number) => {
         const rawStatement = q.statement || q.questionText || '';
-        const normStatement = rawStatement ? normalizeMathematicalText(rawStatement).normalizedText : '';
+        const normStatement = rawStatement ? normalizeCanonicalMath(rawStatement) : '';
         const cleanExplanation = q.explanation || q.stepSolution || q.solutionDerivation || '';
-        const normExplanation = cleanExplanation ? normalizeMathematicalText(cleanExplanation).normalizedText : '';
+        const normExplanation = cleanExplanation ? normalizeCanonicalMath(cleanExplanation) : '';
         const cleanShortcut = q.shortcutTrick || q.dkSirShortcut || '';
-        const normShortcut = cleanShortcut ? normalizeMathematicalText(cleanShortcut).normalizedText : '';
+        const normShortcut = cleanShortcut ? normalizeCanonicalMath(cleanShortcut) : '';
 
         return {
           id: q.id || `q-${idx + 1}-${Date.now()}`,
@@ -583,7 +588,7 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
             ? q.options.map((opt: any, optIdx: number) => ({
                 id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
                 key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                text: opt.text ? normalizeMathematicalText(opt.text).normalizedText : '',
+                text: opt.text ? normalizeCanonicalMath(opt.text) : '',
                 imageUrl: opt.imageUrl
               }))
             : [],
@@ -602,6 +607,24 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
       if (!payload.totalMarks || payload.totalMarks === 0) {
         const posMark = payload.markingScheme?.correct || 4;
         payload.totalMarks = payload.questions.length * posMark;
+      }
+
+      // Storage & Publishing Rule: Block publishing if ANY question has RED status
+      const isPublishing = payload.status === 'Published' || payload.isPublished === true;
+      if (isPublishing) {
+        const validationSummaries = payload.questions.map((q: any) =>
+          validateQuestion(q.statement, q.options || [])
+        );
+        const batchDashboard = summarizeBatchValidation(validationSummaries);
+        if (batchDashboard.redCount > 0) {
+          res.status(400).json({
+            success: false,
+            code: 'PUBLISH_BLOCKED_RED_ITEMS',
+            message: `Publishing blocked: ${batchDashboard.redCount} question(s) contain invalid LaTeX syntax or unresolved [CHECK] items. Please fix or run AI Repair before publishing.`,
+            dashboard: batchDashboard
+          });
+          return;
+        }
       }
     }
 
@@ -701,15 +724,15 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
       updates.accessLevel = String(updates.accessLevel).toUpperCase().includes('FREE') ? 'FREE_LEAD_MAGNET' : 'BATCH_INCLUDED';
     }
 
-    // Normalize questions array if updated
+    // Normalize questions array if updated and enforce Storage Rule
     if (Array.isArray(updates.questions)) {
       updates.questions = updates.questions.map((q: any, idx: number) => {
         const rawStatement = q.statement || q.questionText || '';
-        const normStatement = rawStatement ? normalizeMathematicalText(rawStatement).normalizedText : '';
+        const normStatement = rawStatement ? normalizeCanonicalMath(rawStatement) : '';
         const cleanExplanation = q.explanation || q.stepSolution || q.solutionDerivation || '';
-        const normExplanation = cleanExplanation ? normalizeMathematicalText(cleanExplanation).normalizedText : '';
+        const normExplanation = cleanExplanation ? normalizeCanonicalMath(cleanExplanation) : '';
         const cleanShortcut = q.shortcutTrick || q.dkSirShortcut || '';
-        const normShortcut = cleanShortcut ? normalizeMathematicalText(cleanShortcut).normalizedText : '';
+        const normShortcut = cleanShortcut ? normalizeCanonicalMath(cleanShortcut) : '';
 
         return {
           id: q.id || `q-${idx + 1}-${Date.now()}`,
@@ -726,7 +749,7 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
             ? q.options.map((opt: any, optIdx: number) => ({
                 id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
                 key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                text: opt.text ? normalizeMathematicalText(opt.text).normalizedText : '',
+                text: opt.text ? normalizeCanonicalMath(opt.text) : '',
                 imageUrl: opt.imageUrl
               }))
             : [],
@@ -742,6 +765,24 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
         };
       });
       updates.totalQuestions = updates.questions.length;
+
+      // Storage & Publishing Rule: Block publishing if ANY question has RED status
+      const isPublishing = updates.status === 'Published' || updates.isPublished === true;
+      if (isPublishing) {
+        const validationSummaries = updates.questions.map((q: any) =>
+          validateQuestion(q.statement, q.options || [])
+        );
+        const batchDashboard = summarizeBatchValidation(validationSummaries);
+        if (batchDashboard.redCount > 0) {
+          res.status(400).json({
+            success: false,
+            code: 'PUBLISH_BLOCKED_RED_ITEMS',
+            message: `Publishing blocked: ${batchDashboard.redCount} question(s) contain invalid LaTeX syntax or unresolved [CHECK] items. Please fix or run AI Repair before publishing.`,
+            dashboard: batchDashboard
+          });
+          return;
+        }
+      }
     }
 
     const updated = await TestSeries.findOneAndUpdate(

@@ -15,6 +15,7 @@ import doubtRoutes from './doubtRoutes.js';
 import liveRoutes from './liveRoutes.js';
 import couponRoutes from './couponRoutes.js';
 import offerRoutes from './offerRoutes.js';
+import mathImportRoutes from './mathImportRoutes.js';
 import { getGeminiConfig, updateGeminiConfig } from '../controllers/aiFormatController.js';
 
 import mongoose from 'mongoose';
@@ -158,6 +159,7 @@ router.use('/live', liveRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/coupons', couponRoutes);
 router.use('/offers', offerRoutes);
+router.use('/math-import', mathImportRoutes);
 
 // Gemini AI System Configuration
 router.get('/system/gemini-config', getGeminiConfig);

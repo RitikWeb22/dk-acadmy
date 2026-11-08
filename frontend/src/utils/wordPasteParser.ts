@@ -193,8 +193,10 @@ export function convertWordEquationToLatex(raw: string): string {
   s = s.replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}');
   s = s.replace(/√/g, '\\sqrt');
 
-  // 10. Derivatives: dy/dx or d^2y/dx^2
+  // 10. Derivatives: dy/dx or d^2y/dx^2 or dy/(" " \, dx) or dy/(dx)
+  s = s.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z]\^?[0-9]?)\s*\)/g, '\\frac{$1}{$2}');
   s = s.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\frac{$1}{$2}');
+  s = s.replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1');
 
   // 11. Greek letters & symbols (always followed by space so \pi x never becomes invalid \pix)
   s = s.replace(/[π𝜋]/g, '\\pi ')
@@ -303,6 +305,14 @@ export function wrapMathInDollars(text: string): string {
     (_, m) => protect(m));
 
   // Step 2d: Differential equations
+  // e.g. \dfrac{dy}{dx} - \dfrac{3x^5 \tan^{-1}(x^3)}{(1+x^6)^{3/2}} y = 2x\exp\{ ... \}
+  const proseDiffStops = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are)\\b';
+  const fullDiffEqRegex = new RegExp(
+    `(?<![a-zA-Z0-9_\\$])((\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}[^=]+)=\\s*([^,;.\\n]+?))(?=\\s+${proseDiffStops}|\\s*[,;.]|$)`,
+    'i'
+  );
+  s = s.replace(fullDiffEqRegex, (_, m) => protect(m));
+
   // e.g. 2x^{2} dy=(2xy+y^{2}) \, dx
   // e.g. x^{3} dy+xy \, dx=x^{2} dy+2y \, dx
   // e.g. y(x+1) \, dx-x^{2} dy=0
@@ -346,11 +356,11 @@ export function wrapMathInDollars(text: string): string {
     (_, m) => protect(m));
 
   // Step 5a: Full limits/summations with fractions or expressions before prose: e.g. \lim_{x\to 7}\frac{18-[1-x]}{[x-3a]} exists
-  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*(?:\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[A-Za-z0-9_^{}\\()\[\]+\-*/]+))(?=\s+(?:exists|is|equal|where|then|and|for|\.|\,)|$)/gi,
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|_[0-9a-zA-Z]+|\^\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|\^[0-9a-zA-Z]+)*\s*(?:\\(?:frac|dfrac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[A-Za-z0-9_^{}\\()\[\]+\-*/]+))(?=\s+(?:exists|is|equal|where|then|and|for|\.|\,)|$)/gi,
     (_, m) => protect(m));
 
-  // Step 5b: Standalone limits/summations before prose: e.g. \lim_{k\to\infty} S_{k} is equal to
-  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*[A-Za-z0-9_^{}\\()]+)(?=\s+is\b|\s*=\s*|\s*[,;.]|\s+where\b|\s+and\b|$)/gi,
+  // Step 5b: Standalone limits/summations before prose: e.g. \lim_{k\to\infty} S_{k} is equal to, \lim_{x\to 0^{+}} f(x) is equal to
+  s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:lim|sum|prod)(?:_\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|_[0-9a-zA-Z]+|\^\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|\^[0-9a-zA-Z]+)*\s*(?:[A-Za-z]['′]?(?:\([^()\n]+\))?|[A-Za-z0-9_^{}\\()]+))(?=\s+is\b|\s*=\s*|\s*[,;.]|\s+where\b|\s+and\b|$)/gi,
     (_, m) => protect(m));
 
   // Step 5c: Bracketed variable definitions like [t] or [x] when preceded by "where" or followed by "is"

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Sparkles, X } from 'lucide-react';
 import { MathText } from '../../ui/MathText/MathText';
 import { parseWordQuestions, type ParsedWordQuestion } from '../../../utils/wordPasteParser';
+import { extractMathFromHtml, normalizeMathString } from '../../../utils/mathImportRenderSystem/pasteHandler';
 import styles from './PasteWordQuestionModal.module.scss';
 
 export interface PasteWordQuestionModalProps {
@@ -61,6 +62,19 @@ export const PasteWordQuestionModal: React.FC<PasteWordQuestionModalProps> = ({
     onClose();
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const cd = e.clipboardData;
+    if (!cd) return;
+    const html = cd.getData('text/html') || '';
+    const plain = cd.getData('text/plain') || cd.getData('text') || '';
+    if (html && /<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html)) {
+      e.preventDefault();
+      const extracted = extractMathFromHtml(html);
+      const normalized = normalizeMathString(extracted || plain);
+      setPasteText(normalized);
+    }
+  };
+
   const handleLoadSample = () => {
     const sample = `If ∫_0^1 1/(5+2x-2x^2 )(1+e^((2-4x)) ) dx=1/α log_e((α+1)/β),α,β>0, then α^4-β^4 is equal to.
 A -21.       B 21.       C 19.         D 0
@@ -113,6 +127,7 @@ Ans: B`;
               className={styles.pasteTextarea}
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
+              onPaste={handlePaste}
               placeholder={`Paste question and options from Word/PDF here...\n\nExample:\nIf ∫_0^1 1/(5+2x-2x^2 )(1+e^((2-4x)) ) dx=1/α log_e((α+1)/β),α,β>0, then α^4-β^4 is equal to.\nA -21.       B 21.       C 19.         D 0\nAns: B`}
               rows={4}
             />

@@ -33,7 +33,8 @@ const PROSE_WORDS_SET = new Set([
   'magnitude', 'length', 'area', 'volume', 'distance',
   'vector', 'vectors', 'matrix', 'matrices', 'function', 'functions',
   'point', 'points', 'line', 'lines', 'plane', 'planes', 'curve', 'curves',
-  'statement', 'correct', 'incorrect', 'true', 'false', 'option', 'options'
+  'statement', 'correct', 'incorrect', 'true', 'false', 'option', 'options',
+  'pass', 'passes', 'passing', 'through', 'touch', 'touches', 'touching', 'origin'
 ]);
 
 function extractBalancedMathSpan(text: string, startIndex: number): { span: string; endIndex: number } | null {
@@ -233,6 +234,22 @@ function wrapLooseMath(text: string): string {
   result = result.replace(
     /(\binterval\s+)([(\[][0-9A-Za-z+\-,\s\\]+[)\]])/g,
     (_m, lead: string, expr: string) => `${lead}${stashMath(expr)}`
+  );
+
+  // Wrap differential equations: e.g. \dfrac{dy}{dx} - \dots = \dots or 2x^2 dy = (2xy + y^2) dx
+  const proseDiffStops = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are)\\b';
+  result = result.replace(
+    new RegExp(`(?<![A-Za-z0-9_$\\u0000\\u0001])((\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}[^=]+)=\\s*([^,;.\\n]+?))(?=\\s+${proseDiffStops}|\\s*[,;.]|$)`, 'gi'),
+    (_m, eq: string) => stashMath(eq)
+  );
+  result = result.replace(
+    /(?<![A-Za-z0-9_$\u0000\u0001])((?:-?\s*(?:[0-9a-zA-Z^{}_\\]+|\([^()\n]+\)|\\frac\{[^{}]+\}\{[^{}]+\})\s*)*(?:\\,)?\s*(?:dy|dx|dt|dz)(?:\s*[-+]\s*(?:[0-9a-zA-Z^{}_\\]+|\([^()\n]+\)|\\frac\{[^{}]+\}\{[^{}]+\})\s*(?:\\,)?\s*(?:dy|dx|dt|dz))*\s*=\s*[^,;.\n\u0000\u0001]+?)(?=\s*[,;.]|\s+(?:and|or|if|then|where|when|be|is|are|in|at|to|for|such|pass|through)\b|$)/gi,
+    (fullMatch, eq: string) => {
+      const stripped = eq.replace(/\\[a-zA-Z]+/g, ' ');
+      const words = stripped.match(/\b[A-Za-z]{2,}\b/g) || [];
+      if (words.some((w) => PROSE_WORDS_SET.has(w.toLowerCase()) && !['dx', 'dy', 'dt', 'dz'].includes(w.toLowerCase()))) return fullMatch;
+      return stashMath(eq);
+    }
   );
 
   // Wrap equations with LHS = RHS containing LaTeX or exponents (e.g. f(x)=[\frac{x}{2}+3]-[\sqrt{x}] or ax^2+bx-\sqrt{e}=0)

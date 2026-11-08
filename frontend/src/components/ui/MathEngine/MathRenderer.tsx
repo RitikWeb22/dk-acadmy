@@ -107,6 +107,16 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
   );
 };
 
+const KATEX_MACROS: Record<string, string> = {
+  '\\R': '\\mathbb{R}',
+  '\\N': '\\mathbb{N}',
+  '\\Z': '\\mathbb{Z}',
+  '\\Q': '\\mathbb{Q}',
+  '\\C': '\\mathbb{C}',
+  '\\d': '\\mathrm{d}',
+  '\\diff': '\\frac{\\mathrm{d}#1}{\\mathrm{d}#2}',
+};
+
 /**
  * Typesets a single mathematical formula using KaTeX with safety boundaries
  */
@@ -117,14 +127,17 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
   const renderedHtml = useMemo(() => {
     const cleanFormula = sanitizeFormula(formula);
 
+    const baseOptions = {
+      displayMode: isDisplay,
+      throwOnError: false,
+      output: 'htmlAndMathml' as const,
+      strict: 'ignore' as const,
+      trust: false,
+      macros: KATEX_MACROS
+    };
+
     try {
-      let html = katex.renderToString(cleanFormula, {
-        displayMode: isDisplay,
-        throwOnError: false,
-        output: 'html',
-        strict: false,
-        trust: false
-      });
+      let html = katex.renderToString(cleanFormula, baseOptions);
 
       // If KaTeX encountered an error node, attempt auto-balancing repair
       if (html.includes('katex-error')) {
@@ -144,13 +157,7 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
         }
 
         try {
-          const secondTry = katex.renderToString(repaired, {
-            displayMode: isDisplay,
-            throwOnError: false,
-            output: 'html',
-            strict: false,
-            trust: false
-          });
+          const secondTry = katex.renderToString(repaired, baseOptions);
 
           if (!secondTry.includes('katex-error')) {
             html = secondTry;
@@ -161,20 +168,13 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
               .replace(/\\right[\]\)\}\|.]/g, ']')
               .replace(/\\left\\\{/g, '{')
               .replace(/\\right\\\}/g, '}');
-            const thirdTry = katex.renderToString(stripped, {
-              displayMode: isDisplay,
-              throwOnError: false,
-              output: 'html',
-              strict: false,
-              trust: false
-            });
+            const thirdTry = katex.renderToString(stripped, baseOptions);
             if (!thirdTry.includes('katex-error')) {
               html = thirdTry;
             } else {
               // Final fallback: KaTeX could not render even after all repairs.
-              // Show the original cleanFormula in a monospace span so the user
-              // still sees readable LaTeX instead of backslash-stripped garbage.
-              html = `<span class="katex-fallback" style="font-family:monospace;font-size:0.9em;color:#b45309">${cleanFormula.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+              // Show red inline error chip with original LaTeX expression
+              html = `<span class="katex-error-inline" title="KaTeX rendering error" style="color:#dc2626;background-color:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 5px;font-family:monospace;font-size:0.85em;display:inline-block;margin:0 2px;">${cleanFormula.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
             }
           }
         } catch {}
@@ -194,7 +194,21 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
 
   if (renderedHtml.error) {
     return (
-      <span className={styles.mathErrorFallback} title={renderedHtml.error}>
+      <span
+        className="katex-error-inline"
+        title={renderedHtml.error}
+        style={{
+          color: '#dc2626',
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '4px',
+          padding: '1px 5px',
+          fontFamily: 'monospace',
+          fontSize: '0.85em',
+          display: 'inline-block',
+          margin: '0 2px'
+        }}
+      >
         {formula}
       </span>
     );
