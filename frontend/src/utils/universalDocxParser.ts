@@ -105,34 +105,42 @@ export function normalizePastedQuestion(
   clipboardPayload: DataTransfer | { html?: string; text: string } | string | any
 ): NormalizedQuestionResult {
   // Check if raw plain text contains questions that parseWordQuestions can extract
+  let htmlText = '';
   let plainText = '';
   if (typeof clipboardPayload === 'string') {
     plainText = clipboardPayload;
   } else if (clipboardPayload && typeof clipboardPayload.getData === 'function') {
+    htmlText = clipboardPayload.getData('text/html') || '';
     plainText = clipboardPayload.getData('text/plain') || clipboardPayload.getData('text') || '';
   } else if (clipboardPayload && typeof clipboardPayload === 'object') {
+    htmlText = clipboardPayload.html || '';
     plainText = clipboardPayload.text || clipboardPayload.plain || '';
   }
 
-  if (plainText.trim()) {
+  const hasMathHtml = Boolean(htmlText && /<(?:m:)?(?:oMath|oMathPara|math)\b/i.test(htmlText));
+
+  // Only use legacy plain-text question splitting if no rich math HTML is present and actual options exist
+  if (!hasMathHtml && plainText.trim()) {
     const wordQuestions = parseWordQuestions(plainText);
     if (wordQuestions.length > 0) {
       const q0 = wordQuestions[0];
       const hasActualOptions = q0.options.filter(o => o.text && o.text.trim().length > 0).length >= 2;
-      return {
-        sourceType: 'unicode-plain-text',
-        fullNormalizedText: q0.statement,
-        hasQuestionWithOptions: hasActualOptions,
-        statement: q0.statement,
-        options: hasActualOptions ? q0.options : [],
-        correctKey: q0.correctKey,
-        numericalAnswer: q0.numericalAnswer,
-        stepSolution: q0.solution,
-        dkSirShortcut: q0.shortcut,
-        warnings: [],
-        confidence: 1,
-        needsReview: false
-      };
+      if (hasActualOptions) {
+        return {
+          sourceType: 'unicode-plain-text',
+          fullNormalizedText: q0.statement,
+          hasQuestionWithOptions: true,
+          statement: q0.statement,
+          options: q0.options,
+          correctKey: q0.correctKey,
+          numericalAnswer: q0.numericalAnswer,
+          stepSolution: q0.solution,
+          dkSirShortcut: q0.shortcut,
+          warnings: [],
+          confidence: 1,
+          needsReview: false
+        };
+      }
     }
   }
 

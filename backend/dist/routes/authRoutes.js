@@ -21,9 +21,6 @@ const registerSchema = z
     email: z.string().trim().email('Valid email address required'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     phone: z.string().trim().optional(),
-    role: z
-        .enum(['STUDENT', 'TEACHER', 'COUNSELOR', 'LEAD_MANAGER', 'CMS_MANAGER', 'ADMIN', 'SUPER_ADMIN'])
-        .optional(),
     targetExam: z.string().trim().optional(),
     targetClass: z.string().trim().optional(),
     targetYear: z.string().trim().optional()

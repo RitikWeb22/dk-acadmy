@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { createOrder, verifyPayment, getOrdersList, getMyOrders, createAdminInvoice, updateOrderStatus, deleteOrder, purgeDemoOrders } from '../controllers/paymentController.js';
-import { protect, directoryProtect } from '../middlewares/authMiddleware.js';
+import { protect, directoryProtect, optionalProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 const router = Router();
 const createOrderSchema = z
@@ -9,6 +9,7 @@ const createOrderSchema = z
     amount: z.union([z.number(), z.string().regex(/^\d+(\.\d+)?$/)]).transform((v) => Number(v)),
     courseId: z.string().trim().optional(),
     courseTitle: z.string().trim().optional(),
+    couponCode: z.string().trim().optional(),
     studentName: z.string().trim().optional(),
     studentEmail: z.string().trim().email().optional(),
     studentPhone: z.string().trim().optional()
@@ -45,8 +46,8 @@ const adminInvoiceSchema = z
 })
     .strict();
 // Order creation and payment verification
-router.post('/create-order', validate({ body: createOrderSchema }), createOrder);
-router.post('/verify', validate({ body: verifyPaymentSchema }), verifyPayment);
+router.post('/create-order', optionalProtect, validate({ body: createOrderSchema }), createOrder);
+router.post('/verify', optionalProtect, validate({ body: verifyPaymentSchema }), verifyPayment);
 // Student personal orders and fee receipts
 router.get('/my-orders', protect, getMyOrders);
 // Admin orders list, manual invoice creation, and management (supports valid JWT and admin session)

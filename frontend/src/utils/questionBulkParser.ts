@@ -1098,7 +1098,7 @@ export function normalizeMathText(raw: string): string {
       return `\\lim_{${clean.trim()}} `;
     });
     res = res.replace(/\\?lim\s*([a-zA-Z]+)\s*[→\u2192]\s*([0-9a-zA-Z∞\u221E\+\-]+)[\s\u200a]*/gi, (_, v, dest) => {
-      const cleanDest = dest === '∞' || dest === '\u221E' ? '\\infty' : dest;
+      const cleanDest = dest === '∞' || dest === '\\infty' ? '\\infty' : dest;
       return `\\lim_{${v} \\to ${cleanDest}} `;
     });
 

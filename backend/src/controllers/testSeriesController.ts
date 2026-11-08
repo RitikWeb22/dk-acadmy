@@ -907,30 +907,70 @@ export const submitTestSeries = async (req: AuthRequest, res: Response): Promise
 
     const submissionId = clientSubmissionId || `sub-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
-    const newSubmission = await TestSubmission.create({
-      submissionId,
-      testId: test.id,
-      studentId: String(studentId),
-      studentEmail,
-      studentName,
-      submittedAt,
-      timeSpentSeconds: Number(timeSpentSeconds) || 0,
-      score: totalScore,
-      totalMarks,
-      accuracy,
-      correctCount,
-      incorrectCount,
-      unattemptedCount,
-      responses: responses || {},
-      solutionSchedule: {
-        enabled: isReleaseEnabled,
-        pdfSolutionUrl: test.solutionRelease?.pdfUrl || '',
-        videoSolutionUrl: test.solutionRelease?.videoUrl || '',
-        releaseDelayHours: delayHours,
-        solutionUnlockAt,
-        releaseStatus: isReleaseEnabled ? 'SCHEDULED' : 'DISABLED'
+    let newSubmission: any;
+    try {
+      newSubmission = await TestSubmission.create({
+        submissionId,
+        testId: test.id,
+        studentId: String(studentId),
+        studentEmail,
+        studentName,
+        submittedAt,
+        timeSpentSeconds: Number(timeSpentSeconds) || 0,
+        score: totalScore,
+        totalMarks,
+        accuracy,
+        correctCount,
+        incorrectCount,
+        unattemptedCount,
+        responses: responses || {},
+        status: 'SUBMITTED',
+        solutionSchedule: {
+          enabled: isReleaseEnabled,
+          pdfSolutionUrl: test.solutionRelease?.pdfUrl || '',
+          videoSolutionUrl: test.solutionRelease?.videoUrl || '',
+          releaseDelayHours: delayHours,
+          solutionUnlockAt,
+          releaseStatus: isReleaseEnabled ? 'SCHEDULED' : 'DISABLED'
+        }
+      });
+
+      // Clear student's in-progress autosaved draft upon finalized submission
+      const progressKey = `progress_${test.id}_${studentId}`;
+      await TestSubmission.deleteOne({ submissionId: progressKey }).catch(() => {});
+    } catch (createErr: any) {
+      // Graceful concurrency catch: if another request created this submissionId milliseconds ago, return it idempotently
+      if (createErr?.code === 11000 || createErr?.name === 'MongoServerError') {
+        const existingSub = await TestSubmission.findOne({ submissionId });
+        if (existingSub) {
+          res.status(200).json({
+            success: true,
+            message: 'Existing submission retrieved',
+            data: {
+              submissionId: existingSub.submissionId,
+              testId: existingSub.testId,
+              score: existingSub.score,
+              totalMarks: existingSub.totalMarks,
+              accuracy: existingSub.accuracy,
+              correctCount: existingSub.correctCount,
+              incorrectCount: existingSub.incorrectCount,
+              unattemptedCount: existingSub.unattemptedCount,
+              submittedAt: existingSub.submittedAt,
+              solutionSchedule: {
+                enabled: existingSub.solutionSchedule.enabled,
+                releaseDelayHours: existingSub.solutionSchedule.releaseDelayHours,
+                solutionUnlockAt: existingSub.solutionSchedule.solutionUnlockAt,
+                isUnlocked: new Date().getTime() >= new Date(existingSub.solutionSchedule.solutionUnlockAt).getTime(),
+                hasPdf: Boolean(existingSub.solutionSchedule.pdfSolutionUrl),
+                hasVideo: Boolean(existingSub.solutionSchedule.videoSolutionUrl)
+              }
+            }
+          });
+          return;
+        }
       }
-    });
+      throw createErr;
+    }
 
     // Increment attempts count on test
     await TestSeries.updateOne({ id: test.id }, { $inc: { attemptsCount: 1 } }).catch(() => {});
@@ -961,6 +1001,169 @@ export const submitTestSeries = async (req: AuthRequest, res: Response): Promise
     });
   } catch (error: any) {
     console.error('[submitTestSeries Error]:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Autosave student test progress periodically (responses, timeSpentSeconds).
+ * Enables resilient state restoration across browser reloads or network drops.
+ */
+export const autosaveTestProgress = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { responses, timeSpentSeconds, clientSubmissionId, clientTimestamp } = req.body;
+
+    const test = await TestSeries.findOne({
+      $or: [{ id }, { slug: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }]
+    });
+
+    if (!test) {
+      res.status(404).json({ success: false, message: 'Test Series not found' });
+      return;
+    }
+
+    const studentId = (req.user as any)?.id || (req.user as any)?._id || req.body.studentId;
+    if (!studentId) {
+      res.status(400).json({ success: false, message: 'Student ID is required for autosave' });
+      return;
+    }
+
+    const progressKey = `progress_${test.id}_${studentId}`;
+
+    // 1. Guard against autosaving if the exam has already been finalized
+    const finalizedExam = await TestSubmission.findOne({
+      testId: test.id,
+      studentId: String(studentId),
+      status: 'SUBMITTED',
+      submissionId: { $ne: progressKey }
+    });
+
+    if (finalizedExam) {
+      res.status(409).json({
+        success: false,
+        message: 'Exam has already been finalized and submitted. Autosave rejected.',
+        data: {
+          submissionId: finalizedExam.submissionId,
+          submittedAt: finalizedExam.submittedAt
+        }
+      });
+      return;
+    }
+
+    // 2. Out-of-order jitter guard: Check if an existing draft has a newer client timestamp
+    const incomingTimestamp = Number(clientTimestamp) || Date.now();
+    const existingDraft = await TestSubmission.findOne({ submissionId: progressKey });
+
+    if (existingDraft && existingDraft.clientTimestamp && incomingTimestamp < existingDraft.clientTimestamp) {
+      res.status(200).json({
+        success: true,
+        ignored: true,
+        message: 'Newer progress already recorded; ignoring delayed out-of-order packet',
+        data: {
+          submissionId: existingDraft.submissionId,
+          testId: existingDraft.testId,
+          attemptVersion: existingDraft.attemptVersion,
+          lastSavedAt: existingDraft.lastSavedAt
+        }
+      });
+      return;
+    }
+
+    // 3. Atomically update draft with optimistic version bump
+    const updated = await TestSubmission.findOneAndUpdate(
+      { submissionId: progressKey },
+      {
+        $set: {
+          testId: test.id,
+          studentId: String(studentId),
+          studentEmail: req.user?.email || req.body.studentEmail || '',
+          studentName: req.user?.name || req.body.studentName || 'Student',
+          timeSpentSeconds: Number(timeSpentSeconds) || 0,
+          responses: responses || {},
+          clientTimestamp: incomingTimestamp,
+          lastSavedAt: new Date(),
+          status: 'IN_PROGRESS',
+          solutionSchedule: {
+            enabled: false,
+            releaseDelayHours: 24,
+            solutionUnlockAt: new Date(Date.now() + 24 * 3600 * 1000),
+            releaseStatus: 'DISABLED'
+          }
+        },
+        $inc: { attemptVersion: 1 }
+      },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Progress autosaved successfully',
+      data: {
+        submissionId: updated.submissionId,
+        testId: updated.testId,
+        timeSpentSeconds: updated.timeSpentSeconds,
+        attemptVersion: updated.attemptVersion,
+        lastSavedAt: updated.lastSavedAt,
+        updatedAt: updated.updatedAt
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Retrieve saved progress for an ongoing test attempt.
+ */
+export const getTestProgress = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const studentId = (req.user as any)?.id || (req.user as any)?._id || req.query.studentId;
+
+    if (!studentId) {
+      res.status(400).json({ success: false, message: 'Student ID is required' });
+      return;
+    }
+
+    const test = await TestSeries.findOne({
+      $or: [{ id }, { slug: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }]
+    });
+
+    if (!test) {
+      res.status(404).json({ success: false, message: 'Test Series not found' });
+      return;
+    }
+
+    const progressKey = `progress_${test.id}_${studentId}`;
+    const progress = await TestSubmission.findOne({
+      $or: [
+        { submissionId: progressKey },
+        { testId: test.id, studentId: String(studentId) }
+      ]
+    }).sort({ updatedAt: -1 });
+
+    if (!progress) {
+      res.status(200).json({ success: true, data: null, message: 'No saved progress found' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        submissionId: progress.submissionId,
+        testId: progress.testId,
+        timeSpentSeconds: progress.timeSpentSeconds,
+        responses: progress.responses,
+        status: progress.status || 'IN_PROGRESS',
+        isFinalized: progress.status === 'SUBMITTED',
+        score: progress.status === 'SUBMITTED' ? progress.score : undefined,
+        attemptVersion: progress.attemptVersion,
+        lastSavedAt: progress.lastSavedAt || progress.updatedAt,
+        updatedAt: progress.updatedAt
+      }
+    });
+  } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };

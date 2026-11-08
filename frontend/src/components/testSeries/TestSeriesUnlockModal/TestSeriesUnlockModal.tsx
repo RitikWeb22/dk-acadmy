@@ -20,12 +20,12 @@ export const TestSeriesUnlockModal: React.FC<TestSeriesUnlockModalProps> = ({
   test,
   isProcessing = false
 }) => {
-  if (!isOpen || !test || typeof document === 'undefined') return null;
-
-  const rawPrice = test.price ? Number(test.price) : 299;
+  const rawPrice = test?.price ? Number(test.price) : 299;
   const effectiveOffer = useMemo(() => {
-    return offerService.getEffectiveItemOffer(test.id, 'test-series', rawPrice);
-  }, [test.id, rawPrice]);
+    return offerService.getEffectiveItemOffer(test?.id, 'test-series', rawPrice);
+  }, [test?.id, rawPrice]);
+
+  if (!isOpen || !test || typeof document === 'undefined') return null;
 
   const price = effectiveOffer.hasOffer ? effectiveOffer.discountedPrice : rawPrice;
 

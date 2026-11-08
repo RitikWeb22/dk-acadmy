@@ -15,6 +15,10 @@ export interface ITestSubmission extends Document {
   incorrectCount: number;
   unattemptedCount: number;
   responses: Record<string, any>;
+  clientTimestamp?: number;
+  attemptVersion?: number;
+  status?: 'IN_PROGRESS' | 'SUBMITTED';
+  lastSavedAt?: Date;
   solutionSchedule: {
     enabled: boolean;
     pdfSolutionUrl?: string;
@@ -43,6 +47,15 @@ const testSubmissionSchema = new Schema<ITestSubmission>(
     incorrectCount: { type: Number, default: 0 },
     unattemptedCount: { type: Number, default: 0 },
     responses: { type: Schema.Types.Mixed, default: () => ({}) },
+    clientTimestamp: { type: Number, default: 0 },
+    attemptVersion: { type: Number, default: 1 },
+    status: {
+      type: String,
+      enum: ['IN_PROGRESS', 'SUBMITTED'],
+      default: 'SUBMITTED',
+      index: true
+    },
+    lastSavedAt: { type: Date, default: Date.now },
     solutionSchedule: {
       enabled: { type: Boolean, default: false },
       pdfSolutionUrl: { type: String, default: '' },

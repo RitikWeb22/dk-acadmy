@@ -6,21 +6,88 @@ import { razorpayInstance } from '../config/razorpay.js';
 import { User } from '../models/User.js';
 import { Order } from '../models/Order.js';
 import { Course } from '../models/Course.js';
+import { TestSeries } from '../models/TestSeries.js';
+import { Coupon } from '../models/Coupon.js';
 import { WebhookEvent } from '../models/WebhookEvent.js';
 import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import { broadcastPaymentSuccess, broadcastCMSUpdated } from '../sockets/socket.js';
 
 export const createOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { amount, courseId, courseTitle, studentName, studentEmail, studentPhone } = req.body;
+    const { amount, courseId, courseTitle, studentName, studentEmail, studentPhone, couponCode } = req.body;
 
-    if (!amount || Number(amount) <= 0) {
+    const numericAmount = Number(amount);
+    if (!numericAmount || numericAmount <= 0 || isNaN(numericAmount)) {
       res.status(400).json({ success: false, message: 'Please provide valid payment amount' });
       return;
     }
 
+    // Verify price against Database if courseId or testId is provided
+    if (courseId && courseId !== 'general') {
+      const isOid = mongoose.isValidObjectId(courseId);
+      const course = await Course.findOne({
+        $or: [
+          ...(isOid ? [{ _id: courseId }] : []),
+          { slug: courseId }
+        ]
+      });
+
+      let targetItem: { title: string; price: number } | null = null;
+
+      if (course && typeof course.price === 'number') {
+        targetItem = { title: course.title, price: course.price };
+      } else {
+        const test = await TestSeries.findOne({
+          $or: [
+            ...(isOid ? [{ _id: courseId }] : []),
+            { id: courseId },
+            { slug: courseId }
+          ]
+        });
+        if (test && typeof test.price === 'number') {
+          targetItem = { title: test.title, price: test.price };
+        }
+      }
+
+      if (targetItem && targetItem.price > 0) {
+        let expectedPrice = targetItem.price;
+
+        if (couponCode) {
+          const formattedCode = String(couponCode).trim().toUpperCase();
+          const coupon = await Coupon.findOne({ code: formattedCode, isActive: true });
+          if (coupon) {
+            const isNotExpired = !coupon.expiryDate || new Date(coupon.expiryDate) > new Date();
+            const withinUsageLimit = !coupon.usageLimit || coupon.usedCount < coupon.usageLimit;
+            const meetsMinPrice = !coupon.minCoursePrice || targetItem.price >= coupon.minCoursePrice;
+
+            if (isNotExpired && withinUsageLimit && meetsMinPrice) {
+              let discount = 0;
+              if (coupon.discountType === 'percent') {
+                discount = (targetItem.price * coupon.discountValue) / 100;
+                if (coupon.maxDiscountAmount) {
+                  discount = Math.min(discount, coupon.maxDiscountAmount);
+                }
+              } else {
+                discount = coupon.discountValue;
+              }
+              expectedPrice = Math.max(0, targetItem.price - discount);
+            }
+          }
+        }
+
+        // Price manipulation guard: student cannot pay less than verified expected price
+        if (numericAmount < Math.floor(expectedPrice)) {
+          res.status(400).json({
+            success: false,
+            message: `Invalid payment amount: Expected at least ₹${Math.floor(expectedPrice)} for "${targetItem.title}", but received ₹${numericAmount}. Price tampering detected.`
+          });
+          return;
+        }
+      }
+    }
+
     const options = {
-      amount: Math.round(Number(amount) * 100), // convert to paise
+      amount: Math.round(numericAmount * 100), // convert to paise
       currency: 'INR',
       receipt: `rcpt_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       notes: {
@@ -122,20 +189,36 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    // 1. Update Order status in MongoDB
+    // 1. Update Order status in MongoDB (Idempotency check)
+    const wasAlreadySuccess = existingOrder.status === 'SUCCESS';
     existingOrder.status = 'SUCCESS';
     existingOrder.paymentId = razorpay_payment_id;
     existingOrder.signature = razorpay_signature;
     await existingOrder.save();
 
     // 2. Enroll user in Course (server-side verified only)
-    const targetCourseId = courseId || existingOrder.courseId;
-    if (targetCourseId && req.user) {
-      const courses = req.user.enrolledCourses || [];
-      if (!courses.map((c) => c.toString()).includes(targetCourseId)) {
-        courses.push(targetCourseId as any);
-        req.user.enrolledCourses = courses;
-        await req.user.save();
+    if (courseId && existingOrder.courseId && existingOrder.courseId !== 'general' && existingOrder.courseId !== courseId) {
+      res.status(400).json({
+        success: false,
+        message: 'Security violation: Course ID does not match order record'
+      });
+      return;
+    }
+    const targetCourseId = existingOrder.courseId || courseId;
+    const targetUserId = req.user?._id || existingOrder.userId;
+
+    if (!wasAlreadySuccess && targetCourseId && targetUserId) {
+      const studentToEnroll = (req.user && typeof req.user.save === 'function')
+        ? req.user
+        : await User.findById(targetUserId);
+
+      if (studentToEnroll) {
+        const courses = studentToEnroll.enrolledCourses || [];
+        if (!courses.map((c) => c.toString()).includes(targetCourseId.toString())) {
+          courses.push(targetCourseId as any);
+          studentToEnroll.enrolledCourses = courses;
+          await studentToEnroll.save();
+        }
       }
 
       // Increment course enrolment count
@@ -244,15 +327,69 @@ export const handleRazorpayWebhook = async (req: Request, res: Response): Promis
       if (orderId) {
         const order = await Order.findOne({ orderId });
         if (order) {
+          const wasAlreadySuccess = order.status === 'SUCCESS';
           order.status = 'SUCCESS';
           if (paymentId) order.paymentId = paymentId;
           await order.save();
 
-          if (order.userId && order.courseId) {
+          // Only increment course count if not previously verified by /verify
+          if (!wasAlreadySuccess && order.userId && order.courseId) {
             await User.findByIdAndUpdate(order.userId, {
               $addToSet: { enrolledCourses: order.courseId }
             });
             await Course.findByIdAndUpdate(order.courseId, { $inc: { enrolmentCount: 1 } });
+          }
+        }
+      }
+    } else if (payload.event === 'payment.failed' && mongoose.connection.readyState === 1) {
+      const paymentEntity = payload.payload?.payment?.entity;
+      const orderId = paymentEntity?.order_id;
+      if (orderId) {
+        const order = await Order.findOne({ orderId });
+        if (order && order.status !== 'SUCCESS') {
+          order.status = 'FAILED';
+          await order.save();
+        }
+      }
+    } else if ((payload.event === 'refund.processed' || payload.event === 'refund.created') && mongoose.connection.readyState === 1) {
+      const refundEntity = payload.payload?.refund?.entity;
+      const paymentId = refundEntity?.payment_id;
+      if (paymentId) {
+        const order = await Order.findOne({ paymentId });
+        if (order) {
+          // Idempotency Guard: Only process refund revocation once
+          if (order.status !== 'REFUNDED') {
+            order.status = 'REFUNDED';
+            order.refundAmount = Number(refundEntity?.amount ? refundEntity.amount / 100 : order.amount);
+            await order.save();
+
+            if (order.courseId) {
+              if (order.userId) {
+                // Safety: Check if student has OTHER active successful orders for this exact course
+                const otherOrders = await Order.countDocuments({
+                  userId: order.userId,
+                  courseId: order.courseId,
+                  status: 'SUCCESS',
+                  _id: { $ne: order._id }
+                });
+
+                // Only revoke course access if no other active paid orders grant it
+                if (otherOrders === 0) {
+                  await User.findByIdAndUpdate(order.userId, {
+                    $pull: { enrolledCourses: order.courseId }
+                  });
+                }
+              }
+
+              // Decrement course enrolmentCount ONLY if > 0 (prevents negative counts)
+              const courseFilter: Record<string, any> = { enrolmentCount: { $gt: 0 } };
+              if (mongoose.Types.ObjectId.isValid(order.courseId)) {
+                courseFilter._id = order.courseId;
+              } else {
+                courseFilter.slug = order.courseId;
+              }
+              await Course.findOneAndUpdate(courseFilter, { $inc: { enrolmentCount: -1 } });
+            }
           }
         }
       }

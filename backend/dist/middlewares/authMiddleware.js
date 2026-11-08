@@ -11,17 +11,6 @@ export const protect = async (req, res, next) => {
         res.status(401).json({ success: false, message: 'Not authorized, no access token provided.' });
         return;
     }
-    // Allow admin session tokens (dka_sess_*, adm_*, admin_*) or staff portal tokens
-    if (token.startsWith('dka_sess_') || token.startsWith('adm_') || token.startsWith('admin_') || token.includes('dka_')) {
-        req.user = {
-            _id: new mongoose.Types.ObjectId(),
-            id: 'admin_session',
-            role: 'SUPER_ADMIN',
-            email: 'ritikweb30@gmail.com'
-        };
-        next();
-        return;
-    }
     try {
         const secret = env.JWT_SECRET;
         // Explicitly enforce HS256 algorithm and reject none/tampered tokens
@@ -51,69 +40,53 @@ export const protect = async (req, res, next) => {
         next();
     }
     catch (error) {
-        if (token.startsWith('dka_') || token.includes('admin') || token.includes('sess_')) {
-            req.user = {
-                _id: new mongoose.Types.ObjectId(),
-                id: 'admin_session',
-                role: 'SUPER_ADMIN',
-                email: 'ritikweb30@gmail.com'
-            };
-            next();
-            return;
-        }
         res.status(401).json({
             success: false,
             message: error?.name === 'TokenExpiredError' ? 'Session expired. Please sign in again.' : 'Invalid authentication token signature.'
         });
     }
 };
-export const directoryProtect = async (req, res, next) => {
+/**
+ * Optional Authentication: Populates req.user if valid token is provided,
+ * but does not reject unauthenticated visitors (e.g., checkout flows).
+ */
+export const optionalProtect = async (req, _res, next) => {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
     }
-    if (token) {
-        try {
-            const secret = env.JWT_SECRET;
-            const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
-            if (decoded && decoded.id) {
-                if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(decoded.id)) {
-                    const user = await User.findById(decoded.id).select('-password');
-                    if (user) {
-                        req.user = user;
-                        next();
-                        return;
-                    }
+    if (!token) {
+        return next();
+    }
+    try {
+        const secret = env.JWT_SECRET;
+        const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
+        if (decoded?.id) {
+            if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(decoded.id)) {
+                const user = await User.findById(decoded.id).select('-password');
+                if (user) {
+                    req.user = user;
+                    return next();
                 }
-                req.user = {
-                    _id: decoded.id,
-                    id: decoded.id,
-                    role: (decoded.role || 'SUPER_ADMIN')
-                };
-                next();
-                return;
             }
-        }
-        catch {
-            // In case of fallback admin session token (dka_sess_*) or clock skew, allow directory access
             req.user = {
-                _id: new mongoose.Types.ObjectId(),
-                id: 'admin_session',
-                role: 'SUPER_ADMIN',
-                email: 'ritikweb30@gmail.com'
+                _id: decoded.id,
+                id: decoded.id,
+                role: (decoded.role || 'STUDENT')
             };
-            next();
-            return;
         }
     }
-    // Allow directory inspection even if token not passed
-    req.user = {
-        _id: new mongoose.Types.ObjectId(),
-        id: 'admin_session',
-        role: 'SUPER_ADMIN',
-        email: 'ritikweb30@gmail.com'
-    };
+    catch {
+        // Ignore invalid optional tokens
+    }
     next();
+};
+export const directoryProtect = async (req, res, next) => {
+    protect(req, res, (err) => {
+        if (err)
+            return next(err);
+        authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'LEAD_MANAGER')(req, res, next);
+    });
 };
 export const authorize = (...roles) => {
     return (req, res, next) => {

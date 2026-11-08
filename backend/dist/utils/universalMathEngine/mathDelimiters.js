@@ -239,7 +239,7 @@ export function ensureMathDelimiters(text) {
     // Pre-normalize spacing quotes and rogue backslash-commas: 8" "m or " " -> normal space
     text = text.replace(/([0-9]+)\s*["']\s*["']\s*([a-zA-Z])/g, '$1 $2');
     text = text.replace(/([a-zA-Z])\s*["']\s*["']\s*([0-9a-zA-Z])/g, '$1 $2');
-    text = text.replace(/["']\s*["']/g, ' ');
+    text = text.replace(/"\s*"/g, ' ').replace(/'\s+'/g, ' ');
     text = text.replace(/([0-9a-zA-Z])\s*\\,\s*(?=[0-9a-zA-Z])/g, '$1 ');
     if (!hasLooseLatex(text) && !isPureMath(text))
         return text;

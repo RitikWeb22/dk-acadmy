@@ -13,7 +13,7 @@ export const globalApiLimiter = rateLimit({
   skip: (req) => {
     // Never rate limit administrative sessions, internal analytics, or authenticated users
     const auth = req.headers.authorization;
-    if (auth && (auth.startsWith('Bearer ') || auth.includes('dka_sess_'))) {
+    if (auth && auth.startsWith('Bearer ')) {
       return true;
     }
     const path = req.path || req.originalUrl || '';
