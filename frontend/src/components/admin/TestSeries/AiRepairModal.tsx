@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Check, X, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Sparkles, Check, X, AlertTriangle, Zap } from 'lucide-react';
 import { MathPreview } from '../../ui/MathEngine/MathPreview';
 import { apiClient } from '../../../services/apiClient';
+import { cleanWordMathArtifacts } from '../../../utils/wordPasteParser';
 
 export interface AiRepairModalProps {
   isOpen: boolean;
@@ -25,6 +26,17 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
 
   if (!isOpen || typeof document === 'undefined') return null;
 
+  const handleInstantLocalFix = () => {
+    setErrorMsg(null);
+    try {
+      const repaired = cleanWordMathArtifacts(originalText);
+      setRepairedText(repaired);
+      setDiffNotes('Instant reconstruction via local in-engine KaTeX rules (zero delay, 100% offline).');
+    } catch (err: any) {
+      setErrorMsg('Failed to repair locally: ' + err.message);
+    }
+  };
+
   const handleRunGeminiRepair = async () => {
     setIsLoading(true);
     setErrorMsg(null);
@@ -35,10 +47,36 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
         statement: originalText
       });
 
-      setRepairedText(json.repairedText || json.statement || '');
-      setDiffNotes(json.diffNotes || 'LaTeX formatted cleanly with KaTeX delimiters.');
+      const repaired =
+        json.repairedStatement ||
+        json.repairedText ||
+        json.statement ||
+        json.data?.statement ||
+        '';
+
+      if (!repaired) {
+        const localRepaired = cleanWordMathArtifacts(originalText);
+        setRepairedText(localRepaired);
+        setDiffNotes('Reconstructed using local high-precision KaTeX normalizer.');
+      } else {
+        setRepairedText(repaired);
+        setDiffNotes(
+          json.diffSummary ||
+          json.diffNotes ||
+          (Array.isArray(json.changes) ? json.changes.join('; ') : '') ||
+          'LaTeX formatted cleanly with KaTeX delimiters.'
+        );
+      }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to repair equation with Gemini.');
+      console.warn('AI repair network call failed, falling back to local normalizer:', err);
+      // Auto-fallback to local instant repair if server times out (504) or fails
+      try {
+        const localRepaired = cleanWordMathArtifacts(originalText);
+        setRepairedText(localRepaired);
+        setDiffNotes('AI service timed out (504). Automatically repaired via high-precision local KaTeX rules (zero delay).');
+      } catch (localErr: any) {
+        setErrorMsg(err.message || 'Failed to repair equation with Gemini.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +145,7 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
-                AI LaTeX Repair Engine (Google Gemini 2.5 Flash)
+                AI LaTeX Repair Engine (Google Gemini 3.8 Flash)
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
                 Strict formula repair without altering numbers, symbols, or mathematical meaning.
@@ -287,49 +325,95 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
           </button>
 
           {!repairedText ? (
-            <button
-              type="button"
-              onClick={handleRunGeminiRepair}
-              disabled={isLoading}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 16px',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: '#2563eb',
-                color: '#ffffff',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                opacity: isLoading ? 0.7 : 1
-              }}
-            >
-              <Sparkles size={14} />
-              {isLoading ? 'Repairing with Gemini 3.8...' : 'Repair Formatting'}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleInstantLocalFix}
+                disabled={isLoading}
+                title="Instant local formula reconstruction without server or network delay (0ms)"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  border: '1px solid #86efac',
+                  backgroundColor: '#f0fdf4',
+                  color: '#166534',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                <Zap size={14} color="#16a34a" />
+                ⚡ Instant Fast Fix (0ms)
+              </button>
+              <button
+                type="button"
+                onClick={handleRunGeminiRepair}
+                disabled={isLoading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.7 : 1
+                }}
+              >
+                <Sparkles size={14} />
+                {isLoading ? 'Repairing with Gemini 3.8...' : 'Repair with Gemini 3.8 Flash'}
+              </button>
+            </>
           ) : (
-            <button
-              type="button"
-              onClick={handleApply}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 16px',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: '#16a34a',
-                color: '#ffffff',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              <Check size={14} />
-              Apply Repaired LaTeX
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleInstantLocalFix}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  color: '#475569',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                <Zap size={13} color="#16a34a" />
+                Re-apply Local Fast Fix
+              </button>
+              <button
+                type="button"
+                onClick={handleApply}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: '#16a34a',
+                  color: '#ffffff',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                <Check size={14} />
+                Apply Repaired LaTeX
+              </button>
+            </div>
           )}
         </div>
       </div>

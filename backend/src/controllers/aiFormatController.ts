@@ -24,7 +24,7 @@ interface FormatMathRequestBody {
  */
 export const getGeminiConfig = async (_req: Request, res: Response): Promise<void> => {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   res.status(200).json({
     configured: Boolean(apiKey && apiKey.trim().length > 5),
     model,
@@ -37,8 +37,8 @@ export const getGeminiConfig = async (_req: Request, res: Response): Promise<voi
  */
 export const updateGeminiConfig = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { apiKey, model = 'gemini-3.8-flash' } = req.body;
-    const cleanModel = model || 'gemini-3.8-flash';
+    const { apiKey, model = 'gemini-2.5-flash' } = req.body;
+    const cleanModel = model || 'gemini-2.5-flash';
     if (apiKey !== undefined) {
       process.env.GEMINI_API_KEY = String(apiKey).trim();
     }
@@ -74,7 +74,7 @@ export const updateGeminiConfig = async (req: Request, res: Response): Promise<v
     res.status(200).json({
       success: true,
       configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 5),
-      model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
       message: 'Gemini configuration updated successfully'
     });
   } catch (err: any) {
@@ -277,11 +277,14 @@ async function callGeminiMathFormatter(params: {
 }): Promise<{ result: any | null; modelUsed: string; error?: { code: string; message: string } }> {
   const { statement, options, stepSolution, dkSirShortcut, targetExam, apiKey, modelName } = params;
 
-  // Clean model name and build robust list of valid production models
-  const cleanModelName = modelName || 'gemini-3.8-flash';
+  // Clean model name and build robust list of production models with gemini-3.8-flash first
+  const cleanModelName = modelName || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
   const modelsToTry = [
     cleanModelName,
-    'gemini-3.8-flash'
+    'gemini-3.8-flash',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
   const prompt = `You are a Senior Mathematical Typesetting Engineer and KaTeX Document Processing Specialist for JEE Advanced & Main examination content.
@@ -351,11 +354,15 @@ Return ONLY a valid, raw JSON object (without markdown fences, or inside \`\`\`j
   let lastError: { code: string; message: string } | undefined;
 
   for (const model of modelsToTry) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 7000); // 7s timeout to prevent proxy 504
+
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           contents: [
             {
@@ -395,8 +402,11 @@ Return ONLY a valid, raw JSON object (without markdown fences, or inside \`\`\`j
         return { result: parsed, modelUsed: model };
       }
     } catch (err: any) {
-      console.warn(`[Gemini API Attempt failed for ${model}]:`, err.message);
-      lastError = { code: 'NETWORK_ERROR', message: err.message };
+      const isAbort = err.name === 'AbortError' || err.message?.includes('aborted');
+      console.warn(`[Gemini API Attempt failed for ${model}]:`, isAbort ? 'Timed out after 7s' : err.message);
+      lastError = { code: isAbort ? 'TIMEOUT' : 'NETWORK_ERROR', message: isAbort ? 'Request timed out' : err.message };
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
