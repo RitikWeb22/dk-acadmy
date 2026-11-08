@@ -377,26 +377,6 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 type="button"
-                onClick={handleInstantLocalFix}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  color: '#475569',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                <Zap size={13} color="#16a34a" />
-                Re-apply Local Fast Fix
-              </button>
-              <button
-                type="button"
                 onClick={handleApply}
                 style={{
                   display: 'inline-flex',

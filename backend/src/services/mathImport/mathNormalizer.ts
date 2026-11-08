@@ -385,9 +385,19 @@ export function repairLinearMathResidues(text: string): string {
   s = s.replace(/\\begin\{align\*?\}/g, '\\begin{aligned}');
   s = s.replace(/\\end\{align\*?\}/g, '\\end{aligned}');
 
-  // 6. Simple numeric fractions in options/text: e.g. 1/2 -> \dfrac{1}{2} (when not part of a URL or date)
-  s = s.replace(/(?<=[(,=+\-*\/]\s*)(\d+)\s*\/\s*(\d+)(?=\s*[),=+;\-*\/])/g, '\\dfrac{$1}{$2}');
-  s = s.replace(/(?<![a-zA-Z0-9_\/])(\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
+  // 6. Simple numeric fractions in options/text: e.g. 1/2, -1/2 -> \dfrac{1}{2}
+  s = s.replace(/(?<![a-zA-Z0-9_\/])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
+  // Number over variable: 1/x -> \dfrac{1}{x}, 1/a -> \dfrac{1}{a}, 4/k -> \dfrac{4}{k}
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*([a-zA-Z](?:_[a-zA-Z0-9]+|_[0-9]+)?)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  // Variable over number: x/2 -> \dfrac{x}{2}
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?[a-zA-Z])\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  // Variable over variable: x/a -> \dfrac{x}{a}, x/b -> \dfrac{x}{b}, a/b -> \dfrac{a}{b}
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?[a-zA-Z])\s*\/\s*([a-zA-Z](?:_[a-zA-Z0-9]+|_[0-9]+)?)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi/4 -> \dfrac{\pi}{4}
+  s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))/g, '\\dfrac{$1}{$2}');
+  // Upgrade \frac to \dfrac for proper "upon" height
+  s = s.replace(/\\frac\b/g, '\\dfrac');
 
   // 7. Redundant parentheses in radicals: \sqrt{(x+1)} -> \sqrt{x+1}
   s = s.replace(/\\sqrt\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}');

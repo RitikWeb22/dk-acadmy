@@ -304,21 +304,34 @@ export function convertWordEquationToLatex(raw: string): string {
   s = s.replace(/\b([A-Za-z])_([a-zA-Z0-9]+)\b/g, '$1_{$2}');
 
   // 10. Fractions:
-  // e.g. 1/(5+2x-2x^2 )(1+e^{2-4x} ) -> \frac{1}{(5+2x-2x^2)(1+e^{2-4x})}
-  s = s.replace(/1\s*\/\s*\(\s*([^()]+)\s*\)\s*\(\s*([^()]+)\s*\)/g, '\\frac{1}{($1)($2)}');
-  s = s.replace(/1\s*\/\s*\\alpha\b/g, '\\frac{1}{\\alpha}');
-  s = s.replace(/\\pi\s*\/\s*([0-9]+)/g, '\\frac{\\pi}{$1}');
-  s = s.replace(/(?<![a-zA-Z0-9\\])([0-9]+)\s*\/\s*([0-9]+)(?![a-zA-Z0-9])/g, '\\frac{$1}{$2}');
+  // e.g. 1/(5+2x-2x^2 )(1+e^{2-4x} ) -> \dfrac{1}{(5+2x-2x^2)(1+e^{2-4x})}
+  s = s.replace(/1\s*\/\s*\(\s*([^()]+)\s*\)\s*\(\s*([^()]+)\s*\)/g, '\\dfrac{1}{($1)($2)}');
+  s = s.replace(/1\s*\/\s*\\alpha\b/g, '\\dfrac{1}{\\alpha}');
+  s = s.replace(/\\pi\s*\/\s*([0-9]+)/g, '\\dfrac{\\pi}{$1}');
 
-  // (a+1)/b or (\alpha+1)/\beta or (18-[1-x]) / ([x-3a])
-  s = s.replace(/\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]]+?)\s*\)\s*\/\s*([\\a-zA-Z0-9_]+)/g, '\\frac{$1}{$2}');
+  // Parens over parens: (A)/(B) -> \dfrac{A}{B}
+  s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
   // NUM / (DEN)
-  s = s.replace(/([0-9a-zA-Z\\^{}_]+)\s*\/\s*\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]]+?)\s*\)/g, '\\frac{$1}{$2}');
-  // (NUM) / (DEN)
-  s = s.replace(/\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]]+?)\s*\)\s*\/\s*\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]]+?)\s*\)/g, '\\frac{$1}{$2}');
+  s = s.replace(/([0-9a-zA-Z\\^{}_]+)\s*\/\s*\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]/]+?)\s*\)/g, '\\dfrac{$1}{$2}');
+  // (NUM) / DEN
+  s = s.replace(/\(\s*([0-9a-zA-Z\\^{}_+\-\s\[\]/]+?)\s*\)\s*\/\s*([\\a-zA-Z0-9_]+)/g, '\\dfrac{$1}{$2}');
 
-  // 11. Tall parentheses \left( \frac{...}{...} \right) with arbitrary nested braces
-  s = s.replace(/(\\(?:tan|cot|sin|cos|sec|csc)(?:\^\{[^}]+\})?|\\(?:log_e|ln|log))\s*\(\s*(\\frac\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})\s*\)/g,
+  // Number over number: 1/2 -> \dfrac{1}{2}, -1/2 -> -\dfrac{1}{2}
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  // Number over variable: 1/x -> \dfrac{1}{x}, 1/a -> \dfrac{1}{a}, 4/k -> \dfrac{4}{k}
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*([a-zA-Z](?:_[a-zA-Z0-9]+|_[0-9]+)?)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  // Variable over number: x/2 -> \dfrac{x}{2}
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?[a-zA-Z])\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  // Variable over variable: x/a -> \dfrac{x}{a}, x/b -> \dfrac{x}{b}, a/b -> \dfrac{a}{b}
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?[a-zA-Z])\s*\/\s*([a-zA-Z](?:_[a-zA-Z0-9]+|_[0-9]+)?)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi/4 -> \dfrac{\pi}{4}
+  s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))/g, '\\dfrac{$1}{$2}');
+  // Upgrade \frac to \dfrac for proper "upon" height
+  s = s.replace(/\\frac\b/g, '\\dfrac');
+
+  // 11. Tall parentheses \left( \dfrac{...}{...} \right) with arbitrary nested braces
+  s = s.replace(/(\\(?:tan|cot|sin|cos|sec|csc)(?:\^\{[^}]+\})?|\\(?:log_e|ln|log))\s*\(\s*(\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})\s*\)/g,
     '$1\\left($2\\right)');
 
   // 12. Spacing around \, dx, \, dy, \, dt, \, dz
@@ -474,12 +487,14 @@ export function wrapMathInDollars(text: string): string {
     }
   );
 
-  // Step 5f: Multi-term fraction expressions before "is equal to" / "equals" or punctuation
+  // Step 5f: Single or multi-term fraction expressions before "is equal to" / "equals" or punctuation
   // e.g. "then 1/a+1/b+4/k is equal to" -> "then $\dfrac{1}{a} + \dfrac{1}{b} + \dfrac{4}{k}$ is equal to"
+  // e.g. "then 1/2 is equal to" -> "then $\dfrac{1}{2}$ is equal to"
   s = s.replace(
-    /(?<=\b(?:then|and|if|where)\s+)(\d+\/[a-zA-Z0-9]+(?:\s*[+\-*/]\s*\d+\/[a-zA-Z0-9]+)+)(?=\s+(?:is\s+equal\s+to|equals\b|is\b)|\s*[,;.]|$)/gi,
+    /(?<=\b(?:then|find|calculate|where|when|if|is)\s+)([-+]?\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|\d+\s*\/\s*[a-zA-Z0-9]+)(?:\s*[+\-*/]\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|\d+\s*\/\s*[a-zA-Z0-9]+))*)(?=\s+(?:is\s+equal\s+to|equals\b|is\b)|\s*[,;.]|$)/gi,
     (_, m) => {
-      const formatted = m.replace(/(\d+)\/([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
+      let formatted = m.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}')
+                       .replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*([a-zA-Z0-9]+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
       return protect(formatted);
     }
   );
@@ -524,8 +539,12 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$\\])([0-9]*[a-zA-Z]\^\{[^{}]+\}|[0-9]*[a-zA-Z]\^[0-9a-zA-Z]+|[0-9]*[a-zA-Z]_[0-9a-zA-Z]+)(?![a-zA-Z0-9_\{])/g,
     (_, m) => protect(m));
 
+  // Step 6e: Standalone fractions (with optional leading sign): e.g. \dfrac{1}{2}, -\dfrac{1}{2}, \dfrac{1}{a}
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([-+]?\s*\\(?:d?frac)\{[^{}]+\}\{[^{}]+\})(?![a-zA-Z0-9_\$])/g,
+    (_, m) => protect(m.trim()));
+
   // Step 7: Standalone math commands
-  s = s.replace(/(?<!\$)((\\(?:tan|cot|sin|cos|sec|csc)\^\{[^}]+\}|\\(?:frac|dfrac|sqrt|log_e|ln|alpha|beta|gamma|theta|lambda|pi|sum|lim|int|mathbb\{[A-Z]\}|neq|leq|geq|in|to|subset|subseteq|cap|cup|pm|mp|times|div|cdot|hat\{[^{}]+\}|vec\{[^{}]+\}|Delta|phi))\S*(?:\s*[=+*/\-]\s*\S+)*)(?!\$)/g,
+  s = s.replace(/(?<!\$)([-+]?\s*(\\(?:tan|cot|sin|cos|sec|csc)\^\{[^}]+\}|\\(?:frac|dfrac|sqrt|log_e|ln|alpha|beta|gamma|theta|lambda|pi|sum|lim|int|mathbb\{[A-Z]\}|neq|leq|geq|in|to|subset|subseteq|cap|cup|pm|mp|times|div|cdot|hat\{[^{}]+\}|vec\{[^{}]+\}|Delta|phi))\S*(?:\s*[=+*/\-]\s*\S+)*)(?!\$)/g,
     (_, m) => protect(m));
 
   // Step 8: Restore protected blocks
