@@ -133,7 +133,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
         options: curQ.options.map((o) => ({ key: o.key, text: o.text })),
         stepSolution: curQ.stepSolution,
         dkSirShortcut: curQ.dkSirShortcut,
-        model: 'gemini-2.5-flash'
+        model: 'gemini-3.8-flash'
       });
       if (res?.data) {
         updateActiveQuestion('statement', res.data.statement || normalizeMathText(curQ.statement));

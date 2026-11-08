@@ -27,7 +27,8 @@ export interface ParsedWordQuestion {
  */
 export function cleanWordMathArtifacts(text: string): string {
   if (!text) return '';
-  return text
+  let s = parseWordMatricesAndCases(text);
+  return s
     .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
     .replace(/[\u200B-\u200F\u2060-\u2064\uFEFF\u00AD\u034F\u180E\uFFF9-\uFFFC]/g, '')
     .replace(/[\u2000-\u200A\u202F\u205F\u00A0\u3000]/g, ' ')
@@ -50,12 +51,13 @@ export function cleanWordMathArtifacts(text: string): string {
 export function parseWordMatricesAndCases(input: string): string {
   let s = input;
 
-  const markerRegex = /([{\[(\|]?)\s*(?:■|\\matrix|\\eqarray|\\cases)\s*\(/g;
+  const markerRegex = /(?:([a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*))?([{\[(\|]?)\s*(?:[■█]|\\matrix|\\eqarray|\\cases)\s*\(/g;
   let match: RegExpExecArray | null;
 
   while ((match = markerRegex.exec(s)) !== null) {
     const fullMatchStart = match.index;
-    const openDelimiter = match[1];
+    const lhs = match[1] || '';
+    const openDelimiter = match[2];
     const parenStartIndex = match.index + match[0].length;
 
     let depth = 1;
@@ -102,12 +104,61 @@ export function parseWordMatricesAndCases(input: string): string {
       env = 'vmatrix';
     }
 
-    const rows = body.split('@').map((r) => r.trim().replace(/\s*&\s*/g, ' & ')).join(' \\\\ ');
-    const latexReplacement = `\\begin{${env}} ${rows} \\end{${env}}`;
+    const rawRows = body.split('@');
+    const formattedRows = rawRows.map((row) => {
+      let r = row.trim();
+      r = r.replace(/□\s*\(\s*\)/g, '').replace(/□/g, '');
 
-    s = s.slice(0, fullMatchStart) + latexReplacement + s.slice(replaceEndIndex);
-    markerRegex.lastIndex = fullMatchStart + latexReplacement.length;
+      if (r.includes('&')) {
+        const parts = r.split('&');
+        let col1 = parts[0].trim();
+        let col2 = parts.slice(1).join('&').trim();
+
+        if (col2.startsWith(',')) {
+          col2 = col2.replace(/^,\s*/, '').trim();
+          if (!col1.endsWith(',')) col1 = col1 + ',';
+        } else if (!col1.endsWith(',') && env === 'cases') {
+          col1 = col1 + ',';
+        }
+
+        col2 = col2.replace(/^\(\s*\)\s*/, '');
+        col2 = col2.replace(/[≥\u2265]|>=/g, ' \\ge ')
+                   .replace(/[≤\u2264]|<=/g, ' \\le ')
+                   .replace(/[≠\u2260]|!=/g, ' \\ne ')
+                   .replace(/</g, ' < ')
+                   .replace(/>/g, ' > ');
+        col2 = col2.replace(/\s+/g, ' ').trim();
+        col1 = col1.replace(/[≥\u2265]/g, ' \\ge ').replace(/[≤\u2264]/g, ' \\le ');
+
+        return `${col1} & ${col2}`;
+      }
+      return r;
+    });
+
+    const latexEnv = `\\begin{${env}} ${formattedRows.join(' \\\\ ')} \\end{${env}}`;
+    const fullLatex = lhs ? `${lhs}${latexEnv}` : latexEnv;
+    const replacement = `$${fullLatex}$`;
+
+    s = s.slice(0, fullMatchStart) + replacement + s.slice(replaceEndIndex);
+    markerRegex.lastIndex = fullMatchStart + replacement.length;
   }
+
+  // Domain & codomain: Let f,g:R→R or f:R->R
+  s = s.replace(/\b([a-zA-Z](?:\s*,\s*[a-zA-Z])*)\s*:\s*([RNZQ])\s*(?:→|->|\\to)\s*([RNZQ])\b/g, (_m, funcs, d, cd) => {
+    const formattedFuncs = funcs.split(',').map((f: string) => f.trim()).join(', ');
+    return `$${formattedFuncs} : \\mathbb{${d}} \\to \\mathbb{${cd}}$`;
+  });
+
+  // Composite functions: fog, gof
+  s = s.replace(/(?<=\b(?:function|composite\s+function|the)\s+)(fog|gof)\b/gi, (_m, comp) => {
+    const f1 = comp[0];
+    const f2 = comp[2];
+    return `$${f1} \\circ ${f2}$`;
+  });
+
+  // Greatest integer brackets: [x] denote -> $[x]$ denotes
+  s = s.replace(/\[\s*([a-zA-Z0-9])\s*\]\s*denote\b/gi, '$[$1]$ denotes');
+  s = s.replace(/(?<=\bwhere\s+)\[\s*([a-zA-Z0-9])\s*\]/gi, '$[$1]$');
 
   return s;
 }

@@ -2,7 +2,7 @@
  * Math Import & Render System - Gemini AI Mathematical Repair Service (Step 5)
  *
  * Invoked ONLY for items that still fail KaTeX validation after normalisation.
- * Connects to Google Gemini API (model: gemini-2.5-flash) with strict prompt:
+ * Connects to Google Gemini API (model: gemini-3.8-flash) with strict prompt:
  *   "Fix LaTeX formatting only. Do NOT change numbers, symbols or meaning.
  *    If something is missing/ambiguous return [CHECK: reason] instead of guessing.
  *    Return JSON only."
@@ -39,7 +39,7 @@ export async function repairMathWithGemini(input, options = {}) {
         process.env.GEMINI_API_KEY ||
         process.env.GOOGLE_API_KEY ||
         '';
-    const model = options.model || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = options.model || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
     if (!apiKey || apiKey.trim().length < 5) {
         const normStatement = normalizeCanonicalMath(originalStatement);
         const normOptions = originalOptions.map((o) => ({

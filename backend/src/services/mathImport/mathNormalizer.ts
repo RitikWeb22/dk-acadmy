@@ -84,7 +84,8 @@ export function normalizeBackslashes(text: string): string {
  */
 export function stripWordJunk(text: string): string {
   if (!text) return '';
-  return text
+  let s = parseWordMatricesAndCases(text);
+  return s
     // Non-breaking spaces and zero-width spaces
     .replace(/[\u00A0\u200B\u200C\u200D\u2060\uFEFF]/g, ' ')
     // Strip dropped HTML banner warning if copied into text
@@ -105,6 +106,127 @@ export function stripWordJunk(text: string): string {
     .replace(/'\s+'/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Robust balanced matrix and cases parser:
+ * Identifies Word / UnicodeMath matrices and piecewise case functions
+ * including {■(...)┤, [■(...)┤, [■(...)], (■(...)), |■(...)|, etc.
+ * Uses balanced parenthesis counting to safely preserve nested brackets/parens.
+ */
+export function parseWordMatricesAndCases(input: string): string {
+  let s = input;
+
+  const markerRegex = /(?:([a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*))?([{\[(\|]?)\s*(?:[■█]|\\matrix|\\eqarray|\\cases)\s*\(/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = markerRegex.exec(s)) !== null) {
+    const fullMatchStart = match.index;
+    const lhs = match[1] || '';
+    const openDelimiter = match[2];
+    const parenStartIndex = match.index + match[0].length;
+
+    let depth = 1;
+    let parenEndIndex = -1;
+
+    for (let i = parenStartIndex; i < s.length; i++) {
+      if (s[i] === '(') depth++;
+      else if (s[i] === ')') {
+        depth--;
+        if (depth === 0) {
+          parenEndIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (parenEndIndex === -1) {
+      continue;
+    }
+
+    const body = s.slice(parenStartIndex, parenEndIndex);
+
+    let afterParenIndex = parenEndIndex + 1;
+    while (afterParenIndex < s.length && /\s/.test(s[afterParenIndex])) {
+      afterParenIndex++;
+    }
+
+    let closeDelimiter = '';
+    let replaceEndIndex = parenEndIndex + 1;
+
+    if (afterParenIndex < s.length && /[┤│\]\)\|}]/.test(s[afterParenIndex])) {
+      closeDelimiter = s[afterParenIndex];
+      replaceEndIndex = afterParenIndex + 1;
+    }
+
+    let env = 'matrix';
+    if (closeDelimiter === '┤' || closeDelimiter === '│' || openDelimiter === '{' || match[0].includes('cases')) {
+      env = 'cases';
+    } else if (openDelimiter === '[' || closeDelimiter === ']') {
+      env = 'bmatrix';
+    } else if (openDelimiter === '(' || closeDelimiter === ')') {
+      env = 'pmatrix';
+    } else if (openDelimiter === '|' || closeDelimiter === '|') {
+      env = 'vmatrix';
+    }
+
+    const rawRows = body.split('@');
+    const formattedRows = rawRows.map((row) => {
+      let r = row.trim();
+      r = r.replace(/□\s*\(\s*\)/g, '').replace(/□/g, '');
+
+      if (r.includes('&')) {
+        const parts = r.split('&');
+        let col1 = parts[0].trim();
+        let col2 = parts.slice(1).join('&').trim();
+
+        if (col2.startsWith(',')) {
+          col2 = col2.replace(/^,\s*/, '').trim();
+          if (!col1.endsWith(',')) col1 = col1 + ',';
+        } else if (!col1.endsWith(',') && env === 'cases') {
+          col1 = col1 + ',';
+        }
+
+        col2 = col2.replace(/^\(\s*\)\s*/, '');
+        col2 = col2.replace(/[≥\u2265]|>=/g, ' \\ge ')
+                   .replace(/[≤\u2264]|<=/g, ' \\le ')
+                   .replace(/[≠\u2260]|!=/g, ' \\ne ')
+                   .replace(/</g, ' < ')
+                   .replace(/>/g, ' > ');
+        col2 = col2.replace(/\s+/g, ' ').trim();
+        col1 = col1.replace(/[≥\u2265]/g, ' \\ge ').replace(/[≤\u2264]/g, ' \\le ');
+
+        return `${col1} & ${col2}`;
+      }
+      return r;
+    });
+
+    const latexEnv = `\\begin{${env}} ${formattedRows.join(' \\\\ ')} \\end{${env}}`;
+    const fullLatex = lhs ? `${lhs}${latexEnv}` : latexEnv;
+    const replacement = `$${fullLatex}$`;
+
+    s = s.slice(0, fullMatchStart) + replacement + s.slice(replaceEndIndex);
+    markerRegex.lastIndex = fullMatchStart + replacement.length;
+  }
+
+  // Domain & codomain: Let f,g:R→R or f:R->R
+  s = s.replace(/\b([a-zA-Z](?:\s*,\s*[a-zA-Z])*)\s*:\s*([RNZQ])\s*(?:→|->|\\to)\s*([RNZQ])\b/g, (_m, funcs, d, cd) => {
+    const formattedFuncs = funcs.split(',').map((f: string) => f.trim()).join(', ');
+    return `$${formattedFuncs} : \\mathbb{${d}} \\to \\mathbb{${cd}}$`;
+  });
+
+  // Composite functions: fog, gof
+  s = s.replace(/(?<=\b(?:function|composite\s+function|the)\s+)(fog|gof)\b/gi, (_m, comp) => {
+    const f1 = comp[0];
+    const f2 = comp[2];
+    return `$${f1} \\circ ${f2}$`;
+  });
+
+  // Greatest integer brackets: [x] denote -> $[x]$ denotes
+  s = s.replace(/\[\s*([a-zA-Z0-9])\s*\]\s*denote\b/gi, '$[$1]$ denotes');
+  s = s.replace(/(?<=\bwhere\s+)\[\s*([a-zA-Z0-9])\s*\]/gi, '$[$1]$');
+
+  return s;
 }
 
 /**
@@ -194,21 +316,53 @@ export function repairLinearMathResidues(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\\])\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*([A-Za-z0-9_\\^{}]+)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/(?<![a-zA-Z0-9_\\])([A-Za-z0-9_\\^{}]+)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
 
-  // 3. Exponential tall brackets: exp{...} -> \exp\left\{...\right\}
-  // Auto-balance any unclosed \exp{...} before prose boundaries
-  s = s.replace(/(\\?exp\s*\{[\s\S]*?)(?=\s+(?:pass|through|is|equal|where|then|and|origin)\b|$)/gi, (m) => {
-    const opens = (m.match(/\{/g) || []).length;
-    const closes = (m.match(/\}/g) || []).length;
-    if (opens > closes) {
-      return m + '}'.repeat(opens - closes);
+  // 3. Exponential cleanup: \exp\{ ... \} with balanced braces
+  const expRegex = /\\?exp\s*\\?\{/gi;
+  let expMatch: RegExpExecArray | null;
+  let expResult = '';
+  let expLastIndex = 0;
+
+  while ((expMatch = expRegex.exec(s)) !== null) {
+    expResult += s.substring(expLastIndex, expMatch.index);
+    const startInner = expRegex.lastIndex;
+    let depth = 1;
+    let i = startInner;
+    let foundClose = false;
+
+    for (; i < s.length; i++) {
+      const ch = s[i];
+      const prev = i > 0 ? s[i - 1] : '';
+      if (ch === '{' && prev !== '\\') {
+        depth++;
+      } else if (ch === '}' && prev !== '\\') {
+        depth--;
+        if (depth === 0) {
+          foundClose = true;
+          break;
+        }
+      } else if (depth === 1 && /\b(pass|through|origin|is|equal|where|then|and)\b/i.test(s.substring(i, i + 8))) {
+        break;
+      }
     }
-    return m;
-  });
-  s = s.replace(/\\?exp\s*\\?\{([\s\S]*?)\\?\}(?=\s+(?:pass|through|origin|is|equal|where|then|and)\b|[,;.]|$)/gi, (_m, inner) => {
-    const cleanInner = inner.replace(/\\frac\b/g, '\\dfrac');
-    return `\\exp\\left\\{${cleanInner.trim()}\\right\\}`;
-  });
-  s = s.replace(/\\?exp\s*\{([^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*)\}/g, '\\exp\\left\\{$1\\right\\}');
+
+    let inner = s.substring(startInner, i).trim();
+    let innerDepth = 0;
+    for (let j = 0; j < inner.length; j++) {
+      if (inner[j] === '{' && (j === 0 || inner[j - 1] !== '\\')) innerDepth++;
+      else if (inner[j] === '}' && (j === 0 || inner[j - 1] !== '\\')) innerDepth--;
+    }
+    while (innerDepth > 0) {
+      inner += '}';
+      innerDepth--;
+    }
+    inner = inner.replace(/\\frac\b/g, '\\dfrac');
+    expResult += `\\exp\\left\\{${inner}\\right\\}`;
+    expLastIndex = foundClose ? i + 1 : i;
+    expRegex.lastIndex = expLastIndex;
+  }
+  expResult += s.substring(expLastIndex);
+  s = expResult;
+
   s = s.replace(/\\?exp\s*\(\s*([^()]+)\s*\)/g, '\\exp\\left($1\\right)');
 
   // 4. Inverse trigonometric notation: tan^(-1) -> \tan^{-1}

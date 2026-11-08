@@ -80,7 +80,7 @@ export const PasteWordQuestionModal: React.FC<PasteWordQuestionModalProps> = ({
     // Clean any accidental warning banner text or leading dots
     textToUse = cleanWordMathArtifacts(textToUse)
       .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
-      .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '')
+      .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '')
       .trim();
 
     setPasteText(textToUse);
