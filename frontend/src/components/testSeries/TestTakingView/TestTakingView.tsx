@@ -78,7 +78,26 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
   const [isFullscreenWarningOpen, setIsFullscreenWarningOpen] = useState(false);
   const [isDisqualified, setIsDisqualified] = useState(false);
   const [cloudSyncText, setCloudSyncText] = useState('☁️ Cloud Synced');
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'saving' | 'offline'>('synced');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFullscreenActiveState, setIsFullscreenActiveState] = useState<boolean>(() => isFullScreenActive());
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setSyncStatus('synced');
+      setCloudSyncText('☁️ Back Online - Synced');
+    };
+    const handleOffline = () => {
+      setSyncStatus('offline');
+      setCloudSyncText('⚠️ Offline - Cached Locally');
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const enterFullscreen = async () => {
     const success = await requestFullScreen();
@@ -212,19 +231,43 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     };
   }, [disableCopyPaste]);
 
-  // Periodic cloud response auto-save
+  // Periodic cloud response auto-save with exponential backoff & jitter
   useEffect(() => {
-    if (!autoSaveSeconds || autoSaveSeconds <= 0) return;
+    if (!autoSaveSeconds || autoSaveSeconds <= 0 || isSubmitting) return;
 
-    const interval = setInterval(() => {
-      onSaveProgress(responses);
-      setCloudSyncText('☁️ Cloud Saved');
-      const timer = setTimeout(() => setCloudSyncText('☁️ Cloud Synced'), 3000);
-      return () => clearTimeout(timer);
-    }, autoSaveSeconds * 1000);
+    let retryCount = 0;
+    let isCancelled = false;
 
-    return () => clearInterval(interval);
-  }, [autoSaveSeconds, responses, onSaveProgress]);
+    const performSync = async () => {
+      if (isCancelled || isSubmitting) return;
+      setSyncStatus('saving');
+      setCloudSyncText('⏳ Saving...');
+
+      try {
+        await Promise.resolve(onSaveProgress(responses));
+        if (!isCancelled) {
+          retryCount = 0;
+          setSyncStatus('synced');
+          setCloudSyncText('☁️ Cloud Synced');
+        }
+      } catch {
+        if (!isCancelled) {
+          retryCount++;
+          setSyncStatus('offline');
+          setCloudSyncText(`⚠️ Offline - Retrying (${retryCount})`);
+          // Schedule jittered exponential retry
+          const backoffMs = Math.min(10000, 1000 * Math.pow(1.5, Math.min(retryCount, 5))) + Math.random() * 500;
+          setTimeout(performSync, backoffMs);
+        }
+      }
+    };
+
+    const interval = setInterval(performSync, autoSaveSeconds * 1000);
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [autoSaveSeconds, responses, onSaveProgress, isSubmitting]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -232,10 +275,12 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   // Automatic submission when timer expires (hoisted before early return to adhere to Rules of Hooks)
   const handleTimerExpire = React.useCallback(() => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     exitFullScreen().catch(() => {});
     setIsConfirmOpen(false);
     onSubmitTest(responses);
-  }, [onSubmitTest, responses]);
+  }, [onSubmitTest, responses, isSubmitting]);
 
   // Safe empty questions fallback
   if (!test?.questions || test.questions.length === 0) {
@@ -479,6 +524,8 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
 
   // Final submission confirmed by student
   const handleConfirmSubmit = () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     exitFullScreen().catch(() => {});
     setIsConfirmOpen(false);
     onSubmitTest(responses);
@@ -519,6 +566,14 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
         {/* Right Header Area: Timer & Submit */}
         <div className={styles.topBarRight}>
           <div className={styles.proctorStatusRow}>
+            <span
+              className={`${styles.cloudSyncBadge} ${
+                syncStatus === 'offline' ? styles.cloudSyncOffline : ''
+              }`}
+              title="Cloud autosave status"
+            >
+              {cloudSyncText}
+            </span>
             <span className={`${styles.proctorShieldBadge} ${tabStrikes > 0 ? styles.proctorShieldBadgeWarning : ''}`}>
               <ShieldAlert size={12} />
               Proctored {tabSwitchLimit < 999 && `(${tabStrikes}/${tabSwitchLimit})`}
@@ -544,10 +599,11 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
           <button
             type="button"
             className={styles.headerSubmitBtn}
-            onClick={() => setIsConfirmOpen(true)}
+            onClick={() => !isSubmitting && setIsConfirmOpen(true)}
+            disabled={isSubmitting}
           >
             <Send size={15} />
-            <span>Submit Test</span>
+            <span>{isSubmitting ? 'Submitting...' : 'Submit Test'}</span>
           </button>
         </div>
       </header>
@@ -967,10 +1023,11 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
                   <button
                     type="button"
                     className={styles.submitFinalBtn}
-                    onClick={() => setIsConfirmOpen(true)}
+                    onClick={() => !isSubmitting && setIsConfirmOpen(true)}
+                    disabled={isSubmitting}
                   >
                     <Send size={15} />
-                    <span>Submit Test</span>
+                    <span>{isSubmitting ? 'Submitting...' : 'Submit Test'}</span>
                   </button>
                 )}
               </div>
@@ -1011,10 +1068,11 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
           <button
             type="button"
             className={styles.sidebarSubmitBtn}
-            onClick={() => setIsConfirmOpen(true)}
+            onClick={() => !isSubmitting && setIsConfirmOpen(true)}
+            disabled={isSubmitting}
           >
             <Send size={16} />
-            <span>Submit Full Test</span>
+            <span>{isSubmitting ? 'Submitting...' : 'Submit Full Test'}</span>
           </button>
         </aside>
       </div>
@@ -1022,11 +1080,12 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
       {/* Submit Confirmation Modal */}
       <SubmitConfirmationModal
         isOpen={isConfirmOpen}
-        onClose={() => setIsConfirmOpen(false)}
+        onClose={() => !isSubmitting && setIsConfirmOpen(false)}
         onConfirm={handleConfirmSubmit}
         totalQuestions={totalQuestions}
         answeredCount={answeredCount}
         markedCount={markedCount}
+        isSubmitting={isSubmitting}
       />
 
       {/* Exit Test Warning Modal */}

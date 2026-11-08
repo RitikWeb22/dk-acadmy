@@ -1457,6 +1457,14 @@
   color: #64748B;
   border: 1px solid #E2E8F0;
   font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &.cloudSyncOffline {
+    background: #FEF2F2;
+    color: #DC2626;
+    border-color: #FECACA;
+  }
 }
 
 .fullscreenBtn {
