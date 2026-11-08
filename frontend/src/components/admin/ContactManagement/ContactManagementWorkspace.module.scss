@@ -1,4 +1,4 @@
-@import '../../../styles/variables.scss';
+@use '../../../styles/variables' as *;
 
 .workspaceContainer {
   padding: 1.5rem 2rem 3.5rem;

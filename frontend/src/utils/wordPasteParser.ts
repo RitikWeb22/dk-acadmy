@@ -28,6 +28,7 @@ export interface ParsedWordQuestion {
 export function cleanWordMathArtifacts(text: string): string {
   if (!text) return '';
   return text
+    .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
     .replace(/[\u200B-\u200F\u2060-\u2064\uFEFF\u00AD\u034F\u180E\uFFF9-\uFFFC]/g, '')
     .replace(/[\u2000-\u200A\u202F\u205F\u00A0\u3000]/g, ' ')
     .replace(/[▒□〖〗]/g, '')

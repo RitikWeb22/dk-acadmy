@@ -69,13 +69,19 @@ export const PasteWordQuestionModal: React.FC<PasteWordQuestionModalProps> = ({
     const html = cd.getData('text/html') || '';
     const plain = cd.getData('text/plain') || cd.getData('text') || '';
 
-    let converted = '';
-    if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html) || /<table|<tr|<p|<span|<div/i.test(html))) {
-      converted = extractMathFromHtml(html);
+    let textToUse = plain;
+    if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html))) {
+      const converted = extractMathFromHtml(html);
+      if (converted.trim()) {
+        textToUse = converted;
+      }
     }
-    const baseText = converted.trim() || plain;
-    const normalized = normalizeMathString(baseText);
-    setPasteText(normalized);
+    // Clean any accidental warning banner text if present
+    textToUse = textToUse.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
+
+    setPasteText(textToUse);
+    const parsed = parseWordQuestions(textToUse);
+    setParsedList(parsed);
   };
 
   const handleLoadSample = () => {
