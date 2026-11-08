@@ -10,16 +10,60 @@ try {
 catch {
     // ignore
 }
-// Note: Global sanitizeFilter is omitted as it incorrectly treats Mongoose query operators ($in, $ne) as string literals
+const poolMetrics = {
+    maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE) || 75,
+    minPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE) || 15,
+    currentCheckedOut: 0,
+    peakCheckedOut: 0,
+    totalCheckouts: 0,
+    totalCheckins: 0,
+    totalCheckoutFailures: 0,
+    waitQueueTimeoutMS: 15000,
+    readyState: 0
+};
+export const getMongoPoolMetrics = () => {
+    return {
+        ...poolMetrics,
+        readyState: mongoose.connection.readyState,
+        host: mongoose.connection.host || undefined
+    };
+};
 let isReconnecting = false;
+let cmapListenersAttached = false;
+const attachCmapListeners = (client) => {
+    if (!client || cmapListenersAttached)
+        return;
+    cmapListenersAttached = true;
+    try {
+        client.on('connectionCheckedOut', () => {
+            poolMetrics.currentCheckedOut++;
+            poolMetrics.totalCheckouts++;
+            if (poolMetrics.currentCheckedOut > poolMetrics.peakCheckedOut) {
+                poolMetrics.peakCheckedOut = poolMetrics.currentCheckedOut;
+            }
+        });
+        client.on('connectionCheckedIn', () => {
+            poolMetrics.currentCheckedOut = Math.max(0, poolMetrics.currentCheckedOut - 1);
+            poolMetrics.totalCheckins++;
+        });
+        client.on('connectionCheckOutFailed', () => {
+            poolMetrics.totalCheckoutFailures++;
+        });
+    }
+    catch {
+        // CMAP events not supported in mock environments
+    }
+};
 export const connectDB = async () => {
     const uri = env.MONGO_URI;
     const tryConnect = async (targetUri) => {
         return await mongoose.connect(targetUri, {
-            maxPoolSize: 25,
-            minPoolSize: 5,
+            maxPoolSize: poolMetrics.maxPoolSize,
+            minPoolSize: poolMetrics.minPoolSize,
             socketTimeoutMS: 45000,
             serverSelectionTimeoutMS: 15000,
+            waitQueueTimeoutMS: poolMetrics.waitQueueTimeoutMS,
+            maxIdleTimeMS: 30000,
             family: 4,
             retryWrites: true,
             retryReads: true
@@ -27,9 +71,19 @@ export const connectDB = async () => {
     };
     try {
         const conn = await tryConnect(uri);
-        console.log(`[MongoDB] Connected successfully to host: ${conn.connection.host}`);
+        poolMetrics.host = conn.connection.host;
+        poolMetrics.readyState = 1;
+        console.log(`[MongoDB] Connected successfully to host: ${conn.connection.host} (Pool: min=${poolMetrics.minPoolSize}, max=${poolMetrics.maxPoolSize})`);
+        try {
+            const client = conn.connection.getClient();
+            attachCmapListeners(client);
+        }
+        catch {
+            // ignore
+        }
     }
     catch (error) {
+        poolMetrics.readyState = 0;
         console.error('[MongoDB] Database connection failed:', error.message || error);
         scheduleReconnect();
     }
@@ -45,6 +99,8 @@ export const connectDB = async () => {
     }
 };
 const scheduleReconnect = () => {
+    if (process.env.NODE_ENV === 'test')
+        return;
     if (isReconnecting)
         return;
     isReconnecting = true;

@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getAllTestSeries, getTestSeriesByIdOrSlug, createTestSeries, updateTestSeries, deleteTestSeries, submitTestSeries, getTestSeriesSubmissionSolution, getTestSeriesSubmissionStatus, getTestSeriesSolutionAdminOverview, updateTestSeriesSolutionConfig, unlockTestSeries } from '../controllers/testSeriesController.js';
+import { getAllTestSeries, getTestSeriesByIdOrSlug, createTestSeries, updateTestSeries, deleteTestSeries, submitTestSeries, autosaveTestProgress, getTestProgress, getTestSeriesSubmissionSolution, getTestSeriesSubmissionStatus, getTestSeriesSolutionAdminOverview, updateTestSeriesSolutionConfig, unlockTestSeries } from '../controllers/testSeriesController.js';
 import { formatMathWithAi } from '../controllers/aiFormatController.js';
-import { protect, authorize } from '../middlewares/authMiddleware.js';
+import { protect, authorize, optionalProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 const router = Router();
 const createTestSeriesSchema = z
@@ -41,10 +41,12 @@ const createTestSeriesSchema = z
 // Public routes for catalog & CBT simulator
 router.get('/', getAllTestSeries);
 router.get('/:id', getTestSeriesByIdOrSlug);
-// Submission & Student-Specific Solution Scheduling
-router.post('/:id/submit', submitTestSeries);
+// Submission, Autosave & Student-Specific Solution Scheduling
+router.post('/:id/submit', optionalProtect, submitTestSeries);
+router.post('/:id/autosave', optionalProtect, autosaveTestProgress);
+router.get('/:id/progress', optionalProtect, getTestProgress);
 router.get('/submissions/:submissionId/status', getTestSeriesSubmissionStatus);
-router.get('/submissions/:submissionId/solution', getTestSeriesSubmissionSolution);
+router.get('/submissions/:submissionId/solution', optionalProtect, getTestSeriesSubmissionSolution);
 // Admin Solution Management & Overview
 router.get('/:id/solution-admin-overview', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getTestSeriesSolutionAdminOverview);
 router.patch('/:id/solution-config', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateTestSeriesSolutionConfig);

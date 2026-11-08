@@ -201,7 +201,7 @@ function splitStatementAndOptions(body: string): { statement: string; options: N
     text = text.trim();
     // Clean trailing punctuation artifact on option value (e.g. "2e - 1 ." -> "2e - 1")
     text = text.replace(/([0-9a-zA-Z\)\}\]]+)\s*\.\s*$/, '$1').trim();
-    text = text.replace(/^[:\-\.]\s*/, '').trim();
+    text = text.replace(/^[:.]\s*|^-\s+/g, '').trim();
     if (!text) return { statement: body.trim(), options: [] };
     options.push({ key: seq[i].key, text });
   }

@@ -230,6 +230,13 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
 
+  // Automatic submission when timer expires (hoisted before early return to adhere to Rules of Hooks)
+  const handleTimerExpire = React.useCallback(() => {
+    exitFullScreen().catch(() => {});
+    setIsConfirmOpen(false);
+    onSubmitTest(responses);
+  }, [onSubmitTest, responses]);
+
   // Safe empty questions fallback
   if (!test?.questions || test.questions.length === 0) {
     return (
@@ -469,13 +476,6 @@ export const TestTakingView: React.FC<TestTakingViewProps> = ({
       navigateToQuestion(currentIndex + 1);
     }
   };
-
-  // Automatic submission when timer expires
-  const handleTimerExpire = React.useCallback(() => {
-    exitFullScreen().catch(() => {});
-    setIsConfirmOpen(false);
-    onSubmitTest(responses);
-  }, [onSubmitTest, responses]);
 
   // Final submission confirmed by student
   const handleConfirmSubmit = () => {

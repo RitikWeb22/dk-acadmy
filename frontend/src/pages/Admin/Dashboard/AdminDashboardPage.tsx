@@ -16,18 +16,52 @@ import {
   Mail,
   Tag
 } from 'lucide-react';
-import { StudentManagementWorkspace } from '../../../components/admin/StudentManagement/StudentManagementWorkspace';
-import { FacultyManagementWorkspace } from '../../../components/admin/FacultyManagement/FacultyManagementWorkspace';
-import { CourseBuilderWorkspace } from '../../../components/admin/CourseBuilder/CourseBuilderWorkspace';
-import { InvoicesManagementWorkspace } from '../../../components/admin/Invoices/InvoicesManagementWorkspace';
-import { TestSeriesBuilderWorkspace } from '../../../components/admin/TestSeries/TestSeriesBuilderWorkspace';
-import { DppPyqManagementWorkspace } from '../../../components/admin/DppPyq/DppPyqManagementWorkspace';
-import { CourseReviewManagementWorkspace } from '../../../components/admin/CourseReview/CourseReviewManagementWorkspace';
-import { FreeLecturesManagementWorkspace } from '../../../components/admin/FreeLectures/FreeLecturesManagementWorkspace';
-import { ContactManagementWorkspace } from '../../../components/admin/ContactManagement/ContactManagementWorkspace';
-import { NavbarFooterManagementWorkspace } from '../../../components/admin/NavbarFooter/NavbarFooterManagementWorkspace';
-import { PageManagementWorkspace } from '../../../components/admin/PageManagement/PageManagementWorkspace';
-import { CouponManagementWorkspace } from '../../../components/admin/Coupons/CouponManagementWorkspace';
+// Lazy-loaded administrative workspaces for bundle optimization
+const StudentManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/StudentManagement/StudentManagementWorkspace').then((m) => ({ default: m.StudentManagementWorkspace }))
+);
+const FacultyManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/FacultyManagement/FacultyManagementWorkspace').then((m) => ({ default: m.FacultyManagementWorkspace }))
+);
+const CourseBuilderWorkspace = React.lazy(() =>
+  import('../../../components/admin/CourseBuilder/CourseBuilderWorkspace').then((m) => ({ default: m.CourseBuilderWorkspace }))
+);
+const InvoicesManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/Invoices/InvoicesManagementWorkspace').then((m) => ({ default: m.InvoicesManagementWorkspace }))
+);
+const TestSeriesBuilderWorkspace = React.lazy(() =>
+  import('../../../components/admin/TestSeries/TestSeriesBuilderWorkspace').then((m) => ({ default: m.TestSeriesBuilderWorkspace }))
+);
+const DppPyqManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/DppPyq/DppPyqManagementWorkspace').then((m) => ({ default: m.DppPyqManagementWorkspace }))
+);
+const CourseReviewManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/CourseReview/CourseReviewManagementWorkspace').then((m) => ({ default: m.CourseReviewManagementWorkspace }))
+);
+const FreeLecturesManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/FreeLectures/FreeLecturesManagementWorkspace').then((m) => ({ default: m.FreeLecturesManagementWorkspace }))
+);
+const ContactManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/ContactManagement/ContactManagementWorkspace').then((m) => ({ default: m.ContactManagementWorkspace }))
+);
+const NavbarFooterManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/NavbarFooter/NavbarFooterManagementWorkspace').then((m) => ({ default: m.NavbarFooterManagementWorkspace }))
+);
+const PageManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/PageManagement/PageManagementWorkspace').then((m) => ({ default: m.PageManagementWorkspace }))
+);
+const CouponManagementWorkspace = React.lazy(() =>
+  import('../../../components/admin/Coupons/CouponManagementWorkspace').then((m) => ({ default: m.CouponManagementWorkspace }))
+);
+
+const AdminWorkspaceLoader: React.FC = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', width: '100%' }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#64748B', fontSize: '14px', fontWeight: 500 }}>
+      <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite' }} />
+      <span>Loading workspace...</span>
+    </div>
+  </div>
+);
 
 // Modular Components
 import { Sidebar } from './components/Sidebar';
@@ -335,32 +369,33 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
           role="main"
           tabIndex={-1}
         >
-          {activeMenu === 'students' ? (
-            <StudentManagementWorkspace />
-          ) : activeMenu === 'teachers' ? (
-            <FacultyManagementWorkspace />
-          ) : activeMenu === 'courses' ? (
-            <CourseBuilderWorkspace />
-          ) : activeMenu === 'invoices' ? (
-            <InvoicesManagementWorkspace />
-          ) : activeMenu === 'test-series' ? (
-            <TestSeriesBuilderWorkspace />
-          ) : activeMenu === 'dpp-pyq' ? (
-            <DppPyqManagementWorkspace />
-          ) : activeMenu === 'free-lectures' ? (
-            <FreeLecturesManagementWorkspace />
-          ) : activeMenu === 'reviews' ? (
-            <CourseReviewManagementWorkspace />
-          ) : activeMenu === 'contact' ? (
-            <ContactManagementWorkspace />
-          ) : activeMenu === 'navbar-footer' ? (
-            <NavbarFooterManagementWorkspace />
-          ) : activeMenu === 'pages' ? (
-            <PageManagementWorkspace />
-          ) : activeMenu === 'coupons' ? (
-            <CouponManagementWorkspace />
-          ) : (
-            <div className={styles.dashboardContainerStack}>
+          <React.Suspense fallback={<AdminWorkspaceLoader />}>
+            {activeMenu === 'students' ? (
+              <StudentManagementWorkspace />
+            ) : activeMenu === 'teachers' ? (
+              <FacultyManagementWorkspace />
+            ) : activeMenu === 'courses' ? (
+              <CourseBuilderWorkspace />
+            ) : activeMenu === 'invoices' ? (
+              <InvoicesManagementWorkspace />
+            ) : activeMenu === 'test-series' ? (
+              <TestSeriesBuilderWorkspace />
+            ) : activeMenu === 'dpp-pyq' ? (
+              <DppPyqManagementWorkspace />
+            ) : activeMenu === 'free-lectures' ? (
+              <FreeLecturesManagementWorkspace />
+            ) : activeMenu === 'reviews' ? (
+              <CourseReviewManagementWorkspace />
+            ) : activeMenu === 'contact' ? (
+              <ContactManagementWorkspace />
+            ) : activeMenu === 'navbar-footer' ? (
+              <NavbarFooterManagementWorkspace />
+            ) : activeMenu === 'pages' ? (
+              <PageManagementWorkspace />
+            ) : activeMenu === 'coupons' ? (
+              <CouponManagementWorkspace />
+            ) : (
+              <div className={styles.dashboardContainerStack}>
               {/* ─── EXECUTIVE COMMAND HEADER STRIP ─── */}
               <div className={styles.execHeaderStrip}>
                 <div className={styles.execHeaderInfo}>
@@ -645,6 +680,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
               </div>
             </div>
           )}
+          </React.Suspense>
         </main>
       </div>
 

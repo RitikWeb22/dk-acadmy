@@ -18,6 +18,8 @@ import offerRoutes from './offerRoutes.js';
 import { getGeminiConfig, updateGeminiConfig } from '../controllers/aiFormatController.js';
 
 import mongoose from 'mongoose';
+import os from 'os';
+import { getMongoPoolMetrics } from '../config/db.js';
 
 const router = Router();
 
@@ -57,6 +59,35 @@ router.get('/health/readiness', (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+// Operational & Cluster Metrics Endpoint
+router.get('/health/metrics', (req, res) => {
+  const mem = process.memoryUsage();
+  const pool = getMongoPoolMetrics();
+
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    worker: {
+      pid: process.pid,
+      uptimeSeconds: Math.floor(process.uptime()),
+      nodeVersion: process.version,
+      platform: process.platform
+    },
+    system: {
+      freeMemoryMB: Math.round(os.freemem() / 1024 / 1024),
+      totalMemoryMB: Math.round(os.totalmem() / 1024 / 1024),
+      cpuCores: os.cpus().length
+    },
+    memoryMB: {
+      rss: Math.round((mem.rss / 1024 / 1024) * 100) / 100,
+      heapTotal: Math.round((mem.heapTotal / 1024 / 1024) * 100) / 100,
+      heapUsed: Math.round((mem.heapUsed / 1024 / 1024) * 100) / 100,
+      external: Math.round((mem.external / 1024 / 1024) * 100) / 100
+    },
+    databasePool: pool
+  });
 });
 
 // Mount modular sub-routers

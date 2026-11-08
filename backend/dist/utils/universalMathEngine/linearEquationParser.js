@@ -783,10 +783,10 @@ function normalizeParenthesizedScripts(input) {
 export function reconstructLinearEquation(input) {
     if (!input)
         return '';
-    // Spacing quotes: Word and user typing often uses " " or "" or '' for spacing, e.g. 8" " m+12n -> 8 m+12n
+    // Spacing quotes: Word and user typing often uses " " or "" or ' ' for spacing, e.g. 8" " m+12n -> 8 m+12n
     let pre = input.replace(/([0-9]+)\s*["']\s*["']\s*([a-zA-Z])/g, '$1 $2');
     pre = pre.replace(/([a-zA-Z])\s*["']\s*["']\s*([0-9a-zA-Z])/g, '$1 $2');
-    pre = pre.replace(/["']\s*["']/g, ' ');
+    pre = pre.replace(/"\s*"/g, ' ').replace(/'\s+'/g, ' ');
     pre = pre.replace(/([0-9a-zA-Z])\s*\\,\s*(?=[0-9a-zA-Z])/g, '$1 ');
     const already = pre.trim();
     // If the text already contains real LaTeX commands (output of ommlNodeToLatex / convertHtmlWithMath),
@@ -817,9 +817,10 @@ export function reconstructLinearEquation(input) {
         return text.trim();
     }
     let text = pre;
-    // 1. Remove leading numbering/dot artifacts and empty answer-box placeholders
+    // 1. Remove leading numbering/dot artifacts, Word equation placeholders and box tokens
     text = text.replace(/^\s*(?:\d+\.|\.)\s*(?=[A-Za-z\u0900-\u097F])/g, '');
     text = text.replace(/□\s*\(\s*\)/g, '');
+    text = text.replace(/[▒□┤├│〖〗]/g, '');
     text = text.replace(/\bvalue of\s+ea\b(?!\^)/gi, 'value of e^{a}');
     // 2. Clean invisible chars
     text = cleanInvisibleCharacters(text);
@@ -848,8 +849,8 @@ export function reconstructLinearEquation(input) {
     text = text.replace(/([\^_])\s*(\\sqrt(?:\[[^\]]*\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
     text = text.replace(/([\^_])\s*(\\(?:d?frac)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/g, '$1{$2}');
     // 10.55 Ensure any unbraced \sqrt commands have valid braces (fixes "Missing radicand argument for \sqrt")
-    text = text.replace(/\\sqrt(?:\s*\[([^\]]*)\])?\s*([a-zA-Z0-9\u0370-\u03FF]+|\\[a-zA-Z]+)/g, (_m, deg, tok) => deg ? `\\sqrt[${deg}]{${tok}}` : `\\sqrt{${tok}}`);
-    text = text.replace(/\\sqrt(?:\s*\[([^\]]*)\])?\s*(?!\{|\s*[a-zA-Z0-9\\])([^\s\$\\\{\}\(\)]+)/g, (_m, deg, tok) => deg ? `\\sqrt[${deg}]{${tok}}` : `\\sqrt{${tok}}`);
+    text = text.replace(/\\sqrt(?:\s*\[([^\]]*)\])?\s*(?!\{)(?!\[)([a-zA-Z0-9\u0370-\u03FF]+|\\[a-zA-Z]+)/g, (_m, deg, tok) => deg ? `\\sqrt[${deg}]{${tok}}` : `\\sqrt{${tok}}`);
+    text = text.replace(/\\sqrt(?:\s*\[([^\]]*)\])?\s*(?!\{|\[|\s*[a-zA-Z0-9\\])([^\s\$\\\{\}\(\)\[\]]+)/g, (_m, deg, tok) => deg ? `\\sqrt[${deg}]{${tok}}` : `\\sqrt{${tok}}`);
     text = text.replace(/\\sqrt\s*(?=[$+\-*/=,;\)]|$)/g, '\\sqrt{x}');
     // 10.6 Convert literal curly braces immediately following \lim_{...} into \left\{ ... \right\}
     const limBraceMatch = /(\\lim_\{[^{}]+\}\s*)\{/g;

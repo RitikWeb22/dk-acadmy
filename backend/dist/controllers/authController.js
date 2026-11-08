@@ -13,23 +13,21 @@ const generateToken = (id, role) => {
 };
 export const register = async (req, res) => {
     try {
-        const { name, email, password, phone, role, targetExam, targetClass, targetYear } = req.body;
+        const { name, email, password, phone, targetExam, targetClass, targetYear } = req.body;
         const cleanEmail = email?.trim().toLowerCase();
         const userExists = await User.findOne({ email: cleanEmail });
         if (userExists) {
             res.status(400).json({ success: false, message: 'User already exists with this email' });
             return;
         }
-        const studentId = (!role || role === 'STUDENT') ? generateStudentId() : undefined;
-        const teacherId = role === 'TEACHER' ? generateTeacherId() : undefined;
+        const studentId = generateStudentId();
         const user = await User.create({
             name: name?.trim(),
             email: cleanEmail,
             password: password || 'password123',
             phone: phone?.trim(),
-            role: role || 'STUDENT',
+            role: 'STUDENT',
             studentId,
-            teacherId,
             targetExam: targetExam || 'JEE Main & Advanced',
             targetClass: targetClass || 'Class 11th',
             targetYear: targetYear || '2028'
@@ -494,6 +492,14 @@ export const createStaffByAdmin = async (req, res) => {
             : role.toUpperCase() === 'SUPER_ADMIN'
                 ? 'SUPER_ADMIN'
                 : 'TEACHER';
+        const callerRole = req.user?.role;
+        if ((normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN') && callerRole !== 'SUPER_ADMIN') {
+            res.status(403).json({
+                success: false,
+                message: 'Forbidden: Only SUPER_ADMIN can create an ADMIN or SUPER_ADMIN account'
+            });
+            return;
+        }
         const staff = await User.create({
             name: name.trim(),
             email: cleanEmail,

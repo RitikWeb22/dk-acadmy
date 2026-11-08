@@ -14,6 +14,15 @@ const testSubmissionSchema = new Schema({
     incorrectCount: { type: Number, default: 0 },
     unattemptedCount: { type: Number, default: 0 },
     responses: { type: Schema.Types.Mixed, default: () => ({}) },
+    clientTimestamp: { type: Number, default: 0 },
+    attemptVersion: { type: Number, default: 1 },
+    status: {
+        type: String,
+        enum: ['IN_PROGRESS', 'SUBMITTED'],
+        default: 'SUBMITTED',
+        index: true
+    },
+    lastSavedAt: { type: Date, default: Date.now },
     solutionSchedule: {
         enabled: { type: Boolean, default: false },
         pdfSolutionUrl: { type: String, default: '' },

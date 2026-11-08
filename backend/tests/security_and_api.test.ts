@@ -25,25 +25,31 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
   const JWT_SECRET = env.JWT_SECRET;
 
   before(async () => {
-    // Connect to database for CRUD and model tests
+    // Connect to database for CRUD and model tests if enabled
     try {
-      await connectDB();
-      let adminUser = await User.findOne({ role: { $in: ['SUPER_ADMIN', 'ADMIN'] } });
-      if (!adminUser) {
-        adminUser = await User.create({
-          name: 'Automated Test Super Admin',
-          email: `test_admin_${Date.now()}@dkacademy.com`,
-          password: 'Password123!',
-          role: 'SUPER_ADMIN'
-        });
+      if (process.env.TEST_DB !== 'false') {
+        await connectDB();
       }
-      adminAuthToken = jwt.sign(
-        { id: adminUser._id.toString(), role: adminUser.role, email: adminUser.email },
-        JWT_SECRET,
-        { algorithm: 'HS256', expiresIn: '1h' }
-      );
-    } catch (err) {
-      console.warn('[Test DB Warning]:', err);
+      if (mongoose.connection.readyState === 1) {
+        let adminUser = await User.findOne({ role: { $in: ['SUPER_ADMIN', 'ADMIN'] } });
+        if (!adminUser) {
+          adminUser = await User.create({
+            name: 'Automated Test Super Admin',
+            email: `test_admin_${Date.now()}@dkacademy.com`,
+            password: 'Password123!',
+            role: 'SUPER_ADMIN'
+          });
+        }
+        adminAuthToken = jwt.sign(
+          { id: adminUser._id.toString(), role: adminUser.role, email: adminUser.email },
+          JWT_SECRET,
+          { algorithm: 'HS256', expiresIn: '1h' }
+        );
+      } else {
+        throw new Error('Database is not connected (readyState !== 1)');
+      }
+    } catch (err: any) {
+      console.warn('[Test DB Warning]:', err?.message || err);
       // Fallback
       adminAuthToken = jwt.sign(
         { id: 'mock_admin_123', role: 'SUPER_ADMIN', email: 'admin@dkacademy.com' },
@@ -55,7 +61,7 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
     // Spin up lightweight test server on dynamic OS-assigned port
     server = http.createServer(app);
     await new Promise<void>((resolve) => {
-      server.listen(0, () => {
+      server.listen(0, '127.0.0.1', () => {
         const addr = server.address();
         if (typeof addr === 'object' && addr !== null) {
           baseUrl = `http://127.0.0.1:${addr.port}`;
@@ -487,11 +493,12 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
   describe('Phase 1: Fail-Fast Configuration Validation', () => {
     test('Startup terminates with code 1 if required env var is missing', () => {
       // Execute node running env validation with missing JWT_SECRET
+      const backendDir = path.resolve(import.meta.dirname, '..');
       const result = spawnSync(
         process.execPath,
         ['--import', 'tsx', '-e', 'import("./src/config/env.js")'],
         {
-          cwd: process.cwd(),
+          cwd: backendDir,
           env: {
             ...process.env,
             JWT_SECRET: '' // Blank/invalid secret
@@ -538,7 +545,11 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
     let createdCourseId: string;
     let createdLectureId: string;
 
-    test('Public GET /api/v1/courses returns courses list with 200 OK', async () => {
+    test('Public GET /api/v1/courses returns courses list with 200 OK', async (t) => {
+      if (mongoose.connection.readyState !== 1) {
+        t.skip('Requires live MongoDB connection');
+        return;
+      }
       const res = await fetch(`${baseUrl}/api/v1/courses`);
       assert.equal(res.status, 200);
       const data = await res.json();
@@ -546,7 +557,11 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
       assert.ok(Array.isArray(data.data));
     });
 
-    test('Admin POST /api/v1/courses creates course successfully with 201 Created', async () => {
+    test('Admin POST /api/v1/courses creates course successfully with 201 Created', async (t) => {
+      if (mongoose.connection.readyState !== 1) {
+        t.skip('Requires live MongoDB connection');
+        return;
+      }
       const newCoursePayload = {
         title: `Test Automated JEE Batch ${Date.now()}`,
         slug: `test-automated-jee-${Date.now()}`,
@@ -607,7 +622,11 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
       assert.equal(data.success, true);
     });
 
-    test('Public GET /api/v1/free-lectures returns lectures catalog with 200 OK', async () => {
+    test('Public GET /api/v1/free-lectures returns lectures catalog with 200 OK', async (t) => {
+      if (mongoose.connection.readyState !== 1) {
+        t.skip('Requires live MongoDB connection');
+        return;
+      }
       const res = await fetch(`${baseUrl}/api/v1/free-lectures`);
       assert.equal(res.status, 200);
       const data = await res.json();
@@ -615,7 +634,11 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
       assert.ok(Array.isArray(data.data));
     });
 
-    test('Admin POST /api/v1/free-lectures creates lecture successfully with 201 Created', async () => {
+    test('Admin POST /api/v1/free-lectures creates lecture successfully with 201 Created', async (t) => {
+      if (mongoose.connection.readyState !== 1) {
+        t.skip('Requires live MongoDB connection');
+        return;
+      }
       const lecturePayload = {
         title: `Test Math Integration Lecture ${Date.now()}`,
         subject: 'Mathematics',
@@ -656,7 +679,11 @@ describe('DK Academy Backend — Comprehensive Security & API Test Suite', () =>
       assert.equal(data.success, true);
     });
 
-    test('Public POST /api/v1/leads submits contact inquiry with 201 Created', async () => {
+    test('Public POST /api/v1/leads submits contact inquiry with 201 Created', async (t) => {
+      if (mongoose.connection.readyState !== 1) {
+        t.skip('Requires live MongoDB connection');
+        return;
+      }
       const leadPayload = {
         fullName: 'Student Applicant Test',
         mobile: '9876543210',
