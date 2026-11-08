@@ -616,24 +616,24 @@ export const TestSeriesPage: React.FC = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
-  // Save intermediate responses
-  const handleSaveProgress = (responses: Record<string, TestQuestionResponse>) => {
+  // Save intermediate responses with instant local caching & asynchronous cloud sync
+  const handleSaveProgress = async (responses: Record<string, TestQuestionResponse>) => {
     if (!activeTestId) return;
 
+    const existing = attempts[activeTestId];
+    const startTime = existing?.startTime || Date.now();
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+    const updatedAttempt: TestAttempt = {
+      testId: activeTestId,
+      status: existing?.status === 'Completed' ? 'Completed' : 'In Progress',
+      startTime,
+      timeSpentSeconds: elapsed,
+      responses,
+      isSubmitted: Boolean(existing?.isSubmitted),
+    };
+
     setAttempts((prev) => {
-      const existing = prev[activeTestId];
-      const startTime = existing?.startTime || Date.now();
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-
-      const updatedAttempt: TestAttempt = {
-        testId: activeTestId,
-        status: existing?.status === 'Completed' ? 'Completed' : 'In Progress',
-        startTime,
-        timeSpentSeconds: elapsed,
-        responses,
-        isSubmitted: Boolean(existing?.isSubmitted),
-      };
-
       const next = {
         ...prev,
         [activeTestId]: updatedAttempt,
@@ -649,6 +649,20 @@ export const TestSeriesPage: React.FC = () => {
 
       return next;
     });
+
+    // Cloud autosave with monotonic timestamp and student identity
+    try {
+      const res = await apiClient.post<any>(`/test-series/${activeTestId}/autosave`, {
+        responses,
+        timeSpentSeconds: elapsed,
+        clientTimestamp: Date.now(),
+        studentId: student?.id || (student as any)?._id
+      });
+      return res;
+    } catch (cloudErr) {
+      // Re-throw so TestTakingView exponential backoff can track failure and schedule jittered retry
+      throw cloudErr;
+    }
   };
 
   // Submit test with individual automated solution scheduling
@@ -789,6 +803,35 @@ export const TestSeriesPage: React.FC = () => {
       document.documentElement.classList.remove('cbt-exam-active');
     };
   }, [viewState]);
+
+  // Exam Recovery: Automatically restore answers from cloud autosave if local responses are missing
+  useEffect(() => {
+    if (viewState === 'test' && activeTest && (student?.id || (student as any)?._id)) {
+      const activeKey = activeTest.id || (activeTest as any)._id;
+      const current = attempts[activeKey];
+      if (!current?.responses || Object.keys(current.responses).length === 0) {
+        const studentIdentifier = student?.id || (student as any)?._id;
+        apiClient.get<any>(`/test-series/${activeKey}/progress?studentId=${studentIdentifier}`)
+          .then((res) => {
+            if (res?.success && res.data?.responses && Object.keys(res.data.responses).length > 0) {
+              setAttempts((prev) => ({
+                ...prev,
+                [activeKey]: {
+                  ...(prev[activeKey] || {
+                    testId: activeKey,
+                    status: 'In Progress',
+                    startTime: Date.now() - (res.data.timeSpentSeconds || 0) * 1000
+                  }),
+                  responses: res.data.responses,
+                  timeSpentSeconds: res.data.timeSpentSeconds || 0
+                }
+              }));
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [viewState, activeTest, student]);
 
   // When active exam is taking place, render completely isolated fullscreen interface
   // (No public header, no website navbar, no footer, no padding)

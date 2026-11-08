@@ -20,6 +20,7 @@ import { getGeminiConfig, updateGeminiConfig } from '../controllers/aiFormatCont
 import mongoose from 'mongoose';
 import os from 'os';
 import { getMongoPoolMetrics } from '../config/db.js';
+import { optionalProtect, protect, authorize, AuthRequest } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -61,8 +62,56 @@ router.get('/health/readiness', (req, res) => {
   }
 });
 
-// Operational & Cluster Metrics Endpoint
-router.get('/health/metrics', (req, res) => {
+// Operational & Cluster Metrics Endpoint (Sanitized for public; full diagnostics for admins)
+router.get('/health/metrics', optionalProtect, (req: AuthRequest, res) => {
+  const mem = process.memoryUsage();
+  const pool = getMongoPoolMetrics();
+  const rawRole = String(req.user?.role || '').toUpperCase();
+  const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'DIRECTOR'].includes(rawRole);
+
+  const poolSanitized = {
+    readyState: pool.readyState,
+    maxPoolSize: pool.maxPoolSize,
+    minPoolSize: pool.minPoolSize,
+    currentCheckedOut: pool.currentCheckedOut,
+    peakCheckedOut: pool.peakCheckedOut,
+    totalCheckouts: pool.totalCheckouts,
+    totalCheckins: pool.totalCheckins,
+    totalCheckoutFailures: pool.totalCheckoutFailures,
+    waitQueueTimeoutMS: pool.waitQueueTimeoutMS,
+    // Database host topology is only revealed to verified administrators
+    ...(isAdmin && pool.host ? { host: pool.host } : {})
+  };
+
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    worker: {
+      pid: process.pid,
+      uptimeSeconds: Math.floor(process.uptime()),
+      ...(isAdmin ? { nodeVersion: process.version, platform: process.platform } : {})
+    },
+    ...(isAdmin
+      ? {
+          system: {
+            freeMemoryMB: Math.round(os.freemem() / 1024 / 1024),
+            totalMemoryMB: Math.round(os.totalmem() / 1024 / 1024),
+            cpuCores: os.cpus().length
+          }
+        }
+      : {}),
+    memoryMB: {
+      rss: Math.round((mem.rss / 1024 / 1024) * 100) / 100,
+      heapTotal: Math.round((mem.heapTotal / 1024 / 1024) * 100) / 100,
+      heapUsed: Math.round((mem.heapUsed / 1024 / 1024) * 100) / 100,
+      ...(isAdmin ? { external: Math.round((mem.external / 1024 / 1024) * 100) / 100 } : {})
+    },
+    databasePool: poolSanitized
+  });
+});
+
+// Strict Admin-Only Metrics Route (Guaranteed 401/403 for unauthorized requests)
+router.get('/health/admin-metrics', protect, authorize('ADMIN', 'SUPER_ADMIN', 'DIRECTOR'), (req: AuthRequest, res) => {
   const mem = process.memoryUsage();
   const pool = getMongoPoolMetrics();
 

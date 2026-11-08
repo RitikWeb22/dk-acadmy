@@ -180,7 +180,7 @@ describe('DK Academy Backend — Phase 4: Distributed System Reliability & Finan
           5000,
           async () => {
             executions++;
-            await new Promise((res) => setTimeout(res, 500));
+            await new Promise((res) => setTimeout(res, 1200));
             return 'done';
           },
           wId

@@ -82,7 +82,7 @@ const courseSchema = new Schema({
         enum: ['draft', 'published', 'archived'],
         default: 'published'
     },
-    enrolmentCount: { type: Number, default: 0 },
+    enrolmentCount: { type: Number, default: 0, min: 0 },
     rating: { type: Number, default: 4.8 },
     reviewCount: { type: Number, default: 0 }
 }, {

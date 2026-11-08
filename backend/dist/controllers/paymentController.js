@@ -165,23 +165,27 @@ export const verifyPayment = async (req, res) => {
             });
             return;
         }
-        // 1. Update Order status in MongoDB (Idempotency check)
-        const wasAlreadySuccess = existingOrder.status === 'SUCCESS';
-        existingOrder.status = 'SUCCESS';
-        existingOrder.paymentId = razorpay_payment_id;
-        existingOrder.signature = razorpay_signature;
-        await existingOrder.save();
+        // 1. Atomically transition Order status in MongoDB to prevent race conditions with Webhooks
+        const transitionResult = await Order.findOneAndUpdate({ orderId: razorpay_order_id, status: { $ne: 'SUCCESS' } }, {
+            $set: {
+                status: 'SUCCESS',
+                paymentId: razorpay_payment_id,
+                signature: razorpay_signature
+            }
+        }, { returnDocument: 'after' });
+        const becameSuccessInThisCall = Boolean(transitionResult);
+        const currentOrder = transitionResult || (await Order.findOne({ orderId: razorpay_order_id })) || existingOrder;
         // 2. Enroll user in Course (server-side verified only)
-        if (courseId && existingOrder.courseId && existingOrder.courseId !== 'general' && existingOrder.courseId !== courseId) {
+        if (courseId && currentOrder.courseId && currentOrder.courseId !== 'general' && currentOrder.courseId !== courseId) {
             res.status(400).json({
                 success: false,
                 message: 'Security violation: Course ID does not match order record'
             });
             return;
         }
-        const targetCourseId = existingOrder.courseId || courseId;
-        const targetUserId = req.user?._id || existingOrder.userId;
-        if (!wasAlreadySuccess && targetCourseId && targetUserId) {
+        const targetCourseId = currentOrder.courseId || courseId;
+        const targetUserId = req.user?._id || currentOrder.userId;
+        if (becameSuccessInThisCall && targetCourseId && targetUserId) {
             const studentToEnroll = (req.user && typeof req.user.save === 'function')
                 ? req.user
                 : await User.findById(targetUserId);
@@ -193,13 +197,15 @@ export const verifyPayment = async (req, res) => {
                     await studentToEnroll.save();
                 }
             }
-            // Increment course enrolment count
-            try {
-                await Course.findByIdAndUpdate(targetCourseId, { $inc: { enrolmentCount: 1 } });
+            // Increment course enrolment count safely
+            const courseFilter = {};
+            if (mongoose.Types.ObjectId.isValid(targetCourseId)) {
+                courseFilter._id = targetCourseId;
             }
-            catch {
-                await Course.findOneAndUpdate({ slug: targetCourseId }, { $inc: { enrolmentCount: 1 } });
+            else {
+                courseFilter.slug = targetCourseId;
             }
+            await Course.findOneAndUpdate(courseFilter, { $inc: { enrolmentCount: 1 } });
         }
         // 3. Broadcast real-time payment success via WebSockets
         broadcastPaymentSuccess({
@@ -287,20 +293,26 @@ export const handleRazorpayWebhook = async (req, res) => {
             const orderId = paymentEntity?.order_id;
             const paymentId = paymentEntity?.id;
             if (orderId) {
-                const order = await Order.findOne({ orderId });
-                if (order) {
-                    const wasAlreadySuccess = order.status === 'SUCCESS';
-                    order.status = 'SUCCESS';
-                    if (paymentId)
-                        order.paymentId = paymentId;
-                    await order.save();
-                    // Only increment course count if not previously verified by /verify
-                    if (!wasAlreadySuccess && order.userId && order.courseId) {
-                        await User.findByIdAndUpdate(order.userId, {
-                            $addToSet: { enrolledCourses: order.courseId }
-                        });
-                        await Course.findByIdAndUpdate(order.courseId, { $inc: { enrolmentCount: 1 } });
+                const transitionResult = await Order.findOneAndUpdate({ orderId, status: { $ne: 'SUCCESS' } }, {
+                    $set: {
+                        status: 'SUCCESS',
+                        ...(paymentId ? { paymentId } : {})
                     }
+                }, { returnDocument: 'after' });
+                const order = transitionResult || (await Order.findOne({ orderId }));
+                // Only increment enrolment count if this webhook call successfully transitioned the order to SUCCESS
+                if (transitionResult && order?.userId && order?.courseId) {
+                    await User.findByIdAndUpdate(order.userId, {
+                        $addToSet: { enrolledCourses: order.courseId }
+                    });
+                    const courseFilter = {};
+                    if (mongoose.Types.ObjectId.isValid(order.courseId)) {
+                        courseFilter._id = order.courseId;
+                    }
+                    else {
+                        courseFilter.slug = order.courseId;
+                    }
+                    await Course.findOneAndUpdate(courseFilter, { $inc: { enrolmentCount: 1 } });
                 }
             }
         }
@@ -319,39 +331,40 @@ export const handleRazorpayWebhook = async (req, res) => {
             const refundEntity = payload.payload?.refund?.entity;
             const paymentId = refundEntity?.payment_id;
             if (paymentId) {
-                const order = await Order.findOne({ paymentId });
-                if (order) {
-                    // Idempotency Guard: Only process refund revocation once
-                    if (order.status !== 'REFUNDED') {
-                        order.status = 'REFUNDED';
-                        order.refundAmount = Number(refundEntity?.amount ? refundEntity.amount / 100 : order.amount);
-                        await order.save();
-                        if (order.courseId) {
-                            if (order.userId) {
-                                // Safety: Check if student has OTHER active successful orders for this exact course
-                                const otherOrders = await Order.countDocuments({
-                                    userId: order.userId,
-                                    courseId: order.courseId,
-                                    status: 'SUCCESS',
-                                    _id: { $ne: order._id }
+                // Atomic transition to REFUNDED to prevent race conditions across duplicate/parallel webhook deliveries
+                const transitionResult = await Order.findOneAndUpdate({ paymentId, status: { $ne: 'REFUNDED' } }, {
+                    $set: {
+                        status: 'REFUNDED',
+                        refundAmount: Number(refundEntity?.amount ? refundEntity.amount / 100 : 0)
+                    }
+                }, { returnDocument: 'after' });
+                if (transitionResult) {
+                    const order = transitionResult;
+                    if (order.courseId) {
+                        if (order.userId) {
+                            // Safety: Check if student has OTHER active successful orders for this exact course
+                            const otherOrders = await Order.countDocuments({
+                                userId: order.userId,
+                                courseId: order.courseId,
+                                status: 'SUCCESS',
+                                _id: { $ne: order._id }
+                            });
+                            // Only revoke course access if no other active paid orders grant it
+                            if (otherOrders === 0) {
+                                await User.findByIdAndUpdate(order.userId, {
+                                    $pull: { enrolledCourses: order.courseId }
                                 });
-                                // Only revoke course access if no other active paid orders grant it
-                                if (otherOrders === 0) {
-                                    await User.findByIdAndUpdate(order.userId, {
-                                        $pull: { enrolledCourses: order.courseId }
-                                    });
-                                }
                             }
-                            // Decrement course enrolmentCount ONLY if > 0 (prevents negative counts)
-                            const courseFilter = { enrolmentCount: { $gt: 0 } };
-                            if (mongoose.Types.ObjectId.isValid(order.courseId)) {
-                                courseFilter._id = order.courseId;
-                            }
-                            else {
-                                courseFilter.slug = order.courseId;
-                            }
-                            await Course.findOneAndUpdate(courseFilter, { $inc: { enrolmentCount: -1 } });
                         }
+                        // Decrement course enrolmentCount ONLY if > 0 (prevents negative counts)
+                        const courseFilter = { enrolmentCount: { $gt: 0 } };
+                        if (mongoose.Types.ObjectId.isValid(order.courseId)) {
+                            courseFilter._id = order.courseId;
+                        }
+                        else {
+                            courseFilter.slug = order.courseId;
+                        }
+                        await Course.findOneAndUpdate(courseFilter, { $inc: { enrolmentCount: -1 } });
                     }
                 }
             }

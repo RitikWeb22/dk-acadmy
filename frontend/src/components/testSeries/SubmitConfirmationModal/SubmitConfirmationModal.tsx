@@ -10,6 +10,7 @@ interface SubmitConfirmationModalProps {
   totalQuestions: number;
   answeredCount: number;
   markedCount: number;
+  isSubmitting?: boolean;
 }
 
 export const SubmitConfirmationModal: React.FC<SubmitConfirmationModalProps> = ({
@@ -19,6 +20,7 @@ export const SubmitConfirmationModal: React.FC<SubmitConfirmationModalProps> = (
   totalQuestions,
   answeredCount,
   markedCount,
+  isSubmitting = false,
 }) => {
   const unansweredCount = totalQuestions - answeredCount;
 
@@ -95,11 +97,11 @@ export const SubmitConfirmationModal: React.FC<SubmitConfirmationModalProps> = (
 
         {/* Actions */}
         <div className={styles.actions}>
-          <button type="button" className={styles.cancelBtn} onClick={onClose}>
+          <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={isSubmitting}>
             Continue Test
           </button>
-          <button type="button" className={styles.confirmBtn} onClick={onConfirm}>
-            Yes, Final Submit
+          <button type="button" className={styles.confirmBtn} onClick={onConfirm} disabled={isSubmitting}>
+            {isSubmitting ? 'Evaluating & Submitting...' : 'Yes, Final Submit'}
           </button>
         </div>
       </div>

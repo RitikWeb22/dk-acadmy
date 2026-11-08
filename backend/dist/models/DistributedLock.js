@@ -2,6 +2,9 @@ import mongoose, { Schema } from 'mongoose';
 const distributedLockSchema = new Schema({
     lockKey: { type: String, required: true, unique: true, index: true },
     lockedBy: { type: String, required: true },
+    ownerToken: { type: String, required: true, default: () => new mongoose.Types.ObjectId().toHexString() },
+    generation: { type: Number, required: true, default: 1 },
+    renewedCount: { type: Number, required: true, default: 0 },
     acquiredAt: { type: Date, required: true, default: Date.now },
     expiresAt: { type: Date, required: true },
     ttlMs: { type: Number, required: true, default: 30000 }
