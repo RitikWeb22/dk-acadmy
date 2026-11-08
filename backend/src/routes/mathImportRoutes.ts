@@ -23,7 +23,7 @@ const upload = multer({
 router.post(
   '/bulk-docx',
   protect,
-  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR', 'DIRECTOR'),
   upload.single('file'),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -68,7 +68,7 @@ router.post(
 router.post(
   '/bulk-markdown',
   protect,
-  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR', 'DIRECTOR'),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const {
@@ -111,7 +111,7 @@ router.post(
 router.post(
   '/ocr',
   protect,
-  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR', 'DIRECTOR'),
   upload.single('image'),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -143,10 +143,11 @@ router.post(
 router.post(
   '/ai-repair',
   protect,
-  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR', 'DIRECTOR'),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { statement = '', options = [], stepSolution, dkSirShortcut, targetExam, model } = req.body;
+      const statement = req.body.statement || req.body.rawText || '';
+      const { options = [], stepSolution, dkSirShortcut, targetExam, model } = req.body;
 
       if (!statement && (!options || options.length === 0)) {
         res.status(400).json({ error: 'Question statement or options are required.' });

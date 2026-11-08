@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, Sparkles, X, ChevronRight } from 'lucide-react';
 import { ValidationBadge } from '../../ui/MathEngine/ValidationBadge';
+import { apiClient } from '../../../services/apiClient';
 
 export interface ExtractedQuestionResult {
   id: string;
@@ -82,21 +83,11 @@ export const BulkDocxImportModal: React.FC<BulkDocxImportModalProps> = ({
     setIsUploading(true);
     setErrorMsg(null);
 
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('subject', subject);
-    formData.append('targetExam', targetExam);
-
     try {
-      const res = await fetch('/api/math-import/bulk-docx', {
-        method: 'POST',
-        body: formData
+      const json = await apiClient.uploadBulkDocx(selectedFile, {
+        subject,
+        targetExam
       });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Failed to process DOCX file');
-      }
 
       const questions: ExtractedQuestionResult[] = (json.questions || []).map((q: any, idx: number) => ({
         id: `docx-q-${Date.now()}-${idx + 1}`,

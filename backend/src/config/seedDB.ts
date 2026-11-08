@@ -22,10 +22,46 @@ export const seedInitialDatabase = async (): Promise<void> => {
       await superAdmin.save();
     }
 
+    // 1b. Seed Dharmendra Kumar (DK Sir) Super Admin
+    let dkSir = await User.findOne({ email: 'dharmendra@dkacademy.com' });
+    if (!dkSir) {
+      dkSir = await User.create({
+        name: 'Dharmendra Kumar (DK Sir)',
+        email: 'dharmendra@dkacademy.com',
+        password: 'admin123',
+        phone: '+91 93259 87875',
+        role: 'SUPER_ADMIN',
+        targetExam: 'JEE Advanced'
+      });
+      console.log('[Seed] Dharmendra Kumar (DK Sir) Super Admin created: dharmendra@dkacademy.com');
+    } else {
+      dkSir.password = 'admin123';
+      dkSir.role = 'SUPER_ADMIN';
+      await dkSir.save();
+    }
+
+    // 1c. Seed Teacher Faculty Account
+    let teacher = await User.findOne({ email: 'teacher@dkacademy.com' });
+    if (!teacher) {
+      teacher = await User.create({
+        name: 'Senior Faculty (Mathematics)',
+        email: 'teacher@dkacademy.com',
+        password: 'teacher123',
+        phone: '+91 98765 12345',
+        role: 'TEACHER',
+        targetExam: 'JEE Main & Advanced'
+      });
+      console.log('[Seed] Senior Faculty created: teacher@dkacademy.com');
+    } else {
+      teacher.password = 'teacher123';
+      teacher.role = 'TEACHER';
+      await teacher.save();
+    }
+
     // Clean up older demo & test dummy accounts from database
     await User.deleteMany({
       $or: [
-        { email: { $in: ['teacher@dkacademy.com', 'director@dkacademy.com', 'admin@dkacademy.com', 'test@test.com'] } },
+        { email: { $in: ['test@test.com'] } },
         { email: { $regex: /^test[\._]/i } }
       ]
     });

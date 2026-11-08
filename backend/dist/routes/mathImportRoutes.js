@@ -9,7 +9,7 @@ const upload = multer({
 /**
  * 1. Bulk DOCX Question Import (Step 2)
  */
-router.post('/bulk-docx', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), upload.single('file'), async (req, res) => {
+router.post('/bulk-docx', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR', 'DIRECTOR'), upload.single('file'), async (req, res) => {
     try {
         if (!req.file || !req.file.buffer) {
             res.status(400).json({ error: 'Please upload a valid .docx document.' });
@@ -39,7 +39,7 @@ router.post('/bulk-docx', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGE
 /**
  * 2. Markdown / Text Bulk Question Import
  */
-router.post('/bulk-markdown', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), async (req, res) => {
+router.post('/bulk-markdown', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR', 'DIRECTOR'), async (req, res) => {
     try {
         const { text = '', defaultSubject = 'Mathematics', defaultTopic = 'General', defaultTargetExam = 'JEE Main', positiveMarks = 4, negativeMarks = 1 } = req.body;
         if (!text.trim()) {
@@ -67,7 +67,7 @@ router.post('/bulk-markdown', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MA
 /**
  * 3. Mathpix OCR Fallback for Equation Images (Step 3)
  */
-router.post('/ocr', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), upload.single('image'), async (req, res) => {
+router.post('/ocr', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR', 'DIRECTOR'), upload.single('image'), async (req, res) => {
     try {
         let imagePayload = '';
         let mimeType = 'image/png';
@@ -92,9 +92,10 @@ router.post('/ocr', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'T
 /**
  * 4. Gemini AI LaTeX Formatting Repair (Step 5)
  */
-router.post('/ai-repair', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), async (req, res) => {
+router.post('/ai-repair', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER', 'AUTHOR', 'DIRECTOR'), async (req, res) => {
     try {
-        const { statement = '', options = [], stepSolution, dkSirShortcut, targetExam, model } = req.body;
+        const statement = req.body.statement || req.body.rawText || '';
+        const { options = [], stepSolution, dkSirShortcut, targetExam, model } = req.body;
         if (!statement && (!options || options.length === 0)) {
             res.status(400).json({ error: 'Question statement or options are required.' });
             return;

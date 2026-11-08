@@ -22,6 +22,14 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.headers['x-access-token']) {
+    token = req.headers['x-access-token'] as string;
+  } else if ((req as any).cookies?.token) {
+    token = (req as any).cookies.token;
+  } else if ((req as any).cookies?.adminToken) {
+    token = (req as any).cookies.adminToken;
+  } else if (req.query?.token && typeof req.query.token === 'string') {
+    token = req.query.token;
   }
 
   if (!token) {

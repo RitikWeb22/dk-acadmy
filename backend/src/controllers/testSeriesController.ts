@@ -6,6 +6,7 @@ import { PART_TESTS_DATA } from '../data/partTestsData.js';
 import { normalizeMathematicalText } from '../utils/universalMathEngine/index.js';
 import {
   normalizeCanonicalMath,
+  normalizeOptionMath,
   validateQuestion,
   summarizeBatchValidation
 } from '../services/mathImport/index.js';
@@ -588,7 +589,7 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
             ? q.options.map((opt: any, optIdx: number) => ({
                 id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
                 key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                text: opt.text ? normalizeCanonicalMath(opt.text) : '',
+                text: opt.text ? normalizeOptionMath(opt.text) : '',
                 imageUrl: opt.imageUrl
               }))
             : [],
@@ -749,7 +750,7 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
             ? q.options.map((opt: any, optIdx: number) => ({
                 id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
                 key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                text: opt.text ? normalizeCanonicalMath(opt.text) : '',
+                text: opt.text ? normalizeOptionMath(opt.text) : '',
                 imageUrl: opt.imageUrl
               }))
             : [],

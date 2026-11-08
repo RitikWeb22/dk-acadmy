@@ -72,6 +72,7 @@ import { PART_TESTS_DATA } from '../../../data/partTestsData';
 import { MathText } from '../../ui/MathText/MathText';
 import { MathInput, parseContentToBlocks, ValidationDashboard, ValidationBadge } from '../../ui/MathEngine';
 import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
+import { normalizeMathString, normalizeOptionMath, extractMathFromHtml } from '../../../utils/mathImportRenderSystem/pasteHandler';
 import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
 import { PasteWordQuestionModal } from '../Common/PasteWordQuestionModal';
 import { BulkDocxImportModal } from './BulkDocxImportModal';
@@ -2353,11 +2354,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     const numAnsMatch = smartPasteText.match(/(?:Ans(?:wer)?|Correct(?:\s*(?:Key|Answer|Value))?|Value)\s*[:=\-]\s*(-?[0-9]+(?:\.[0-9]+)?)/i);
 
-    const cleanStmt = normalizeMathText(extracted.statement);
+    const cleanStmt = normalizeMathString(extracted.statement);
     return {
       statement: cleanStmt,
       options: hasOptions
-        ? extracted.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) }))
+        ? extracted.options.map((o) => ({ key: o.key, text: normalizeOptionMath(o.text) }))
         : [],
       hasRealOptions: hasOptions,
       detectedCorrectKey: detectedKey,
@@ -2535,8 +2536,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     if (!finalOptions || finalOptions.length < 4) {
       const fallback = extractStatementAndOptions(smartPasteText);
       if (fallback.options && fallback.options.length === 4 && fallback.options.some((o) => o.text && !o.text.startsWith('Option '))) {
-        finalStatement = normalizeMathText(fallback.statement);
-        finalOptions = fallback.options.map((o) => ({ key: o.key, text: normalizeMathText(o.text) }));
+        finalStatement = normalizeMathString(fallback.statement);
+        finalOptions = fallback.options.map((o) => ({ key: o.key, text: normalizeOptionMath(o.text) }));
         if (fallback.correctKey) finalKey = fallback.correctKey;
       }
     }
@@ -7412,18 +7413,21 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   onChange={(e) => setSmartPasteText(e.target.value)}
                   onPaste={(e) => {
                     const plain = e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text') || '';
+                    const html = e.clipboardData?.getData('text/html') || '';
+                    let converted = '';
+                    if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html) || /<table|<tr|<p|<span|<div/i.test(html))) {
+                      converted = extractMathFromHtml(html);
+                    }
+                    const baseText = converted.trim() || plain;
                     const res = normalizePastedQuestion(e.clipboardData);
                     const isCorrupted = !res.fullNormalizedText || /\\frac\{\s*\}\{\s*\}/.test(res.fullNormalizedText) || (plain.trim().length > 25 && res.fullNormalizedText.trim().length < plain.trim().length * 0.4);
                     if (!isCorrupted && res.hasQuestionWithOptions && res.options.length === 4) {
                       e.preventDefault();
-                      const formatted = `${res.statement}\n\n${res.options.map((o) => `(${o.key}) ${o.text}`).join('\n')}${res.correctKey ? `\n\nAns: ${res.correctKey}` : ''}`;
+                      const formatted = `${normalizeMathString(res.statement)}\n\n${res.options.map((o) => `(${o.key}) ${normalizeOptionMath(o.text)}`).join('\n')}${res.correctKey ? `\n\nAns: ${res.correctKey}` : ''}`;
                       setSmartPasteText(formatted);
-                    } else if (!isCorrupted && res.fullNormalizedText) {
+                    } else if (baseText) {
                       e.preventDefault();
-                      setSmartPasteText(res.fullNormalizedText);
-                    } else if (plain) {
-                      e.preventDefault();
-                      setSmartPasteText(normalizeMathText(plain));
+                      setSmartPasteText(normalizeMathString(baseText));
                     }
                   }}
                   placeholder={`Paste full question here, e.g.:\n\nIf f(x) = \\int_0^x \\sqrt{1 + t^3} dt, then find f'(2).\n(A) 3\n(B) 4\n(C) 5\n(D) 9\nAns: A\nShortcut: Apply Leibniz rule f'(x) = \\sqrt{1 + x^3}`}
