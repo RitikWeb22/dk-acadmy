@@ -450,6 +450,16 @@ export function normalizeMathString(raw: string): string {
     }
   );
 
+  // 13b. Multi-term fraction expressions before "is equal to" / "equals" or punctuation
+  // e.g. "then 1/a+1/b+4/k is equal to" -> "then $\dfrac{1}{a} + \dfrac{1}{b} + \dfrac{4}{k}$ is equal to"
+  s = s.replace(
+    /(?<=\b(?:then|and|if|where)\s+)(\d+\/[a-zA-Z0-9]+(?:\s*[+\-*/]\s*\d+\/[a-zA-Z0-9]+)+)(?=\s+(?:is\s+equal\s+to|equals\b|is\b)|\s*[,;.]|$)/gi,
+    (_, m) => {
+      const formatted = m.replace(/(\d+)\/([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
+      return protect(formatted);
+    }
+  );
+
   // 14. Point coordinates: point (1,2) or (1, 2, 3)
   s = s.replace(/(?<=\b(?:point|at|through|from)\s+)(\(\s*-?[0-9]+(?:\.[0-9]+)?\s*,\s*-?[0-9]+(?:\.[0-9]+)?\s*(?:,\s*-?[0-9]+(?:\.[0-9]+)?)?\s*\))(?![$\w])/gi, (_, m) => protect(m));
 
