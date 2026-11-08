@@ -783,20 +783,21 @@ function normalizeParenthesizedScripts(input: string): string {
 export function reconstructLinearEquation(input: string): string {
   if (!input) return '';
 
+  // Check if input is ALREADY valid LaTeX before applying any linear normalizations
+  const already = input.trim();
+
   // Spacing quotes: Word and user typing often uses " " or "" or ' ' for spacing, e.g. 8" " m+12n -> 8 m+12n
   let pre = input.replace(/([0-9]+)\s*["']\s*["']\s*([a-zA-Z])/g, '$1 $2');
   pre = pre.replace(/([a-zA-Z])\s*["']\s*["']\s*([0-9a-zA-Z])/g, '$1 $2');
   pre = pre.replace(/"\s*"/g, ' ').replace(/'\s+'/g, ' ');
   pre = pre.replace(/([0-9a-zA-Z])\s*\\,\s*(?=[0-9a-zA-Z])/g, '$1 ');
 
-  // Repair Word linear differential residues: dy/(" " \, dx) or dy/(dx) or dy/dx
-  pre = pre.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z]\^?[0-9]?)\s*\)/g, '\\dfrac{$1}{$2}');
-  pre = pre.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\dfrac{$1}{$2}');
+  // Repair Word linear differential residues: dy/(" " \, dx) or dy/(dx) or dy/dx or d^n/dx^n
+  pre = pre.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\)/g, '\\frac{$1}{$2}');
+  pre = pre.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\b/g, '\\frac{$1}{$2}');
   pre = pre.replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1');
   pre = pre.replace(/\\sqrt\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}');
   pre = pre.replace(/\\sqrt\{\s*\(([^()]+)\)\s*\}/g, '\\sqrt{$1}');
-
-  const already = pre.trim();
 
   // If the text already contains real LaTeX commands (output of ommlNodeToLatex / convertHtmlWithMath),
   // skip the linear and Unicode conversion steps that would corrupt existing LaTeX.

@@ -476,6 +476,7 @@ export const apiClient = {
     changes?: string[];
     uncertainExpressions?: string[];
     requiresManualReview?: boolean;
+
     reason?: string;
     data?: {
       statement: string;
@@ -493,7 +494,7 @@ export const apiClient = {
       '';
     const res = await this.post<any>('/dpp-pyqs/ai-format-math', {
       ...payload,
-      model: payload.model || 'gemini-2.5-flash',
+      model: payload.model || 'gemini-3.8-flash',
       geminiApiKey: key
     });
     return res as any;

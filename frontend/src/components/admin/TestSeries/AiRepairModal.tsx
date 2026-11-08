@@ -307,7 +307,7 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
               }}
             >
               <Sparkles size={14} />
-              {isLoading ? 'Repairing with Gemini 2.5...' : 'Repair Formatting'}
+              {isLoading ? 'Repairing with Gemini 3.8...' : 'Repair Formatting'}
             </button>
           ) : (
             <button

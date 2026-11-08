@@ -200,7 +200,7 @@ function wrapLooseMath(text) {
     // Wrap differential equations: e.g. \dfrac{dy}{dx} - \dots = \dots or 2x^2 dy = (2xy + y^2) dx
     const proseDiffStops = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are)\\b';
     result = result.replace(new RegExp(`(?<![A-Za-z0-9_$\\u0000\\u0001])((\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}[^=]+)=\\s*([^,;.\\n]+?))(?=\\s+${proseDiffStops}|\\s*[,;.]|$)`, 'gi'), (_m, eq) => stashMath(eq));
-    result = result.replace(/(?<![A-Za-z0-9_$\u0000\u0001])((?:-?\s*(?:[0-9a-zA-Z^{}_\\]+|\([^()\n]+\)|\\frac\{[^{}]+\}\{[^{}]+\})\s*)*(?:\\,)?\s*(?:dy|dx|dt|dz)(?:\s*[-+]\s*(?:[0-9a-zA-Z^{}_\\]+|\([^()\n]+\)|\\frac\{[^{}]+\}\{[^{}]+\})\s*(?:\\,)?\s*(?:dy|dx|dt|dz))*\s*=\s*[^,;.\n\u0000\u0001]+?)(?=\s*[,;.]|\s+(?:and|or|if|then|where|when|be|is|are|in|at|to|for|such|pass|through)\b|$)/gi, (fullMatch, eq) => {
+    result = result.replace(/(?<![A-Za-z0-9_$\u0000\u0001])(-?[0-9a-zA-Z^{}_\\()[\]+\-*/\s]*?\b(?:dy|dx|dt|dz)\b[0-9a-zA-Z^{}_\\()[\]+\-*/\s]*?=\s*[^,;.\n\u0000\u0001]+?)(?=\s*[,;.]|\s+(?:and|or|if|then|where|when|be|is|are|in|at|to|for|such|pass|through)\b|$)/gi, (fullMatch, eq) => {
         const stripped = eq.replace(/\\[a-zA-Z]+/g, ' ');
         const words = stripped.match(/\b[A-Za-z]{2,}\b/g) || [];
         if (words.some((w) => PROSE_WORDS_SET.has(w.toLowerCase()) && !['dx', 'dy', 'dt', 'dz'].includes(w.toLowerCase())))
@@ -247,6 +247,8 @@ function wrapLooseMath(text) {
 export function ensureMathDelimiters(text) {
     if (!text)
         return '';
+    text = text.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
+    text = text.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
     // Pre-normalize spacing quotes and rogue backslash-commas: 8" "m or " " -> normal space
     text = text.replace(/([0-9]+)\s*["']\s*["']\s*([a-zA-Z])/g, '$1 $2');
     text = text.replace(/([a-zA-Z])\s*["']\s*["']\s*([0-9a-zA-Z])/g, '$1 $2');

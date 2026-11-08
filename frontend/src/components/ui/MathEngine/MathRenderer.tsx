@@ -47,12 +47,28 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Clean warning banners and leading stray dots from content
+  const cleanedContent = useMemo(() => {
+    if (!content) return '';
+    return content
+      .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
+      .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '')
+      .trim();
+  }, [content]);
+
   // Parse structured blocks on the entire normalized content to avoid chopping multi-line formulas across line splits
   const blocks = useMemo(() => {
-    if (propBlocks && propBlocks.length > 0) return propBlocks;
-    if (!content) return [];
-    return parseContentToBlocks(content);
-  }, [content, propBlocks]);
+    if (propBlocks && propBlocks.length > 0) {
+      return propBlocks.map(b => ({
+        ...b,
+        content: b.content
+          .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
+          .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '')
+      }));
+    }
+    if (!cleanedContent) return [];
+    return parseContentToBlocks(cleanedContent);
+  }, [cleanedContent, propBlocks]);
 
   // MathJax pass for advanced LaTeX environments
   useEffect(() => {
