@@ -164,11 +164,22 @@ export function repairLinearMathResidues(text) {
     if (!text)
         return '';
     let s = text;
+    // Clean leading bullet, number, or dot: ". If a curve..." -> "If a curve..."
+    s = s.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
+    s = s.replace(/^Q(?:uestion)?\s*\.?\s*\d+\s*[:.)\-—]\s*/gi, '');
     // 1. Differential residues from Word: dy/(" " \, dx), dy/(dx), dy/dx
     s = s.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z]\^?[0-9]?)\s*\)/g, '\\dfrac{$1}{$2}');
     s = s.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\dfrac{$1}{$2}');
     s = s.replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1');
-    // 2. Exponential tall brackets: exp{...} -> \exp\left\{...\right\}
+    // 2. Word linear fractions with nested parens and exponents: (3x^{5} \tan^{-1}(x^3))/(1+x^{6})^{\frac{3}{2}}
+    s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)\^(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[A-Za-z0-9_+\-]+)/g, (_, num, den, exp) => {
+        const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
+        return `\\dfrac{${num}}{(${den})^${expStr}}`;
+    });
+    s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
+    s = s.replace(/(?<![a-zA-Z0-9_\\])\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*([A-Za-z0-9_\\^{}]+)/g, '\\dfrac{$1}{$2}');
+    s = s.replace(/(?<![a-zA-Z0-9_\\])([A-Za-z0-9_\\^{}]+)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
+    // 3. Exponential tall brackets: exp{...} -> \exp\left\{...\right\}
     // Auto-balance any unclosed \exp{...} before prose boundaries
     s = s.replace(/(\\?exp\s*\{[\s\S]*?)(?=\s+(?:pass|through|is|equal|where|then|and|origin)\b|$)/gi, (m) => {
         const opens = (m.match(/\{/g) || []).length;
@@ -178,22 +189,31 @@ export function repairLinearMathResidues(text) {
         }
         return m;
     });
+    s = s.replace(/\\?exp\s*\\?\{([\s\S]*?)\\?\}(?=\s+(?:pass|through|origin|is|equal|where|then|and)\b|[,;.]|$)/gi, (_m, inner) => {
+        const cleanInner = inner.replace(/\\frac\b/g, '\\dfrac');
+        return `\\exp\\left\\{${cleanInner.trim()}\\right\\}`;
+    });
     s = s.replace(/\\?exp\s*\{([^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*)\}/g, '\\exp\\left\\{$1\\right\\}');
     s = s.replace(/\\?exp\s*\(\s*([^()]+)\s*\)/g, '\\exp\\left($1\\right)');
-    // 3. Inverse trigonometric notation: tan^(-1) -> \tan^{-1}
+    // 4. Inverse trigonometric notation: tan^(-1) -> \tan^{-1}
     s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*\(\s*-?\s*1\s*\)/gi, '\\$1^{-1}');
     s = s.replace(/(?<!\\)\b(sin|cos|tan|cot|sec|csc)\b(?!\^\{-?1\})/gi, '\\$1');
-    // 4. Align environments: KaTeX requires 'aligned' inside math mode instead of top-level 'align' / 'align*'
+    // Fractions inside \exp: \frac -> \dfrac
+    s = s.replace(/\\exp\\left\\\{([\s\S]*?)\\right\\\}/g, (_, inner) => {
+        const upgraded = inner.replace(/\\frac\b/g, '\\dfrac');
+        return `\\exp\\left\\{${upgraded}\\right\\}`;
+    });
+    // 5. Align environments: KaTeX requires 'aligned' inside math mode instead of top-level 'align' / 'align*'
     s = s.replace(/\\begin\{align\*?\}/g, '\\begin{aligned}');
     s = s.replace(/\\end\{align\*?\}/g, '\\end{aligned}');
-    // 5. Parenthesized linear fractions: (A)/(B) or (A)/(B)^C or (A)/(B)^{\frac{3}{2}}
-    s = s.replace(/\(([A-Za-z0-9_+\-*\s\\^{}]+?)\)\s*\/\s*\(([A-Za-z0-9_+\-*\s\\^{}]+?)\)\^(\{?[^{}\s]+\}?|\\frac\{[^{}]+\}\{[^{}]+\})/g, '\\dfrac{$1}{($2)^{$3}}');
-    s = s.replace(/\(([A-Za-z0-9_+\-*\s\\^{}]+?)\)\s*\/\s*\(([A-Za-z0-9_+\-*\s\\^{}]+?)\)/g, '\\dfrac{$1}{$2}');
     // 6. Simple numeric fractions in options/text: e.g. 1/2 -> \dfrac{1}{2} (when not part of a URL or date)
+    s = s.replace(/(?<=[(,=+\-*\/]\s*)(\d+)\s*\/\s*(\d+)(?=\s*[),=+;\-*\/])/g, '\\dfrac{$1}{$2}');
     s = s.replace(/(?<![a-zA-Z0-9_\/])(\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
     // 7. Redundant parentheses in radicals: \sqrt{(x+1)} -> \sqrt{x+1}
     s = s.replace(/\\sqrt\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}');
     s = s.replace(/\\sqrt\{\s*\(([^()]+)\)\s*\}/g, '\\sqrt{$1}');
+    // 8. Insert space after semicolons/commas when followed directly by initial conditions or variables (e.g. "dx;y(2)=e" or "0,y(1)=e")
+    s = s.replace(/([0-9a-zA-Z_)\\])\s*([;,])\s*([a-zA-Z]\s*(?:\([^()]+\)|=))/g, '$1$2 $3');
     return s;
 }
 const PROSE_LIST = 'if|let|the|be|is|are|in|on|at|by|for|to|of|and|or|then|than|where|when|what|which|who|how|why|such|that|with|from|into|curve|passing|through|solution|differential|equation|point|points|value|values|find|evaluate|calculate|equal|equals|given|suppose|assume|consider|hence|therefore|show|prove|origin|axis|plane|line|slope';
@@ -242,39 +262,62 @@ export function wrapBareLatexInDollars(text) {
     };
     // Strip stray comma in backslash-comma outside math so clauses are not cut short
     s = s.replace(/\\,\s*/g, ' ');
-    const proseLead = '(?:Let|If|Suppose|Given|Define|Find|Evaluate|Calculate|Show|Consider)\\b\\s*';
+    const proseLead = '(?:Let|If|Suppose|Given|Define|Find|Evaluate|Calculate|Show|Consider)\\b\\s*[:,]?\\s*';
     const proseStops = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are|represented|representing|given)\\b';
     // 1. Environments (with optional LHS: g(x) = \begin{cases} ... \end{cases} or A = \begin{pmatrix} ... \end{pmatrix})
     s = s.replace(new RegExp(`(${proseLead})?((?:[a-zA-Z|][a-zA-Z0-9_\\s'|()]*=\\s*)?\\\\begin\\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix|aligned)\\}[\\s\\S]+?\\\\end\\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix|aligned)\\})`, 'g'), (_, lead, m) => (lead ? lead + ' ' : '') + protect(m));
     // 2. Differential equations like \dfrac{dy}{dx} - ... = ... before prose stop
-    s = s.replace(new RegExp(`(?<![a-zA-Z0-9_\\$])((\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}[^=]+)=\\s*([^,;.\\n]+?))(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'), (_, m) => protect(m));
+    s = s.replace(new RegExp(`(${proseLead})?((?:\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}[^=]+)=\\s*([^,;.\\n]+?))(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'), (_, lead, eq) => {
+        let activeLead = lead || '';
+        let activeEq = eq;
+        const introMatch = activeEq.match(/^(.*?\b(?:differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)(.+)$/i);
+        if (introMatch) {
+            activeLead += introMatch[1];
+            activeEq = introMatch[2];
+        }
+        return (activeLead ? activeLead + ' ' : '') + protect(activeEq);
+    });
     // 3. Symmetric 3D Line Equations: \frac{x-x1}{a} = \frac{y-y1}{b} = \frac{z-z1}{c}
     s = s.replace(/(?<![$\w])((?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[a-zA-Z0-9_+-]+)\s*=\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[a-zA-Z0-9_+-]+)\s*=\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[a-zA-Z0-9_+-]+))(?=\s*[,;.]|\s+${proseStops}|$)/gi, (_, m) => protect(m));
     // 4. Integrals: \int ... dx
     s = s.replace(/(?<![$\w])(\\(?:int|iint|iiint|oint)(?:_[^{}\s]+|_\{\s*[^{}]*(?:\{[^{}]*\}[^{}]*)*\s*\}|\^[^{}\s]+|\^\{\s*[^{}]*(?:\{[^{}]*\}[^{}]*)*\s*\})*\s*[\s\S]+?(?:\\,?\s*d[a-zA-Z]|dx|dy|dt|dz|du|dv|d\theta|dr)(?![a-zA-Z]))(?=(?:\s*=\s*[^,;.\n]+)?(?:\s*[,;.]|\s+${proseStops}|$))/gi, (fullMatch) => protect(fullMatch));
-    // 5. Limits, Summations, Products: \lim_{...} ...
-    s = s.replace(/(?<![$\w])(\\(?:lim|sum|prod)(?:_[^{}\s]+|_\{\s*[^{}]*(?:\{[^{}]*\}[^{}]*)*\s*\}|\^[^{}\s]+|\^\{\s*[^{}]*(?:\{[^{}]*\}[^{}]*)*\s*\})*\s*[^,;.\n]+?)(?=\s*[,;.]|\s+${proseStops}|$)/gi, (_, m) => protect(m));
-    // 6. Differential equations with explicit differentials: 2x^2 dy = (2xy+y^2) dx
-    s = s.replace(new RegExp(`(${proseLead})?([^,;.\\n]*?\\b(?:d\\^?[0-9]?[a-zA-Z]?\\/d[a-zA-Z]\\^?[0-9]?|\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}|dy|dx|dt|dz)\\b[^,;.\\n]+?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'), (fullMatch, lead, eq) => {
-        const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
-        if (/\b(?:let|the|curve|passes|passing|through|solution|is|find|evaluate)\b/i.test(nonLatex)) {
+    // 5. Limits, Summations, Products: \lim_{...} ... (stop strictly before prose)
+    s = s.replace(new RegExp(`(?<![$\\w])(\\\\(?:lim|sum|prod)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*(?:[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]*?[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\]]))(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'), (_, m) => protect(m));
+    // 6. Differential equations with explicit differentials: 2x^2 dy = (2xy+y^2) dx OR y(x+1) dx - x^2 dy = 0
+    s = s.replace(new RegExp(`(${proseLead})?([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]*?\\b(?:d\\^?[0-9]?[a-zA-Z]?\\/d[a-zA-Z]\\^?[0-9]?|\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}|dy|dx|dt|dz)\\b[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]*?=[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]+?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'), (fullMatch, lead, eq) => {
+        let activeLead = lead || '';
+        let activeEq = eq;
+        const introMatch = activeEq.match(/^(.*?\b(?:differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)(.+)$/i);
+        if (introMatch) {
+            activeLead += introMatch[1];
+            activeEq = introMatch[2];
+        }
+        const nonLatex = activeEq.replace(/\\[a-zA-Z]+/g, ' ');
+        if (/\b(?:let|the|curve|passes|passing|through|solution|find|evaluate)\b/i.test(nonLatex)) {
             return fullMatch;
         }
-        return (lead ? lead + ' ' : '') + protect(eq);
+        return (activeLead ? activeLead + ' ' : '') + protect(activeEq);
     });
     // 7. Vector Equations & Triple Products: \vec{r} = \vec{a} + \lambda \vec{b}, [\vec{a} \; \vec{b} \; \vec{c}]
     s = s.replace(/(?<![$\w])(\[\s*\\vec\{[^{}]+\}[\s\S]+?\\vec\{[^{}]+\}\s*\])/g, (_, m) => protect(m));
     s = s.replace(/(?<![$\w])(\\vec\{[^{}]+\}\s*=\s*[^,;.\n]+?)(?=\s*[,;.]|\s+${proseStops}|$)/gi, (_, m) => protect(m));
     // 8. General equations with LaTeX operators / functions: A^{-1} = ..., E = E^\circ - ...
     s = s.replace(new RegExp(`(${proseLead})?([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]+=([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]|\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\})+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'), (fullMatch, lead, eq) => {
-        if (!/(\\[a-zA-Z]+|\^|_|\b(?:det|Tr|adj|sgn|sin|cos|tan|log|ln|exp)\b)/.test(eq)) {
+        let activeLead = lead || '';
+        let activeEq = eq;
+        const introMatch = activeEq.match(/^(.*?\b(?:differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)(.+)$/i);
+        if (introMatch) {
+            activeLead += introMatch[1];
+            activeEq = introMatch[2];
+        }
+        if (!/(\\[a-zA-Z]+|\^|_|\b(?:det|Tr|adj|sgn|sin|cos|tan|log|ln|exp)\b)/.test(activeEq)) {
             return fullMatch;
         }
-        const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
+        const nonLatex = activeEq.replace(/\\[a-zA-Z]+/g, ' ');
         if (/\b(?:let|the|and|for|with|where|when|if|then|is|are|find|curve|line|plane)\b/i.test(nonLatex)) {
             return fullMatch;
         }
-        return (lead ? lead + ' ' : '') + protect(eq);
+        return (activeLead ? activeLead + ' ' : '') + protect(activeEq);
     });
     // 9. Initial conditions / evaluations: y(2)=e, y(1)=e, f'(0), f(1/2), y(4)
     s = s.replace(new RegExp(`(?<![$\\w])([a-zA-Z]\\s*(?:'*\\s*\\([a-zA-Z0-9_+\\-/*\\\\^\\{\\}\\s.,]+\\)|'\\s*\\(\\s*0\\s*\\))\\s*=\\s*[-+*/a-zA-Z0-9_\\\\^{}()]+?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'), (fullMatch, eq) => {
@@ -286,20 +329,24 @@ export function wrapBareLatexInDollars(text) {
     });
     // 10. Angles with degree symbol: \sin 45^\circ or 45^\circ
     s = s.replace(/(?<![$\w])((?:\\(?:sin|cos|tan|cot|sec|csc)\s*)?[0-9]+(?:\.[0-9]+)?\s*\^\s*\\circ)/g, (_, m) => protect(m));
-    // 10. Curve definitions: y=f(x) or y=y(x)
+    // 11. Curve definitions: y=f(x) or y=y(x)
     s = s.replace(/(?<![$\w])([a-zA-Z]\s*=\s*[a-zA-Z]\s*\([a-zA-Z0-9_+\-/*\s\\]+\))(?![$\w])/g, (_, m) => protect(m));
-    // 11. Single function terms / derivatives: f'(0), y(4), f( \dfrac{1}{2} )
-    s = s.replace(/(?<![$\w])([a-zA-Z]'*\s*\(\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[0-9a-zA-Z_+\-/*]+)\s*\))(?![$\w])/g, (_, m) => protect(m));
-    // 12. Inequalities: x > 1, \alpha, \beta > 0, \det A \neq 0
+    // 12. Single function terms / derivatives: f'(0), y(4), f( \dfrac{1}{2} ), f( 1/2 )
+    s = s.replace(/(?<![$\w])([a-zA-Z]'*\s*\(\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|\d+\s*\/\s*\d+|[0-9a-zA-Z_+\-/*]+)\s*\))(?![$\w])/g, (_, m) => {
+        const fracNorm = m.replace(/\(\s*(\d+)\s*\/\s*(\d+)\s*\)/, '\\left(\\dfrac{$1}{$2}\\right)')
+            .replace(/\(\s*(\\d?frac\{[^{}]+\}\{[^{}]+\})\s*\)/, '\\left($1\\right)');
+        return protect(fracNorm);
+    });
+    // 13. Inequalities: x > 1, \alpha, \beta > 0, \det A \neq 0
     s = s.replace(/(?<![$\w])((?:\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+)(?:\s*,\s*(?:\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+))*\s*(?:[><=≤≥≠]|\\(?:neq|le|ge))\s*[-+]?[0-9a-zA-Z_\\]+)(?=\s*[,;.]|\s+${proseStops}|$)/g, (fullMatch, eq) => {
         const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
         if (/\b(?:if|then|and|where|when|for|let)\b/i.test(nonLatex))
             return fullMatch;
         return protect(eq);
     });
-    // 13. Point coordinates: point (1,2) or (1, 2, 3)
+    // 14. Point coordinates: point (1,2) or (1, 2, 3)
     s = s.replace(/(?<=\b(?:point|at|through|from)\s+)(\(\s*-?[0-9]+(?:\.[0-9]+)?\s*,\s*-?[0-9]+(?:\.[0-9]+)?\s*(?:,\s*-?[0-9]+(?:\.[0-9]+)?)?\s*\))(?![$\w])/gi, (_, m) => protect(m));
-    // 14. Remaining standalone LaTeX commands with balanced braces
+    // 15. Remaining standalone LaTeX commands with balanced braces
     s = s.replace(/(?<![$\w])(\\(?:d?frac|sqrt|vec|hat|bar|dot|ddot|tilde|mathbf|mathrm|text|operatorname)\{(?:[^{}]|\{[^{}]*\})*\}(?:\{(?:[^{}]|\{[^{}]*\})*\})*(?:[A-Za-z0-9_^{}\\()\[\]+\-*/\s.]*[A-Za-z0-9_^{}\\()\[\]+\-*/])?|\\(?:alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|infty|times|div|pm|mp|le|ge|ne|approx|sim|to|partial|nabla|degree|circ)(?![a-zA-Z]))(?=\s*[,;.]|\s+${proseStops}|$|\s+[a-zA-Z]{3,})/gi, (fullMatch, cmd) => protect(cmd));
     // Restore protected blocks
     for (let idx = 0; idx < protectedBlocks.length; idx++) {
@@ -310,7 +357,44 @@ export function wrapBareLatexInDollars(text) {
     s = s.replace(/\$\$+/g, '$');
     s = s.replace(/\s+,/g, ',');
     s = s.replace(/\s+\./g, '.');
-    s = s.replace(/\s+/g, ' ').trim();
+    s = s.replace(/[^\S\r\n]+/g, ' ').trim();
+    return s;
+}
+/**
+ * Normalizes mathematical option text (fractions, logarithms, powers, single numbers).
+ * Leaves descriptive English choices ("None of these", "Both A and B") as plain text.
+ */
+export function normalizeOptionMath(raw) {
+    if (!raw)
+        return '';
+    let s = raw.trim();
+    s = s.replace(/\s*\.$/, '');
+    s = s.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+    if ((s.startsWith('$') && s.endsWith('$') && !s.slice(1, -1).includes('$')) ||
+        (s.startsWith('\\(') && s.endsWith('\\)')) ||
+        (s.startsWith('\\[') && s.endsWith('\\]'))) {
+        return s.replace(/\\frac\b/g, '\\dfrac');
+    }
+    // 1. Logarithm conversions: log_e 2 -> \log_e 2, ln x -> \ln x
+    s = s.replace(/\blog_([a-zA-Z0-9]+|\{[^{}]+\})/g, '\\log_{$1}');
+    s = s.replace(/(?<!\\)\b(log|ln)\b/g, '\\$1');
+    // 2. Fractions: 1/(1-log_e 2) -> \dfrac{1}{1-\log_e 2}
+    s = s.replace(/(?<![a-zA-Z0-9_\\])(-?[0-9a-zA-Z_\\^{}]+)\s*\/\s*\(([^\(\)\n]+)\)/g, '\\dfrac{$1}{$2}');
+    s = s.replace(/\(([^\(\)\n]+)\)\s*\/\s*(-?[0-9a-zA-Z_\\^{}]+)(?![a-zA-Z0-9_\\])/g, '\\dfrac{$1}{$2}');
+    s = s.replace(/\(([^\(\)\n]+)\)\s*\/\s*\(([^\(\)\n]+)\)/g, '\\dfrac{$1}{$2}');
+    s = s.replace(/(?<![a-zA-Z0-9_\/])(-?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
+    // 3. Unicode math in options
+    s = s.replace(/−/g, '-').replace(/°/g, '^\\circ').replace(/×/g, '\\times').replace(/÷/g, '\\div').replace(/√/g, '\\sqrt');
+    // 4. Exponentials and square roots
+    s = s.replace(/\\?exp\s*\(\s*([^()]+)\s*\)/g, '\\exp\\left($1\\right)');
+    s = s.replace(/\\?sqrt\s*\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}');
+    s = s.replace(/\\frac\b/g, '\\dfrac');
+    // 5. English prose check vs mathematical expression
+    const isEnglishProse = /\b(?:none|both|all|neither|either|cannot|can|not|be|determined|true|false|correct|incorrect|statement|above|below)\b/i.test(s);
+    const isMathExpr = /[\^_\\]|\b\d+\b|[+\-*/=><≤≥≠]/.test(s);
+    if (!isEnglishProse && isMathExpr) {
+        return `$${s}$`;
+    }
     return s;
 }
 /**

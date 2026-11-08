@@ -1,5 +1,6 @@
 import { autoWrapMathDelimiters, normalizeMathText } from '../../../utils/questionBulkParser';
 import { wrapMathInDollars, convertWordEquationToLatex } from '../../../utils/wordPasteParser';
+import { normalizeMathString } from '../../../utils/mathImportRenderSystem/pasteHandler';
 
 /**
  * Mathematical Structured Content Block Definition
@@ -57,20 +58,14 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
   const singleDollarText = cleanRawText.split('$$').join('$');
 
   let text: string;
-  const hasExistingDelimiters = /\$[^\$\n]+?\$|\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?)\}/.test(singleDollarText);
 
   if (isPureLatexFormula(singleDollarText.trim())) {
-    // Already-valid LaTeX (from OMML converter or linear parser) — wrap directly
-    // without running normalizeMathText which can corrupt nested structures.
+    // Already-valid pure LaTeX formula — wrap directly
     text = `$${singleDollarText.trim()}$`;
-  } else if (hasExistingDelimiters) {
-    // Math expressions are already delimited with $...$ or $$...$$ — preserve them intact
-    text = singleDollarText;
   } else {
-    // Normalize Word equations, unicode math, powers, and fractions
-    const normalized = normalizeMathText(singleDollarText);
-    // Automatically wrap un-delimited LaTeX if delimiters are absent
-    text = autoWrapMathDelimiters(normalized).split('$$').join('$');
+    // Universal math normalization: safely protects any existing $...$ and $$...$$ blocks,
+    // and automatically normalizes and wraps all remaining bare math (differential equations, fractions, limits, etc.)
+    text = normalizeMathString(singleDollarText);
   }
 
   // Delimiters supported:

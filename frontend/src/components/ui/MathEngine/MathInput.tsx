@@ -6,6 +6,12 @@ import { MathPreview } from './MathPreview';
 import { parseContentToBlocks } from './mathParser';
 import type { MathContentBlock } from './mathParser';
 import { resolveMathInputPaste } from '../../../utils/mathInputPaste';
+import {
+  extractMathFromHtml,
+  normalizeMathString,
+  normalizeOptionMath,
+  handleSmartMathPaste
+} from '../../../utils/mathImportRenderSystem/pasteHandler';
 import { Eye, Code, Columns, Sparkles } from 'lucide-react';
 
 export interface MathInputProps {
@@ -87,36 +93,54 @@ export const MathInput: React.FC<MathInputProps> = ({
 
   // Handles pasting from Word, Google Docs, MathML, OMML, or plain text clipboard
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const resolved = resolveMathInputPaste(e.clipboardData);
-    if (resolved.aborted) return;
-    const result = resolved.result;
+    e.preventDefault();
     setPasteWarning(null);
 
-    // 1. Check if pasted content contains question options (e.g. (A)/(B)/(C)/(D) or 1-4)
-    if (onExtractOptions && result.hasQuestionWithOptions) {
-      e.preventDefault();
-      onExtractOptions(result.statement, result.options, result.correctKey);
-      onChange(result.statement, parseContentToBlocks(result.statement));
-      return;
+    const cd = e.clipboardData;
+    if (!cd) return;
+
+    const html = cd.getData('text/html') || '';
+    const plain = cd.getData('text/plain') || cd.getData('text') || '';
+
+    // 1. If options extractor is present (e.g. Question Statement editor), check if pasted text has questions with options
+    if (onExtractOptions) {
+      const extracted = handleSmartMathPaste(e);
+      if (extracted.hasOptions && extracted.options.length >= 2) {
+        onExtractOptions(extracted.statement, extracted.options as any, extracted.correctKey);
+        onChange(extracted.statement, parseContentToBlocks(extracted.statement));
+        return;
+      }
     }
 
-    // 2. Otherwise insert normalized text at current cursor position (preserving cursor and rest of statement)
-    e.preventDefault();
+    // 2. Extract rich math from HTML (OMML / MathML / KaTeX annotations) if present
+    let converted = '';
+    if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html) || /<table|<tr|<p|<span|<div/i.test(html))) {
+      converted = extractMathFromHtml(html);
+    }
+    const baseText = converted.trim() || plain;
+
+    // If this input is an Option field (compact or label starts with Option), use normalizeOptionMath
+    // Otherwise use full statement normalizer normalizeMathString
+    const isOptionField = compact || Boolean(label && /^Option\s+[A-D]/i.test(label));
+    const normalized = isOptionField ? normalizeOptionMath(baseText) : normalizeMathString(baseText);
+
+    if (!normalized) return;
+
     const textarea = textareaRef.current;
     if (!textarea) {
-      const next = value ? `${value}\n${result.fullNormalizedText}` : result.fullNormalizedText;
+      const next = value ? `${value}\n${normalized}` : normalized;
       onChange(next, parseContentToBlocks(next));
       return;
     }
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const next = value.substring(0, start) + result.fullNormalizedText + value.substring(end);
+    const next = value.substring(0, start) + normalized + value.substring(end);
     onChange(next, parseContentToBlocks(next));
 
     setTimeout(() => {
       textarea.focus();
-      const pos = start + result.fullNormalizedText.length;
+      const pos = start + normalized.length;
       textarea.setSelectionRange(pos, pos);
     }, 0);
   };

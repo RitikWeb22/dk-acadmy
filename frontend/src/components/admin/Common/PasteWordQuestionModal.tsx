@@ -65,14 +65,17 @@ export const PasteWordQuestionModal: React.FC<PasteWordQuestionModalProps> = ({
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const cd = e.clipboardData;
     if (!cd) return;
+    e.preventDefault();
     const html = cd.getData('text/html') || '';
     const plain = cd.getData('text/plain') || cd.getData('text') || '';
-    if (html && /<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html)) {
-      e.preventDefault();
-      const extracted = extractMathFromHtml(html);
-      const normalized = normalizeMathString(extracted || plain);
-      setPasteText(normalized);
+
+    let converted = '';
+    if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html) || /<table|<tr|<p|<span|<div/i.test(html))) {
+      converted = extractMathFromHtml(html);
     }
+    const baseText = converted.trim() || plain;
+    const normalized = normalizeMathString(baseText);
+    setPasteText(normalized);
   };
 
   const handleLoadSample = () => {

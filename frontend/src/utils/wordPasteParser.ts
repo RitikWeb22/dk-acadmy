@@ -9,6 +9,8 @@
  * - Solution derivation and speed shortcut trick
  */
 
+import { normalizeMathString, normalizeOptionMath } from './mathImportRenderSystem/pasteHandler';
+
 export interface ParsedWordQuestion {
   statement: string;
   options: { key: 'A' | 'B' | 'C' | 'D'; text: string }[];
@@ -609,13 +611,13 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
     }
   }
 
-  // 6. Mathematical & LaTeX Normalization (KaTeX / MathJax Compatibility)
-  const normStatement = wrapMathInDollars(convertWordEquationToLatex(text.trim()));
+  // 6. Mathematical & LaTeX Normalization (KaTeX / MathJax Compatibility via Master Normalizer)
+  const normStatement = normalizeMathString(text.trim());
   const finalOptions: { key: 'A' | 'B' | 'C' | 'D'; text: string }[] = [
-    { key: 'A', text: wrapMathInDollars(convertWordEquationToLatex(optionsMap.A || '')) },
-    { key: 'B', text: wrapMathInDollars(convertWordEquationToLatex(optionsMap.B || '')) },
-    { key: 'C', text: wrapMathInDollars(convertWordEquationToLatex(optionsMap.C || '')) },
-    { key: 'D', text: wrapMathInDollars(convertWordEquationToLatex(optionsMap.D || '')) }
+    { key: 'A', text: normalizeOptionMath(optionsMap.A || '') },
+    { key: 'B', text: normalizeOptionMath(optionsMap.B || '') },
+    { key: 'C', text: normalizeOptionMath(optionsMap.C || '') },
+    { key: 'D', text: normalizeOptionMath(optionsMap.D || '') }
   ];
 
   return {
@@ -624,8 +626,8 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
     type: 'SINGLE_CORRECT',
     correctKey,
     examTag: examTag || undefined,
-    solution: solution ? wrapMathInDollars(convertWordEquationToLatex(solution)) : undefined,
-    shortcut: shortcut ? wrapMathInDollars(convertWordEquationToLatex(shortcut)) : undefined
+    solution: solution ? normalizeMathString(solution) : undefined,
+    shortcut: shortcut ? normalizeMathString(shortcut) : undefined
   };
 }
 

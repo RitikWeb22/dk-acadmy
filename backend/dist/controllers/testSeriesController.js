@@ -1,7 +1,7 @@
 import { TestSeries } from '../models/TestSeries.js';
 import { TestSubmission } from '../models/TestSubmission.js';
 import { PART_TESTS_DATA } from '../data/partTestsData.js';
-import { normalizeCanonicalMath, validateQuestion, summarizeBatchValidation } from '../services/mathImport/index.js';
+import { normalizeCanonicalMath, normalizeOptionMath, validateQuestion, summarizeBatchValidation } from '../services/mathImport/index.js';
 import { broadcastTestSeriesCreated, broadcastTestSeriesUpdated, broadcastTestSeriesDeleted } from '../sockets/socket.js';
 // Default starter dataset if DB is empty
 const BASE_SEED_TEST_SERIES = [
@@ -566,7 +566,7 @@ export const createTestSeries = async (req, res) => {
                         ? q.options.map((opt, optIdx) => ({
                             id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
                             key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                            text: opt.text ? normalizeCanonicalMath(opt.text) : '',
+                            text: opt.text ? normalizeOptionMath(opt.text) : '',
                             imageUrl: opt.imageUrl
                         }))
                         : [],
@@ -729,7 +729,7 @@ export const updateTestSeries = async (req, res) => {
                         ? q.options.map((opt, optIdx) => ({
                             id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
                             key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                            text: opt.text ? normalizeCanonicalMath(opt.text) : '',
+                            text: opt.text ? normalizeOptionMath(opt.text) : '',
                             imageUrl: opt.imageUrl
                         }))
                         : [],

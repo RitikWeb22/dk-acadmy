@@ -7,6 +7,18 @@ export const protect = async (req, res, next) => {
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
     }
+    else if (req.headers['x-access-token']) {
+        token = req.headers['x-access-token'];
+    }
+    else if (req.cookies?.token) {
+        token = req.cookies.token;
+    }
+    else if (req.cookies?.adminToken) {
+        token = req.cookies.adminToken;
+    }
+    else if (req.query?.token && typeof req.query.token === 'string') {
+        token = req.query.token;
+    }
     if (!token) {
         res.status(401).json({ success: false, message: 'Not authorized, no access token provided.' });
         return;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Sparkles, Check, X, AlertTriangle, ArrowRight } from 'lucide-react';
 import { MathPreview } from '../../ui/MathEngine/MathPreview';
+import { apiClient } from '../../../services/apiClient';
 
 export interface AiRepairModalProps {
   isOpen: boolean;
@@ -29,18 +30,12 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const res = await fetch('/api/math-import/ai-repair', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawText: originalText })
+      const json = await apiClient.repairMathWithAi({
+        rawText: originalText,
+        statement: originalText
       });
 
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || 'AI repair request failed');
-      }
-
-      setRepairedText(json.repairedText);
+      setRepairedText(json.repairedText || json.statement || '');
       setDiffNotes(json.diffNotes || 'LaTeX formatted cleanly with KaTeX delimiters.');
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to repair equation with Gemini.');
