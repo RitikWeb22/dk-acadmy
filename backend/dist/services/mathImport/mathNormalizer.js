@@ -85,6 +85,8 @@ export function stripWordJunk(text) {
     return text
         // Non-breaking spaces and zero-width spaces
         .replace(/[\u00A0\u200B\u200C\u200D\u2060\uFEFF]/g, ' ')
+        // Strip dropped HTML banner warning if copied into text
+        .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
         // Word smart quotes
         .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
         .replace(/[\u2018\u2019\u201A\u201B]/g, "'")

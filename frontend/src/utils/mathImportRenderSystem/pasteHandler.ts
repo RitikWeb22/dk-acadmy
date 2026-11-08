@@ -123,8 +123,9 @@ export function extractMathFromHtml(html: string): string {
   // 6. Strip remaining HTML tags
   s = s.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ');
   s = s.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ');
+  s = s.replace(/<\/(?:td|th)>/gi, '\t');
+  s = s.replace(/<\/(?:tr|p|div|li|h[1-6])>/gi, '\n');
   s = s.replace(/<br\s*\/?>/gi, '\n');
-  s = s.replace(/<\/p>/gi, '\n');
   s = s.replace(/<[^>]+>/g, ' ');
 
   // 7. Decode HTML entities
@@ -146,6 +147,7 @@ export function normalizeMathString(raw: string): string {
   let s = raw;
 
   // Clean leading bullet, number, or dot: ". If a curve..." -> "If a curve..."
+  s = s.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
   s = s.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
   s = s.replace(/^Q(?:uestion)?\s*\.?\s*\d+\s*[:.)\-—]\s*/gi, '');
 
@@ -580,7 +582,7 @@ export function handleSmartMathPaste(e: ClipboardEvent | { clipboardData?: DataT
     converted = extractMathFromHtml(html);
   }
 
-  const baseText = converted.trim() || plain;
-  const normalized = normalizeMathString(baseText);
-  return extractQuestionAndOptions(normalized);
+  let baseText = converted.trim() || plain;
+  baseText = baseText.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
+  return extractQuestionAndOptions(baseText);
 }

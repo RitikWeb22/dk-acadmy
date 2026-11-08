@@ -6,6 +6,7 @@ import { MathPreview } from './MathPreview';
 import { parseContentToBlocks } from './mathParser';
 import type { MathContentBlock } from './mathParser';
 import { resolveMathInputPaste } from '../../../utils/mathInputPaste';
+import { parseWordQuestions } from '../../../utils/wordPasteParser';
 import {
   extractMathFromHtml,
   normalizeMathString,
@@ -104,11 +105,24 @@ export const MathInput: React.FC<MathInputProps> = ({
 
     // 1. If options extractor is present (e.g. Question Statement editor), check if pasted text has questions with options
     if (onExtractOptions) {
-      const extracted = handleSmartMathPaste(e);
-      if (extracted.hasOptions && extracted.options.length >= 2) {
-        onExtractOptions(extracted.statement, extracted.options as any, extracted.correctKey);
-        onChange(extracted.statement, parseContentToBlocks(extracted.statement));
-        return;
+      let textToUse = plain;
+      if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html))) {
+        const converted = extractMathFromHtml(html);
+        if (converted.trim()) {
+          textToUse = converted;
+        }
+      }
+      textToUse = textToUse.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
+
+      const parsedList = parseWordQuestions(textToUse);
+      if (parsedList.length > 0) {
+        const q0 = parsedList[0];
+        const hasOptions = q0.options.filter(o => o.text && o.text.trim().length > 0).length >= 2;
+        if (hasOptions) {
+          onExtractOptions(q0.statement, q0.options as any, q0.correctKey);
+          onChange(q0.statement, parseContentToBlocks(q0.statement));
+          return;
+        }
       }
     }
 
