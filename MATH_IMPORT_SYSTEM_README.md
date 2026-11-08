@@ -114,7 +114,7 @@ Add the following credentials to enable OCR and AI repair:
 ```env
 # Google Gemini API (for AI LaTeX Repair & Question Formatting)
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.8-flash
 
 # Mathpix API (Optional - for image / snapshot OCR fallback)
 MATHPIX_APP_ID=your_mathpix_app_id

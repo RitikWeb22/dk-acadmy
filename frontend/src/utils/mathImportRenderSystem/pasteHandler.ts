@@ -11,6 +11,7 @@
  */
 
 import { ommlNodeToLatex, mathMLNodeToLatex } from '../universalMathEngine';
+import { parseWordMatricesAndCases } from '../wordPasteParser';
 
 export interface ParsedOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -144,11 +145,11 @@ export function extractMathFromHtml(html: string): string {
  */
 export function normalizeMathString(raw: string): string {
   if (!raw) return '';
-  let s = raw;
+  let s = parseWordMatricesAndCases(raw);
 
   // Clean leading bullet, number, or dot: ". If a curve..." -> "If a curve..."
   s = s.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
-  s = s.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
+  s = s.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '');
   s = s.replace(/^Q(?:uestion)?\s*\.?\s*\d+\s*[:.)\-—]\s*/gi, '');
 
   // Clean zero-width chars and smart quotes
@@ -217,12 +218,53 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\\])([A-Za-z0-9_\\^{}]+)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/(?<=[(,=+\-*\/]\s*)(\d+)\s*\/\s*(\d+)(?=\s*[),=+;\-*\/])/g, '\\dfrac{$1}{$2}');
 
-  // Exponential cleanup: \exp\{ ... \}
-  s = s.replace(/\\?exp\s*\\?\{([\s\S]*?)\\?\}(?=\s+(?:pass|through|origin|is|equal|where|then|and)\b|[,;.]|$)/gi, (_m, inner) => {
-    const cleanInner = inner.replace(/\\frac\b/g, '\\dfrac');
-    return `\\exp\\left\\{${cleanInner.trim()}\\right\\}`;
-  });
-  s = s.replace(/\\?exp\s*\{([^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*)\}/g, '\\exp\\left\\{$1\\right\\}');
+  // Exponential cleanup: \exp\{ ... \} with balanced braces
+  const expRegex = /\\?exp\s*\\?\{/gi;
+  let expMatch: RegExpExecArray | null;
+  let expResult = '';
+  let expLastIndex = 0;
+
+  while ((expMatch = expRegex.exec(s)) !== null) {
+    expResult += s.substring(expLastIndex, expMatch.index);
+    const startInner = expRegex.lastIndex;
+    let depth = 1;
+    let i = startInner;
+    let foundClose = false;
+
+    for (; i < s.length; i++) {
+      const ch = s[i];
+      const prev = i > 0 ? s[i - 1] : '';
+      if (ch === '{' && prev !== '\\') {
+        depth++;
+      } else if (ch === '}' && prev !== '\\') {
+        depth--;
+        if (depth === 0) {
+          foundClose = true;
+          break;
+        }
+      } else if (depth === 1 && /\b(pass|through|origin|is|equal|where|then|and)\b/i.test(s.substring(i, i + 8))) {
+        break;
+      }
+    }
+
+    let inner = s.substring(startInner, i).trim();
+    let innerDepth = 0;
+    for (let j = 0; j < inner.length; j++) {
+      if (inner[j] === '{' && (j === 0 || inner[j - 1] !== '\\')) innerDepth++;
+      else if (inner[j] === '}' && (j === 0 || inner[j - 1] !== '\\')) innerDepth--;
+    }
+    while (innerDepth > 0) {
+      inner += '}';
+      innerDepth--;
+    }
+    inner = inner.replace(/\\frac\b/g, '\\dfrac');
+    expResult += `\\exp\\left\\{${inner}\\right\\}`;
+    expLastIndex = foundClose ? i + 1 : i;
+    expRegex.lastIndex = expLastIndex;
+  }
+  expResult += s.substring(expLastIndex);
+  s = expResult;
+
   s = s.replace(/\\?exp\s*\(\s*([^()]+)\s*\)/g, '\\exp\\left($1\\right)');
 
   // Trig

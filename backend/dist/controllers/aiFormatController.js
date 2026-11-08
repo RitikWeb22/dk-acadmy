@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
  */
 export const getGeminiConfig = async (_req, res) => {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
     res.status(200).json({
         configured: Boolean(apiKey && apiKey.trim().length > 5),
         model,
@@ -23,8 +23,8 @@ export const getGeminiConfig = async (_req, res) => {
  */
 export const updateGeminiConfig = async (req, res) => {
     try {
-        const { apiKey, model = 'gemini-2.5-flash' } = req.body;
-        const cleanModel = model === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : model;
+        const { apiKey, model = 'gemini-3.8-flash' } = req.body;
+        const cleanModel = model || 'gemini-3.8-flash';
         if (apiKey !== undefined) {
             process.env.GEMINI_API_KEY = String(apiKey).trim();
         }
@@ -61,7 +61,7 @@ export const updateGeminiConfig = async (req, res) => {
         res.status(200).json({
             success: true,
             configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 5),
-            model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+            model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
             message: 'Gemini configuration updated successfully'
         });
     }
@@ -71,7 +71,7 @@ export const updateGeminiConfig = async (req, res) => {
 };
 /**
  * AI-Powered Mathematical KaTeX & LaTeX Formatter
- * Connects to Google Gemini API (gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash)
+ * Connects to Google Gemini API (gemini-3.8-flash)
  * with graceful offline fallback to high-precision deterministic regex normalizer.
  */
 export const formatMathWithAi = async (req, res) => {
@@ -100,7 +100,7 @@ export const formatMathWithAi = async (req, res) => {
             process.env.GEMINI_API_KEY ||
             process.env.GOOGLE_API_KEY ||
             '';
-        const preferredModel = (model === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : model) || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const preferredModel = model || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
         if (apiKey && apiKey.trim().length > 5) {
             try {
                 const { result: aiResult, modelUsed, error: geminiError } = await callGeminiMathFormatter({
@@ -233,13 +233,10 @@ export const formatMathWithAi = async (req, res) => {
 async function callGeminiMathFormatter(params) {
     const { statement, options, stepSolution, dkSirShortcut, targetExam, apiKey, modelName } = params;
     // Clean model name and build robust list of valid production models
-    const cleanModelName = modelName === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : modelName;
+    const cleanModelName = modelName || 'gemini-3.8-flash';
     const modelsToTry = [
         cleanModelName,
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-pro'
+        'gemini-3.8-flash'
     ].filter((m, i, arr) => m && arr.indexOf(m) === i);
     const prompt = `You are a Senior Mathematical Typesetting Engineer and KaTeX Document Processing Specialist for JEE Advanced & Main examination content.
 Your task is to repair, reconstruct, and typeset mathematical questions into production-grade KaTeX-compatible LaTeX.

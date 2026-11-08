@@ -135,13 +135,13 @@ export const MathInput: React.FC<MathInputProps> = ({
     // Clean any accidental warning banner text and leading bullets/dots if present
     const baseClean = baseText
       .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
-      .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
+      .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '');
 
     // If this input is an Option field (compact or label starts with Option), use normalizeOptionMath
     // Otherwise use full statement normalizer normalizeMathString
     const isOptionField = compact || Boolean(label && /^Option\s+[A-D]/i.test(label));
     let normalized = isOptionField ? normalizeOptionMath(baseClean) : normalizeMathString(baseClean);
-    normalized = normalized.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
+    normalized = normalized.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '');
 
     if (!normalized) return;
 

@@ -481,6 +481,18 @@ describe('DK Academy JEE - Math Import & Render System 100+ Test Suite', () => {
       const normalized = normalizeCanonicalMath(raw);
       assert.equal(validateQuestion(normalized).overallStatus, 'GREEN');
     });
+
+    it('5.11 Normalizes Word Piecewise and Functions: {■([x]&,□( ) x<0@|1-x|&,□( ) x≥0)┤ and fog', () => {
+      const raw = 'Let f,g:R→R be functions defined by f(x)={■([x]&,□( ) x<0@|1-x|&,□( ) x≥0)┤ and g(x)={■(e^x-x&,□( ) x<0@(x-1)^2-1&,□( ) x≥0)┤ where [x] denote the greatest integer less than or equal to x. Then, the function fog is discontinuous at exactly :';
+      const normalized = normalizeCanonicalMath(raw);
+      assert.ok(normalized.includes('\\begin{cases}'));
+      assert.ok(normalized.includes('f \\circ g') || normalized.includes('fog'));
+      assert.ok(!normalized.includes('■'));
+      assert.ok(!normalized.includes('┤'));
+      assert.ok(!normalized.includes('□'));
+      const val = validateQuestion(normalized);
+      assert.equal(val.overallStatus, 'GREEN');
+    });
   });
 
   // ==========================================================================

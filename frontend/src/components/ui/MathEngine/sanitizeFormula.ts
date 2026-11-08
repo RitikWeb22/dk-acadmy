@@ -25,9 +25,9 @@ export function sanitizeFormula(str: string): string {
     // Clean redundant parens inside sqrt: \sqrt{(1+x^6)} -> \sqrt{1+x^6}
     .replace(/\\sqrt\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}')
     .replace(/\\sqrt\{\s*\(([^()]+)\)\s*\}/g, '\\sqrt{$1}')
-    // Tall delimiters for \exp{ \frac... } or \exp( \frac... )
-    .replace(/\\exp\s*\{\s*\\(?:d?frac)/g, '\\exp\\left\\{\\dfrac')
-    .replace(/\\exp\s*\(\s*\\(?:d?frac)/g, '\\exp\\left(\\dfrac')
+    // Tall delimiters for \exp{ ... } or \exp( ... ) with balanced braces
+    .replace(/\\exp\s*\{([^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*)\}/g, (_m, inner) => `\\exp\\left\\{${inner.replace(/\\frac\b/g, '\\dfrac')}\\right\\}`)
+    .replace(/\\exp\s*\(([^()]+)\)/g, (_m, inner) => `\\exp\\left(${inner.replace(/\\frac\b/g, '\\dfrac')}\\right)`)
     // Ensure infty and common Greek letters have backslash if inside math formula
     .replace(/(?<!\\)\binfty\b/g, '\\infty')
     .replace(/(?<!\\)\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)\b/g, '\\$1')
@@ -108,25 +108,37 @@ export function sanitizeFormula(str: string): string {
   res = res.replace(/(?<!\\)\b(is equal to|equal to|then|where|and|such that|be defined as|defined as)\b/gi, (match) => `\\text{ ${match} }`);
 
   // Auto-balance \left and \right delimiters to eliminate unclosed group crashes
-  const leftMatches = res.match(/\\left\b/g) || [];
-  const rightMatches = res.match(/\\right\b/g) || [];
-  if (leftMatches.length > rightMatches.length) {
-    let count = 0;
-    res = res.replace(/\\left([(\[{.|])/g, (m, char) => {
-      count++;
-      if (count > rightMatches.length) return char;
+  const leftCount = (res.match(/\\left\b/g) || []).length;
+  const rightCount = (res.match(/\\right\b/g) || []).length;
+  if (leftCount > rightCount) {
+    res += ' \\right.'.repeat(leftCount - rightCount);
+  } else if (rightCount > leftCount) {
+    let excess = rightCount - leftCount;
+    res = res.replace(/\\right\s*([)\]}.|]|\\[{}\[\]|])/g, (m) => {
+      if (excess > 0) {
+        excess--;
+        return '';
+      }
       return m;
     });
-  } else if (rightMatches.length > leftMatches.length) {
-    res = res.replace(/\\right([)\]}.|])/g, '$1');
   }
 
   // Auto-balance curly braces { and } (excluding escaped \{ and \})
+  // Ensures any open braces inside fraction/macro arguments close before \right delimiters
   let openBraces = 0;
   let balanced = '';
   for (let i = 0; i < res.length; i++) {
     const ch = res[i];
     const prev = i > 0 ? res[i - 1] : '';
+
+    // If approaching a \right delimiter while open braces exist inside a macro argument, close them before \right
+    if (res.startsWith('\\right', i) && openBraces > 0) {
+      while (openBraces > 0) {
+        balanced += '}';
+        openBraces--;
+      }
+    }
+
     if (ch === '{' && prev !== '\\') {
       openBraces++;
       balanced += ch;
