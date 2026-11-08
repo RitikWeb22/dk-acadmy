@@ -71,13 +71,18 @@ export function extractMathFromHtml(html: string): string {
   let s = html;
 
   // 1. Process Word conditional comments: <!--[if gte msEquation 12]>...<m:oMath>...<![endif]-->
-  // and discard fallback <![if !msEquation]>...<![endif]>
-  const ommlCommentRegex = /<!--\[if\s+gte\s+(?:msEquation|mso)\s+\d+\]>([\s\S]*?)<!\[endif\]-->(\s*<!\[if\s+!msEquation\]>([\s\S]*?)<!\[endif\]>)?/gi;
+  // First strip non-msEquation fallback image blocks cleanly to avoid regex backtracking
+  s = s.replace(/<!\[if\s+!msEquation\]>[\s\S]*?<!\[endif\]>/gi, '');
+
+  const ommlCommentRegex = /<!--\[if\s+gte\s+(?:msEquation|mso)\s+\d+\]>([\s\S]*?)<!\[endif\]-->/gi;
   s = s.replace(ommlCommentRegex, (_match, innerOmml: string) => {
     if (typeof DOMParser !== 'undefined') {
       try {
         const parser = new DOMParser();
-        const doc = parser.parseFromString(`<root>${innerOmml}</root>`, 'text/xml');
+        const doc = parser.parseFromString(
+          `<root xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${innerOmml}</root>`,
+          'text/xml'
+        );
         const oMath = doc.querySelector('oMath, m\\:oMath');
         if (oMath) {
           const latex = ommlNodeToLatex(oMath);
