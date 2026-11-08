@@ -67,6 +67,11 @@ export function sanitizeFormula(str: string): string {
     .replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(')
     // Normalize prime derivatives: ϕ^' (t) -> \phi'(t)
     .replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ")
+    // Strip illegal prime / quote superscripts on digits e.g. 0^' or 0^{'} or 0' -> 0
+    .replace(/(\d+)\s*\^\s*\{?\s*['′]\s*\}?/g, '$1')
+    .replace(/(\d+)\s*['′]/g, '$1')
+    .replace(/([a-zA-Z\\]+)\s*\^\s*\{?\s*['′]\s*\}?/g, "$1' ")
+    .replace(/\^\s*\{?\s*['′]\s*\}?/g, "'")
     // Normalize empty set phi
     .replace(/∅/g, '\\phi ')
     // Normalize unbraced fractions and radicals in powers/subscripts: x^\frac{1}{2} -> x^{\frac{1}{2}}, e^\sqrt{x} -> e^{\sqrt{x}}

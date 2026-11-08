@@ -296,6 +296,12 @@ export function repairLinearMathResidues(text: string): string {
   s = s.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
   s = s.replace(/^Q(?:uestion)?\s*\.?\s*\d+\s*[:.)\-—]\s*/gi, '');
 
+  // Strip illegal prime / quote superscripts on digits e.g. 0^' or 0^{'} or 0' -> 0
+  s = s.replace(/(\d+)\s*\^\s*\{?\s*['′]\s*\}?/g, '$1')
+       .replace(/(\d+)\s*['′]/g, '$1')
+       .replace(/([a-zA-Z\\]+)\s*\^\s*\{?\s*['′]\s*\}?/g, "$1' ")
+       .replace(/\^\s*\{?\s*['′]\s*\}?/g, "'");
+
   // 1. Differential residues from Word: dy/(" " \, dx), dy/(dx), dy/dx, d^n/dx^n
   s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\b/g, '\\dfrac{$1}{$2}');
@@ -419,9 +425,9 @@ export function wrapBareLatexInDollars(text: string): string {
     return s;
   }
 
-  // Step 1: Protect existing delimited blocks using non-word tokens ⟦MATH_idx⟧
+  // Step 1: Protect existing delimited blocks using non-word tokens ⟦MATH_idx⟧ (including multiline inline math)
   const protectedBlocks: string[] = [];
-  s = s.replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[^\$\n]+?\$|\\\([\s\S]*?\\\)/g, (m) => {
+  s = s.replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$(?:\\\$|[^\$])+?\$|\\\([\s\S]*?\\\)/g, (m) => {
     const key = `\u27E6MATH_${protectedBlocks.length}\u27E7`;
     protectedBlocks.push(m);
     return key;

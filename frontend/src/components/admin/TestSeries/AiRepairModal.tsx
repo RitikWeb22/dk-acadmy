@@ -4,6 +4,7 @@ import { Sparkles, Check, X, AlertTriangle, Zap } from 'lucide-react';
 import { MathPreview } from '../../ui/MathEngine/MathPreview';
 import { apiClient } from '../../../services/apiClient';
 import { cleanWordMathArtifacts } from '../../../utils/wordPasteParser';
+import { normalizeMathString } from '../../../utils/mathImportRenderSystem/pasteHandler';
 
 export interface AiRepairModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
   const handleInstantLocalFix = () => {
     setErrorMsg(null);
     try {
-      const repaired = cleanWordMathArtifacts(originalText);
+      const repaired = normalizeMathString(cleanWordMathArtifacts(originalText));
       setRepairedText(repaired);
       setDiffNotes('Instant reconstruction via local in-engine KaTeX rules (zero delay, 100% offline).');
     } catch (err: any) {
@@ -55,11 +56,12 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
         '';
 
       if (!repaired) {
-        const localRepaired = cleanWordMathArtifacts(originalText);
+        const localRepaired = normalizeMathString(cleanWordMathArtifacts(originalText));
         setRepairedText(localRepaired);
         setDiffNotes('Reconstructed using local high-precision KaTeX normalizer.');
       } else {
-        setRepairedText(repaired);
+        const cleanRepaired = normalizeMathString(repaired);
+        setRepairedText(cleanRepaired);
         setDiffNotes(
           json.diffSummary ||
           json.diffNotes ||
@@ -71,7 +73,7 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
       console.warn('AI repair network call failed, falling back to local normalizer:', err);
       // Auto-fallback to local instant repair if server times out (504) or fails
       try {
-        const localRepaired = cleanWordMathArtifacts(originalText);
+        const localRepaired = normalizeMathString(cleanWordMathArtifacts(originalText));
         setRepairedText(localRepaired);
         setDiffNotes('AI service timed out (504). Automatically repaired via high-precision local KaTeX rules (zero delay).');
       } catch (localErr: any) {

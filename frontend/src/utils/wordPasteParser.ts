@@ -39,7 +39,12 @@ export function cleanWordMathArtifacts(text: string): string {
     .replace(/\u2033/g, "''")
     .replace(/\u2034/g, "'''")
     .replace(/[\u2212\u2010-\u2015]/g, '-')
-    .replace(/[\u2044\u2215]/g, '/');
+    .replace(/[\u2044\u2215]/g, '/')
+    // Strip illegal prime / quote superscripts on digits e.g. 0^' or 0^{'} or 0' -> 0
+    .replace(/(\d+)\s*\^\s*\{?\s*['′]\s*\}?/g, '$1')
+    .replace(/(\d+)\s*['′]/g, '$1')
+    .replace(/([a-zA-Z\\]+)\s*\^\s*\{?\s*['′]\s*\}?/g, "$1' ")
+    .replace(/\^\s*\{?\s*['′]\s*\}?/g, "'");
 }
 
 /**
@@ -122,6 +127,9 @@ export function parseWordMatricesAndCases(input: string): string {
         }
 
         col2 = col2.replace(/^\(\s*\)\s*/, '');
+        col2 = col2.replace(/(\d+)\s*\^\s*\{?\s*['′]\s*\}?/g, '$1')
+                   .replace(/(\d+)\s*['′]/g, '$1')
+                   .replace(/\^\s*\{?\s*['′]\s*\}?/g, '');
         col2 = col2.replace(/[≥\u2265]|>=/g, ' \\ge ')
                    .replace(/[≤\u2264]|<=/g, ' \\le ')
                    .replace(/[≠\u2260]|!=/g, ' \\ne ')
@@ -350,9 +358,9 @@ export function wrapMathInDollars(text: string): string {
   }
 
   // For mixed text:
-  // Step 1: Protect existing $...$
+  // Step 1: Protect existing $...$ (including multiline cases and matrices)
   const protectedBlocks: string[] = [];
-  s = s.replace(/\$[^\$]+?\$/g, (m) => {
+  s = s.replace(/\$(?:\\\$|[^\$])+?\$/g, (m) => {
     const key = `___PROT_${protectedBlocks.length}___`;
     protectedBlocks.push(m);
     return key;
@@ -364,8 +372,8 @@ export function wrapMathInDollars(text: string): string {
     return ` ${key} `;
   };
 
-  // Step 2a: Piecewise and Matrix environments: e.g. f(x) = \begin{cases} ... \end{cases}
-  s = s.replace(/(?<!\$)(f\s*\([a-zA-Z0-9]+\)\s*=\s*\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\}[\s\S]+?\\end\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\}|\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\}[\s\S]+?\\end\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\})(?!\$)/g,
+  // Step 2a: Piecewise and Matrix environments: e.g. f(x) = \begin{cases} ... \end{cases} or g(x) = \begin{cases}
+  s = s.replace(/(?<!\$)([a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\}[\s\S]+?\\end\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\}|\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\}[\s\S]+?\\end\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix)\})(?!\$)/g,
     (_, m) => protect(m));
 
   // Step 2b: Function mappings: e.g. f : \mathbb{R} \to \mathbb{R}
@@ -475,6 +483,24 @@ export function wrapMathInDollars(text: string): string {
       return protect(formatted);
     }
   );
+
+  // Step 5g: Composite functions: e.g. (gof)(-4)+(gof)(4) or (fog)(x) or (gof)
+  s = s.replace(/(?<!\\)\(\s*([a-zA-Z])o([a-zA-Z])\s*\)\s*(\(\s*[-+0-9a-zA-Z_/*\\]+\s*\))/gi, (_m, f1, f2, arg) => {
+    return `(${f1} \\circ ${f2})${arg}`;
+  });
+
+  s = s.replace(/(?<!\\)\(\s*([a-zA-Z])o([a-zA-Z])\s*\)/gi, (_m, f1, f2) => {
+    return `(${f1} \\circ ${f2})`;
+  });
+
+  s = s.replace(/(?<=\b(?:then|find|calculate|is|and)\s+)(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*\([^()\n]+\)(?:\s*[+\-*/]\s*\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*\([^()\n]+\))+)(?=\s+(?:is\s+equal\s+to|equals|is)\b|\s*[,;.]|$)/gi,
+    (_m, expr) => protect(expr));
+
+  s = s.replace(/(?<=\b(?:if|when|where|let)\s+)(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\))(?=\s+(?:is|are)\b)/gi,
+    (_m, expr) => protect(expr));
+
+  // Step 5h: Standalone subscript variables outside math: e.g. where k_1 and k_2 are real constants
+  s = s.replace(/(?<![a-zA-Z0-9_\$\\])([a-zA-Z]_[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g, (_m, sub) => protect(sub));
 
   // Step 6a: Multi-term algebraic relations/equations: e.g. a+b+c=1 or a+b+c \neq 1 or x^2+y^2=1
   s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z0-9_\\]+(?:\s*[-+*/]\s*[a-zA-Z0-9_\\]+)+\s*(?:=|\\neq|\\leq|\\geq|<|>)\s*[-+*/a-zA-Z0-9_\\]+)(?![a-zA-Z0-9_\$])/gi,
