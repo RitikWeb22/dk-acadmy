@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Sparkles, X } from 'lucide-react';
 import { MathText } from '../../ui/MathText/MathText';
-import { parseWordQuestions, type ParsedWordQuestion } from '../../../utils/wordPasteParser';
+import { parseWordQuestions, cleanWordMathArtifacts, type ParsedWordQuestion } from '../../../utils/wordPasteParser';
 import { extractMathFromHtml, normalizeMathString } from '../../../utils/mathImportRenderSystem/pasteHandler';
+import { htmlResultLosesContent } from '../../../utils/pasteContentGuard';
 import styles from './PasteWordQuestionModal.module.scss';
 
 export interface PasteWordQuestionModalProps {
@@ -70,14 +71,17 @@ export const PasteWordQuestionModal: React.FC<PasteWordQuestionModalProps> = ({
     const plain = cd.getData('text/plain') || cd.getData('text') || '';
 
     let textToUse = plain;
-    if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html))) {
+    if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html) || /<table|<tr|<p|<span|<div/i.test(html))) {
       const converted = extractMathFromHtml(html);
-      if (converted.trim()) {
+      if (converted.trim() && !htmlResultLosesContent(plain, converted)) {
         textToUse = converted;
       }
     }
-    // Clean any accidental warning banner text if present
-    textToUse = textToUse.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
+    // Clean any accidental warning banner text or leading dots
+    textToUse = cleanWordMathArtifacts(textToUse)
+      .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
+      .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '')
+      .trim();
 
     setPasteText(textToUse);
     const parsed = parseWordQuestions(textToUse);

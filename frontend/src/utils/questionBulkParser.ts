@@ -257,15 +257,17 @@ export function autoWrapMathDelimiters(text: string): string {
   // e.g. x^{3} dy+xy \, dx=x^{2} dy+2y \, dx
   // e.g. y(x+1) \, dx-x^{2} dy=0
   // e.g. (x^2+1) \frac{dy}{dx} + 2xy = 4x^2
-  const proseBlock = '(?!\\b(?:if|let|and|the|of|to|is|in|on|at|by|for|be)\\b)';
-  const singleVar = `(?<![a-zA-Z])${proseBlock}[0-9]*(?:[a-zA-Z](?:\\^\\{?[^{}\\s]+\\}?|_\\{?[^{}\\s]+\\}?)*){1,3}(?![a-zA-Z])`;
-  const parenGroup = '\\([^()\\n]+\\)(?:\\^\\{?[^{}\\s]+\\}?)*';
-  const varFactor = `(?:${singleVar}|${parenGroup}|[0-9]+|\\\\frac\\{[^{}]+\\}\\{[^{}]+\\})`;
-  const diffOp = '(?:\\\\,)?\\s*\\b(?:dy|dx|dt|dz)\\b';
-  const diffTerm = `(?:-?\\s*(?:${varFactor}\\s*)*${diffOp})`;
-  const diffExpr = `(?:${diffTerm}(?:\\s*[-+]\\s*${diffTerm})*)`;
-  const diffEqRegex = new RegExp(`(?<![a-zA-Z0-9_\\$])(${diffExpr}\\s*=\\s*(?:${diffExpr}|0|-?[0-9]+))(?![a-zA-Z0-9_\\$])`, 'gi');
-  s = s.replace(diffEqRegex, (_, m) => protect(m));
+  const proseDiffStopsEq = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are)\\b';
+  s = s.replace(
+    new RegExp(`(?<![a-zA-Z0-9_\\$])(-?[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?\\b(?:dy|dx|dt|dz)\\b[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?=\\s*[^,;.\\n]+?)(?=\\s*[,;.]|\\s+${proseDiffStopsEq}|$)`, 'gi'),
+    (fullMatch, eq: string) => {
+      const stripped = eq.replace(/\\[a-zA-Z]+/g, ' ');
+      if (/\b(?:let|the|for|with|where|when|if|then|is|are|curve|passes|passing|through|solution)\b/i.test(stripped)) {
+        return fullMatch;
+      }
+      return protect(eq);
+    }
+  );
 
   // 2c-1. Protect function initial condition equations: e.g. y(2)=e, y(1)=e, y(0)=1, f(0)=0
   s = s.replace(

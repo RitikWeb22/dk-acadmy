@@ -16,7 +16,8 @@ import {
   normalizePastedQuestionContent
 } from './universalMathEngine';
 import type { NormalizedOption as EngineNormalizedOption } from './universalMathEngine/types';
-import { parseWordQuestions } from './wordPasteParser';
+import { parseWordQuestions, cleanWordMathArtifacts } from './wordPasteParser';
+import { extractMathFromHtml, normalizeMathString, normalizeOptionMath } from './mathImportRenderSystem/pasteHandler';
 
 export interface NormalizedOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -117,60 +118,49 @@ export function normalizePastedQuestion(
     plainText = clipboardPayload.text || clipboardPayload.plain || '';
   }
 
-  const hasMathHtml = Boolean(htmlText && /<(?:m:)?(?:oMath|oMathPara|math)\b/i.test(htmlText));
-
-  // Only use legacy plain-text question splitting if no rich math HTML is present and actual options exist
-  if (!hasMathHtml && plainText.trim()) {
-    const wordQuestions = parseWordQuestions(plainText);
-    if (wordQuestions.length > 0) {
-      const q0 = wordQuestions[0];
-      const hasActualOptions = q0.options.filter(o => o.text && o.text.trim().length > 0).length >= 2;
-      if (hasActualOptions) {
-        return {
-          sourceType: 'unicode-plain-text',
-          fullNormalizedText: q0.statement,
-          hasQuestionWithOptions: true,
-          statement: q0.statement,
-          options: q0.options,
-          correctKey: q0.correctKey,
-          numericalAnswer: q0.numericalAnswer,
-          stepSolution: q0.solution,
-          dkSirShortcut: q0.shortcut,
-          warnings: [],
-          confidence: 1,
-          needsReview: false
-        };
-      }
+  let textToUse = plainText;
+  if (htmlText && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(htmlText) || /<table|<tr|<p|<span|<div/i.test(htmlText))) {
+    const converted = extractMathFromHtml(htmlText);
+    if (converted.trim()) {
+      textToUse = converted;
     }
   }
 
-  const result = normalizePastedQuestionContent(clipboardPayload);
+  textToUse = cleanWordMathArtifacts(textToUse);
+  textToUse = textToUse.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
 
-  // Map internal engine format back to adapter's strict union
-  let mappedSource: 'omml-html' | 'mathml-html' | 'standard-html' | 'unicode-plain-text' = 'unicode-plain-text';
-  if (result.sourceType === 'omml-xml') {
-    mappedSource = 'omml-html';
-  } else if (result.sourceType === 'mathml-xml') {
-    mappedSource = 'mathml-html';
-  } else if (result.sourceType === 'html-math') {
-    mappedSource = 'standard-html';
-  } else {
-    mappedSource = 'unicode-plain-text';
+  const wordQuestions = parseWordQuestions(textToUse);
+  if (wordQuestions.length > 0) {
+    const q0 = wordQuestions[0];
+    const hasActualOptions = q0.options.filter(o => o.text && o.text.trim().length > 0).length >= 2;
+    return {
+      sourceType: htmlText ? 'omml-html' : 'unicode-plain-text',
+      fullNormalizedText: q0.statement,
+      hasQuestionWithOptions: hasActualOptions,
+      statement: q0.statement,
+      options: q0.options,
+      correctKey: q0.correctKey,
+      numericalAnswer: q0.numericalAnswer,
+      stepSolution: q0.solution,
+      dkSirShortcut: q0.shortcut,
+      warnings: [],
+      confidence: 1,
+      needsReview: false
+    };
   }
 
+  // Fallback if no questions detected: normalize statement directly
+  const norm = normalizeMathString(textToUse);
   return {
-    sourceType: mappedSource,
-    fullNormalizedText: result.fullNormalizedText || '',
-    hasQuestionWithOptions: Boolean(result.hasQuestionWithOptions),
-    statement: result.statement || '',
-    options: result.options || [],
-    correctKey: result.correctKey,
-    numericalAnswer: result.numericalAnswer,
-    stepSolution: result.stepSolution,
-    dkSirShortcut: result.dkSirShortcut,
-    warnings: result.warnings || [],
-    confidence: typeof result.confidence === 'number' ? result.confidence : 1,
-    needsReview: Boolean(result.needsReview)
+    sourceType: htmlText ? 'omml-html' : 'unicode-plain-text',
+    fullNormalizedText: norm,
+    hasQuestionWithOptions: false,
+    statement: norm,
+    options: [],
+    correctKey: 'A',
+    warnings: [],
+    confidence: 1,
+    needsReview: false
   };
 }
 

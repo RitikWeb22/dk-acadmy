@@ -243,7 +243,7 @@ function wrapLooseMath(text: string): string {
     (_m, eq: string) => stashMath(eq)
   );
   result = result.replace(
-    /(?<![A-Za-z0-9_$\u0000\u0001])((?:-?\s*(?:[0-9a-zA-Z^{}_\\]+|\([^()\n]+\)|\\frac\{[^{}]+\}\{[^{}]+\})\s*)*(?:\\,)?\s*(?:dy|dx|dt|dz)(?:\s*[-+]\s*(?:[0-9a-zA-Z^{}_\\]+|\([^()\n]+\)|\\frac\{[^{}]+\}\{[^{}]+\})\s*(?:\\,)?\s*(?:dy|dx|dt|dz))*\s*=\s*[^,;.\n\u0000\u0001]+?)(?=\s*[,;.]|\s+(?:and|or|if|then|where|when|be|is|are|in|at|to|for|such|pass|through)\b|$)/gi,
+    /(?<![A-Za-z0-9_$\u0000\u0001])(-?[0-9a-zA-Z^{}_\\()[\]+\-*/\s]*?\b(?:dy|dx|dt|dz)\b[0-9a-zA-Z^{}_\\()[\]+\-*/\s]*?=\s*[^,;.\n\u0000\u0001]+?)(?=\s*[,;.]|\s+(?:and|or|if|then|where|when|be|is|are|in|at|to|for|such|pass|through)\b|$)/gi,
     (fullMatch, eq: string) => {
       const stripped = eq.replace(/\\[a-zA-Z]+/g, ' ');
       const words = stripped.match(/\b[A-Za-z]{2,}\b/g) || [];
@@ -316,6 +316,9 @@ function wrapLooseMath(text: string): string {
 
 export function ensureMathDelimiters(text: string): string {
   if (!text) return '';
+
+  text = text.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
+  text = text.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
 
   // Pre-normalize spacing quotes and rogue backslash-commas: 8" "m or " " -> normal space
   text = text.replace(/([0-9]+)\s*["']\s*["']\s*([a-zA-Z])/g, '$1 $2');

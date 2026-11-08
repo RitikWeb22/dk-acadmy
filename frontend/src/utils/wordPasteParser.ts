@@ -196,9 +196,9 @@ export function convertWordEquationToLatex(raw: string): string {
   s = s.replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}');
   s = s.replace(/√/g, '\\sqrt');
 
-  // 10. Derivatives: dy/dx or d^2y/dx^2 or dy/(" " \, dx) or dy/(dx)
-  s = s.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z]\^?[0-9]?)\s*\)/g, '\\frac{$1}{$2}');
-  s = s.replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\frac{$1}{$2}');
+  // 10. Derivatives: dy/dx or d^2y/dx^2 or d^n/dx^n or dy/(" " \, dx) or dy/(dx)
+  s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\)/g, '\\frac{$1}{$2}');
+  s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\b/g, '\\frac{$1}{$2}');
   s = s.replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1');
 
   // 11. Greek letters & symbols (always followed by space so \pi x never becomes invalid \pix)
@@ -320,15 +320,17 @@ export function wrapMathInDollars(text: string): string {
   // e.g. x^{3} dy+xy \, dx=x^{2} dy+2y \, dx
   // e.g. y(x+1) \, dx-x^{2} dy=0
   // e.g. (x^2+1) \frac{dy}{dx} + 2xy = 4x^2
-  const proseBlock = '(?!\\b(?:if|let|and|the|of|to|is|in|on|at|by|for|be)\\b)';
-  const singleVar = `(?<![a-zA-Z])${proseBlock}[0-9]*(?:[a-zA-Z](?:\\^\\{?[^{}\\s]+\\}?|_\\{?[^{}\\s]+\\}?)*){1,3}(?![a-zA-Z])`;
-  const parenGroup = '\\([^()\\n]+\\)(?:\\^\\{?[^{}\\s]+\\}?)*';
-  const varFactor = `(?:${singleVar}|${parenGroup}|[0-9]+|\\\\frac\\{[^{}]+\\}\\{[^{}]+\\})`;
-  const diffOp = '(?:\\\\,)?\\s*\\b(?:dy|dx|dt|dz)\\b';
-  const diffTerm = `(?:-?\\s*(?:${varFactor}\\s*)*${diffOp})`;
-  const diffExpr = `(?:${diffTerm}(?:\\s*[-+]\\s*${diffTerm})*)`;
-  const diffEqRegex = new RegExp(`(?<![a-zA-Z0-9_\\$])(${diffExpr}\\s*=\\s*(?:${diffExpr}|0|-?[0-9]+))(?![a-zA-Z0-9_\\$])`, 'gi');
-  s = s.replace(diffEqRegex, (_, m) => protect(m));
+  const proseDiffStopsEq = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are)\\b';
+  s = s.replace(
+    new RegExp(`(?<![a-zA-Z0-9_\\$])(-?[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?\\b(?:dy|dx|dt|dz)\\b[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?=\\s*[^,;.\\n]+?)(?=\\s*[,;.]|\\s+${proseDiffStopsEq}|$)`, 'gi'),
+    (fullMatch, eq: string) => {
+      const stripped = eq.replace(/\\[a-zA-Z]+/g, ' ');
+      if (/\b(?:let|the|for|with|where|when|if|then|is|are|curve|passes|passing|through|solution)\b/i.test(stripped)) {
+        return fullMatch;
+      }
+      return protect(eq);
+    }
+  );
 
   // Step 2e: Function initial condition equations: e.g. y(2)=e, y(1)=e, y(0)=1, f(0)=0
   s = s.replace(
@@ -473,8 +475,9 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
   // Normalize unicode spaces and strip invisible Word/PDF mathematical formatting markers
   let text = cleanWordMathArtifacts(rawBlock).trim();
 
-  // 1. Remove leading question numbers e.g. "1.", "2.", "Q.1:", "Question 2:"
-  text = text.replace(/^\s*(?:Q(?:uestion)?\.?\s*\d+|\d+[\.\:\)])\s*/i, '').trim();
+  // 1. Remove leading bullets, stray dots, and question numbering e.g. ". If a curve", "1.", "Q.1:", "(1)"
+  text = text.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
+  text = text.replace(/^\s*(?:Q(?:uestion)?\.?\s*\d+[\.\:\)]?|\(?\d+\)[\.\:\)]?)\s*/i, '').trim();
 
   // 2. Extract Solution & Shortcut if present
   let solution = '';
@@ -521,56 +524,73 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
     text = text.replace(examTagMatch[0], '').trim();
   }
 
-  // 5. Extract Options (Supports A-D, 1-4, Bare Labels, and Blank/Unlabeled Newlines)
+  // 5. Extract Options (Supports A-D, 1-4, Bare Labels, Single-Space Delimiters, and Blank/Unlabeled Newlines)
   const optionsMap: Record<string, string> = { A: '', B: '', C: '', D: '' };
 
-  // Strategy 1: Standard markers with parens, brackets, or Option label: (A), [A], Option A, A., A:, A), (1), [1], 1., 1)
-  const standardMarkerRegex = /(?:^|[\n\r]|\s{2,})(?:\(([A-D1-4])\)|\[([A-D1-4])\]|Option\s*\(?([A-D1-4])\)?[:.]?|([A-D1-4])[\.:\)])(?:\s+|$)/gi;
-  let matches = [...text.matchAll(standardMarkerRegex)];
+  const trySequentialMatches = (markerRegex: RegExp): boolean => {
+    const allMatches = [...text.matchAll(markerRegex)];
+    if (allMatches.length < 2) return false;
 
-  // Strategy 2: Bare letter or bare number markers (e.g. newline "A -6\nB -2", or multiple spaces "A -21.  B 21.")
-  if (matches.length < 2) {
-    const bareMarkerRegex = /(?:^|[\n\r]|\s{2,})(?:Option\s+)?([A-D1-4])(?:\s*[\.:\)]|\s+)(?=\S)/gi;
-    const bareMatches = [...text.matchAll(bareMarkerRegex)];
-    const keys = bareMatches.map((m) => (m[1] || '').toUpperCase());
-    if ((keys.includes('A') && keys.includes('B')) || (keys.includes('1') && keys.includes('2'))) {
-      matches = bareMatches;
+    // Filter to sequential keys: A->B(->C->D) or 1->2(->3->4)
+    const validMatches: { index: number; length: number; key: 'A' | 'B' | 'C' | 'D' }[] = [];
+    const expectedKeys: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
+    let nextExpectedIdx = 0;
+
+    for (const m of allMatches) {
+      const rawK = (m[1] || m[2] || m[3] || m[4] || '').toUpperCase();
+      const k = numToLetterMap[rawK] || (rawK as 'A' | 'B' | 'C' | 'D');
+      const expectedK = expectedKeys[nextExpectedIdx];
+      if (k === expectedK && typeof m.index === 'number') {
+        validMatches.push({ index: m.index, length: m[0].length, key: k });
+        nextExpectedIdx++;
+      }
     }
+
+    if (validMatches.length >= 2) {
+      const firstOptIndex = validMatches[0].index;
+      const extractedStatement = text.slice(0, firstOptIndex).trim();
+
+      for (let i = 0; i < validMatches.length; i++) {
+        const cur = validMatches[i];
+        const start = cur.index + cur.length;
+        const end = (i + 1 < validMatches.length) ? validMatches[i + 1].index : text.length;
+        let optVal = text.slice(start, end).trim();
+        optVal = optVal.replace(/\s*\.$/, '');
+        optionsMap[cur.key] = optVal;
+      }
+      text = extractedStatement;
+      return true;
+    }
+    return false;
+  };
+
+  // Strategy 1: Enclosed markers: (A), (1), [A], [1], Option A, Option 1 (preceded by start or ANY whitespace)
+  let extracted = trySequentialMatches(/(?:^|\s+)(?:\(([A-Da-d1-4])\)|\[([A-Da-d1-4])\]|Option\s*\(?([A-Da-d1-4])\)?[:.]?)(?:\s+|$)/gi);
+
+  // Strategy 2: Punctuation markers: A., A), A:, A -, 1., 1), 1:, 1 -
+  if (!extracted) {
+    extracted = trySequentialMatches(/(?:^|[\n\r\t]|\s+)([A-Da-d1-4])(?:[\.:\)]|\s*[-–—])(?:\s+|$)/gi);
   }
 
-  // Strategy 3: Single-line sequential A ... B ... C ... D ... or 1 ... 2 ... 3 ... 4 ...
-  if (matches.length < 2) {
-    const singleLineMatchLetters = text.match(/(?:^|[\n\r])\s*A\s*[\.:\)]?\s+([\s\S]+?)\s+B\s*[\.:\)]?\s+([\s\S]+?)\s+C\s*[\.:\)]?\s+([\s\S]+?)\s+D\s*[\.:\)]?\s+([\s\S]+)$/i);
-    const singleLineMatchNumbers = text.match(/(?:^|[\n\r])\s*1\s*[\.:\)]?\s+([\s\S]+?)\s+2\s*[\.:\)]?\s+([\s\S]+?)\s+3\s*[\.:\)]?\s+([\s\S]+?)\s+4\s*[\.:\)]?\s+([\s\S]+)$/i);
+  // Strategy 3: Bare letter/number markers: A 10  B 20  C 30  D 40
+  if (!extracted) {
+    extracted = trySequentialMatches(/(?:^|[\n\r\t]|\s{2,})([A-Da-d1-4])\s+(?=\S)/gi);
+  }
+
+  // Strategy 4: Single-line sequential A ... B ... C ... D ... or 1 ... 2 ... 3 ... 4 ...
+  if (!extracted) {
+    const singleLineMatchLetters = text.match(/(?:^|[\n\r\s])\(?A\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?B\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?C\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?D\)?\s*[\.:\)]?\s+([\s\S]+)$/i);
+    const singleLineMatchNumbers = text.match(/(?:^|[\n\r\s])\(?1\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?2\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?3\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?4\)?\s*[\.:\)]?\s+([\s\S]+)$/i);
     const match = singleLineMatchLetters || singleLineMatchNumbers;
-    if (match) {
+    if (match && typeof match.index === 'number') {
       const statement = text.slice(0, match.index).trim();
       optionsMap.A = match[1].trim().replace(/\s*\.$/, '');
       optionsMap.B = match[2].trim().replace(/\s*\.$/, '');
       optionsMap.C = match[3].trim().replace(/\s*\.$/, '');
       optionsMap.D = match[4].trim().replace(/\s*\.$/, '');
       text = statement;
+      extracted = true;
     }
-  }
-
-  if (matches.length >= 2) {
-    const firstOptionIdx = matches[0].index ?? 0;
-    const extractedStatement = text.slice(0, firstOptionIdx).trim();
-
-    for (let i = 0; i < matches.length; i++) {
-      const cur = matches[i];
-      const rawK = (cur[1] || cur[2] || cur[3] || cur[4] || '').toUpperCase();
-      const k = numToLetterMap[rawK] || (rawK as 'A' | 'B' | 'C' | 'D');
-      const start = (cur.index ?? 0) + cur[0].length;
-      const end = (i + 1 < matches.length) ? (matches[i + 1].index ?? text.length) : text.length;
-      let optVal = text.slice(start, end).trim();
-      // Strip trailing punctuation dot if present (e.g. "-21." -> "-21")
-      optVal = optVal.replace(/\s*\.$/, '');
-      if (['A', 'B', 'C', 'D'].includes(k)) {
-        optionsMap[k] = optVal;
-      }
-    }
-    text = extractedStatement;
   }
 
   // Strategy 4: Blank / Unlabeled Options (New Lines or Tab/Space Separated)

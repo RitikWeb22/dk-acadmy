@@ -106,7 +106,7 @@ export const MathInput: React.FC<MathInputProps> = ({
     // 1. If options extractor is present (e.g. Question Statement editor), check if pasted text has questions with options
     if (onExtractOptions) {
       let textToUse = plain;
-      if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html))) {
+      if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html) || /<table|<tr|<p|<span|<div/i.test(html))) {
         const converted = extractMathFromHtml(html);
         if (converted.trim()) {
           textToUse = converted;
@@ -120,7 +120,6 @@ export const MathInput: React.FC<MathInputProps> = ({
         const hasOptions = q0.options.filter(o => o.text && o.text.trim().length > 0).length >= 2;
         if (hasOptions) {
           onExtractOptions(q0.statement, q0.options as any, q0.correctKey);
-          onChange(q0.statement, parseContentToBlocks(q0.statement));
           return;
         }
       }
@@ -133,23 +132,33 @@ export const MathInput: React.FC<MathInputProps> = ({
     }
     const baseText = converted.trim() || plain;
 
+    // Clean any accidental warning banner text and leading bullets/dots if present
+    const baseClean = baseText
+      .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
+      .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
+
     // If this input is an Option field (compact or label starts with Option), use normalizeOptionMath
     // Otherwise use full statement normalizer normalizeMathString
     const isOptionField = compact || Boolean(label && /^Option\s+[A-D]/i.test(label));
-    const normalized = isOptionField ? normalizeOptionMath(baseText) : normalizeMathString(baseText);
+    let normalized = isOptionField ? normalizeOptionMath(baseClean) : normalizeMathString(baseClean);
+    normalized = normalized.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
 
     if (!normalized) return;
 
     const textarea = textareaRef.current;
     if (!textarea) {
-      const next = value ? `${value}\n${normalized}` : normalized;
+      const next = (!value.trim() || /^[\s.\-—]+$/.test(value)) ? normalized : `${value}\n${normalized}`;
       onChange(next, parseContentToBlocks(next));
       return;
     }
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const next = value.substring(0, start) + normalized + value.substring(end);
+    const rawPrefix = value.substring(0, start);
+    // If the prefix before the cursor is just whitespace or a stray dot/bullet, discard it
+    const prefix = (!rawPrefix.trim() || /^[\s.\-—]+$/.test(rawPrefix)) ? '' : rawPrefix;
+    const suffix = value.substring(end);
+    const next = (!value.trim() || /^[\s.\-—]+$/.test(value)) ? normalized : (prefix + normalized + suffix);
     onChange(next, parseContentToBlocks(next));
 
     setTimeout(() => {
