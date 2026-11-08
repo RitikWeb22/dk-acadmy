@@ -44,6 +44,25 @@ export function htmlResultLosesContent(plain: string, htmlText: string): boolean
   if (!plain.trim()) return false;
   if (!htmlText.trim()) return true;
 
+  // 1. If plain text contains Word linear math (piecewise cases, matrices, radicals, linear fractions):
+  // Ensure htmlText didn't drop the matrix/cases environment!
+  const hasWordLinear = /[■█┤]|\\matrix|\\eqarray|\\cases/.test(plain);
+  const hasLatexEnv = /\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|aligned)\}/.test(htmlText);
+  if (hasWordLinear && !hasLatexEnv) {
+    return true; // HTML conversion completely dropped the piecewise/matrix formula!
+  }
+
+  // 2. Significant character loss: if HTML text is less than 70% of plain text length, HTML dropped equations or text
+  if (htmlText.trim().length < plain.trim().length * 0.7) {
+    return true;
+  }
+
+  // 3. Formula presence check: e.g. f(x) or g(x) in plain but missing in htmlText
+  const funcPlain = plain.match(/\b[a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=/g);
+  if (funcPlain && funcPlain.some((fp) => !htmlText.replace(/\s+/g, '').includes(fp.replace(/\s+/g, '')))) {
+    return true;
+  }
+
   const htmlProse = new Set(proseTokens(htmlText));
   const missingProse = proseTokens(plain).filter((token) => !htmlProse.has(token));
   if (missingProse.length >= 3) return true;
@@ -52,10 +71,10 @@ export function htmlResultLosesContent(plain: string, htmlText: string): boolean
   const missingNumbers = numberTokens(plain).filter((token) => !htmlNumbers.has(token));
   if (missingNumbers.length >= 3) return true;
 
-  // Only consider equation loss if HTML produced zero math while plain text had equations
+  // 4. Equation count comparison: if plain has more equations than html
   const htmlEqs = equationCount(htmlText);
   const plainEqs = equationCount(plain);
-  if (plainEqs > 0 && htmlEqs === 0) return true;
+  if (plainEqs > htmlEqs) return true;
 
   return false;
 }

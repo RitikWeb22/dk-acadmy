@@ -83,7 +83,11 @@ export function extractMathFromHtml(html: string): string {
           `<root xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${innerOmml}</root>`,
           'text/xml'
         );
-        const oMath = doc.querySelector('oMath, m\\:oMath');
+        const oMath =
+          (doc.getElementsByTagNameNS && doc.getElementsByTagNameNS('*', 'oMath')[0]) ||
+          doc.getElementsByTagName('m:oMath')[0] ||
+          doc.getElementsByTagName('oMath')[0] ||
+          (doc.querySelector && doc.querySelector('oMath, m\\:oMath'));
         if (oMath) {
           const latex = ommlNodeToLatex(oMath);
           if (latex) return ` $${latex}$ `;

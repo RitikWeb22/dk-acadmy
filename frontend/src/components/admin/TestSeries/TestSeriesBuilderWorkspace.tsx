@@ -74,6 +74,7 @@ import { MathInput, parseContentToBlocks, ValidationDashboard, ValidationBadge }
 import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
 import { normalizeMathString, normalizeOptionMath, extractMathFromHtml } from '../../../utils/mathImportRenderSystem/pasteHandler';
 import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
+import { htmlResultLosesContent } from '../../../utils/pasteContentGuard';
 import { PasteWordQuestionModal } from '../Common/PasteWordQuestionModal';
 import { BulkDocxImportModal } from './BulkDocxImportModal';
 import { AiRepairModal } from './AiRepairModal';
@@ -7414,13 +7415,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   onPaste={(e) => {
                     const plain = e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text') || '';
                     const html = e.clipboardData?.getData('text/html') || '';
+                    const hasWordLinear = /[■█┤]|\\matrix|\\eqarray|\\cases/.test(plain);
                     let converted = '';
                     if (html && (/<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html) || /<table|<tr|<p|<span|<div/i.test(html))) {
                       converted = extractMathFromHtml(html);
                     }
-                    const baseText = converted.trim() || plain;
+                    const isHtmlComplete = converted.trim() && !htmlResultLosesContent(plain, converted);
+                    const preservesLinear = !hasWordLinear || /\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|aligned)\}/.test(converted);
+                    const baseText = (isHtmlComplete && preservesLinear) ? converted : plain;
                     const res = normalizePastedQuestion(e.clipboardData);
-                    const isCorrupted = !res.fullNormalizedText || /\\frac\{\s*\}\{\s*\}/.test(res.fullNormalizedText) || (plain.trim().length > 25 && res.fullNormalizedText.trim().length < plain.trim().length * 0.4);
+                    const isCorrupted = !res.fullNormalizedText || /\\frac\{\s*\}\{\s*\}/.test(res.fullNormalizedText) || (plain.trim().length > 25 && res.fullNormalizedText.trim().length < plain.trim().length * 0.4) || (hasWordLinear && !/\\begin\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|aligned)\}/.test(res.statement));
                     if (!isCorrupted && res.hasQuestionWithOptions && res.options.length === 4) {
                       e.preventDefault();
                       const formatted = `${normalizeMathString(res.statement)}\n\n${res.options.map((o) => `(${o.key}) ${normalizeOptionMath(o.text)}`).join('\n')}${res.correctKey ? `\n\nAns: ${res.correctKey}` : ''}`;
