@@ -18,7 +18,8 @@ import {
   UserCog,
   Video,
   Tag,
-  Layers
+  Rocket,
+  GraduationCap
 } from 'lucide-react';
 import { useAdminAuth } from '../../../../context/AdminAuthContext';
 import { AdminProfileModal } from '../../../../components/admin/AdminProfileModal/AdminProfileModal';
@@ -39,7 +40,7 @@ interface NavItemDef {
   sublabel?: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   badge?: string | number;
-  badgeColor?: 'danger' | 'warning' | 'info' | 'neutral';
+  badgeColor?: 'danger' | 'warning' | 'info' | 'live' | 'neutral';
   route?: string;
 }
 
@@ -65,113 +66,75 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .charAt(0)
     .toUpperCase() || 'R';
 
-  // Grouped Navigation structure matching reference layout
+  // Grouped Navigation structure exactly matching reference layout
   const navSections: NavSectionDef[] = [
     {
-      sectionTitle: 'Overview',
+      sectionTitle: 'MAIN',
       items: [
         {
           key: 'dashboard',
           label: 'Dashboard',
           icon: LayoutDashboard,
           route: '/admin/dashboard'
-        }
-      ]
-    },
-    {
-      sectionTitle: 'Data & Users',
-      items: [
+        },
         {
           key: 'students',
           label: 'Student Management',
-          sublabel: 'Aspirants roster, batch allocations',
           icon: Users,
           route: '/admin/students'
         },
         {
           key: 'teachers',
           label: 'Teachers & Admin',
-          sublabel: 'Faculty assignments, RBAC',
           icon: ShieldCheck,
           route: '/admin/teachers'
         },
         {
           key: 'invoices',
           label: 'Invoices & Fee Slips',
-          sublabel: 'Razorpay & offline receipts',
           icon: CreditCard,
           route: '/admin/invoices'
         },
         {
           key: 'coupons',
           label: 'Discounts and Offers',
-          sublabel: 'Coupons, banners, popups & flash sales',
           icon: Tag,
           route: '/admin/coupons'
         }
       ]
     },
     {
-      sectionTitle: 'Academics & Content',
+      sectionTitle: 'ACADEMICS & CONTENT',
       items: [
         {
           key: 'courses',
           label: 'Courses Create',
-          sublabel: 'New batch configuration',
           icon: PlusSquare,
           route: '/admin/courses/create'
         },
         {
+          key: 'live-classroom',
+          label: 'DK Coaching Live',
+          icon: Video,
+          badge: 'LIVE',
+          badgeColor: 'live',
+          route: '/admin/dashboard'
+        },
+        {
           key: 'test-series',
           label: 'Test Series',
-          sublabel: 'JEE & BITSAT CBT series',
           icon: FileText,
           route: '/admin/test-series'
         },
         {
           key: 'dpp-pyq',
           label: 'DPP & PYQ Practice',
-          sublabel: 'Daily drills & past exam archives',
           icon: Crosshair,
           route: '/admin/dpp-pyq'
         },
         {
-          key: 'free-lectures',
-          label: 'Free Lectures Create',
-          sublabel: '5-free rule & unlock pricing',
-          icon: Video,
-          route: '/admin/free-lectures'
-        },
-        {
-          key: 'reviews',
-          label: 'Course Review Management',
-          sublabel: 'Student ratings & moderation',
-          icon: Star,
-          route: '/admin/reviews'
-        }
-      ]
-    },
-    {
-      sectionTitle: 'CMS & Platform',
-      items: [
-        {
-          key: 'pages',
-          label: 'Page Management',
-          sublabel: 'Home page, About Us, Classrooms',
-          icon: Monitor,
-          route: '/admin/pages'
-        },
-        {
-          key: 'navbar-footer',
-          label: 'Navbar & Footer Management',
-          sublabel: 'Global links, contact details',
-          icon: Compass,
-          route: '/admin/navbar-footer'
-        },
-        {
           key: 'contact',
-          label: 'Contact Us Management',
-          sublabel: 'Callback requests, demo leads',
+          label: 'Leads & Inquiries',
           icon: Mail,
           route: '/admin/contact'
         }
@@ -196,15 +159,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
         aria-label="Main Admin Navigation"
       >
-        {/* Top Header: Brand "DK ACADEMY" with Collapse Arrow "<" */}
+        {/* Top Header: Brand "DK ACADEMY" */}
         <div className={styles.header}>
           <div className={styles.brand}>
             <div className={styles.brandLogoWrap}>
-              <img
-                src="/img/logo.jpeg"
-                alt="DK Academy"
-                className={styles.logoImg}
-              />
+              <GraduationCap size={20} className="text-amber-400" />
             </div>
             {!isCollapsed && (
               <div className={styles.brandInfo}>
@@ -221,11 +180,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={isCollapsed ? 'Expand sidebar (<)' : 'Collapse sidebar (<)'}
           >
-            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
           </button>
         </div>
 
-        {/* Admin Profile Widget (Placed under header, dynamic logged-in admin) */}
+        {/* Admin Profile Widget (Dark Navy style) */}
         <div className={styles.profileWidget}>
           <div
             className={styles.avatarWrap}
@@ -256,17 +215,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className={styles.profileName} title={admin?.name || 'Ritik'}>
-                  {admin?.name || 'Ritik'}
-                </span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 shrink-0">
-                  {admin?.role?.replace('_', ' ') || 'Super Admin'}
+                  {admin?.name || 'Ritik'} (Super Admin)
                 </span>
               </div>
               <span
-                className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 block"
+                className={styles.profileRole}
                 title={admin?.designation || 'Academic Director & Founder'}
               >
-                {admin?.designation || 'Academic Director & Founder'}
+                Academic Director &amp; Founder
               </span>
             </div>
           )}
@@ -280,7 +236,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 aria-label="Account options"
                 aria-expanded={isProfileMenuOpen}
               >
-                <MoreVertical size={16} />
+                <MoreVertical size={15} />
               </button>
 
               {isProfileMenuOpen && (
@@ -291,7 +247,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </span>
                     <span className={styles.dropdownRole}>
                       {admin?.role?.replace('_', ' ') || 'SUPER ADMIN'}
-                      {admin?.department ? ` • ${admin.department}` : ''}
                     </span>
                   </div>
                   <button
@@ -302,7 +257,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       setIsProfileModalOpen(true);
                     }}
                   >
-                    <UserCog size={14} />
+                    <UserCog size={13} />
                     <span>Edit Profile &amp; Photo</span>
                   </button>
                   <button
@@ -313,7 +268,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       logout();
                     }}
                   >
-                    <LogOut size={14} />
+                    <LogOut size={13} />
                     <span>Sign Out</span>
                   </button>
                 </div>
@@ -348,11 +303,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         onSelectMenu(item.key, item.route);
                         if (isMobileOpen && onMobileClose) onMobileClose();
                       }}
-                      title={isCollapsed ? `${item.label}${item.sublabel ? ` - ${item.sublabel}` : ''}` : undefined}
+                      title={isCollapsed ? item.label : undefined}
                       aria-current={isActive ? 'page' : undefined}
                     >
-                      <span className={styles.itemIcon}>
-                        <Icon size={18} />
+                      <span className={`${styles.itemIcon} ${isActive ? styles.activeIcon : ''}`}>
+                        <Icon size={16} />
                       </span>
 
                       {!isCollapsed && (
@@ -364,7 +319,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {!isCollapsed && item.badge !== undefined && (
                         <span
                           className={`${styles.itemBadge} ${
-                            item.badgeColor === 'danger'
+                            item.badgeColor === 'live'
+                              ? styles.badgeLive
+                              : item.badgeColor === 'danger'
                               ? styles.badgeDanger
                               : styles.badgeInfo
                           }`}
@@ -382,18 +339,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
           ))}
-        </nav>
 
-        {/* Slim System Status Tag at Bottom of Sidebar */}
-        {!isCollapsed && (
-          <div className={styles.sidebarFooterNotice}>
-            <span className={styles.pulseDotGreen} />
-            <span>DK Coaching Live</span>
-          </div>
-        )}
+          {/* Bottom Promotional Card (Grow Your Institute Further) */}
+          {!isCollapsed && (
+            <div className={styles.upgradeCard}>
+              <div className={styles.upgradeHeader}>
+                <div className={styles.rocketIconTile}>
+                  <Rocket size={16} className="text-amber-400" />
+                </div>
+                <div className={styles.upgradeText}>
+                  <h4 className={styles.upgradeTitle}>Grow Your Institute Further</h4>
+                  <p className={styles.upgradeDesc}>
+                    Track performance, manage easily, and boost success.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={styles.upgradeBtn}
+                onClick={() => onSelectMenu('courses', '/admin/courses')}
+              >
+                Upgrade Plan →
+              </button>
+            </div>
+          )}
+
+          {/* Footer Copyright */}
+          {!isCollapsed && (
+            <div className={styles.sidebarFooterNotice}>
+              <span>© 2026 DK Academy</span>
+              <span>Made with ❤️ in India</span>
+            </div>
+          )}
+        </nav>
       </aside>
 
-      {/* Admin Profile & Avatar Cloudinary Editor Modal */}
+      {/* Admin Profile Modal */}
       <AdminProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}

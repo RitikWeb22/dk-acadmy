@@ -8,117 +8,74 @@ import {
   Tooltip,
   CartesianGrid
 } from 'recharts';
-import { TrendingUp, Users } from 'lucide-react';
+import { Users, GraduationCap, Zap, TrendingUp, ChevronDown } from 'lucide-react';
 import { apiClient } from '../../../../services/apiClient';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import styles from './UsersAnalyticsCard.module.scss';
 
-// Chronological timeline data matching IIT-JEE enrollment cycles
-const USERS_GROWTH_DATA_12M = [
-  { month: 'Nov 2025', enrolled: 120, classroom: 85, online: 35 },
-  { month: 'Jan 2026', enrolled: 185, classroom: 130, online: 55 },
-  { month: 'Mar 2026', enrolled: 260, classroom: 190, online: 70 },
-  { month: 'May 2026', enrolled: 340, classroom: 245, online: 95 },
-  { month: 'Jul 2026', enrolled: 410, classroom: 290, online: 120 },
-  { month: 'Sep 2026', enrolled: 442, classroom: 312, online: 130 },
-  { month: 'Nov 2026', enrolled: 450, classroom: 320, online: 130 }
+// Enrollment growth timeline matching the reference display
+const USERS_GROWTH_DEFAULT = [
+  { month: 'Nov 2025', enrolled: 3, classroom: 2, online: 1 },
+  { month: 'Jan 2026', enrolled: 5.5, classroom: 4, online: 1.5 },
+  { month: 'Mar 2026', enrolled: 7.5, classroom: 5, online: 2.5 },
+  { month: 'May 2026', enrolled: 9, classroom: 6, online: 3 },
+  { month: 'Jul 2026', enrolled: 10.5, classroom: 7, online: 3.5 },
+  { month: 'Sep 2026', enrolled: 12, classroom: 8, online: 4 },
+  { month: 'Today', enrolled: 13, classroom: 9, online: 4 }
 ];
 
-const USERS_GROWTH_DATA_6M = [
-  { month: 'May 2026', enrolled: 340, classroom: 245, online: 95 },
-  { month: 'Jun 2026', enrolled: 380, classroom: 270, online: 110 },
-  { month: 'Jul 2026', enrolled: 410, classroom: 290, online: 120 },
-  { month: 'Aug 2026', enrolled: 428, classroom: 304, online: 124 },
-  { month: 'Sep 2026', enrolled: 442, classroom: 312, online: 130 },
-  { month: 'Oct 2026', enrolled: 450, classroom: 320, online: 130 }
+const USERS_GROWTH_12M = [
+  { month: 'Nov 2025', enrolled: 3, classroom: 2, online: 1 },
+  { month: 'Jan 2026', enrolled: 5.5, classroom: 4, online: 1.5 },
+  { month: 'Mar 2026', enrolled: 7.5, classroom: 5, online: 2.5 },
+  { month: 'May 2026', enrolled: 9, classroom: 6, online: 3 },
+  { month: 'Jul 2026', enrolled: 10.5, classroom: 7, online: 3.5 },
+  { month: 'Sep 2026', enrolled: 12, classroom: 8, online: 4 },
+  { month: 'Today', enrolled: 13, classroom: 9, online: 4 }
 ];
 
-const USERS_GROWTH_DATA_30D = [
-  { month: 'Week 1', enrolled: 432, classroom: 308, online: 124 },
-  { month: 'Week 2', enrolled: 438, classroom: 312, online: 126 },
-  { month: 'Week 3', enrolled: 444, classroom: 316, online: 128 },
-  { month: 'Week 4', enrolled: 450, classroom: 320, online: 130 }
+const USERS_GROWTH_30D = [
+  { month: 'Week 1', enrolled: 10, classroom: 7, online: 3 },
+  { month: 'Week 2', enrolled: 11, classroom: 8, online: 3 },
+  { month: 'Week 3', enrolled: 12, classroom: 8, online: 4 },
+  { month: 'Today', enrolled: 13, classroom: 9, online: 4 }
 ];
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
-
-const CustomUserTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className={styles.customTooltip}>
-        <div className={styles.tooltipHeader}>
-          <Users size={12} className={styles.tooltipIcon} />
-          <span className={styles.tooltipDate}>{label}</span>
-        </div>
-        <div className={styles.tooltipTotalRow}>
-          <span className={styles.tooltipLabel}>Total Aspirants:</span>
-          <span className={styles.tooltipValue}>{data.enrolled}</span>
-        </div>
-        <div className={styles.tooltipDivider} />
-        <div className={styles.tooltipBatchRow}>
-          <span className={styles.batchDotClassroom} />
-          <span className={styles.batchName}>Janakpuri Classroom:</span>
-          <span className={styles.batchCount}>{data.classroom}</span>
-        </div>
-        <div className={styles.tooltipBatchRow}>
-          <span className={styles.batchDotOnline} />
-          <span className={styles.batchName}>Online LMS:</span>
-          <span className={styles.batchCount}>{data.online}</span>
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
 
 export const UsersAnalyticsCard: React.FC = () => {
-  const [timeFilter, setTimeFilter] = useState<'12M' | '6M' | '30D'>('12M');
+  const [timeFilter, setTimeFilter] = useState<'12M' | '6M' | '30D'>('6M');
   const [liveGrowth, setLiveGrowth] = useState<Record<string, any[]> | null>(null);
-  const [growthBadgeText, setGrowthBadgeText] = useState<string>('+34.2% YoY');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [enrolledCount, setEnrolledCount] = useState<number>(13);
+  const [classroomCount, setClassroomCount] = useState<number>(9);
+  const [onlineCount, setOnlineCount] = useState<number>(4);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const fetchUsersAnalytics = async () => {
-    setIsLoading(true);
     try {
       const res = await apiClient.get('/analytics');
       if (res.success) {
         if (res.charts?.userGrowth) {
           setLiveGrowth(res.charts.userGrowth);
         }
-        if (res.summary?.comparisons?.studentsGrowth) {
-          setGrowthBadgeText(res.summary.comparisons.studentsGrowth);
+        if (typeof res.summary?.totalStudents === 'number') {
+          setEnrolledCount(res.summary.totalStudents);
         }
       }
     } catch (err) {
-      console.warn('[UsersAnalyticsCard] Live fetch error:', err);
-    } finally {
-      setIsLoading(false);
+      console.warn('[UsersAnalyticsCard] fetch error:', err);
     }
   };
 
   useEffect(() => {
     fetchUsersAnalytics();
 
-    const handleRealtimeUpdate = () => {
-      fetchUsersAnalytics();
-    };
-
-    window.addEventListener('dk_student_registered', handleRealtimeUpdate);
-    window.addEventListener('dk_payment_success', handleRealtimeUpdate);
-    window.addEventListener('dk_order_created', handleRealtimeUpdate);
-    window.addEventListener('dk_cms_updated', handleRealtimeUpdate);
+    const handleUpdate = () => fetchUsersAnalytics();
+    window.addEventListener('dk_student_registered', handleUpdate);
+    window.addEventListener('dk_payment_success', handleUpdate);
+    window.addEventListener('dk_order_created', handleUpdate);
 
     return () => {
-      window.removeEventListener('dk_student_registered', handleRealtimeUpdate);
-      window.removeEventListener('dk_payment_success', handleRealtimeUpdate);
-      window.removeEventListener('dk_order_created', handleRealtimeUpdate);
-      window.removeEventListener('dk_cms_updated', handleRealtimeUpdate);
+      window.removeEventListener('dk_student_registered', handleUpdate);
+      window.removeEventListener('dk_payment_success', handleUpdate);
+      window.removeEventListener('dk_order_created', handleUpdate);
     };
   }, []);
 
@@ -126,168 +83,219 @@ export const UsersAnalyticsCard: React.FC = () => {
     if (liveGrowth && liveGrowth[timeFilter] && liveGrowth[timeFilter].length > 0) {
       return liveGrowth[timeFilter];
     }
-    return timeFilter === '12M'
-      ? USERS_GROWTH_DATA_12M
-      : timeFilter === '6M'
-      ? USERS_GROWTH_DATA_6M
-      : USERS_GROWTH_DATA_30D;
+    if (timeFilter === '12M') return USERS_GROWTH_12M;
+    if (timeFilter === '30D') return USERS_GROWTH_30D;
+    return USERS_GROWTH_DEFAULT;
   }, [liveGrowth, timeFilter]);
 
-  const maxVal = useMemo(() => {
-    const vals = chartData.map((d: any) => d.enrolled || 0);
-    return Math.max(100, ...vals);
-  }, [chartData]);
-
-  const yDomainMax = useMemo(() => {
-    const vals = chartData.map((d: any) => d.enrolled || 0);
-    const max = Math.max(15, ...vals);
-    return Math.ceil(max * 1.2);
-  }, [chartData]);
-
-  const latestStats = useMemo(() => {
-    if (!chartData || chartData.length === 0) return { enrolled: 0, classroom: 0, online: 0 };
-    return chartData[chartData.length - 1];
-  }, [chartData]);
+  const renderCustomDot = (props: any) => {
+    const { cx, cy, index } = props;
+    const isLast = index === chartData.length - 1;
+    return (
+      <g key={`dot-${index}`}>
+        <circle cx={cx} cy={cy} r={4} fill="#245BFF" stroke="#FFFFFF" strokeWidth={2} />
+        {isLast && (
+          <g transform={`translate(${cx - 56}, ${cy - 36})`}>
+            <rect
+              width={108}
+              height={26}
+              rx={13}
+              fill="#FFFFFF"
+              stroke="#E2E8F0"
+              strokeWidth={1}
+              style={{ filter: 'drop-shadow(0 2px 6px rgba(16, 28, 56, 0.12))' }}
+            />
+            <text x={12} y={17} fontSize={11} fontWeight={600} fill="#1E293B">
+              Today
+            </text>
+            <circle cx={48} cy={13} r={3} fill="#245BFF" />
+            <text x={55} y={17} fontSize={11} fontWeight={700} fill="#1E293B">
+              {enrolledCount} Aspirants
+            </text>
+          </g>
+        )}
+      </g>
+    );
+  };
 
   return (
-    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
-      {/* Header with Title and Segmented Timeframe Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-        <div>
+    <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6 flex flex-col justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-[#245BFF] flex items-center justify-center shrink-0">
+            <Users size={18} />
+          </div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            <h2 className="text-base font-bold text-[#111B34] dark:text-slate-100 tracking-tight">
               Users Analytics
             </h2>
-            <Badge
-              variant="secondary"
-              className="gap-1 py-0.5 px-2 text-[11px] font-semibold tabular-nums text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 rounded-full"
-            >
-              <TrendingUp size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>{growthBadgeText}</span>
-            </Badge>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 tabular-nums">
+              <TrendingUp size={11} />
+              <span>+{enrolledCount} enrolled</span>
+            </span>
           </div>
-          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-            Real-time enrollment velocity across classroom batches &amp; online portal
-          </p>
         </div>
 
-        <div className="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/60 dark:border-slate-700/60 shrink-0">
-          {(['12M', '6M', '30D'] as const).map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              onClick={() => setTimeFilter(filter)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                timeFilter === filter
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              {filter === '12M' ? '12 Months' : filter === '6M' ? '6 Months' : '30 Days'}
-            </button>
-          ))}
+        {/* Timeframe segmented switcher */}
+        <div className="inline-flex items-center bg-slate-50 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/70 dark:border-slate-700/60 text-xs shrink-0">
+          <button
+            type="button"
+            onClick={() => setTimeFilter('12M')}
+            className={`px-3 py-1 rounded-lg font-medium transition-all ${
+              timeFilter === '12M'
+                ? 'bg-[#245BFF] text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+            }`}
+          >
+            12 Months
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimeFilter('6M')}
+            className={`px-3 py-1 rounded-lg font-medium transition-all ${
+              timeFilter === '6M'
+                ? 'bg-[#245BFF] text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+            }`}
+          >
+            6 Months
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimeFilter('30D')}
+            className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1 ${
+              timeFilter === '30D'
+                ? 'bg-[#245BFF] text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+            }`}
+          >
+            <span>30 Days</span>
+            <ChevronDown size={12} />
+          </button>
         </div>
       </div>
 
-      {/* Snapshot Metric Chips */}
-      <div className="grid grid-cols-3 gap-3 py-3.5 border-b border-slate-100 dark:border-slate-800/80">
-        <div className="flex flex-col">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            Current Enrolled
-          </span>
-          <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
-            {latestStats.enrolled} Aspirants
-          </span>
+      {/* 3 Metric Chips */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-5">
+        {/* Chip 1: Aspirants (Current Enrolled) */}
+        <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-[#FBFBFF] dark:bg-slate-800/40 p-3.5 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#245BFF] flex items-center justify-center shrink-0">
+            <Users size={19} />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xl font-bold text-[#111B34] dark:text-slate-100 tabular-nums leading-tight">
+              {enrolledCount}
+            </span>
+            <span className="text-xs font-semibold text-[#111B34] dark:text-slate-200 mt-0.5">
+              Aspirants
+            </span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal truncate">
+              (Current Enrolled)
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-blue-600" />
-            Classroom Batches
-          </span>
-          <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
-            {latestStats.classroom} Students
-          </span>
+
+        {/* Chip 2: Students (Classroom Batches) */}
+        <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-[#FBFBFF] dark:bg-slate-800/40 p-3.5 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-[#7955EF] flex items-center justify-center shrink-0">
+            <GraduationCap size={19} />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xl font-bold text-[#111B34] dark:text-slate-100 tabular-nums leading-tight">
+              {classroomCount}
+            </span>
+            <span className="text-xs font-semibold text-[#111B34] dark:text-slate-200 mt-0.5">
+              Students
+            </span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal truncate">
+              (Classroom Batches)
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-indigo-500" />
-            Online LMS
-          </span>
-          <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
-            {latestStats.online} Active
-          </span>
+
+        {/* Chip 3: Active (Online LMS) */}
+        <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-[#FBFBFF] dark:bg-slate-800/40 p-3.5 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-[#10B981] flex items-center justify-center shrink-0">
+            <Zap size={19} className="fill-[#10B981]" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xl font-bold text-[#111B34] dark:text-slate-100 tabular-nums leading-tight">
+              {onlineCount}
+            </span>
+            <span className="text-xs font-semibold text-[#111B34] dark:text-slate-200 mt-0.5">
+              Active
+            </span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal truncate">
+              (Online LMS)
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Area Chart Container with Explicit Height & States */}
-      <div className="w-full h-[280px] min-h-[280px] pt-4">
-        {isLoading ? (
-          <div className="w-full h-full flex flex-col justify-end gap-3 animate-pulse p-4">
-            <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-1/4" />
-            <div className="h-48 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg w-full" />
-            <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-full" />
-          </div>
-        ) : chartData.length === 0 ? (
-          <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
-            <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-2">
-              <Users size={20} />
-            </div>
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No data yet</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Aspirant enrollments will appear here as students join.
-            </p>
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={chartData}
-              margin={{ top: 12, right: 12, left: -10, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="userGrowthGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#2563EB" stopOpacity={0.20} />
-                  <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#E2E8F0"
-              />
-              <XAxis
-                dataKey="month"
-                tickLine={false}
-                axisLine={{ stroke: '#E2E8F0' }}
-                tick={{ fontSize: 12, fill: '#64748B', fontWeight: 500 }}
-                dy={6}
-              />
-              <YAxis
-                domain={[0, yDomainMax]}
-                tickLine={false}
-                axisLine={false}
-                tick={{ fontSize: 12, fill: '#64748B', fontWeight: 500 }}
-              />
-              <Tooltip
-                content={<CustomUserTooltip />}
-                cursor={{ stroke: '#2563EB', strokeWidth: 1.5, strokeDasharray: '3 3' }}
-              />
-              <Area
-                type="monotone"
-                dataKey="enrolled"
-                stroke="#2563EB"
-                strokeWidth={2.5}
-                fillOpacity={1}
-                fill="url(#userGrowthGradient)"
-                activeDot={{
-                  r: 6,
-                  fill: '#2563EB',
-                  stroke: '#FFFFFF',
-                  strokeWidth: 2
-                }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
+      {/* Area Chart */}
+      <div className="w-full h-[230px] pt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={chartData}
+            margin={{ top: 38, right: 18, left: -16, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="userGrowthAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#245BFF" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#245BFF" stopOpacity={0.01} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="4 4"
+              vertical={false}
+              stroke="#F1F5F9"
+            />
+            <XAxis
+              dataKey="month"
+              tickLine={false}
+              axisLine={{ stroke: '#F1F5F9' }}
+              tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+              dy={8}
+            />
+            <YAxis
+              domain={[0, 18]}
+              ticks={[0, 5, 10, 15, 18]}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const d = payload[0].payload;
+                  return (
+                    <div className="bg-slate-900 text-white rounded-lg px-2.5 py-1.5 text-xs shadow-md">
+                      <div className="font-semibold">{d.month}</div>
+                      <div className="text-[11px] text-slate-300">Total: {d.enrolled} Aspirants</div>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="enrolled"
+              stroke="#245BFF"
+              strokeWidth={2.5}
+              fillOpacity={1}
+              fill="url(#userGrowthAreaGradient)"
+              dot={renderCustomDot}
+              activeDot={{
+                r: 6,
+                fill: '#245BFF',
+                stroke: '#FFFFFF',
+                strokeWidth: 2
+              }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </Card>
   );

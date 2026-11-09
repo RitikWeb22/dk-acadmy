@@ -2,19 +2,29 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Users,
+  UserPlus,
+  Play,
+  CheckSquare,
+  TrendingUp,
   Receipt,
   CheckCircle2,
   ShieldCheck,
   CreditCard,
   PlusSquare,
+  PlusCircle,
   FileText,
   Crosshair,
+  CloudUpload,
   RefreshCw,
   ArrowUpRight,
+  ArrowRight,
   Sparkles,
   Video,
   Mail,
-  Tag
+  Tag,
+  Calendar,
+  Zap,
+  ChevronDown
 } from 'lucide-react';
 // Lazy-loaded administrative workspaces for bundle optimization
 const StudentManagementWorkspace = React.lazy(() =>
@@ -422,350 +432,267 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
               <CouponManagementWorkspace />
             ) : (
               <div className="flex flex-col gap-6 w-full max-w-[1440px] mx-auto p-6 sm:p-8 pb-16">
-                {/* ─── COCKPIT HEADER ─── */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
-                  <div className="space-y-1.5 min-w-0">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="text-xs font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500">
-                        Academic Session 2026–27 · IIT-JEE Division
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/80">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                        Live Sync Active
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-3 flex-wrap">
-                      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-                        Welcome, {admin?.name || 'Ritik'}
-                      </h1>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        Super Admin
-                      </span>
-                    </div>
+                {/* ─── COCKPIT WELCOME HERO ─── */}
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <h1 className="text-2xl sm:text-[28px] font-bold tracking-tight text-[#111B34] dark:text-slate-100">
+                      Welcome, {admin?.name || 'Ritik'} (Super Admin) 👋
+                    </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
                       Real-time admissions, live batch curriculum, CBT simulations, and verified fee collections across DK Academy JEE.
                     </p>
                   </div>
 
-                  {/* Action Toolbar */}
-                  <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-                    <Button
-                      variant="outline"
-                      onClick={fetchAnalytics}
-                      disabled={isSyncing}
-                      className="h-9 px-3.5 rounded-lg text-xs font-medium border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-xs transition-colors shrink-0 flex items-center gap-2"
-                      title="Refresh live metrics"
-                    >
-                      <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
-                      <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
-                    </Button>
+                  <div className="flex flex-col items-start md:items-end gap-2.5 shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      Live Sync Active
+                    </span>
 
-                    <Button
-                      variant="default"
-                      onClick={() => setIsCommandPaletteOpen(true)}
-                      className="h-9 px-3.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs transition-colors whitespace-nowrap shrink-0 flex items-center"
-                      title="Open Command Palette (Ctrl+K)"
-                    >
-                      <span>Quick Actions</span>
-                      <kbd className="ml-2 font-mono text-[10px] bg-primary-foreground/20 text-primary-foreground px-1.5 py-0.5 rounded-sm font-semibold whitespace-nowrap shrink-0">
-                        ⌘K
-                      </kbd>
-                    </Button>
+                    <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-2xs">
+                      <Calendar size={13} className="text-slate-400" />
+                      <span>Nov 8, 2026 – Today</span>
+                      <ChevronDown size={13} className="text-slate-400 ml-1" />
+                    </div>
                   </div>
                 </div>
 
                 {/* ─── 4 CORE HERO PILLARS (Executive KPI Cockpit) ─── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Pillar 1: Total Fee Collections */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between"
+                  {/* Card 1: Fee Collections (Blue Gradient) */}
+                  <div
+                    className="rounded-2xl border border-blue-100 dark:border-slate-800 bg-gradient-to-br from-[#EEF4FF] via-[#F3F7FF] to-[#DCE8FE] dark:from-slate-900 dark:to-slate-800/80 p-5 flex flex-col justify-between cursor-pointer hover:shadow-md transition-all duration-150"
                     onClick={() => handleNavClick('invoices', '/admin/invoices')}
-                    title="View Invoices & Fee Slips"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                        <CreditCard size={18} />
+                      <div className="h-10 w-10 rounded-xl bg-blue-100/80 dark:bg-blue-950/60 text-[#245BFF] flex items-center justify-center shrink-0">
+                        <Users size={19} />
                       </div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 tabular-nums">
-                        {liveAnalytics.revenueGrowth}
-                      </span>
                     </div>
                     <div className="mt-4">
-                      <span className="text-2xl sm:text-[28px] font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        ₹{liveAnalytics.grossRevenue.toLocaleString('en-IN')}
-                      </span>
-                      <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mt-0.5">
+                      <div className="text-3xl font-extrabold text-[#111B34] dark:text-slate-100 tabular-nums tracking-tight">
+                        ₹{liveAnalytics.grossRevenue.toLocaleString('en-IN') || '10'}
+                      </div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
                         Fee Collections
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Verified online &amp; gateway receipts
-                      </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                        <span>↑</span>
+                        <span>{liveAnalytics.revenueGrowth || '+18.4%'}</span>
+                      </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                      <span>Goal: ₹25L Target</span>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">15% Met</span>
+                    <div className="mt-4 pt-2">
+                      <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+                        Goal: ₹25L | Target: 40%
+                      </div>
+                      <div className="h-1.5 w-full bg-blue-200/60 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#245BFF] rounded-full w-[40%]" />
+                      </div>
                     </div>
-                  </Card>
+                  </div>
 
-                  {/* Pillar 2: Enrolled Aspirants */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between"
+                  {/* Card 2: Enrolled Aspirants (Purple Gradient) */}
+                  <div
+                    className="rounded-2xl border border-purple-100 dark:border-slate-800 bg-gradient-to-br from-[#FAF5FF] via-[#FAF5FF] to-[#F3E8FF] dark:from-slate-900 dark:to-slate-800/80 p-5 flex flex-col justify-between cursor-pointer hover:shadow-md transition-all duration-150"
                     onClick={() => handleNavClick('students', '/admin/students')}
-                    title="View Student Roster"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center shrink-0">
-                        <Users size={18} />
+                      <div className="h-10 w-10 rounded-xl bg-purple-100/80 dark:bg-purple-950/60 text-[#7955EF] flex items-center justify-center shrink-0">
+                        <UserPlus size={19} />
                       </div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200 dark:border-blue-800 tabular-nums">
-                        {liveAnalytics.studentsGrowth}
-                      </span>
                     </div>
                     <div className="mt-4">
-                      <span className="text-2xl sm:text-[28px] font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+                      <div className="text-3xl font-extrabold text-[#111B34] dark:text-slate-100 tabular-nums tracking-tight">
                         {liveAnalytics.totalStudents || 13}
-                      </span>
-                      <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mt-0.5">
+                      </div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
                         Enrolled Aspirants
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Classroom &amp; Online LMS roster
-                      </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                        <span>↑</span>
+                        <span>+13 enrolled</span>
+                      </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                      <span>Capacity: 500 Max</span>
-                      <span className="font-semibold text-blue-600 dark:text-blue-400">2.6% Utilized</span>
+                    <div className="mt-4 pt-2">
+                      <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+                        Capacity: 500 | Max: 2.6%
+                      </div>
+                      <div className="h-1.5 w-full bg-purple-200/60 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#7955EF] rounded-full w-[15%]" />
+                      </div>
                     </div>
-                  </Card>
+                  </div>
 
-                  {/* Pillar 3: Active Courses */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between"
+                  {/* Card 3: Course Batches (Green Gradient) */}
+                  <div
+                    className="rounded-2xl border border-emerald-100 dark:border-slate-800 bg-gradient-to-br from-[#F0FDF4] via-[#F4FDF7] to-[#DCFCE7] dark:from-slate-900 dark:to-slate-800/80 p-5 flex flex-col justify-between cursor-pointer hover:shadow-md transition-all duration-150"
                     onClick={() => handleNavClick('courses', '/admin/courses')}
-                    title="View Courses & Batches"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                        <PlusSquare size={18} />
+                      <div className="h-10 w-10 rounded-xl bg-emerald-100/80 dark:bg-emerald-950/60 text-[#10B981] flex items-center justify-center shrink-0">
+                        <Play size={17} className="fill-[#10B981]" />
                       </div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                        Live Batches
-                      </span>
+                      <TrendingUp size={19} className="text-emerald-500/80" />
                     </div>
                     <div className="mt-4">
-                      <span className="text-2xl sm:text-[28px] font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+                      <div className="text-3xl font-extrabold text-[#111B34] dark:text-slate-100 tabular-nums tracking-tight">
                         {liveAnalytics.totalCourses || 6}
-                      </span>
-                      <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mt-0.5">
+                      </div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
                         Course Batches
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      </div>
+                      <div className="mt-1.5">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/90 text-emerald-700 border border-emerald-200/60 shadow-2xs">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          Live Batches
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-2">
+                      <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                         Target JEE 2026, 2027 &amp; Droppers
-                      </p>
+                      </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                      <span>Curriculum Status</span>
-                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">100% On Track</span>
-                    </div>
-                  </Card>
+                  </div>
 
-                  {/* Pillar 4: CBT Mock Simulator */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between"
+                  {/* Card 4: Test Series Mocks (Orange Gradient) */}
+                  <div
+                    className="rounded-2xl border border-orange-100 dark:border-slate-800 bg-gradient-to-br from-[#FFF7ED] via-[#FFF9F2] to-[#FFEDD5] dark:from-slate-900 dark:to-slate-800/80 p-5 flex flex-col justify-between cursor-pointer hover:shadow-md transition-all duration-150"
                     onClick={() => handleNavClick('test-series', '/admin/test-series')}
-                    title="View Test Series Simulator"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400 flex items-center justify-center shrink-0">
-                        <FileText size={18} />
+                      <div className="h-10 w-10 rounded-xl bg-orange-100/80 dark:bg-orange-950/60 text-[#F59E0B] flex items-center justify-center shrink-0">
+                        <CheckSquare size={18} />
                       </div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-400 border border-violet-200 dark:border-violet-800">
-                        NTA Pattern
-                      </span>
                     </div>
                     <div className="mt-4">
-                      <span className="text-2xl sm:text-[28px] font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+                      <div className="text-3xl font-extrabold text-[#111B34] dark:text-slate-100 tabular-nums tracking-tight">
                         {liveAnalytics.totalTestSeries || 9}
-                      </span>
-                      <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mt-0.5">
+                      </div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
                         Test Series Mocks
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Full-length CBT mock tests active
-                      </p>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                      <span>Drills &amp; Attempts</span>
-                      <span className="font-semibold text-violet-600 dark:text-violet-400">160+ Submissions</span>
-                    </div>
-                  </Card>
-                </div>
-
-                {/* ─── ACADEMIC & OPERATIONS QUICK INVENTORY SHELF (5 Modules) ─── */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-                  {/* Faculty & Staff */}
-                  <div
-                    onClick={() => handleNavClick('teachers', '/admin/teachers')}
-                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
-                        <ShieldCheck size={16} />
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
-                          {liveAnalytics.totalTeachers} Faculty
-                        </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                          RBAC &amp; Staff
-                        </span>
+                      <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                        <span>↑</span>
+                        <span>+9 Active</span>
                       </div>
                     </div>
-                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
-                  </div>
-
-                  {/* DPP & PYQs */}
-                  <div
-                    onClick={() => handleNavClick('dpp-pyq', '/admin/dpp-pyq')}
-                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
-                        <Crosshair size={16} />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
-                          {liveAnalytics.totalDppPyq} DPP / PYQ
-                        </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                          Daily Drills
-                        </span>
+                    <div className="mt-4 pt-2">
+                      <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        Full-Length CBT Mock Tests
                       </div>
                     </div>
-                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
-                  </div>
-
-                  {/* Free Lectures */}
-                  <div
-                    onClick={() => handleNavClick('free-lectures', '/admin/free-lectures')}
-                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
-                        <Video size={16} />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
-                          {liveAnalytics.totalFreeLectures} Lectures
-                        </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                          Video Vault
-                        </span>
-                      </div>
-                    </div>
-                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
-                  </div>
-
-                  {/* Leads Desk */}
-                  <div
-                    onClick={() => handleNavClick('contact', '/admin/contact')}
-                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
-                        <Mail size={16} />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
-                          {liveAnalytics.totalLeads ?? 0} Inquiries
-                        </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                          Leads Desk
-                        </span>
-                      </div>
-                    </div>
-                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
-                  </div>
-
-                  {/* Discount Coupons */}
-                  <div
-                    onClick={() => handleNavClick('coupons', '/admin/coupons')}
-                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
-                        <Tag size={16} />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
-                          {liveAnalytics.totalCoupons ?? 0} Promos
-                        </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                          Fee Concessions
-                        </span>
-                      </div>
-                    </div>
-                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
                   </div>
                 </div>
 
-                {/* ─── 2-COLUMN ASYMMETRIC BENTO GRID (Left minmax(0,1fr) / Right 380px) ─── */}
-                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
+                {/* ─── 2-COLUMN ASYMMETRIC BENTO GRID (Left minmax(0,1fr) / Right 390px) ─── */}
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_390px] gap-6 items-start">
                   {/* LEFT COLUMN (Analytics & Visual Trend Graphs) */}
                   <div className="min-w-0 flex flex-col gap-6">
                     <UsersAnalyticsCard />
                     <OrdersAnalyticsCard />
                   </div>
 
-                  {/* RIGHT COLUMN (380px Width — Recent Transactions Ledger & Fast Action Hub) */}
-                  <div className="w-full lg:w-[380px] min-w-0 flex flex-col gap-6">
+                  {/* RIGHT COLUMN (390px Width — Recent Transactions, Fast Access & Promo Banner) */}
+                  <div className="w-full lg:w-[390px] min-w-0 flex flex-col gap-6">
                     {/* Live Financial & Admissions Ledger */}
                     <RecentTransactionsCard />
 
                     {/* Fast Navigation Quick Action Hub */}
-                    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
-                      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
-                        Quick Administrative Access
-                      </h2>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
+                      <div className="flex items-center gap-2.5">
+                        <Zap size={18} className="text-[#245BFF] fill-[#245BFF]" />
+                        <h2 className="text-base font-bold text-[#111B34] dark:text-slate-100 tracking-tight">
+                          Quick Administrative Access
+                        </h2>
+                      </div>
+                      <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Direct shortcuts to manage curriculum and students
                       </p>
 
-                      <div className="grid grid-cols-2 gap-2 mt-4">
-                        <Button
-                          variant="outline"
+                      <div className="grid grid-cols-2 gap-2.5 mt-4">
+                        <button
+                          type="button"
                           onClick={() => handleNavClick('courses', '/admin/courses/create')}
-                          className="h-10 text-xs font-medium border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 justify-start px-3 rounded-lg"
+                          className="h-11 px-3 rounded-xl border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-[#111B34] dark:text-slate-200 flex items-center justify-between transition-colors shadow-2xs"
                         >
-                          <PlusSquare size={14} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                          <span>New Course</span>
-                        </Button>
-                        <Button
-                          variant="outline"
+                          <div className="flex items-center gap-2 min-w-0">
+                            <PlusCircle size={15} className="text-[#245BFF] shrink-0" />
+                            <span className="truncate">New Course</span>
+                          </div>
+                          <ArrowRight size={13} className="text-slate-400 shrink-0 ml-1" />
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => handleNavClick('test-series', '/admin/test-series')}
-                          className="h-10 text-xs font-medium border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 justify-start px-3 rounded-lg"
+                          className="h-11 px-3 rounded-xl border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-[#111B34] dark:text-slate-200 flex items-center justify-between transition-colors shadow-2xs"
                         >
-                          <FileText size={14} className="text-violet-600 dark:text-violet-400 mr-2 shrink-0" />
-                          <span>New CBT Mock</span>
-                        </Button>
-                        <Button
-                          variant="outline"
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText size={15} className="text-[#7955EF] shrink-0" />
+                            <span className="truncate">New CBT Mock</span>
+                          </div>
+                          <ArrowRight size={13} className="text-slate-400 shrink-0 ml-1" />
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => handleNavClick('dpp-pyq', '/admin/dpp-pyq')}
-                          className="h-10 text-xs font-medium border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 justify-start px-3 rounded-lg"
+                          className="h-11 px-3 rounded-xl border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-[#111B34] dark:text-slate-200 flex items-center justify-between transition-colors shadow-2xs"
                         >
-                          <Crosshair size={14} className="text-blue-600 dark:text-blue-400 mr-2 shrink-0" />
-                          <span>Upload DPP</span>
-                        </Button>
-                        <Button
-                          variant="outline"
+                          <div className="flex items-center gap-2 min-w-0">
+                            <CloudUpload size={15} className="text-[#245BFF] shrink-0" />
+                            <span className="truncate">Upload DPP</span>
+                          </div>
+                          <ArrowRight size={13} className="text-slate-400 shrink-0 ml-1" />
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => handleNavClick('invoices', '/admin/invoices')}
-                          className="h-10 text-xs font-medium border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 justify-start px-3 rounded-lg"
+                          className="h-11 px-3 rounded-xl border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-[#111B34] dark:text-slate-200 flex items-center justify-between transition-colors shadow-2xs"
                         >
-                          <CreditCard size={14} className="text-emerald-600 dark:text-emerald-400 mr-2 shrink-0" />
-                          <span>Fee Slips</span>
-                        </Button>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <CreditCard size={15} className="text-[#10B981] shrink-0" />
+                            <span className="truncate">Fee Slips</span>
+                          </div>
+                          <ArrowRight size={13} className="text-slate-400 shrink-0 ml-1" />
+                        </button>
                       </div>
                     </Card>
+
+                    {/* DK ACADEMY JEE Promotional Banner */}
+                    <div className="relative rounded-2xl bg-gradient-to-r from-[#0A1329] via-[#101C38] to-[#1A2E5A] text-white p-5 overflow-hidden flex items-end justify-between shadow-sm">
+                      <div className="flex flex-col z-10 max-w-[210px] pb-1">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-300">
+                          DK ACADEMY JEE
+                        </span>
+                        <h3 className="text-base sm:text-[17px] font-black leading-tight text-amber-400 mt-1">
+                          Dream Big. Prepare Better.
+                        </h3>
+                        <p className="text-xs text-slate-300 mt-1">
+                          Your Success is Our Mission 🚀
+                        </p>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => handleNavClick('courses', '/admin/courses')}
+                            className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F59E0B] text-slate-950 hover:bg-amber-400 shadow-sm transition-colors"
+                          >
+                            <span>View Courses</span>
+                            <ArrowRight size={12} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="absolute right-0 bottom-0 top-0 w-[140px] flex items-end justify-end pointer-events-none">
+                        <img
+                          src="/img/founder.jpeg"
+                          alt="DK Academy Founder"
+                          className="h-32 object-contain object-bottom -mb-0.5 rounded-br-2xl"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
