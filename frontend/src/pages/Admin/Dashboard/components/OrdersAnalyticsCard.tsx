@@ -134,8 +134,12 @@ export const OrdersAnalyticsCard: React.FC = () => {
   const chartData = liveOrdersTrend || ORDERS_TREND_DATA;
 
   const yDomainMax = useMemo(() => {
-    const maxVal = Math.max(100, ...chartData.map((d: any) => Math.max(d.attempts || 0, d.admissions || 0)));
-    return Math.ceil((maxVal * 1.15) / 50) * 50;
+    const maxVal = Math.max(20, ...chartData.map((d: any) => Math.max(d.attempts || 0, d.admissions || 0)));
+    return Math.ceil(maxVal * 1.2);
+  }, [chartData]);
+
+  const totalAttempts = useMemo(() => {
+    return chartData.reduce((acc: number, cur: any) => acc + (cur.attempts || 0), 0);
   }, [chartData]);
 
   return (
@@ -143,29 +147,29 @@ export const OrdersAnalyticsCard: React.FC = () => {
       {/* Header with Title and Metric Badges */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-            Orders &amp; CBT Attempts
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+              Orders &amp; CBT Attempts
+            </h2>
+            <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-[11px] font-medium border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/40 rounded-full">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span>Live Sync</span>
+            </Badge>
+          </div>
           <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-            Admissions &amp; mock test submissions
+            Real-time correlation of paid admissions versus online CBT test submissions
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {totalAdmissions > 0 && (
-            <Badge variant="secondary" className="text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-300 rounded-md">
-              {totalAdmissions} Total Admissions
-            </Badge>
-          )}
-          <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-xs font-medium border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-md">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <span>Live Sync</span>
+          <Badge variant="secondary" className="text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-300 rounded-full px-2.5 py-1">
+            {totalAdmissions} Admissions · {totalAttempts} CBT Drills
           </Badge>
         </div>
       </div>
 
       {/* Legend Row placed below the card header with gap-4 */}
-      <div className="flex items-center gap-4 py-2.5 text-xs font-medium text-slate-600 dark:text-slate-400">
+      <div className="flex items-center gap-5 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
           <span className="text-slate-700 dark:text-slate-300 font-medium">Direct Admissions (Live Orders)</span>
