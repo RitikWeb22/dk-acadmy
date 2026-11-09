@@ -137,11 +137,10 @@ export const UsersAnalyticsCard: React.FC = () => {
   const yDomainMax = Math.ceil((maxVal * 1.15) / 50) * 50;
 
   return (
-    <Card className="border-border/60 bg-card p-5">
-      {/* Header with Title and Filter Dropdown */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
+    <Card className="border-border/60 bg-card">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 pt-5 px-5">
         <div>
-          <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
+          <CardTitle className="text-base font-semibold tracking-tight text-foreground">
             Users Analytics
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground mt-0.5">
@@ -150,14 +149,14 @@ export const UsersAnalyticsCard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Badge variant="secondary" className="gap-1 py-0.5 px-2 text-xs font-normal tabular-nums">
-            <TrendingUp size={12} className="text-muted-foreground" />
+          <Badge variant="secondary" className="gap-1.5 py-1 px-2.5 text-xs font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60">
+            <TrendingUp size={13} className="text-emerald-600 dark:text-emerald-400" />
             <span>{growthBadgeText}</span>
           </Badge>
 
           <select
             aria-label="Filter Users Analytics timeframe"
-            className="h-8 rounded-lg border border-border/60 bg-background px-2.5 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-ring transition-colors cursor-pointer"
+            className="h-8 rounded-md border border-border/80 bg-background px-2.5 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-ring transition-colors cursor-pointer"
             value={timeFilter}
             onChange={(e) => setTimeFilter(e.target.value as '12M' | '6M' | '30D')}
           >
@@ -166,60 +165,62 @@ export const UsersAnalyticsCard: React.FC = () => {
             <option value="30D">Last 30 Days</option>
           </select>
         </div>
-      </div>
+      </CardHeader>
 
-      {/* Area Chart Container */}
-      <div className={styles.chartArea}>
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={chartData}
-            margin={{ top: 12, right: 16, left: -10, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="userGrowthGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2563EB" stopOpacity={0.22} />
-                <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#F1F5F9"
-            />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={{ stroke: '#E2E8F0' }}
-              tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
-              dy={6}
-            />
-            <YAxis
-              domain={[0, yDomainMax]}
-              tickLine={false}
-              axisLine={false}
-              tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
-            />
-            <Tooltip
-              content={<CustomUserTooltip />}
-              cursor={{ stroke: '#2563EB', strokeWidth: 1.5, strokeDasharray: '3 3' }}
-            />
-            <Area
-              type="monotone"
-              dataKey="enrolled"
-              stroke="#2563EB"
-              strokeWidth={2.5}
-              fillOpacity={1}
-              fill="url(#userGrowthGradient)"
-              activeDot={{
-                r: 6,
-                fill: '#2563EB',
-                stroke: '#FFFFFF',
-                strokeWidth: 2
-              }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+      <CardContent className="px-5 pb-5 pt-2">
+        {/* Area Chart Container with Explicit Height */}
+        <div className="w-full h-[280px] min-h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 16, right: 16, left: -10, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="userGrowthGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#2563EB" stopOpacity={0.28} />
+                  <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#E2E8F0"
+              />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={{ stroke: '#E2E8F0' }}
+                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                dy={6}
+              />
+              <YAxis
+                domain={[0, yDomainMax]}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+              />
+              <Tooltip
+                content={<CustomUserTooltip />}
+                cursor={{ stroke: '#2563EB', strokeWidth: 1.5, strokeDasharray: '3 3' }}
+              />
+              <Area
+                type="monotone"
+                dataKey="enrolled"
+                stroke="#2563EB"
+                strokeWidth={2.5}
+                fillOpacity={1}
+                fill="url(#userGrowthGradient)"
+                activeDot={{
+                  r: 6,
+                  fill: '#2563EB',
+                  stroke: '#FFFFFF',
+                  strokeWidth: 2
+                }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
     </Card>
   );
 };
