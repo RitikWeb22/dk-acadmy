@@ -135,11 +135,11 @@ export const OrdersAnalyticsCard: React.FC = () => {
   }, [chartData]);
 
   return (
-    <Card className="border-border/60 bg-card p-5">
+    <Card className="border-border/60 bg-card">
       {/* Header with Consolidated Title and Metric Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 pt-5 px-5">
         <div>
-          <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
+          <CardTitle className="text-base font-semibold tracking-tight text-foreground">
             Orders &amp; CBT Attempts
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground mt-0.5">
@@ -149,103 +149,105 @@ export const OrdersAnalyticsCard: React.FC = () => {
 
         <div className="flex items-center gap-2">
           {totalAdmissions > 0 && (
-            <Badge variant="secondary" className="text-xs font-normal tabular-nums">
+            <Badge variant="secondary" className="text-xs font-semibold tabular-nums text-foreground">
               {totalAdmissions} Total Admissions
             </Badge>
           )}
-          <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-[11px] font-normal border-border/60 text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-[11px] font-normal border-border/70 text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>Live Sync</span>
           </Badge>
         </div>
-      </div>
+      </CardHeader>
 
-      {/* Legend Row */}
-      <div className={styles.legendRow}>
-        <div className={styles.legendItem}>
-          <span className={styles.dotAdmissions} />
-          <span>Direct Admissions (Live Orders)</span>
+      <CardContent className="px-5 pb-5 pt-0">
+        {/* Legend Row */}
+        <div className="flex items-center gap-4 py-2 text-xs font-medium text-muted-foreground border-b border-border/40 mb-2">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <span className="text-foreground font-medium">Direct Admissions (Live Orders)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+            <span className="text-foreground font-medium">CBT Mock Attempts</span>
+          </div>
         </div>
-        <div className={styles.legendItem}>
-          <span className={styles.dotAttempts} />
-          <span>CBT Mock Attempts</span>
-        </div>
-      </div>
 
-      {/* Multi-line Comparison Chart */}
-      <div className={styles.chartArea}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 12, right: 16, left: -10, bottom: 0 }}
-          >
-            <CartesianGrid
-              strokeDasharray="4 4"
-              vertical={true}
-              horizontal={true}
-              stroke="#F1F5F9"
-            />
-            <XAxis
-              dataKey="period"
-              tickLine={false}
-              axisLine={{ stroke: '#E2E8F0' }}
-              tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
-              dy={6}
-            />
-            <YAxis
-              domain={[0, yDomainMax]}
-              tickLine={false}
-              axisLine={false}
-              tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
-            />
-            <Tooltip
-              content={<CustomOrdersTooltip />}
-              cursor={{ stroke: '#2563EB', strokeWidth: 1.5, strokeDasharray: '3 3' }}
-            />
-            {/* 1. Direct Admissions Line (Green Solid) */}
-            <Line
-              type="monotone"
-              dataKey="admissions"
-              name="Direct Admissions"
-              stroke="#10B981"
-              strokeWidth={2.5}
-              dot={{
-                r: 4.5,
-                fill: '#FFFFFF',
-                stroke: '#10B981',
-                strokeWidth: 2
-              }}
-              activeDot={{
-                r: 6.5,
-                fill: '#10B981',
-                stroke: '#FFFFFF',
-                strokeWidth: 2.5
-              }}
-            />
-            {/* 2. Mock Attempts Line (Blue Dashed) */}
-            <Line
-              type="monotone"
-              dataKey="attempts"
-              name="Mock Attempts"
-              stroke="#2563EB"
-              strokeWidth={2.2}
-              strokeDasharray="4 4"
-              dot={{
-                r: 4,
-                fill: '#FFFFFF',
-                stroke: '#2563EB',
-                strokeWidth: 2
-              }}
-              activeDot={{
-                r: 6,
-                fill: '#2563EB',
-                stroke: '#FFFFFF',
-                strokeWidth: 2.5
-              }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+        {/* Multi-line Comparison Chart with Explicit Height */}
+        <div className="w-full h-[280px] min-h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={chartData}
+              margin={{ top: 16, right: 16, left: -10, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="4 4"
+                vertical={true}
+                horizontal={true}
+                stroke="#E2E8F0"
+              />
+              <XAxis
+                dataKey="period"
+                tickLine={false}
+                axisLine={{ stroke: '#E2E8F0' }}
+                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                dy={6}
+              />
+              <YAxis
+                domain={[0, yDomainMax]}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+              />
+              <Tooltip
+                content={<CustomOrdersTooltip />}
+                cursor={{ stroke: '#2563EB', strokeWidth: 1.5, strokeDasharray: '3 3' }}
+              />
+              {/* 1. Direct Admissions Line (Green Solid) */}
+              <Line
+                type="monotone"
+                dataKey="admissions"
+                name="Direct Admissions"
+                stroke="#10B981"
+                strokeWidth={2.5}
+                dot={{
+                  r: 4.5,
+                  fill: '#FFFFFF',
+                  stroke: '#10B981',
+                  strokeWidth: 2
+                }}
+                activeDot={{
+                  r: 6.5,
+                  fill: '#10B981',
+                  stroke: '#FFFFFF',
+                  strokeWidth: 2.5
+                }}
+              />
+              {/* 2. Mock Attempts Line (Blue Dashed) */}
+              <Line
+                type="monotone"
+                dataKey="attempts"
+                name="Mock Attempts"
+                stroke="#2563EB"
+                strokeWidth={2.2}
+                strokeDasharray="4 4"
+                dot={{
+                  r: 4,
+                  fill: '#FFFFFF',
+                  stroke: '#2563EB',
+                  strokeWidth: 2
+                }}
+                activeDot={{
+                  r: 6,
+                  fill: '#2563EB',
+                  stroke: '#FFFFFF',
+                  strokeWidth: 2.5
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
     </Card>
   );
 };
