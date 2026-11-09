@@ -200,8 +200,8 @@ export const Topbar: React.FC<TopbarProps> = ({
           >
             <Bell size={17} />
             {unreadCount > 0 && (
-              <span className={styles.greenBadgePill}>
-                <span className={styles.greenBadgeDot}>●</span> {unreadCount}
+              <span className={styles.greenBadgePill} aria-hidden="true">
+                {unreadCount}
               </span>
             )}
           </button>

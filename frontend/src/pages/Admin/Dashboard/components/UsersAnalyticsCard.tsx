@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import { TrendingUp, Users } from 'lucide-react';
 import { apiClient } from '../../../../services/apiClient';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import styles from './UsersAnalyticsCard.module.scss';
 
@@ -81,8 +81,10 @@ export const UsersAnalyticsCard: React.FC = () => {
   const [timeFilter, setTimeFilter] = useState<'12M' | '6M' | '30D'>('12M');
   const [liveGrowth, setLiveGrowth] = useState<Record<string, any[]> | null>(null);
   const [growthBadgeText, setGrowthBadgeText] = useState<string>('+34.2% YoY');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchUsersAnalytics = async () => {
+    setIsLoading(true);
     try {
       const res = await apiClient.get('/analytics');
       if (res.success) {
@@ -95,6 +97,8 @@ export const UsersAnalyticsCard: React.FC = () => {
       }
     } catch (err) {
       console.warn('[UsersAnalyticsCard] Live fetch error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -137,26 +141,30 @@ export const UsersAnalyticsCard: React.FC = () => {
   const yDomainMax = Math.ceil((maxVal * 1.15) / 50) * 50;
 
   return (
-    <Card className="border-border/60 bg-card">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 pt-5 px-5">
+    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
+      {/* Header with Title and Filter Dropdown */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <CardTitle className="text-base font-semibold tracking-tight text-foreground">
+          <h3 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             Users Analytics
-          </CardTitle>
-          <CardDescription className="text-xs text-muted-foreground mt-0.5">
+          </h3>
+          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
             Aspirant enrollments over time
-          </CardDescription>
+          </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <Badge variant="secondary" className="gap-1.5 py-1 px-2.5 text-xs font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60">
-            <TrendingUp size={13} className="text-emerald-600 dark:text-emerald-400" />
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Badge
+            variant="secondary"
+            className="gap-1.5 py-1 px-2.5 text-xs font-semibold tabular-nums text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 rounded-md"
+          >
+            <TrendingUp size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{growthBadgeText}</span>
           </Badge>
 
           <select
             aria-label="Filter Users Analytics timeframe"
-            className="h-8 rounded-md border border-border/80 bg-background px-2.5 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-ring transition-colors cursor-pointer"
+            className="h-8 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 transition-colors cursor-pointer"
             value={timeFilter}
             onChange={(e) => setTimeFilter(e.target.value as '12M' | '6M' | '30D')}
           >
@@ -165,20 +173,36 @@ export const UsersAnalyticsCard: React.FC = () => {
             <option value="30D">Last 30 Days</option>
           </select>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="px-5 pb-5 pt-2">
-        {/* Area Chart Container with Explicit Height */}
-        <div className="w-full h-[280px] min-h-[280px]">
+      {/* Area Chart Container with Explicit Height & States */}
+      <div className="w-full h-[280px] min-h-[280px] pt-4">
+        {isLoading ? (
+          <div className="w-full h-full flex flex-col justify-end gap-3 animate-pulse p-4">
+            <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-1/4" />
+            <div className="h-48 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg w-full" />
+            <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-full" />
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+            <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-2">
+              <Users size={20} />
+            </div>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No data yet</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Aspirant enrollments will appear here as students join.
+            </p>
+          </div>
+        ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={chartData}
-              margin={{ top: 16, right: 16, left: -10, bottom: 0 }}
+              margin={{ top: 12, right: 12, left: -10, bottom: 0 }}
             >
               <defs>
                 <linearGradient id="userGrowthGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#2563EB" stopOpacity={0.28} />
-                  <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01} />
+                  <stop offset="0%" stopColor="#2563EB" stopOpacity={0.20} />
+                  <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
@@ -190,14 +214,14 @@ export const UsersAnalyticsCard: React.FC = () => {
                 dataKey="month"
                 tickLine={false}
                 axisLine={{ stroke: '#E2E8F0' }}
-                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                tick={{ fontSize: 12, fill: '#64748B', fontWeight: 500 }}
                 dy={6}
               />
               <YAxis
                 domain={[0, yDomainMax]}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                tick={{ fontSize: 12, fill: '#64748B', fontWeight: 500 }}
               />
               <Tooltip
                 content={<CustomUserTooltip />}
@@ -219,8 +243,8 @@ export const UsersAnalyticsCard: React.FC = () => {
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
-      </CardContent>
+        )}
+      </div>
     </Card>
   );
 };

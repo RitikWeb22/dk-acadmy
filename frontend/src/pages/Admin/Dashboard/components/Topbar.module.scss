@@ -99,7 +99,8 @@
 
 // Quick Search Box
 .searchWrapper {
-  width: 270px; // Expanded from 240px to eliminate Cmd+K overlap
+  width: 360px;
+  max-width: 360px;
 
   @media (max-width: 768px) {
     display: none;
@@ -262,22 +263,25 @@
   }
 }
 
-// Green Badge Pill "● 3"
+// Green Badge Pill size 18px positioned -top-1 -right-1
 .greenBadgePill {
   position: absolute;
   top: -4px;
-  right: -5px;
-  background-color: #10B981;
-  color: #FFFFFF;
-  font-size: 0.625rem;
-  font-weight: 700;
-  padding: 1px 5px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
   border-radius: 9999px;
   display: flex;
   align-items: center;
-  gap: 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background-color: #10B981;
+  color: #FFFFFF;
   border: 1.5px solid #FFFFFF;
+  line-height: 1;
 
   :global(.darkMode) & {
     border-color: #0F172A;

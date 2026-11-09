@@ -8,9 +8,9 @@ import {
   Tooltip,
   CartesianGrid
 } from 'recharts';
-import { FileSpreadsheet } from 'lucide-react';
+import { FileSpreadsheet, TrendingUp } from 'lucide-react';
 import { apiClient } from '../../../../services/apiClient';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import styles from './OrdersAnalyticsCard.module.scss';
 
@@ -65,8 +65,10 @@ const CustomOrdersTooltip: React.FC<CustomTooltipProps> = ({ active, payload, la
 export const OrdersAnalyticsCard: React.FC = () => {
   const [liveOrdersTrend, setLiveOrdersTrend] = useState<any[] | null>(null);
   const [totalAdmissions, setTotalAdmissions] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchOrdersAnalytics = async () => {
+    setIsLoading(true);
     try {
       const [res, ordersRes] = await Promise.all([
         apiClient.get('/analytics?timeRange=30d').catch(() => null),
@@ -90,6 +92,8 @@ export const OrdersAnalyticsCard: React.FC = () => {
       }
     } catch (err) {
       console.warn('[OrdersAnalyticsCard] Live fetch error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -135,50 +139,66 @@ export const OrdersAnalyticsCard: React.FC = () => {
   }, [chartData]);
 
   return (
-    <Card className="border-border/60 bg-card">
-      {/* Header with Consolidated Title and Metric Badge */}
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 pt-5 px-5">
+    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
+      {/* Header with Title and Metric Badges */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <CardTitle className="text-base font-semibold tracking-tight text-foreground">
+          <h3 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             Orders &amp; CBT Attempts
-          </CardTitle>
-          <CardDescription className="text-xs text-muted-foreground mt-0.5">
+          </h3>
+          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
             Admissions &amp; mock test submissions
-          </CardDescription>
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {totalAdmissions > 0 && (
-            <Badge variant="secondary" className="text-xs font-semibold tabular-nums text-foreground">
+            <Badge variant="secondary" className="text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-300 rounded-md">
               {totalAdmissions} Total Admissions
             </Badge>
           )}
-          <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-[11px] font-normal border-border/70 text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-xs font-medium border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-md">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             <span>Live Sync</span>
           </Badge>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="px-5 pb-5 pt-0">
-        {/* Legend Row */}
-        <div className="flex items-center gap-4 py-2 text-xs font-medium text-muted-foreground border-b border-border/40 mb-2">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            <span className="text-foreground font-medium">Direct Admissions (Live Orders)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
-            <span className="text-foreground font-medium">CBT Mock Attempts</span>
-          </div>
+      {/* Legend Row placed below the card header with gap-4 */}
+      <div className="flex items-center gap-4 py-2.5 text-xs font-medium text-slate-600 dark:text-slate-400">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
+          <span className="text-slate-700 dark:text-slate-300 font-medium">Direct Admissions (Live Orders)</span>
         </div>
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-blue-600 shrink-0" />
+          <span className="text-slate-700 dark:text-slate-300 font-medium">CBT Mock Attempts</span>
+        </div>
+      </div>
 
-        {/* Multi-line Comparison Chart with Explicit Height */}
-        <div className="w-full h-[280px] min-h-[280px]">
+      {/* Multi-line Comparison Chart with Explicit Height */}
+      <div className="w-full h-[280px] min-h-[280px] pt-2">
+        {isLoading ? (
+          <div className="w-full h-full flex flex-col justify-end gap-3 animate-pulse p-4">
+            <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-1/4" />
+            <div className="h-48 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg w-full" />
+            <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-full" />
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+            <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-2">
+              <TrendingUp size={20} />
+            </div>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No data yet</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Order and CBT test attempts will appear here as activity occurs.
+            </p>
+          </div>
+        ) : (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
-              margin={{ top: 16, right: 16, left: -10, bottom: 0 }}
+              margin={{ top: 12, right: 12, left: -10, bottom: 0 }}
             >
               <CartesianGrid
                 strokeDasharray="4 4"
@@ -190,14 +210,14 @@ export const OrdersAnalyticsCard: React.FC = () => {
                 dataKey="period"
                 tickLine={false}
                 axisLine={{ stroke: '#E2E8F0' }}
-                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                tick={{ fontSize: 12, fill: '#64748B', fontWeight: 500 }}
                 dy={6}
               />
               <YAxis
                 domain={[0, yDomainMax]}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                tick={{ fontSize: 12, fill: '#64748B', fontWeight: 500 }}
               />
               <Tooltip
                 content={<CustomOrdersTooltip />}
@@ -246,8 +266,8 @@ export const OrdersAnalyticsCard: React.FC = () => {
               />
             </LineChart>
           </ResponsiveContainer>
-        </div>
-      </CardContent>
+        )}
+      </div>
     </Card>
   );
 };
