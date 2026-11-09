@@ -138,40 +138,84 @@ export const UsersAnalyticsCard: React.FC = () => {
     return Math.max(100, ...vals);
   }, [chartData]);
 
-  const yDomainMax = Math.ceil((maxVal * 1.15) / 50) * 50;
+  const yDomainMax = useMemo(() => {
+    const vals = chartData.map((d: any) => d.enrolled || 0);
+    const max = Math.max(15, ...vals);
+    return Math.ceil(max * 1.2);
+  }, [chartData]);
+
+  const latestStats = useMemo(() => {
+    if (!chartData || chartData.length === 0) return { enrolled: 0, classroom: 0, online: 0 };
+    return chartData[chartData.length - 1];
+  }, [chartData]);
 
   return (
     <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
-      {/* Header with Title and Filter Dropdown */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+      {/* Header with Title and Segmented Timeframe Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-            Users Analytics
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+              Users Analytics
+            </h2>
+            <Badge
+              variant="secondary"
+              className="gap-1 py-0.5 px-2 text-[11px] font-semibold tabular-nums text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 rounded-full"
+            >
+              <TrendingUp size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>{growthBadgeText}</span>
+            </Badge>
+          </div>
           <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-            Aspirant enrollments over time
+            Real-time enrollment velocity across classroom batches &amp; online portal
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <Badge
-            variant="secondary"
-            className="gap-1.5 py-1 px-2.5 text-xs font-semibold tabular-nums text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 rounded-md"
-          >
-            <TrendingUp size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span>{growthBadgeText}</span>
-          </Badge>
+        <div className="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+          {(['12M', '6M', '30D'] as const).map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              onClick={() => setTimeFilter(filter)}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                timeFilter === filter
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              {filter === '12M' ? '12 Months' : filter === '6M' ? '6 Months' : '30 Days'}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          <select
-            aria-label="Filter Users Analytics timeframe"
-            className="h-8 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 transition-colors cursor-pointer"
-            value={timeFilter}
-            onChange={(e) => setTimeFilter(e.target.value as '12M' | '6M' | '30D')}
-          >
-            <option value="12M">Last 12 Months</option>
-            <option value="6M">Last 6 Months</option>
-            <option value="30D">Last 30 Days</option>
-          </select>
+      {/* Snapshot Metric Chips */}
+      <div className="grid grid-cols-3 gap-3 py-3.5 border-b border-slate-100 dark:border-slate-800/80">
+        <div className="flex flex-col">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Current Enrolled
+          </span>
+          <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
+            {latestStats.enrolled} Aspirants
+          </span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-blue-600" />
+            Classroom Batches
+          </span>
+          <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
+            {latestStats.classroom} Students
+          </span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-indigo-500" />
+            Online LMS
+          </span>
+          <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
+            {latestStats.online} Active
+          </span>
         </div>
       </div>
 

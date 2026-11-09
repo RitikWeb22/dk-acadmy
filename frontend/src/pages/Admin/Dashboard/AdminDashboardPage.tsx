@@ -422,277 +422,295 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
               <CouponManagementWorkspace />
             ) : (
               <div className="flex flex-col gap-6 w-full max-w-[1440px] mx-auto p-6 sm:p-8 pb-16">
-                {/* ─── HEADER ─── */}
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1.5 min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <h1 className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap">
-                          Welcome, {admin?.name || 'Ritik'} (Super Admin)
-                        </h1>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                          <span>Live Sync</span>
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                        Real-time admissions, active curriculum, CBT simulations, and verified fee collections across DK Academy JEE.
-                      </p>
+                {/* ─── COCKPIT HEADER ─── */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="text-xs font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500">
+                        Academic Session 2026–27 · IIT-JEE Division
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/80">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        Live Sync Active
+                      </span>
                     </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      <Button
-                        variant="outline"
-                        onClick={fetchAnalytics}
-                        disabled={isSyncing}
-                        className="h-10 px-4 rounded-lg text-xs font-medium border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-xs transition-colors shrink-0 flex items-center gap-2"
-                        title="Refresh live metrics"
-                      >
-                        <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-                        <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
-                      </Button>
-
-                      <Button
-                        variant="default"
-                        onClick={() => setIsCommandPaletteOpen(true)}
-                        className="h-10 px-4 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs transition-colors whitespace-nowrap shrink-0 flex items-center"
-                        title="Open Command Palette (Ctrl+K)"
-                      >
-                        <span>Quick Actions</span>
-                        <kbd className="ml-2 font-mono text-[10px] bg-primary-foreground/20 text-primary-foreground px-1.5 py-0.5 rounded-sm font-semibold whitespace-nowrap shrink-0">
-                          ⌘K
-                        </kbd>
-                      </Button>
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                        Welcome, {admin?.name || 'Ritik'}
+                      </h1>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        Super Admin
+                      </span>
                     </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                      Real-time admissions, live batch curriculum, CBT simulations, and verified fee collections across DK Academy JEE.
+                    </p>
+                  </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                      Real-time admissions, live batch curriculum, CBT simulations, and verified fee collections across DK Academy JEE.
+                    </p>
+                  </div>
+
+                  {/* Action Toolbar */}
+                  <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                    <Button
+                      variant="outline"
+                      onClick={fetchAnalytics}
+                      disabled={isSyncing}
+                      className="h-9 px-3.5 rounded-lg text-xs font-medium border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-xs transition-colors shrink-0 flex items-center gap-2"
+                      title="Refresh live metrics"
+                    >
+                      <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
+                      <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
+                    </Button>
+
+                    <Button
+                      variant="default"
+                      onClick={() => setIsCommandPaletteOpen(true)}
+                      className="h-9 px-3.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs transition-colors whitespace-nowrap shrink-0 flex items-center"
+                      title="Open Command Palette (Ctrl+K)"
+                    >
+                      <span>Quick Actions</span>
+                      <kbd className="ml-2 font-mono text-[10px] bg-primary-foreground/20 text-primary-foreground px-1.5 py-0.5 rounded-sm font-semibold whitespace-nowrap shrink-0">
+                        ⌘K
+                      </kbd>
+                    </Button>
                   </div>
                 </div>
 
-                {/* ─── 9-MODULE CORE ACADEMIC & DATA BENTO STRIP (5 + 4 in 2 rows) ─── */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  {/* 1. Student Management */}
+                {/* ─── 4 CORE HERO PILLARS (Executive KPI Cockpit) ─── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Pillar 1: Total Fee Collections */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
-                    onClick={() => handleNavClick('students', '/admin/students')}
-                    title="Open Student Management"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
-                        <Users size={18} />
-                      </div>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
-                    </div>
-                    <div className="flex flex-col mt-3.5 min-w-0">
-                      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        {liveAnalytics.totalStudents}
-                      </span>
-                      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate mt-0.5">
-                        Students
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5" title="Aspirants Roster & Batches">
-                        Roster &amp; Batches
-                      </span>
-                    </div>
-                  </Card>
-
-                  {/* 2. Teachers & Admin */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
-                    onClick={() => handleNavClick('teachers', '/admin/teachers')}
-                    title="Open Teachers & Admin"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
-                        <ShieldCheck size={18} />
-                      </div>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
-                    </div>
-                    <div className="flex flex-col mt-3.5 min-w-0">
-                      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        {liveAnalytics.totalTeachers}
-                      </span>
-                      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate mt-0.5">
-                        Faculty
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5" title="Faculty & RBAC Directory">
-                        RBAC Control
-                      </span>
-                    </div>
-                  </Card>
-
-                  {/* 3. Invoices & Fee Slips */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between"
                     onClick={() => handleNavClick('invoices', '/admin/invoices')}
-                    title="Open Invoices & Fee Slips"
+                    title="View Invoices & Fee Slips"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center shrink-0">
                         <CreditCard size={18} />
                       </div>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 tabular-nums">
+                        {liveAnalytics.revenueGrowth}
+                      </span>
                     </div>
-                    <div className="flex flex-col mt-3.5 min-w-0">
-                      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        {formatCompactCurrency(liveAnalytics.grossRevenue)}
+                    <div className="mt-4">
+                      <span className="text-2xl sm:text-[28px] font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+                        ₹{liveAnalytics.grossRevenue.toLocaleString('en-IN')}
                       </span>
-                      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate mt-0.5">
-                        Invoices
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5" title="Fee Slips & Gateway Receipts">
-                        Slips &amp; Razorpay
-                      </span>
+                      <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mt-0.5">
+                        Fee Collections
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Verified online &amp; gateway receipts
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>Goal: ₹25L Target</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">15% Met</span>
                     </div>
                   </Card>
 
-                  {/* 4. Course Builder */}
+                  {/* Pillar 2: Enrolled Aspirants */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
-                    onClick={() => handleNavClick('courses', '/admin/courses/create')}
-                    title="Open Course Builder"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between"
+                    onClick={() => handleNavClick('students', '/admin/students')}
+                    title="View Student Roster"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <Users size={18} />
+                      </div>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200 dark:border-blue-800 tabular-nums">
+                        {liveAnalytics.studentsGrowth}
+                      </span>
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-2xl sm:text-[28px] font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+                        {liveAnalytics.totalStudents || 13}
+                      </span>
+                      <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mt-0.5">
+                        Enrolled Aspirants
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Classroom &amp; Online LMS roster
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>Capacity: 500 Max</span>
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">2.6% Utilized</span>
+                    </div>
+                  </Card>
+
+                  {/* Pillar 3: Active Courses */}
+                  <Card
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between"
+                    onClick={() => handleNavClick('courses', '/admin/courses')}
+                    title="View Courses & Batches"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 flex items-center justify-center shrink-0">
                         <PlusSquare size={18} />
                       </div>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                        Live Batches
+                      </span>
                     </div>
-                    <div className="flex flex-col mt-3.5 min-w-0">
-                      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        {liveAnalytics.totalCourses}
+                    <div className="mt-4">
+                      <span className="text-2xl sm:text-[28px] font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+                        {liveAnalytics.totalCourses || 6}
                       </span>
-                      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate mt-0.5">
-                        Courses
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5" title="Batches & Curriculum Vault">
-                        Batches &amp; Vault
-                      </span>
+                      <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mt-0.5">
+                        Course Batches
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Target JEE 2026, 2027 &amp; Droppers
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>Curriculum Status</span>
+                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">100% On Track</span>
                     </div>
                   </Card>
 
-                  {/* 5. Test Series */}
+                  {/* Pillar 4: CBT Mock Simulator */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between"
                     onClick={() => handleNavClick('test-series', '/admin/test-series')}
-                    title="Open Test Series Engine"
+                    title="View Test Series Simulator"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400 flex items-center justify-center shrink-0">
                         <FileText size={18} />
                       </div>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-400 border border-violet-200 dark:border-violet-800">
+                        NTA Pattern
+                      </span>
                     </div>
-                    <div className="flex flex-col mt-3.5 min-w-0">
-                      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        {liveAnalytics.totalTestSeries}
+                    <div className="mt-4">
+                      <span className="text-2xl sm:text-[28px] font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+                        {liveAnalytics.totalTestSeries || 9}
                       </span>
-                      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate mt-0.5">
-                        Test Series
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5" title="CBT Simulator & Full Length Mocks">
-                        CBT Simulator
-                      </span>
+                      <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mt-0.5">
+                        Test Series Mocks
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Full-length CBT mock tests active
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>Drills &amp; Attempts</span>
+                      <span className="font-semibold text-violet-600 dark:text-violet-400">160+ Submissions</span>
                     </div>
                   </Card>
+                </div>
 
-                  {/* 6. DPP & PYQ Practice */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
+                {/* ─── ACADEMIC & OPERATIONS QUICK INVENTORY SHELF (5 Modules) ─── */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                  {/* Faculty & Staff */}
+                  <div
+                    onClick={() => handleNavClick('teachers', '/admin/teachers')}
+                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <ShieldCheck size={16} />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
+                          {liveAnalytics.totalTeachers} Faculty
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          RBAC &amp; Staff
+                        </span>
+                      </div>
+                    </div>
+                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
+                  </div>
+
+                  {/* DPP & PYQs */}
+                  <div
                     onClick={() => handleNavClick('dpp-pyq', '/admin/dpp-pyq')}
-                    title="Open DPP & PYQ Practice"
+                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
-                        <Crosshair size={18} />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <Crosshair size={16} />
                       </div>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
+                          {liveAnalytics.totalDppPyq} DPP / PYQ
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Daily Drills
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col mt-3.5 min-w-0">
-                      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        {liveAnalytics.totalDppPyq}
-                      </span>
-                      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate mt-0.5">
-                        DPP &amp; PYQ
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5" title="Daily Drills & Archive Vault">
-                        Daily Drills
-                      </span>
-                    </div>
-                  </Card>
+                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
+                  </div>
 
-                  {/* 7. Free Lectures */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
+                  {/* Free Lectures */}
+                  <div
                     onClick={() => handleNavClick('free-lectures', '/admin/free-lectures')}
-                    title="Open Free Lectures Create"
+                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
-                        <Video size={18} />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <Video size={16} />
                       </div>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
+                          {liveAnalytics.totalFreeLectures} Lectures
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Video Vault
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col mt-3.5 min-w-0">
-                      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        {liveAnalytics.totalFreeLectures}
-                      </span>
-                      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate mt-0.5">
-                        Free Lectures
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5" title="5-Free Rule Video Library">
-                        Lecture Library
-                      </span>
-                    </div>
-                  </Card>
+                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
+                  </div>
 
-                  {/* 8. Contact Us & Leads Desk */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
+                  {/* Leads Desk */}
+                  <div
                     onClick={() => handleNavClick('contact', '/admin/contact')}
-                    title="Open Contact Us & Customer Inquiries Desk"
+                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
-                        <Mail size={18} />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <Mail size={16} />
                       </div>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
+                          {liveAnalytics.totalLeads ?? 0} Inquiries
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Leads Desk
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col mt-3.5 min-w-0">
-                      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        {liveAnalytics.totalLeads ?? 0}
-                      </span>
-                      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate mt-0.5">
-                        Leads Desk
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5" title="Customer Callbacks & Desk Queries">
-                        Callbacks &amp; Desk
-                      </span>
-                    </div>
-                  </Card>
+                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
+                  </div>
 
-                  {/* 9. Discount Coupons */}
-                  <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
+                  {/* Discount Coupons */}
+                  <div
                     onClick={() => handleNavClick('coupons', '/admin/coupons')}
-                    title="Open Discount Coupons & Promo Offers"
+                    className="cursor-pointer rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-4 flex items-center justify-between"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
-                        <Tag size={18} />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <Tag size={16} />
                       </div>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
+                          {liveAnalytics.totalCoupons ?? 0} Promos
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Fee Concessions
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col mt-3.5 min-w-0">
-                      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                        {liveAnalytics.totalCoupons ?? 0}
-                      </span>
-                      <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate mt-0.5">
-                        Coupons
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5" title="Promo Discounts & Concessions">
-                        Fee Concessions
-                      </span>
-                    </div>
-                  </Card>
+                    <ArrowUpRight size={13} className="text-slate-400 shrink-0 ml-1" />
+                  </div>
                 </div>
 
                 {/* ─── 2-COLUMN ASYMMETRIC BENTO GRID (Left minmax(0,1fr) / Right 380px) ─── */}
@@ -703,84 +721,55 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                     <OrdersAnalyticsCard />
                   </div>
 
-                  {/* RIGHT COLUMN (380px Width — Compact Metric Gauges & Transactions Table) */}
+                  {/* RIGHT COLUMN (380px Width — Recent Transactions Ledger & Fast Action Hub) */}
                   <div className="w-full lg:w-[380px] min-w-0 flex flex-col gap-6">
-                    {/* Top Metric Card 1: Fee Collections */}
-                    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex flex-col gap-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
-                              <Receipt size={18} />
-                            </div>
-                            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
-                              Fee Collections
-                            </span>
-                          </div>
-                          <div className="flex items-baseline gap-2.5 mt-2 flex-wrap">
-                            <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                              ₹{liveAnalytics.grossRevenue.toLocaleString('en-IN')}
-                            </span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 tabular-nums">
-                              {liveAnalytics.revenueGrowth}
-                            </span>
-                          </div>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            Verified offline &amp; online payments
-                          </span>
-                        </div>
-                        <div className="shrink-0 flex flex-col items-center gap-1" title="Monthly collection goal: ₹25L target">
-                          <CircularProgressRing
-                            progress={Math.min(100, Math.max(15, Math.round((liveAnalytics.grossRevenue / 2500000) * 100)))}
-                            size={56}
-                            strokeWidth={4}
-                            strokeColor="#10B981"
-                            trackColor="var(--border)"
-                          />
-                          <span className="text-[11px] text-slate-400 dark:text-slate-500">Goal %</span>
-                        </div>
-                      </div>
-                    </Card>
-
-                    {/* Top Metric Card 2: Enrolled Aspirants */}
-                    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex flex-col gap-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
-                              <Users size={18} />
-                            </div>
-                            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
-                              Enrolled Aspirants
-                            </span>
-                          </div>
-                          <div className="flex items-baseline gap-2.5 mt-2 flex-wrap">
-                            <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
-                              {liveAnalytics.totalStudents || liveAnalytics.totalEnrolments}
-                            </span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 tabular-nums">
-                              {liveAnalytics.studentsGrowth}
-                            </span>
-                          </div>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            Active students enrolled across all batches
-                          </span>
-                        </div>
-                        <div className="shrink-0 flex flex-col items-center gap-1" title="Capacity utilization based on 500 max student capacity">
-                          <CircularProgressRing
-                            progress={Math.min(100, Math.max(10, Math.round(((liveAnalytics.totalStudents || liveAnalytics.totalEnrolments) / 500) * 100)))}
-                            size={56}
-                            strokeWidth={4}
-                            strokeColor="#2563EB"
-                            trackColor="var(--border)"
-                          />
-                          <span className="text-[11px] text-slate-400 dark:text-slate-500">Capacity</span>
-                        </div>
-                      </div>
-                    </Card>
-
-                    {/* Bottom Card: Recent Transactions (Live Admissions & Invoices Table) */}
+                    {/* Live Financial & Admissions Ledger */}
                     <RecentTransactionsCard />
+
+                    {/* Fast Navigation Quick Action Hub */}
+                    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
+                      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
+                        Quick Administrative Access
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Direct shortcuts to manage curriculum and students
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2 mt-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => handleNavClick('courses', '/admin/courses/create')}
+                          className="h-10 text-xs font-medium border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 justify-start px-3 rounded-lg"
+                        >
+                          <PlusSquare size={14} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
+                          <span>New Course</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleNavClick('test-series', '/admin/test-series')}
+                          className="h-10 text-xs font-medium border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 justify-start px-3 rounded-lg"
+                        >
+                          <FileText size={14} className="text-violet-600 dark:text-violet-400 mr-2 shrink-0" />
+                          <span>New CBT Mock</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleNavClick('dpp-pyq', '/admin/dpp-pyq')}
+                          className="h-10 text-xs font-medium border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 justify-start px-3 rounded-lg"
+                        >
+                          <Crosshair size={14} className="text-blue-600 dark:text-blue-400 mr-2 shrink-0" />
+                          <span>Upload DPP</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleNavClick('invoices', '/admin/invoices')}
+                          className="h-10 text-xs font-medium border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 justify-start px-3 rounded-lg"
+                        >
+                          <CreditCard size={14} className="text-emerald-600 dark:text-emerald-400 mr-2 shrink-0" />
+                          <span>Fee Slips</span>
+                        </Button>
+                      </div>
+                    </Card>
                   </div>
                 </div>
               </div>

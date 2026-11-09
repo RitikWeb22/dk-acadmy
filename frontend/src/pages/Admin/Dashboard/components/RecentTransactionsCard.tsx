@@ -154,19 +154,24 @@ export const RecentTransactionsCard: React.FC = () => {
             ) : (
               currentSlice.map((txn, idx) => (
                 <tr key={txn.id + idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className="w-[18%] px-4 py-3.5 font-mono text-xs text-slate-500 dark:text-slate-400 break-all" title={txn.id}>
+                  <td className="w-[18%] px-4 py-3.5 font-mono text-[11px] text-slate-500 dark:text-slate-400 break-all" title={txn.id}>
                     {txn.id}
                   </td>
                   <td className="w-[42%] px-4 py-3.5">
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs break-words" title={txn.studentName}>
-                        {txn.studentName}
-                      </span>
-                      {txn.batchName && (
-                        <span className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 break-words leading-snug" title={txn.batchName}>
-                          {txn.batchName}
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <div className="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center justify-center shrink-0 uppercase border border-slate-200/60 dark:border-slate-700/60">
+                        {txn.studentName.charAt(0)}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs break-words" title={txn.studentName}>
+                          {txn.studentName}
                         </span>
-                      )}
+                        {txn.batchName && (
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 break-words leading-tight" title={txn.batchName}>
+                            {txn.batchName}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="w-[20%] px-4 py-3.5 text-right font-semibold text-xs text-slate-900 dark:text-slate-100 tabular-nums">
