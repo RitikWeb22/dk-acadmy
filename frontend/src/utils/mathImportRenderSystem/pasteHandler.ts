@@ -10,8 +10,8 @@
  * wrapping them into canonical $...$ KaTeX syntax with ZERO manual fixing.
  */
 
-import { ommlNodeToLatex, mathMLNodeToLatex } from '../universalMathEngine/index';
-import { parseWordMatricesAndCases, areValidExtractedOptions } from '../wordPasteParser';
+import { ommlNodeToLatex, mathMLNodeToLatex } from '../universalMathEngine';
+import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents } from '../wordPasteParser';
 
 export interface ParsedOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -246,10 +246,59 @@ export function normalizeMathString(raw: string): string {
     s = s.replaceAll(sub, ind);
   }
 
-  // Differential residues: dy/(" "\, dx) -> \dfrac{dy}{dx}, d^n/dx^n -> \dfrac{d^n}{dx^n}
+  // Strip stray copy-paste artifacts like $&, $& $, & $, & f(x)
+  s = s.replace(/\$\s*&\s*\$?/g, '');
+  s = s.replace(/&\s*\$/g, '');
+  s = s.replace(/(?<!\\begin\{[^}]*)\$\s*&/g, '');
+
+  // Auto-close \begin{cases} if unclosed before prose or end, and strip internal $
+  s = s.replace(/\\begin\{cases\}([\s\S]*?)(?=\\end\{cases\}|\b(?:Then|where|when|if|for)\b|$)/gi, (match, body, offset, fullStr) => {
+    const after = fullStr.slice(offset + match.length);
+    if (/^\s*\\end\{cases\}/i.test(after)) {
+      return `\\begin{cases}${body.replace(/\$/g, '')}`;
+    }
+    const cleanedBody = body.replace(/\$/g, '').trimEnd();
+    return `\\begin{cases}${cleanedBody} \\end{cases} `;
+  });
+
+  // Convert function composition: (fog)(x) -> (f \circ g)(x), fog(x) -> (f \circ g)(x)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])\(([a-zA-Z])\s*o\s*([a-zA-Z])\)\s*\(\s*([a-zA-Z0-9]+)\s*\)/g, '($1 \\circ $2)($3)');
+  s = s.replace(/\b([fg])\s*o\s*([fg])\s*\(\s*([a-zA-Z0-9]+)\s*\)/g, '($1 \\circ $2)($3)');
+
+  // Fix nested exponents
+  s = fixNestedExponents(s);
+
+  // Greek letter fractions with powers: \pi^2/32 -> \dfrac{\pi^2}{32}, \pi/2 -> \dfrac{\pi}{2}
+  s = s.replace(/(\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
+
+  // Differentials: dy/(" "\, dx) -> \dfrac{dy}{dx}, d^n/dx^n -> \dfrac{d^n}{dx^n}
   s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\b/g, '\\dfrac{$1}{$2}');
   s = s.replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1');
+
+  // Repair corrupted differential residues:
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{dx}');
+
+  // Clean stray closing braces directly after radicals:
+  s = s.replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}/g, '$1');
+  s = s.replace(/\}\s*(\+\s*e\^)/g, ' $1');
+
+  // Space between glued math and words: ypassthrough -> y pass through
+  s = s.replace(/([a-zA-Z0-9\]\)])\s*[\r\n]+\s*([a-zA-Z])/g, '$1 $2');
+  s = s.replace(/([a-zA-Z0-9\]\)])passthrough\b/gi, '$1 pass through');
+  s = s.replace(/([a-zA-Z0-9\]\)])\s*(pass(?:es)?\s+through|touch(?:es)?|intersect(?:s)?|where|when|such|then|with|at)\b/gi, '$1 $2');
+
+  // Radical fractions: e.g. x/√(x^2-y^2) or x/\sqrt{x^2-y^2} -> \dfrac{x}{\sqrt{x^2-y^2}}
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)/g, '\\dfrac{$1}{\\sqrt{$2}}');
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
+
+  // Exponential fraction: e.g. e^{y/x} or e^(y/x) -> e^{\frac{y}{x}}
+  s = s.replace(/e\s*\^\s*\{?\s*([a-zA-Z0-9]+)\s*\/\s*([a-zA-Z0-9]+)\s*\}?/g, 'e^{\\frac{$1}{$2}}');
 
   // Word linear fractions with nested parens and exponents: (3x^{5} \tan^{-1}(x^3))/(1+x^{6})^{\frac{3}{2}}
   s = s.replace(
@@ -279,6 +328,15 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))/g, '\\dfrac{$1}{$2}');
   // Upgrade \frac to \dfrac for proper "upon" height
   s = s.replace(/\\frac\b/g, '\\dfrac');
+
+  // Convert square brackets enclosing vertical fractions to \left[ ... \right]
+  s = s.replace(/(?<!\\left\s*)\[\s*([^[\]]*?\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}[\s\S]*?)\s*\](?!\s*\\right)/g, '\\left[ $1 \\right]');
+
+  // Clean duplicated delimiters: \left\left[ -> \left[
+  s = s.replace(/(?:\\left\s*)+\[/g, '\\left[');
+  s = s.replace(/(?:\\right\s*)+\]/g, '\\right]');
+  s = s.replace(/(?:\\left\s*)+\(/g, '\\left(');
+  s = s.replace(/(?:\\right\s*)+\)/g, '\\right)');
 
   // Exponential cleanup: \exp\{ ... \} with balanced braces
   const expRegex = /\\?exp\s*\\?\{/gi;
@@ -386,26 +444,15 @@ export function normalizeMathString(raw: string): string {
   const proseLead = '(?:Let|If|Suppose|Given|Define|Find|Evaluate|Calculate|Show|Consider)\\b\\s*[:,]?\\s*';
   const proseStops = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are|represented|representing|given)\\b';
 
-  // 1. Environments (with optional LHS: g(x) = \begin{cases} ... \end{cases})
+  // 1. Environments (with optional LHS: f(x) = \begin{cases} ... \end{cases} or A = \begin{pmatrix} ... \end{pmatrix})
   s = s.replace(
-    new RegExp(`(${proseLead})?((?:[a-zA-Z|][a-zA-Z0-9_\\s'|()]*=\\s*)?\\\\begin\\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix|aligned)\\}[\\s\\S]+?\\\\end\\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix|aligned)\\})`, 'g'),
+    new RegExp(`(${proseLead})?((?:[a-zA-Z]\\s*(?:\\([^()\\n]*\\))?\\s*=\\s*)?\\\\begin\\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix|aligned)\\}[\\s\\S]+?\\\\end\\{(?:cases|matrix|bmatrix|pmatrix|vmatrix|Vmatrix|aligned)\\})`, 'g'),
     (_, lead, m) => (lead ? lead + ' ' : '') + protect(m)
   );
 
-  // 2. Differential equations like \dfrac{dy}{dx} - ... = ... before prose stop
-  s = s.replace(
-    new RegExp(`(${proseLead})?((?:\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}[^=]+)=\\s*([^,;.\\n]+?))(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'),
-    (_, lead, eq) => {
-      let activeLead = lead || '';
-      let activeEq = eq;
-      const introMatch = activeEq.match(/^(.*?\b(?:differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)(.+)$/i);
-      if (introMatch) {
-        activeLead += introMatch[1];
-        activeEq = introMatch[2];
-      }
-      return (activeLead ? activeLead + ' ' : '') + protect(activeEq);
-    }
-  );
+  // 1b. Function mappings: e.g. f : \mathbb{R} \to \mathbb{R}
+  s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*:\s*(?:\\mathbb\{[A-Z]\}|[A-Z])\s*\\to\s*(?:\\mathbb\{[A-Z]\}|[A-Z]))(?![a-zA-Z0-9_\$])/g,
+    (_, m) => protect(m));
 
   // 3. Symmetric 3D Line Equations: \frac{x-x1}{a} = \frac{y-y1}{b} = \frac{z-z1}{c}
   s = s.replace(
@@ -425,14 +472,14 @@ export function normalizeMathString(raw: string): string {
     (_, m) => protect(m)
   );
 
-  // 6. Differential equations with explicit differentials: 2x^2 dy = (2xy+y^2) dx OR y(x+1) dx - x^2 dy = 0
+  // 6. Differential equations with explicit differentials: 2x^2 dy = (2xy+y^2) dx OR y(x+1) dx - x^2 dy = 0 OR [ ... ] x \dfrac{dy}{dx} = ...
   s = s.replace(
-    new RegExp(`(${proseLead})?([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]*?\\b(?:d\\^?[0-9]?[a-zA-Z]?\\/d[a-zA-Z]\\^?[0-9]?|\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}|dy|dx|dt|dz)\\b[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]*?=[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]+?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
+    new RegExp(`(${proseLead})?([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]*?\\b(?:d\\^?[0-9]?[a-zA-Z]?\\/d[a-zA-Z]\\^?[0-9]?|\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}|dy|dx|dt|dz)\\b[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]*?=[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]+?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
     (fullMatch, lead, eq) => {
       let activeLead = lead || '';
       let activeEq = eq;
 
-      const introMatch = activeEq.match(/^(.*?\b(?:differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)(.+)$/i);
+      const introMatch = activeEq.match(/^(.*?\b(?:(?:solution\s+curve\s+of\s+the\s+)?differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)([\s\S]+)$/i);
       if (introMatch) {
         activeLead += introMatch[1];
         activeEq = introMatch[2];
@@ -458,12 +505,12 @@ export function normalizeMathString(raw: string): string {
 
   // 8. General equations with LaTeX operators / functions: A^{-1} = ..., E = E^\circ - ...
   s = s.replace(
-    new RegExp(`(${proseLead})?([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]+=([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\s.]|\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\})+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'),
+    new RegExp(`(${proseLead})?([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]+=([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]|\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\})+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'),
     (fullMatch, lead, eq) => {
       let activeLead = lead || '';
       let activeEq = eq;
 
-      const introMatch = activeEq.match(/^(.*?\b(?:differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)(.+)$/i);
+      const introMatch = activeEq.match(/^(.*?\b(?:(?:solution\s+curve\s+of\s+the\s+)?differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)([\s\S]+)$/i);
       if (introMatch) {
         activeLead += introMatch[1];
         activeEq = introMatch[2];
@@ -482,7 +529,7 @@ export function normalizeMathString(raw: string): string {
 
   // 8b. Functional equations: f(x+y) = f(x) \cdot f(y) or f(xy) = f(x) + f(y)
   s = s.replace(
-    new RegExp(`(?<![$\\w])([a-zA-Z]\\s*\\([^()\\n]+\\)\\s*=\\s*[-+*/a-zA-Z0-9_\\\\^{}()'|\\s.]*?[a-zA-Z0-9_^{}()'|\\\\)])(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'),
+    new RegExp(`(?<![$\\w])([a-zA-Z]\\s*\\([^()\\n]+\\)\\s*=\\s*[-+*/a-zA-Z0-9_\\\\^{}()'|\\[\\]\\s.]*?[a-zA-Z0-9_^{}()'|\\[\\]\\\\)])(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'),
     (fullMatch, eq) => {
       const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
       if (/\b(?:let|the|and|for|with|where|when|if|then|is|are|find)\b/i.test(nonLatex)) {
@@ -513,6 +560,17 @@ export function normalizeMathString(raw: string): string {
   // 11. Curve definitions: y=f(x) or y=y(x)
   s = s.replace(/(?<![$\w])([a-zA-Z]\s*=\s*[a-zA-Z]\s*\([a-zA-Z0-9_+\-/*\s\\]+\))(?![$\w])/g, (_, m) => protect(m));
 
+  // 11b. Point coordinates: point (1,2) or points (1,0) and (2\alpha, \alpha)
+  s = s.replace(/(?<=\b(?:point|points|at|through|from)\s+)((?:\(\s*[^,()\n]+\s*,\s*[^,()\n]+(?:\s*,\s*[^,()\n]+)?\s*\)\s*(?:and|,)\s*)*\(\s*[^,()\n]+\s*,\s*[^,()\n]+(?:\s*,\s*[^,()\n]+)?\s*\))/gi, (m) => {
+    return m.replace(/\(\s*[^,()\n]+\s*,\s*[^,()\n]+(?:\s*,\s*[^,()\n]+)?\s*\)/g, (pt) => protect(pt));
+  });
+
+  // 12a. Chain inequalities: e.g. 0 < x < \dfrac{\pi}{2} or -1 \le x \le 1
+  s = s.replace(
+    /(?<![$\w])([-+]?[0-9a-zA-Z_^{}()\\]+(?:\/[-+]?[0-9a-zA-Z_^{}()\\]+)?\s*(?:<|>|<=|>=|≤|≥|\\le\b|\\ge\b|\\leq\b|\\geq\b)\s*[-+]?[0-9a-zA-Z_^{}()\\]+\s*(?:<|>|<=|>=|≤|≥|\\le\b|\\ge\b|\\leq\b|\\geq\b)\s*[-+]?(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[0-9a-zA-Z_^{}()\\]+))(?![$\w])/gi,
+    (_, m) => protect(m)
+  );
+
   // 12. Inequalities & non-equalities: x > 1, \alpha, \beta > 0, f(x) \ne 0, \det A \neq 0
   s = s.replace(
     new RegExp(`(?<![$\\w])((?:\\\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+)(?:\\s*,\\s*(?:\\\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+))*\\s*(?:[><=≤≥≠]|\\\\(?:ne\\b|neq\\b|le\\b|ge\\b|leq\\b|geq\\b))\\s*[-+]?[0-9a-zA-Z_\\\\]+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'),
@@ -533,18 +591,25 @@ export function normalizeMathString(raw: string): string {
     }
   );
 
-  // 13b. Multi-term fraction expressions before "is equal to" / "equals" or punctuation
-  // e.g. "then 1/a+1/b+4/k is equal to" -> "then $\dfrac{1}{a} + \dfrac{1}{b} + \dfrac{4}{k}$ is equal to"
+  // 13b. Expressions before "is equal to" / "equals"
+  // e.g. "then 6(y'(0) + (y(log_e √3))^2) is equal to", "then the value of 3\alpha^2 is equal to", "then y(2) is equal to"
   s = s.replace(
-    /(?<=\b(?:then|and|if|where)\s+)(\d+\/[a-zA-Z0-9]+(?:\s*[+\-*/]\s*\d+\/[a-zA-Z0-9]+)+)(?=\s+(?:is\s+equal\s+to|equals\b|is\b)|\s*[,;.]|$)/gi,
-    (_, m) => {
-      const formatted = m.replace(/(\d+)\/([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
-      return protect(formatted);
+    /\b(then\s+(?:the\s+)?value\s+of|the\s+value\s+of|value\s+of|then|and|if|where|find|evaluate)\s+([^,;\n]+?)\s+(is\s+equal\s+to|equals\b)(?:\s*[:=_\-]+)?/gi,
+    (fullMatch, lead, expr, tail) => {
+      let trimmed = expr.trim();
+      trimmed = trimmed.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+      if (/[0-9\+\-\*\/\^_{}\(\)\[\]\\]/.test(trimmed) && !/\b(?:is|are|the|number|points|statement|curves?)\b/i.test(trimmed)) {
+        return `${lead} ${protect(trimmed)} ${tail}`;
+      }
+      return fullMatch;
     }
   );
 
-  // 14. Point coordinates: point (1,2) or (1, 2, 3)
-  s = s.replace(/(?<=\b(?:point|at|through|from)\s+)(\(\s*-?[0-9]+(?:\.[0-9]+)?\s*,\s*-?[0-9]+(?:\.[0-9]+)?\s*(?:,\s*-?[0-9]+(?:\.[0-9]+)?)?\s*\))(?![$\w])/gi, (_, m) => protect(m));
+  // 13c. Standalone blackboard bold sets: \mathbb{R}, \mathbb{N}, etc.
+  s = s.replace(/(?<![$\w])(\\(?:mathbb|mathbf|mathcal)\{[A-Z]\})(?![$\w])/g, (_, m) => protect(m));
+
+  // 13d. Function composition expressions: e.g. (f \circ g)(x) or (fog)(x)
+  s = s.replace(/(?<![$\w])(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*(?:\([^()\n]+\))?)(?![$\w])/gi, (_m, expr) => protect(expr));
 
   // 14b. Set membership relations: x, y \in \mathbb{R} or x \in R or n \in \mathbb{N}
   s = s.replace(/(?<![$\w])([a-zA-Z](?:\s*,\s*[a-zA-Z])*\s*\\in\s*(?:\\mathbb\{[RNZQ]\}|[RNZQ]|\[[^\[\]\n]+\]|\([^()\n]+\)))(?![$\w])/g, (_, m) => protect(m));
@@ -555,9 +620,12 @@ export function normalizeMathString(raw: string): string {
     (_, m) => protect(m)
   );
 
+  // Clean empty \dfrac{} or \frac{} so they are never protected into standalone invalid $\dfrac{}$
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');
+
   // 15. Remaining standalone LaTeX commands with balanced braces
   s = s.replace(
-    new RegExp(`(?<![$\\w])(\\\\(?:d?frac|sqrt|vec|hat|bar|dot|ddot|tilde|mathbf|mathrm|text|operatorname)\\{(?:[^{}]|\\{[^{}]*\\})*\\}(?:\\{(?:[^{}]|\\{[^{}]*\\})*\\})*(?:[A-Za-z0-9_^{}\\\\()[\\]+\\-*/\\s.]*[A-Za-z0-9_^{}\\\\()[\\]+\\-*/])?|\\\\(?:alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|infty|times|div|pm|mp|le|ge|ne|approx|sim|to|partial|nabla|degree|circ)(?![a-zA-Z]))(?=\\s*[,;.]|\\s+${proseStops}|$|\\s+[a-zA-Z]{3,})`, 'gi'),
+    new RegExp(`(?<![$\\w])(\\\\(?:d?frac)\\{(?:[^{}]|\\{[^{}]*\\})+\\}\\{(?:[^{}]|\\{[^{}]*\\})+\\}|\\\\(?:sqrt|vec|hat|bar|dot|ddot|tilde|mathbf|mathrm|text|operatorname)\\{(?:[^{}]|\\{[^{}]*\\})*\\}(?:[A-Za-z0-9_^{}\\\\()[\\]+\\-*/\\s.]*[A-Za-z0-9_^{}\\\\()[\\]+\\-*/])?|\\\\(?:alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|infty|times|div|pm|mp|le|ge|ne|approx|sim|to|partial|nabla|degree|circ)(?![a-zA-Z]))(?=\\s*[,;.]|\\s+${proseStops}|$|\\s+[a-zA-Z]{3,})`, 'gi'),
     (fullMatch, cmd) => protect(cmd)
   );
 
@@ -588,6 +656,10 @@ export function normalizeMathString(raw: string): string {
 
   // 3. Final safety cleanup: remove any leftover orphan tokens
   s = s.replace(/\u27E6MATH_\d+\u27E7/g, '');
+  s = s.replace(/\[\|MATH_\d+\|\]/g, '');
+  s = s.replace(/___PROT_\d+___/g, '');
+  s = s.replace(/\[\s*MATH_\d+\s*\]/gi, '');
+  s = s.replace(/⟦\s*MATH_\d+\s*⟧/gi, '');
 
   // 4. Clean adjacent dollars and spacing
   s = s.replace(/\$\s*\$/g, ' ');
@@ -618,7 +690,29 @@ export function normalizeOptionMath(raw: string): string {
     return s.replace(/\\frac\b/g, '\\dfrac');
   }
 
-  // 1. Logarithm conversions: log_e 2 -> \log_e 2, ln x -> \ln x
+  // 1. Plain text fraction and exponential tokens in options
+  s = s.replace(/\b1\s+2\s*(?:exp|\\exp)\b/gi, '\\dfrac{1}{2} \\exp');
+  s = s.replace(/\b1\s+4\s*(?:exp|\\exp)\b/gi, '\\dfrac{1}{4} \\exp');
+  s = s.replace(/\b2\s*(?:exp|\\exp)\b/gi, '2 \\exp');
+  s = s.replace(/(?<!\\)\bexp\b/gi, '\\exp');
+  s = s.replace(/\\exp\s+(?!\\left)([-+]?[0-9a-zA-Z\\^{}_/]+(?:\s*[-+]\s*[-+]?[0-9a-zA-Z\\^{}_/]+)*)/g, '\\exp\\left($1\\right)');
+
+  s = s.replace(/\b1\s+2\b/g, '\\dfrac{1}{2}');
+  s = s.replace(/\b1\s+4\b/g, '\\dfrac{1}{4}');
+  s = s.replace(/\b3\s+4\b/g, '\\dfrac{3}{4}');
+  s = s.replace(/\b3\s+8\b/g, '\\dfrac{3}{8}');
+  s = s.replace(/\b5\s+2\b/g, '\\dfrac{5}{2}');
+  s = s.replace(/\b17\s+2\b/g, '\\dfrac{17}{2}');
+
+  s = s.replace(/[-−]\s*3\s+2e\b/gi, '-\\dfrac{3}{2e}');
+  s = s.replace(/[-−]\s*2\s+3e\b/gi, '-\\dfrac{2}{3e}');
+  s = s.replace(/[-−]\s*3\s+e\b/gi, '-\\dfrac{3}{e}');
+  s = s.replace(/[-−]\s*2\s+e\b/gi, '-\\dfrac{2}{e}');
+
+  s = s.replace(/\\pi\s*([2-9]|12|16|32)\b/g, '\\dfrac{\\pi}{$1}');
+  s = s.replace(/e\s*\\pi\s*\/\s*([0-9]+)/gi, 'e^{\\dfrac{\\pi}{$1}}');
+
+  // 1b. Logarithm conversions: log_e 2 -> \log_e 2, ln x -> \ln x
   s = s.replace(/\blog_([a-zA-Z0-9]+|\{[^{}]+\})/g, '\\log_{$1}');
   s = s.replace(/(?<!\\)\b(log|ln)\b/g, '\\$1');
 

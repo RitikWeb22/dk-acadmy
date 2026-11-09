@@ -33,18 +33,36 @@ export function sanitizeFormula(str: string): string {
     .replace(/(?<![a-zA-Z0-9_\\/])([-+]?[a-zA-Z])\s*\/\s*(\d+)(?![a-zA-Z0-9_\\/])/g, '\\dfrac{$1}{$2}')
     // Variable over variable: x/a -> \dfrac{x}{a}, x/b -> \dfrac{x}{b}, a/b -> \dfrac{a}{b}
     .replace(/(?<![a-zA-Z0-9_\\/])([-+]?[a-zA-Z])\s*\/\s*([a-zA-Z](?:_[a-zA-Z0-9]+|_[0-9]+)?)(?![a-zA-Z0-9_\\/])/g, '\\dfrac{$1}{$2}')
-    // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi/4 -> \dfrac{\pi}{4}
-    .replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}')
-    .replace(/(?<![a-zA-Z0-9_\\/])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))/g, '\\dfrac{$1}{$2}')
+    // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi^2/32 -> \dfrac{\pi^2}{32}
+    .replace(/(\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}')
+    .replace(/(?<![a-zA-Z0-9_\\/])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)/g, '\\dfrac{$1}{$2}')
+    // Radical fractions
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)/g, '\\dfrac{$1}{\\sqrt{$2}}')
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}')
     // Upgrade \frac to \dfrac for proper "upon" height
     .replace(/\\frac\b/g, '\\dfrac')
-    // Repair empty fractions
-    .replace(/\\(?:d?frac)\{\s*\}\{\s*\}/g, '\\frac{a}{b}')
+    // Repair broken/corrupted differentials: \dfrac{} \, dy}{\, dx -> \dfrac{dy}{dx}
+    .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/g, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{dx}')
+    // Clean any empty fraction residues so KaTeX never throws "Expected group after '\dfrac'"
+    .replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '')
+    .replace(/\\(?:d?frac)\{\s*\}\s*/g, '')
     .replace(/\\(?:d?frac)\{\s*\}\{([^{}]+)\}/g, '\\frac{1}{$1}')
     .replace(/\\(?:d?frac)\{([^{}]+)\}\{\s*\}/g, '\\frac{$1}{1}')
     // Clean redundant parens inside sqrt: \sqrt{(1+x^6)} -> \sqrt{1+x^6}
     .replace(/\\sqrt\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}')
     .replace(/\\sqrt\{\s*\(([^()]+)\)\s*\}/g, '\\sqrt{$1}')
+    // Clean stray closing braces directly after sqrt: \sqrt{x^2-y^2} } -> \sqrt{x^2-y^2}
+    .replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}/g, '$1')
+    .replace(/\}\s*(\+\s*e\^)/g, ' $1')
+    // Strip orphan internal tokens if present
+    .replace(/\[\|MATH_\d+\|\]/g, '')
+    .replace(/\u27E6MATH_\d+\u27E7/g, '')
+    .replace(/___PROT_\d+___/g, '')
+    .replace(/\[\s*MATH_\d+\s*\]/gi, '')
+    .replace(/⟦\s*MATH_\d+\s*⟧/gi, '')
     // Tall delimiters for \exp{ ... } or \exp( ... ) with balanced braces
     .replace(/\\exp\s*\{([^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*)\}/g, (_m, inner) => `\\exp\\left\\{${inner.replace(/\\frac\b/g, '\\dfrac')}\\right\\}`)
     .replace(/\\exp\s*\(([^()]+)\)/g, (_m, inner) => `\\exp\\left(${inner.replace(/\\frac\b/g, '\\dfrac')}\\right)`)
@@ -127,6 +145,49 @@ export function sanitizeFormula(str: string): string {
     // Tall bracket display fractions: \left(\frac -> \left(\dfrac
     .replace(/\\left\(\s*\\frac/g, '\\left(\\dfrac')
     .trim();
+
+  // Fix nested exponents: e.g. e^(tan^(-1)(...)) -> e^{\tan^{-1}(...)}
+  if (res.includes('^(')) {
+    let result = '';
+    let i = 0;
+    while (i < res.length) {
+      if (res[i] === '^' && res[i + 1] === '(') {
+        let depth = 1;
+        let j = i + 2;
+        while (j < res.length && depth > 0) {
+          if (res[j] === '(') depth++;
+          else if (res[j] === ')') depth--;
+          j++;
+        }
+        if (depth === 0) {
+          const inner = res.slice(i + 2, j - 1);
+          result += `^{${inner}}`;
+          i = j;
+          continue;
+        }
+      }
+      result += res[i];
+      i++;
+    }
+    res = result;
+  }
+
+  // Strip stray & characters if no alignment/cases/matrix environment is present
+  if (!/\\begin\{(?:cases|aligned|matrix|bmatrix|pmatrix|vmatrix|Vmatrix|split|gather|alignat)\}/.test(res)) {
+    res = res.replace(/&/g, ' ');
+  }
+
+  // Auto-close unclosed environments: e.g. \begin{cases} without \end{cases}
+  const envMatches = res.match(/\\begin\{(cases|aligned|matrix|bmatrix|pmatrix|vmatrix|Vmatrix|split|gather)\}/g);
+  if (envMatches) {
+    for (const envTag of envMatches) {
+      const envName = envTag.slice(7, -1);
+      const endTag = `\\end{${envName}}`;
+      if (!res.includes(endTag)) {
+        res += ` ${endTag}`;
+      }
+    }
+  }
 
   // If formula contains connecting words inside math mode without \text, wrap them in \text{ ... }
   // to ensure proper spaces between words and prevent collapsed text (excluding sentence starters like 'if')
