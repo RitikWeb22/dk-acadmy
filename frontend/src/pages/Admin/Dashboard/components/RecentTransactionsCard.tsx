@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiClient } from '../../../../services/apiClient';
-import styles from './RecentTransactionsCard.module.scss';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface TransactionItem {
   id: string;
@@ -116,88 +119,97 @@ export const RecentTransactionsCard: React.FC = () => {
   const currentSlice = transactions.slice(startIndex, startIndex + rowsPerPage);
 
   return (
-    <div className={styles.transactionsCard}>
-      {/* Header */}
-      <div className={styles.cardHeader}>
-        <div className={styles.titleWrap}>
-          <h2 className={styles.cardTitle}>Recent Transactions</h2>
-          <span className={styles.cardSubtitle}>
+    <Card className="border-border/60 bg-card overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between pb-3 px-5 pt-5 space-y-0">
+        <div>
+          <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
+            Recent Transactions
+          </CardTitle>
+          <CardDescription className="text-xs text-muted-foreground mt-0.5">
             Real-time student fee completions
-          </span>
+          </CardDescription>
         </div>
-
-        <div className={styles.liveBadge}>
-          <span className={styles.liveDot} />
+        <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-[11px] font-normal border-border/60 text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           <span>Live Feed</span>
-        </div>
-      </div>
+        </Badge>
+      </CardHeader>
 
-      {/* Compact Data Table with clean scroll */}
-      <div className={styles.tableScrollContainer}>
-        <table className={styles.transactionTable}>
-          <thead>
-            <tr>
-              <th scope="col" className={styles.thId}>ID</th>
-              <th scope="col" className={styles.thStudent}>Student Name</th>
-              <th scope="col" className={styles.thAmount}>Amount</th>
-              <th scope="col" className={styles.thTime}>Timestamp</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentSlice.map((txn, idx) => (
-              <tr key={txn.id + idx} className={styles.txnRow}>
-                <td className={styles.idCell}>
-                  <code className={styles.txnCode}>{txn.id}</code>
-                </td>
-                <td className={styles.studentCell}>
-                  <div className={styles.nameBlock}>
-                    <span className={styles.studentName}>{txn.studentName}</span>
-                    {txn.batchName && (
-                      <span className={styles.batchTag}>{txn.batchName}</span>
-                    )}
-                  </div>
-                </td>
-                <td className={styles.amountCell}>
-                  <span className={styles.amountText}>{txn.amount}</span>
-                </td>
-                <td className={styles.timeCell}>
-                  <span className={styles.timeText}>{txn.timestamp}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border/40 hover:bg-transparent">
+              <TableHead className="h-8 px-5 text-xs text-muted-foreground font-medium">ID</TableHead>
+              <TableHead className="h-8 px-3 text-xs text-muted-foreground font-medium">Student</TableHead>
+              <TableHead className="h-8 px-3 text-xs text-muted-foreground font-medium text-right">Amount</TableHead>
+              <TableHead className="h-8 px-5 text-xs text-muted-foreground font-medium text-right">Time</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {currentSlice.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="h-20 text-center text-xs text-muted-foreground">
+                  No recent fee transactions.
+                </TableCell>
+              </TableRow>
+            ) : (
+              currentSlice.map((txn, idx) => (
+                <TableRow key={txn.id + idx} className="border-border/40 hover:bg-muted/40 transition-colors">
+                  <TableCell className="px-5 py-2.5 font-mono text-[11px] text-muted-foreground">
+                    {txn.id}
+                  </TableCell>
+                  <TableCell className="px-3 py-2.5">
+                    <div className="flex flex-col gap-0.5 max-w-[150px]">
+                      <span className="text-xs font-medium text-foreground truncate">
+                        {txn.studentName}
+                      </span>
+                      {txn.batchName && (
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {txn.batchName}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-3 py-2.5 text-right font-medium tabular-nums text-xs text-foreground">
+                    {txn.amount}
+                  </TableCell>
+                  <TableCell className="px-5 py-2.5 text-right tabular-nums text-[11px] text-muted-foreground">
+                    {txn.timestamp}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
 
-      {/* Table Footer with Streamlined Pagination */}
-      <div className={styles.cardFooter}>
-        <div className={styles.paginationInfo}>
-          <span className={styles.paginationSummary}>
-            {totalRows === 0 ? '0 of 0' : `${startIndex + 1}–${Math.min(startIndex + rowsPerPage, totalRows)} of ${totalRows}`}
-          </span>
-        </div>
-
-        <div className={styles.paginationActions}>
-          <button
-            type="button"
-            className={styles.pageArrowBtn}
+      <CardFooter className="flex items-center justify-between border-t border-border/40 px-5 py-2.5 bg-muted/20">
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {totalRows === 0 ? '0 of 0' : `${startIndex + 1}–${Math.min(startIndex + rowsPerPage, totalRows)} of ${totalRows}`}
+        </span>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 border-border/60"
             disabled={page === 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             aria-label="Previous page"
           >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            type="button"
-            className={styles.pageArrowBtn}
+            <ChevronLeft size={14} />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 border-border/60"
             disabled={page * rowsPerPage >= totalRows}
             onClick={() => setPage((p) => p + 1)}
             aria-label="Next page"
           >
-            <ChevronRight size={16} />
-          </button>
+            <ChevronRight size={14} />
+          </Button>
         </div>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
