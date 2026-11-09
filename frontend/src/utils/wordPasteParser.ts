@@ -563,7 +563,7 @@ export function convertFractionsBalanced(text: string): string {
  */
 export function convertExpBraces(text: string): string {
   let s = text;
-  const expBraceRegex = /\\?exp\s*\{/gi;
+  const expBraceRegex = /\\?exp[\s\u2061\u2060-\u2064\u200B-\u200D\uFEFF]*(?:\\?\{|\{)/gi;
   let match: RegExpExecArray | null;
   let result = '';
   let lastIndex = 0;
@@ -574,19 +574,25 @@ export function convertExpBraces(text: string): string {
     let depth = 1;
     let i = startInner;
     let foundClose = false;
+    const openedWithEscape = match[0].endsWith('\\{');
 
     for (; i < s.length; i++) {
-      if (s[i] === '{' && s[i - 1] !== '\\') depth++;
-      else if (s[i] === '}' && s[i - 1] !== '\\') {
-        depth--;
-        if (depth === 0) {
-          foundClose = true;
-          break;
+      const isEsc = i > 0 && s[i - 1] === '\\';
+      if (s[i] === '{') {
+        if (openedWithEscape ? isEsc : !isEsc) depth++;
+      } else if (s[i] === '}') {
+        if (openedWithEscape ? isEsc : !isEsc) {
+          depth--;
+          if (depth === 0) {
+            foundClose = true;
+            break;
+          }
         }
       }
     }
 
-    let inner = s.substring(startInner, i).trim();
+    const closePos = foundClose && openedWithEscape ? i - 1 : i;
+    let inner = s.substring(startInner, closePos).trim();
     inner = inner.replace(/\\frac\b/g, '\\dfrac');
     result += `\\exp\\left\\{${inner}\\right\\}`;
     lastIndex = foundClose ? i + 1 : i;
@@ -847,7 +853,7 @@ export function wrapMathInDollars(text: string): string {
   // e.g. y(x+1) \, dx-x^{2} dy=0
   const proseDiffStopsEq = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are)\\b';
   s = s.replace(
-    new RegExp(`(?<![a-zA-Z0-9_\\$])(-?[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?\\b(?:d\\^?[0-9]?[a-zA-Z]?\\/d[a-zA-Z]\\^?[0-9]?|\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}|dy|dx|dt|dz)\\b[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?=\\s*[^,;.\\n]+?)(?=\\s*[,;.]|\\s+${proseDiffStopsEq}|$)`, 'gi'),
+    new RegExp(`(?<![a-zA-Z0-9_\\$])([-0-9a-zA-Z^{}_\\\\()\\[\\]+*/\\s]*?\\b(?:d\\^?[0-9]?[a-zA-Z]?\\/d[a-zA-Z]\\^?[0-9]?|\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}|dy|dx|dt|dz)\\b[-0-9a-zA-Z^{}_\\\\()\\[\\]+*/\\s]*?=\\s*[^,;.\\n]+?)(?=\\s*[,;.]|\\s+${proseDiffStopsEq}|$)`, 'gi'),
     (fullMatch, eq: string) => {
       let activeEq = eq.trim();
       let prefix = '';

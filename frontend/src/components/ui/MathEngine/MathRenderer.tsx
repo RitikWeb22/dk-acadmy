@@ -192,12 +192,16 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
           if (!secondTry.includes('katex-error')) {
             html = secondTry;
           } else {
-            // Third attempt: strip problematic \left / \right delimiters while keeping interior content
+            // Third attempt: strip problematic \left / \right delimiters while keeping visible brackets
             const stripped = repaired
-              .replace(/\\left[\[\(\{\|.]/g, '[')
-              .replace(/\\right[\]\)\}\|.]/g, ']')
-              .replace(/\\left\\\{/g, '{')
-              .replace(/\\right\\\}/g, '}');
+              .replace(/\\left\[/g, '[')
+              .replace(/\\right\]/g, ']')
+              .replace(/\\left\(/g, '(')
+              .replace(/\\right\)/g, ')')
+              .replace(/\\left\\\{/g, '\\{')
+              .replace(/\\right\\\}/g, '\\}')
+              .replace(/\\left[|.]/g, '')
+              .replace(/\\right[|.]/g, '');
             const thirdTry = katex.renderToString(stripped, baseOptions);
             if (!thirdTry.includes('katex-error')) {
               html = thirdTry;
