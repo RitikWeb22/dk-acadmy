@@ -22,14 +22,237 @@ export interface ParsedWordQuestion {
   shortcut?: string;
 }
 
+export function extractExamTagSafely(text: string): { text: string; examTag: string } {
+  let s = text;
+  let examTag = '';
+
+  const examRegex = /(?:\[|\b|\s{2,})(JEE\s*(?:Main|Advanced)?\s*(?:-\s*\d{4}|\d{4})?\s*(?:\([^\)]+\)|Online|Offline)?\s*[\d\w\s\-–]*(?:Morning\s*Shift|Evening\s*Shift|Morning\s*Slot|Evening\s*Slot|Morning\s*Session|Evening\s*Session|Shift\s*\d|Slot\s*\d|Paper\s*\d|Shift|Slot|Offline|Online)\s*(?:I{1,3})?|AIEEE\s*\d{4}|BITSAT\s*\d{4})/i;
+
+  const m = s.match(examRegex);
+  if (m) {
+    examTag = m[0].trim().replace(/^\[|\]$/g, '');
+    s = s.replace(m[0], ' ');
+  }
+  return { text: s, examTag };
+}
+
+export function preformatDocxOptions(text: string): string {
+  let s = text;
+
+  // Normalize ( A ) or [ A ] to (A) or [A]
+  s = s.replace(/\(\s*([A-Da-d])\s*\)/g, '($1)');
+  s = s.replace(/\[\s*([A-Da-d])\s*\]/g, '[$1]');
+
+  // Separate glued "to(A)" -> "to\n(A)"
+  s = s.replace(/([0-9a-zA-Z:])\s*(\([A-D]\)|\[[A-D]\])/g, '$1\n$2');
+
+  // Separate glued "toA", "is :A", "line :A" -> "... \n(A) "
+  s = s.replace(/(?<=\bto|\bis\s*:|[:=_\-])\s*(A)(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(])/gi, '\n(A) ');
+
+  // Separate bare A preceded by whitespace/exam tag
+  s = s.replace(/(?<=\b(?:to|is|are|equal|equals|equals\s*:|line\s*:|curve\s*:|radius\s*:|interval\s*:|point\s*:|points\s*:|origin\s*:|by|value\s+of)\s+)(A)(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(])/gi, '\n(A) ');
+
+  // Separate glued B, C, D: e.g. "-1B 121", "1e2B 2e2", "π2(C)", "0(D)", "-π12B π2", "2 (B)"
+  s = s.replace(/([0-9a-zA-Z\u0370-\u03FF\)\}\]\.\-])\s*(?:\(\s*([B-D])\s*\)|\[\s*([B-D])\s*\]|([B-D]))(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(\$]|[-+])/g, (_m, prev, p1, p2, p3) => {
+    const letter = p1 || p2 || p3;
+    return `${prev}\n(${letter}) `;
+  });
+
+  // Ensure (A) on newline if bare A preceded by newline/whitespace
+  s = s.replace(/(?:^|[\n\r]|\s{2,})A(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(])/g, '\n(A) ');
+
+  return s;
+}
+
+export function normalizeDocxMath(raw: string): string {
+  let s = raw;
+
+  // 1. Replace invisible function application & invisible times with spaces
+  s = s.replace(/[\u2061\u2062\u2063\u2064]/g, ' ')
+       .replace(/[\u200B-\u200F\uFEFF\u00AD\u034F\u180E\uFFF9-\uFFFC]/g, '')
+       .replace(/[\u2013\u2014\u2212]/g, '-')
+       .replace(/[\u201C\u201D]/g, '"')
+       .replace(/[\u2018\u2019]/g, "'");
+
+  // 2. Clean margin limit repetition: e.g. 00The value -> The value, -1-1The value -> The value
+  s = s.replace(/^[–\-−]?([0-9\pi\u03C0]+)\1\s*(?=[A-Za-z])/gm, '');
+  s = s.replace(/^00\s*/gm, '');
+
+  // 3. Clean Word Symbol font closing paren: e.g. (x - \pi @ -> (x - \pi)
+  s = s.replace(/@(?=[\s,;.)\]}]|$)/g, ')');
+
+  // 4. Multi-line fractions in options: e.g.
+  // (A) 1 loge(...)   (B) 2 loge(...)
+  //     3                 3
+  s = s.replace(/\b(\d+)\s+((?:loge|log_e|ln|log|\\[a-zA-Z]+)[^\n\r]+?)\s*[\n\r]+\s*(\d+)\b/gi, '\\dfrac{$1}{$3} $2');
+
+  // 5. Derivatives in plain text: dydx, d2ydx2, dy dx, dx dy, d2xdy2
+  s = s.replace(/d2ydx2/gi, '\\dfrac{d^2y}{dx^2}');
+  s = s.replace(/d2xdy2/gi, '\\dfrac{d^2x}{dy^2}');
+  s = s.replace(/dydx/gi, '\\dfrac{dy}{dx}');
+  s = s.replace(/dxdy/gi, '\\dfrac{dx}{dy}');
+  s = s.replace(/(?<=[0-9a-zA-Z\)\}\]\s])dy\s+dx\b/gi, '\\dfrac{dy}{dx}');
+  s = s.replace(/(?<=[0-9a-zA-Z\)\}\]\s])dx\s+dy\b/gi, '\\dfrac{dx}{dy}');
+
+  // Insert space between coefficient/variable and function keyword
+  s = s.replace(/([0-9a-zA-Z])(?=\b(?:loge|log2|log10|log|sin|cos|tan|sec|cot|csc)\b)/g, '$1 ');
+
+  // 6. Exponential attached inverse trig: etan-1 x -> e^{\tan^{-1} x}
+  s = s.replace(/e(tan|sin|cos|cot|sec|cosec|csc)-1\s*([a-zA-Z0-9]+|\([a-zA-Z0-9]+\))/gi, 'e^{\\\\$1^{-1}($2)}');
+
+  // Inverse trigonometric: tan-1, sin-1, cos-1, sec-1, cot-1, cosec-1
+  s = s.replace(/(?<![a-zA-Z])(tan|sin|cos|sec|cot|cosec|csc)-1\b/gi, '\\$1^{-1}');
+  s = s.replace(/\\(cosec)\^\{-1\}/gi, '\\csc^{-1}');
+
+  // 7. Logarithms: loge x, logex, log2 x, log10 x
+  s = s.replace(/\bloge\s*([a-zA-Z0-9\(])/gi, '\\log_e $1');
+  s = s.replace(/\bloge\b/gi, '\\log_e');
+  s = s.replace(/\blog2\s*([a-zA-Z0-9\(])/gi, '\\log_2 $1');
+  s = s.replace(/\blog10\s*([a-zA-Z0-9\(])/gi, '\\log_{10} $1');
+  s = s.replace(/\bcosec\b/gi, '\\csc');
+  s = s.replace(/\blog\b(?![_a-zA-Z])/gi, '\\log');
+
+  // Trig powers without backslash: cos2 x -> \cos^2 x, cos4 x -> \cos^4 x
+  s = s.replace(/\b(sin|cos|tan|sec|cot|csc)([2-9])(?![0-9])/gi, '\\$1^{$2} ');
+  s = s.replace(/\b(sin|cos|tan|sec|cot|csc)\b(?!\^)/gi, '\\$1');
+
+  // Mathematical italic letters (Word math italics) -> ASCII
+  s = s.replace(/[\u{1D44E}-\u{1D467}]/gu, (c) => {
+    const code = c.codePointAt(0);
+    if (code === 0x1D455) return 'h';
+    return String.fromCharCode(97 + ((code || 0) - 0x1D44E));
+  });
+  s = s.replace(/[\u{1D434}-\u{1D44D}]/gu, (c) => {
+    const code = c.codePointAt(0);
+    return String.fromCharCode(65 + ((code || 0) - 0x1D434));
+  });
+
+  // 8. Greek letters & mathematical italic Greek
+  const greek: Record<string, string> = {
+    'α': '\\alpha ', 'β': '\\beta ', 'γ': '\\gamma ', 'δ': '\\delta ',
+    'θ': '\\theta ', 'λ': '\\lambda ', 'μ': '\\mu ', 'π': '\\pi ',
+    'σ': '\\sigma ', 'ω': '\\omega ', 'ϕ': '\\phi ',
+    '𝛼': '\\alpha ', '𝛽': '\\beta ', '𝛾': '\\gamma ', '𝛿': '\\delta ',
+    '𝜃': '\\theta ', '𝜆': '\\lambda ', '𝜇': '\\mu ', '𝜋': '\\pi ',
+    '𝜎': '\\sigma ', '𝜔': '\\omega ', '𝜙': '\\phi ', '𝜑': '\\phi '
+  };
+  for (const [k, v] of Object.entries(greek)) {
+    s = s.replaceAll(k, v);
+  }
+
+  // 9. Function evaluations: yπ4 -> y(\dfrac{\pi}{4}), yπ8 -> y(\dfrac{\pi}{8})
+  s = s.replace(/y\s*\\pi\s*([2-9]|12|16|32)\b/gi, 'y\\left(\\dfrac{\\pi}{$1}\\right)');
+  s = s.replace(/y'\\pi\s*([2-9]|12|16|32)\b/gi, "y'\\left(\\dfrac{\\pi}{$1}\\right)");
+  s = s.replace(/y''\\pi\s*([2-9]|12|16|32)\b/gi, "y''\\left(\\dfrac{\\pi}{$1}\\right)");
+  s = s.replace(/\by0=0\b/gi, 'y(0)=0');
+  s = s.replace(/\bye-1=0\b/gi, 'y(e^{-1})=0');
+  s = s.replace(/\by12=mn\b/gi, 'y\\left(\\dfrac{1}{2}\\right)=\\dfrac{m}{n}');
+
+  // 10. Greek fractions: \pi 6 -> \dfrac{\pi}{6}, \pi 2 -> \dfrac{\pi}{2}
+  s = s.replace(/\\pi\s*([2-9]|12|16|32)\b/g, '\\dfrac{\\pi}{$1}');
+
+  // 11. Exponential powers: e\pi/2 -> e^{\pi/2}
+  s = s.replace(/e\\pi\s*\/\s*([0-9]+)/gi, 'e^{\\dfrac{\\pi}{$1}}');
+  s = s.replace(/(?<=\s|[+\-=]|^)e\s*([a-zA-Z])(?=\s*[+\-=]|$)/g, 'e^{$1}');
+
+  // 12. Algebraic powers: x2 -> x^2, y2 -> y^2, x3 -> x^3, x4 -> x^4, etc.
+  s = s.replace(/([a-zA-Z])([2-9])(?=[+\-*/=,)>\]\s\\]|$)/g, '$1^{$2}');
+
+  // 13. Plain text fraction options:
+  s = s.replace(/\b12\s*(?=1\s*[-+])/g, '\\dfrac{1}{2}(');
+  s = s.replace(/\b14\s*(?=1\s*[-+])/g, '\\dfrac{1}{4}(');
+  s = s.replace(/\b14(?=[a-zA-Z\\(]|$)/g, '\\dfrac{1}{4} ');
+  s = s.replace(/\b12(?=[a-zA-Z\\(]|$)/g, '\\dfrac{1}{2} ');
+  s = s.replace(/\b34(?=[a-zA-Z\\(]|$)/g, '\\dfrac{3}{4} ');
+  s = s.replace(/\b32(?=[a-zA-Z\\(]|$)/g, '\\dfrac{3}{2} ');
+  s = s.replace(/\b172\b/g, '\\dfrac{17}{2}');
+
+  // In options: -32e -> -3/2 e, -23e -> -2/3 e
+  s = s.replace(/([-+])32e\b/g, '$1\\dfrac{3}{2}e');
+  s = s.replace(/([-+])23e\b/g, '$1\\dfrac{2}{3}e');
+
+  s = s.replace(/\b1e2\b/g, '\\dfrac{1}{e^2}');
+  s = s.replace(/\b2e2\b/g, '\\dfrac{2}{e^2}');
+  s = s.replace(/\b1e\b/g, '\\dfrac{1}{e}');
+
+  // 14. Point coordinates: point \dfrac{\pi}{2},0 -> point (\dfrac{\pi}{2}, 0)
+  s = s.replace(/(?<=\bpoint\s+)(\\dfrac\{\\pi\}\{[0-9]+\}|\d+)\s*,\s*(-?\d+)/gi, '\\left($1, $2\\right)');
+
+  return s;
+}
+
+export function fixNestedExponents(text: string): string {
+  let result = '';
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === '^' && text[i + 1] === '(') {
+      let depth = 1;
+      let j = i + 2;
+      while (j < text.length && depth > 0) {
+        if (text[j] === '(') depth++;
+        else if (text[j] === ')') depth--;
+        j++;
+      }
+      if (depth === 0) {
+        const inner = text.slice(i + 2, j - 1);
+        result += `^{${fixNestedExponents(inner)}}`;
+        i = j;
+        continue;
+      }
+    }
+    result += text[i];
+    i++;
+  }
+  return result;
+}
+
 /**
  * Strips Word equation placeholders, invisible zero-width markers, and OCR artifacts.
  */
 export function cleanWordMathArtifacts(text: string): string {
   if (!text) return '';
-  let s = parseWordMatricesAndCases(text);
+  let s = normalizeDocxMath(text);
+  s = parseWordMatricesAndCases(s);
+
+  // Repair corrupted differential residues:
+  // e.g. \dfrac{} \, dy}{\, dx -> \dfrac{dy}{dx}
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{dx}');
+
+  // Clean stray closing braces directly after radicals or brackets:
+  // e.g. \sqrt{x^2 - y^2} } -> \sqrt{x^2 - y^2}
+  s = s.replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}/g, '$1');
+  s = s.replace(/\}\s*(\+\s*e\^)/g, ' $1');
+
+  // Preserve space between word boundaries across newlines & glued math/words
+  // e.g. ]y\npass -> ]y pass, ypassthrough -> y pass through
+  s = s.replace(/([a-zA-Z0-9\]\)])\s*[\r\n]+\s*([a-zA-Z])/g, '$1 $2');
+  s = s.replace(/([a-zA-Z0-9\]\)])passthrough\b/gi, '$1 pass through');
+  s = s.replace(/([a-zA-Z0-9\]\)])\s*(pass(?:es)?\s+through|touch(?:es)?|intersect(?:s)?|where|when|such|then|with|at)\b/gi, '$1 $2');
+
   // Function multiplication dot: f(x).f(y) -> f(x) \cdot f(y)
   s = s.replace(/\)\s*\.\s*([a-zA-Z]\s*\()/g, ') \\cdot $1');
+
+  // Strip stray copy-paste artifacts like $&, $& $, & $, & f(x)
+  s = s.replace(/\$\s*&\s*\$?/g, '');
+  s = s.replace(/&\s*\$/g, '');
+  s = s.replace(/(?<!\\begin\{[^}]*)\$\s*&/g, '');
+
+  // Auto-close \begin{cases} if unclosed before prose or end, and strip internal $
+  s = s.replace(/\\begin\{cases\}([\s\S]*?)(?=\\end\{cases\}|\b(?:Then|where|when|if|for)\b|$)/gi, (match, body, offset, fullStr) => {
+    const after = fullStr.slice(offset + match.length);
+    if (/^\s*\\end\{cases\}/i.test(after)) {
+      return `\\begin{cases}${body.replace(/\$/g, '')}`;
+    }
+    const cleanedBody = body.replace(/\$/g, '').trimEnd();
+    return `\\begin{cases}${cleanedBody} \\end{cases} `;
+  });
+
+  // Convert function composition: (fog)(x) -> (f \circ g)(x), fog(x) -> (f \circ g)(x)
+  s = s.replace(/(?<![a-zA-Z0-9_\$])\(([a-zA-Z])\s*o\s*([a-zA-Z])\)\s*\(\s*([a-zA-Z0-9]+)\s*\)/g, '($1 \\circ $2)($3)');
+  s = s.replace(/\b([fg])\s*o\s*([fg])\s*\(\s*([a-zA-Z0-9]+)\s*\)/g, '($1 \\circ $2)($3)');
   return s
     .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
     .replace(/[\u200B-\u200F\u2060-\u2064\uFEFF\u00AD\u034F\u180E\uFFF9-\uFFFC]/g, '')
@@ -270,14 +493,21 @@ export function convertWordEquationToLatex(raw: string): string {
   s = s.replace(/([a-zA-Z])[\u0302̂]/g, '\\hat{$1}');
   s = s.replace(/([a-zA-Z])[\u20D7⃗]/g, '\\vec{$1}');
 
-  // 9. Square roots: √x or √(x+1)
+  // 9. Square roots: √x or √(x+1) or √{x^2-y^2}
   s = s.replace(/√\s*\(([^()]+)\)/g, '\\sqrt{$1}');
+  s = s.replace(/√\s*\{([^{}]+)\}/g, '\\sqrt{$1}');
   s = s.replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}');
   s = s.replace(/√/g, '\\sqrt');
 
+  // Radical fractions: e.g. x/√(x^2-y^2) or x/\sqrt{x^2-y^2} -> \dfrac{x}{\sqrt{x^2-y^2}}
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)/g, '\\dfrac{$1}{\\sqrt{$2}}');
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
+
   // 10. Derivatives: dy/dx or d^2y/dx^2 or d^n/dx^n or dy/(" " \, dx) or dy/(dx)
-  s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\)/g, '\\frac{$1}{$2}');
-  s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\b/g, '\\frac{$1}{$2}');
+  s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\)/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\b/g, '\\dfrac{$1}{$2}');
   s = s.replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1');
 
   // 11. Greek letters & symbols (always followed by space so \pi x never becomes invalid \pix)
@@ -297,19 +527,28 @@ export function convertWordEquationToLatex(raw: string): string {
        .replace(/(?:>=|[≥\u2265]|\\ge\b)/g, '\\geq ')
        .replace(/(?:!=|[≠\u2260])/g, '\\neq ');
 
-  // 8. Multi-character or parenthesized exponents: 2^(2r+1) -> 2^{2r+1}, e^((2-4x)) -> e^{2-4x}
+  // Inverse trig notation: tan^(-1) -> \tan^{-1}
+  s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*\(\s*-?\s*1\s*\)/gi, '\\$1^{-1}');
+  s = s.replace(/(?<!\\)\b(sin|cos|tan|cot|sec|csc)\b(?!\^\{-?1\})/gi, '\\$1');
+
+  // 8. Multi-character or parenthesized exponents with balanced parens:
+  // e.g. 2^(2r+1) -> 2^{2r+1}, e^(tan^(-1)(...)) -> e^{\tan^{-1}(...)}, e^(-tan^(-1)(\alpha)) -> e^{-\tan^{-1}(\alpha)}
+  s = fixNestedExponents(s);
   s = s.replace(/([0-9a-zA-Z\)\]\}]|\\\w+)\s*\^\s*\(\s*\(([^()]+)\)\s*\)/g, '$1^{$2}');
   s = s.replace(/([0-9a-zA-Z\)\]\}]|\\\w+)\s*\^\s*\(\s*([^()]+)\s*\)/g, '$1^{$2}');
   s = s.replace(/([0-9a-zA-Z\)\]\}]|\\\w+)\s*\^\s*([a-zA-Z0-9])(?![a-zA-Z0-9{])/g, '$1^{$2}');
+  // e.g. e^{y/x} or e^(y/x) -> e^{\frac{y}{x}}
+  s = s.replace(/e\s*\^\s*\{?\s*([a-zA-Z0-9]+)\s*\/\s*([a-zA-Z0-9]+)\s*\}?/g, 'e^{\\frac{$1}{$2}}');
 
   // 9. Subscripts: S_k -> S_{k}, a_n -> a_{n}
   s = s.replace(/\b([A-Za-z])_([a-zA-Z0-9]+)\b/g, '$1_{$2}');
 
   // 10. Fractions:
+  // Greek powered fractions: \pi^2/32 -> \dfrac{\pi^2}{32}, \pi/2 -> \dfrac{\pi}{2}
+  s = s.replace(/(\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
   // e.g. 1/(5+2x-2x^2 )(1+e^{2-4x} ) -> \dfrac{1}{(5+2x-2x^2)(1+e^{2-4x})}
   s = s.replace(/1\s*\/\s*\(\s*([^()]+)\s*\)\s*\(\s*([^()]+)\s*\)/g, '\\dfrac{1}{($1)($2)}');
   s = s.replace(/1\s*\/\s*\\alpha\b/g, '\\dfrac{1}{\\alpha}');
-  s = s.replace(/\\pi\s*\/\s*([0-9]+)/g, '\\dfrac{\\pi}{$1}');
 
   // Parens over parens: (A)/(B) -> \dfrac{A}{B}
   s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
@@ -336,8 +575,18 @@ export function convertWordEquationToLatex(raw: string): string {
   s = s.replace(/(\\(?:tan|cot|sin|cos|sec|csc)(?:\^\{[^}]+\})?|\\(?:log_e|ln|log))\s*\(\s*(\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})\s*\)/g,
     '$1\\left($2\\right)');
 
-  // 12. Spacing around \, dx, \, dy, \, dt, \, dz
-  s = s.replace(/(?:\\,)?\s*\b(d[txyz])\b/gi, ' \\, $1');
+  // 12. Spacing around standalone \, dx, \, dy, \, dt, \, dz (never inside \frac or \dfrac)
+  s = s.replace(/(?<!\\(?:d?frac)\{[^}]*|\\(?:d?frac)\{[^}]*\}\{[^}]*)(?:\\,)?\s*\b(d[txyz])\b(?!\s*\/|\s*\})/gi, ' \\, $1');
+  s = s.replace(/\\(?:d?frac)\{\s*\\,?\s*(d[txyz])\s*\}\{\s*\\,?\s*(d[txyz])\s*\}/gi, '\\dfrac{$1}{$2}');
+
+  // 13. Convert square brackets enclosing vertical fractions to \left[ ... \right]
+  s = s.replace(/(?<!\\left\s*)\[\s*([^[\]]*?\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}[\s\S]*?)\s*\](?!\s*\\right)/g, '\\left[ $1 \\right]');
+
+  // Clean duplicated delimiters: \left\left[ -> \left[
+  s = s.replace(/(?:\\left\s*)+\[/g, '\\left[');
+  s = s.replace(/(?:\\right\s*)+\]/g, '\\right]');
+  s = s.replace(/(?:\\left\s*)+\(/g, '\\left(');
+  s = s.replace(/(?:\\right\s*)+\)/g, '\\right)');
 
   return s.trim();
 }
@@ -399,26 +648,18 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z\\]+(?:\s*,\s*[a-zA-Z\\]+)*\s*\\in\s*(?:\\mathbb\{[A-Z]\}|\[[^\]]+\]|\([^\)]+\)|[A-Z]))(?![a-zA-Z0-9_\$])/g,
     (_, m) => protect(m));
 
-  // Step 2d: Differential equations
-  // e.g. \dfrac{dy}{dx} - \dfrac{3x^5 \tan^{-1}(x^3)}{(1+x^6)^{3/2}} y = 2x\exp\{ ... \}
-  const proseDiffStops = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are)\\b';
-  const fullDiffEqRegex = new RegExp(
-    `(?<![a-zA-Z0-9_\\$])((\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}[^=]+)=\\s*([^,;.\\n]+?))(?=\\s+${proseDiffStops}|\\s*[,;.]|$)`,
-    'i'
-  );
-  s = s.replace(fullDiffEqRegex, (_, m) => protect(m));
-
+  // Step 2d: Differential equations (unified with coefficients and brackets)
+  // e.g. (1+e^{2x}) \dfrac{dy}{dx} + 2(1+y^2)e^x = 0
+  // e.g. [\dfrac{x}{\sqrt{x^2-y^2}} + e^{y/x}] x \dfrac{dy}{dx} = x + ...
   // e.g. 2x^{2} dy=(2xy+y^{2}) \, dx
-  // e.g. x^{3} dy+xy \, dx=x^{2} dy+2y \, dx
   // e.g. y(x+1) \, dx-x^{2} dy=0
-  // e.g. (x^2+1) \frac{dy}{dx} + 2xy = 4x^2
   const proseDiffStopsEq = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are)\\b';
   s = s.replace(
-    new RegExp(`(?<![a-zA-Z0-9_\\$])(-?[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?\\b(?:dy|dx|dt|dz)\\b[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?=\\s*[^,;.\\n]+?)(?=\\s*[,;.]|\\s+${proseDiffStopsEq}|$)`, 'gi'),
+    new RegExp(`(?<![a-zA-Z0-9_\\$])(-?[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?\\b(?:d\\^?[0-9]?[a-zA-Z]?\\/d[a-zA-Z]\\^?[0-9]?|\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}|dy|dx|dt|dz)\\b[0-9a-zA-Z^{}_\\\\()\\[\\]+\\-*/\\s]*?=\\s*[^,;.\\n]+?)(?=\\s*[,;.]|\\s+${proseDiffStopsEq}|$)`, 'gi'),
     (fullMatch, eq: string) => {
       let activeEq = eq.trim();
       let prefix = '';
-      const introMatch = activeEq.match(/^(.*?\b(?:differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)(.+)$/i);
+      const introMatch = activeEq.match(/^(.*?\b(?:(?:solution\s+curve\s+of\s+the\s+)?differential\s+equation|solution\s+curve|equation|curve|relation)\s*[:,]?\s*)([\s\S]+)$/i);
       if (introMatch) {
         prefix = introMatch[1];
         activeEq = introMatch[2];
@@ -431,9 +672,9 @@ export function wrapMathInDollars(text: string): string {
     }
   );
 
-  // Step 2e: Function initial condition equations: e.g. y(2)=e, y(1)=e, y(0)=1, f(0)=0
+  // Step 2e: Function initial condition equations: e.g. y(2)=e, y(1)=3, y(0)=0, y(\pi/4)=\pi^2/32
   s = s.replace(
-    /(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([a-zA-Z0-9_+\-/*\\^\{\}\s.,]+\)\s*=\s*[-+*/a-zA-Z0-9_\\^{}()]+)(?=\s*[,;.]|\s+(?:and|if|then|where|when|for)\b|$)/g,
+    /(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*\([a-zA-Z0-9_+\-/*\\^\{\}\s.,]+\)\s*=\s*[-+*/a-zA-Z0-9_\\^{}()\s]+?)(?=\s*[,;.]|\s+(?:and|if|then|where|when|for|with|be)\b|$)/g,
     (fullMatch, eq) => {
       const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
       if (/\b(?:let|and|the|is|are|in|on|at|of|to|for|with|then|if|which|where)\b/i.test(nonLatex)) {
@@ -447,9 +688,10 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*=\s*[a-zA-Z]\s*\([a-zA-Z0-9_+\-/*\s\\]+\))(?![a-zA-Z0-9_\$])/g,
     (_, m) => protect(m));
 
-  // Step 2g: Coordinate tuples: e.g. point (1,2) or at (0, 0)
-  s = s.replace(/(?<=\b(?:point|at|through)\s+)(\(\s*-?[0-9]+(?:\.[0-9]+)?\s*,\s*-?[0-9]+(?:\.[0-9]+)?\s*(?:,\s*-?[0-9]+(?:\.[0-9]+)?)?\s*\))(?![a-zA-Z0-9_\$])/gi,
-    (_, m) => protect(m));
+  // Step 2g: Coordinate tuples: e.g. point (1,2) or points (1,0) and (2\alpha, \alpha)
+  s = s.replace(/(?<=\b(?:point|points|at|through|from)\s+)((?:\(\s*[^,()\n]+\s*,\s*[^,()\n]+(?:\s*,\s*[^,()\n]+)?\s*\)\s*(?:and|,)\s*)*\(\s*[^,()\n]+\s*,\s*[^,()\n]+(?:\s*,\s*[^,()\n]+)?\s*\))/gi, (m) => {
+    return m.replace(/\(\s*[^,()\n]+\s*,\s*[^,()\n]+(?:\s*,\s*[^,()\n]+)?\s*\)/g, (pt) => protect(pt));
+  });
 
   // Step 3: Full integral equations or expressions
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:int|iint|iiint)(?:_\{[^{}]+\}|_[0-9a-zA-Z]+|\^\{[^{}]+\}|\^[0-9a-zA-Z]+)*\s*[\s\S]+?\\,\s*dx(?:\s*=\s*[^,;\n]+)?)(?=\s*,|\s+where|\s+for|\s+and|$)/gi,
@@ -475,33 +717,30 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])(\\(?:leq|ge|le|geq|neq)\s+[a-zA-Z0-9_\\]+)(?![a-zA-Z0-9_\$])/gi,
     (_, m) => protect(m));
 
-  // Step 5e: Variable or function query before "is equal to" / "equals"
-  // e.g. "then f( \frac{1}{2} ) is equal to", "then y(4) is equal to", "Then a is equal to"
+  // Step 5e: Comprehensive expression before "is equal to" / "equals"
+  // e.g. "then 6(y'(0) + (y(log_e √3))^2) is equal to", "then the value of 3\alpha^2 is equal to", "then y(2) is equal to"
   s = s.replace(
-    /(?<=\b(?:Then|and|if|where)\s+)([a-zA-Z](?:\s*\([a-zA-Z0-9_+\-/*\\^\{\}\s.,]+\))?)(?=\s+(?:is\s+equal\s+to|equals\b|exists\b))/gi,
-    (_, m) => {
-      let clean = m.trim();
-      clean = clean.replace(/(\d+)\s*\/\s*(\d+)/g, '\\dfrac{$1}{$2}');
-      if (clean.includes('\\frac') || clean.includes('\\dfrac')) {
-        clean = clean.replace(/\(\s*(\\(?:d?frac)\{[^{}]+\}\{[^{}]+\})\s*\)/, '\\left($1\\right)');
+    /\b(then\s+(?:the\s+)?value\s+of|the\s+value\s+of|value\s+of|then|and|if|where|find|evaluate)\s+([^,;\n]+?)\s+(is\s+equal\s+to|equals\b)(?:\s*[:=_\-]+)?/gi,
+    (fullMatch, lead, expr, tail) => {
+      let trimmed = expr.trim();
+      trimmed = trimmed.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+      if (/[0-9\+\-\*\/\^_{}\(\)\[\]\\]/.test(trimmed) && !/\b(?:is|are|the|number|points|statement|curves?)\b/i.test(trimmed)) {
+        return `${lead} ${protect(trimmed)} ${tail}`;
       }
-      return protect(clean);
+      return fullMatch;
     }
   );
 
-  // Step 5f: Single or multi-term fraction expressions before "is equal to" / "equals" or punctuation
-  // e.g. "then 1/a+1/b+4/k is equal to" -> "then $\dfrac{1}{a} + \dfrac{1}{b} + \dfrac{4}{k}$ is equal to"
-  // e.g. "then 1/2 is equal to" -> "then $\dfrac{1}{2}$ is equal to"
+  // Step 5f: Chain inequalities: e.g. 0 < x < \dfrac{\pi}{2} or -1 \le x \le 1
   s = s.replace(
-    /(?<=\b(?:then|find|calculate|where|when|if|is)\s+)([-+]?\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|\d+\s*\/\s*[a-zA-Z0-9]+)(?:\s*[+\-*/]\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|\d+\s*\/\s*[a-zA-Z0-9]+))*)(?=\s+(?:is\s+equal\s+to|equals\b|is\b)|\s*[,;.]|$)/gi,
-    (_, m) => {
-      let formatted = m.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}')
-                       .replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*([a-zA-Z0-9]+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
-      return protect(formatted);
-    }
+    /(?<![$\w])([-+]?[0-9a-zA-Z_^{}()\\]+(?:\/[-+]?[0-9a-zA-Z_^{}()\\]+)?\s*(?:<|>|<=|>=|≤|≥|\\le\b|\\ge\b|\\leq\b|\\geq\b)\s*[-+]?[0-9a-zA-Z_^{}()\\]+\s*(?:<|>|<=|>=|≤|≥|\\le\b|\\ge\b|\\leq\b|\\geq\b)\s*[-+]?(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[0-9a-zA-Z_^{}()\\]+))(?![$\w])/gi,
+    (_, m) => protect(m)
   );
 
-  // Step 5g: Composite functions: e.g. (gof)(-4)+(gof)(4) or (fog)(x) or (gof)
+  // Step 5g: Standalone blackboard bold sets: \mathbb{R}, \mathbb{N}, etc.
+  s = s.replace(/(?<![$\w])(\\(?:mathbb|mathbf|mathcal)\{[A-Z]\})(?![$\w])/g, (_, m) => protect(m));
+
+  // Step 5h: Function composition expressions: e.g. (f \circ g)(x) or (fog)(x)
   s = s.replace(/(?<!\\)\(\s*([a-zA-Z])o([a-zA-Z])\s*\)\s*(\(\s*[-+0-9a-zA-Z_/*\\]+\s*\))/gi, (_m, f1, f2, arg) => {
     return `(${f1} \\circ ${f2})${arg}`;
   });
@@ -510,11 +749,7 @@ export function wrapMathInDollars(text: string): string {
     return `(${f1} \\circ ${f2})`;
   });
 
-  s = s.replace(/(?<=\b(?:then|find|calculate|is|and)\s+)(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*\([^()\n]+\)(?:\s*[+\-*/]\s*\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*\([^()\n]+\))+)(?=\s+(?:is\s+equal\s+to|equals|is)\b|\s*[,;.]|$)/gi,
-    (_m, expr) => protect(expr));
-
-  s = s.replace(/(?<=\b(?:if|when|where|let)\s+)(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\))(?=\s+(?:is|are)\b)/gi,
-    (_m, expr) => protect(expr));
+  s = s.replace(/(?<![$\w])(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*(?:\([^()\n]+\))?)(?![$\w])/gi, (_m, expr) => protect(expr));
 
   // Step 5h: Standalone subscript variables outside math: e.g. where k_1 and k_2 are real constants
   s = s.replace(/(?<![a-zA-Z0-9_\$\\])([a-zA-Z]_[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g, (_m, sub) => protect(sub));
@@ -596,6 +831,16 @@ export function splitIntoQuestionSegments(rawText: string): string[] {
     const multiQRegex = /(?:\n\s*\n|\n)(?=\d+[\.\:\)]\s+[A-Z])/gi;
     const parts = text.split(multiQRegex).map((p) => p.trim()).filter(Boolean);
     if (parts.length > 1) return parts;
+  }
+
+  // Check 4: Sequential numbered questions e.g. "1. Let y = ... 2. Let f(x) = ..." or "\n1. ... \n2. ..."
+  const sequentialRegex = /(?:^|[\n\r]|\s{2,})(?=\b\d{1,3}\s*[\.\:\)]\s*[A-Z])/g;
+  const seqParts = text.split(sequentialRegex).map((p) => p.trim()).filter(Boolean);
+  if (seqParts.length > 1) {
+    const hasMultipleNumbered = seqParts.filter((p) => /^\d{1,3}\s*[\.\:\)]\s*[A-Z]/i.test(p)).length >= 2;
+    if (hasMultipleNumbered) {
+      return seqParts;
+    }
   }
 
   // Default: Single question block (keeps statement & all options intact)
@@ -738,7 +983,6 @@ export function findSequentialOptions(
 export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
   // Normalize unicode spaces and strip invisible Word/PDF mathematical formatting markers
   let text = cleanWordMathArtifacts(rawBlock).trim();
-  text = convertWordEquationToLatex(text);
 
   // 1. Remove leading bullets, stray dots, and question numbering e.g. ". If a curve", "1.", "Q.1:", "(1)"
   text = text.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
@@ -778,18 +1022,18 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
     text = text.replace(ansMatch[0], '').trim();
   }
 
-  // 4. Extract Exam / Shift Tag (e.g. JEE Main 2024 (Online) 6th April Evening Shift)
+  // 4. Safely Extract Exam / Shift Tag BEFORE option scanning
+  // Prevents exam tag from greedily consuming following options like "D 1/2 e^{\pi/2}-1"
   let examTag = '';
-  const examTagMatch = text.match(/(?:\[|\b|\s{2,})(JEE\s*(?:Main|Advanced)?\s*(?:-\s*\d{4}|\d{4}|\([^\)]+\)|Online|Offline)[^\n\r]*)/i) ||
-                       text.match(/\b(JEE\s*(?:Main|Advanced)?[^\n\r]*?(?:Shift|Morning|Evening|Paper\s*\d|Session\s*\d|Jan(?:uary)?|Apr(?:il)?|June|July|Feb(?:ruary)?)[^\n\r]*)/i) ||
-                       text.match(/\b(BITSAT\s*\d{4}[^\n\r]*)/i);
+  const examRes = extractExamTagSafely(text);
+  examTag = examRes.examTag;
+  text = examRes.text.trim();
 
-  if (examTagMatch) {
-    examTag = examTagMatch[1].trim().replace(/^\[|\]$/g, '');
-    text = text.replace(examTagMatch[0], '').trim();
-  }
+  // 5. Preformat docx options so glued or inline options like "to(A)", "is: A", "toA", "1e2B 2e2", "0(D)"
+  // are properly separated onto newlines with standard (A), (B), (C), (D) markers
+  text = preformatDocxOptions(text);
 
-  // 5. Extract Options (Supports A-D, 1-4, Bare Labels, Single-Space Delimiters, and Blank/Unlabeled Newlines)
+  // 6. Extract Options (Supports A-D, 1-4, Bare Labels, Single-Space Delimiters, and Blank/Unlabeled Newlines)
   let optionsMap: Record<string, string> = { A: '', B: '', C: '', D: '' };
 
   // Priority 1: Letter markers (A-D) enclosed: (A), [A], Option A
