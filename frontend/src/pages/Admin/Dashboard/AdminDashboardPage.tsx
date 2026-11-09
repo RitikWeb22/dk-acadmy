@@ -400,18 +400,18 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
             ) : (
               <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto pb-8">
                 {/* ─── EXECUTIVE COMMAND HEADER STRIP ─── */}
-                <Card className="border-border/70 bg-card/70 backdrop-blur-xs p-5 shadow-xs">
+                <Card className="border-border/70 bg-card/70 backdrop-blur-xs p-5 shadow-xs rounded-xl">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
-                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs shrink-0">
+                      <div className="h-11 w-11 rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs shrink-0">
                         <ShieldCheck size={22} />
                       </div>
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2.5">
-                          <h1 className="text-xl font-bold tracking-tight text-foreground">
-                            Executive Command Center
+                          <h1 className="text-md font-bold tracking-tight text-foreground">
+                            Welcome, {admin?.name || 'Admin'}!
                           </h1>
-                          <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-xs font-medium border-border/80 text-muted-foreground bg-background">
+                          <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-xs font-medium border-border/80 text-muted-foreground bg-background rounded-md">
                             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                             <span>Live Sync</span>
                           </Badge>
@@ -428,10 +428,10 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                         size="sm"
                         onClick={fetchAnalytics}
                         disabled={isSyncing}
-                        className="h-9 gap-2 text-xs font-semibold border-border/80 bg-background shadow-xs hover:bg-muted"
+                        className="h-8 gap-2 text-xs font-medium rounded-md border-border/80 bg-background shadow-xs hover:bg-muted"
                         title="Refresh live metrics"
                       >
-                        <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                        <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
                         <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
                       </Button>
 
@@ -439,11 +439,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                         variant="default"
                         size="sm"
                         onClick={() => setIsCommandPaletteOpen(true)}
-                        className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
+                        className="h-8 gap-2 text-xs font-medium rounded-md bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
                         title="Open Command Palette (Ctrl+K)"
                       >
                         <span>Quick Actions</span>
-                        <kbd className="hidden sm:inline-block font-mono text-[10px] bg-primary-foreground/20 text-primary-foreground px-1.5 py-0.5 rounded font-semibold">
+                        <kbd className="hidden sm:inline-block font-mono text-xs bg-primary-foreground/20 text-primary-foreground px-1.5 py-0.5 rounded-md font-semibold">
                           ⌘K
                         </kbd>
                       </Button>
@@ -455,12 +455,12 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-3">
                   {/* 1. Student Management */}
                   <Card
-                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm"
+                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm rounded-xl"
                     onClick={() => handleNavClick('students', '/admin/students')}
                     title="Open Student Management"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center">
                         <Users size={16} />
                       </div>
                       <ArrowUpRight size={13} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
@@ -472,7 +472,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <span className="text-xs font-semibold text-foreground truncate">
                         Students
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         Roster &amp; Batches
                       </span>
                     </div>
@@ -480,12 +480,12 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 2. Teachers & Admin */}
                   <Card
-                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm"
+                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm rounded-xl"
                     onClick={() => handleNavClick('teachers', '/admin/teachers')}
                     title="Open Teachers & Admin"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 flex items-center justify-center">
                         <ShieldCheck size={16} />
                       </div>
                       <ArrowUpRight size={13} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
@@ -497,7 +497,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <span className="text-xs font-semibold text-foreground truncate">
                         Faculty
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         RBAC Control
                       </span>
                     </div>
@@ -505,12 +505,12 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 3. Invoices & Fee Slips */}
                   <Card
-                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm"
+                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm rounded-xl"
                     onClick={() => handleNavClick('invoices', '/admin/invoices')}
                     title="Open Invoices & Fee Slips"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center">
                         <CreditCard size={16} />
                       </div>
                       <ArrowUpRight size={13} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
@@ -522,7 +522,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <span className="text-xs font-semibold text-foreground truncate">
                         Invoices
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         Slips &amp; Razorpay
                       </span>
                     </div>
@@ -530,12 +530,12 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 4. Course Builder */}
                   <Card
-                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm"
+                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm rounded-xl"
                     onClick={() => handleNavClick('courses', '/admin/courses/create')}
                     title="Open Course Builder"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-8 w-8 rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-md bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400 flex items-center justify-center">
                         <PlusSquare size={16} />
                       </div>
                       <ArrowUpRight size={13} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
@@ -547,7 +547,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <span className="text-xs font-semibold text-foreground truncate">
                         Courses
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         Batches &amp; Vault
                       </span>
                     </div>
@@ -555,12 +555,12 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 5. Test Series */}
                   <Card
-                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm"
+                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm rounded-xl"
                     onClick={() => handleNavClick('test-series', '/admin/test-series')}
                     title="Open Test Series Engine"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-md bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 flex items-center justify-center">
                         <FileText size={16} />
                       </div>
                       <ArrowUpRight size={13} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
@@ -572,7 +572,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <span className="text-xs font-semibold text-foreground truncate">
                         Test Series
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         CBT Simulator
                       </span>
                     </div>
@@ -580,12 +580,12 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 6. DPP & PYQ Practice */}
                   <Card
-                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm"
+                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm rounded-xl"
                     onClick={() => handleNavClick('dpp-pyq', '/admin/dpp-pyq')}
                     title="Open DPP & PYQ Practice"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-8 w-8 rounded-lg bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-md bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400 flex items-center justify-center">
                         <Crosshair size={16} />
                       </div>
                       <ArrowUpRight size={13} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
@@ -597,7 +597,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <span className="text-xs font-semibold text-foreground truncate">
                         DPP &amp; PYQ
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         Daily Drills
                       </span>
                     </div>
@@ -605,12 +605,12 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 7. Free Lectures */}
                   <Card
-                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm"
+                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm rounded-xl"
                     onClick={() => handleNavClick('free-lectures', '/admin/free-lectures')}
                     title="Open Free Lectures Create"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-8 w-8 rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-md bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 flex items-center justify-center">
                         <Video size={16} />
                       </div>
                       <ArrowUpRight size={13} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
@@ -622,7 +622,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <span className="text-xs font-semibold text-foreground truncate">
                         Free Lectures
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         Lecture Library
                       </span>
                     </div>
@@ -630,12 +630,12 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 8. Contact Us & Leads Desk */}
                   <Card
-                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm"
+                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm rounded-xl"
                     onClick={() => handleNavClick('contact', '/admin/contact')}
                     title="Open Contact Us & Customer Inquiries Desk"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-8 w-8 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 flex items-center justify-center">
                         <Mail size={16} />
                       </div>
                       <ArrowUpRight size={13} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
@@ -647,7 +647,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <span className="text-xs font-semibold text-foreground truncate">
                         Inquiries Desk
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         Callbacks &amp; Desk
                       </span>
                     </div>
@@ -655,12 +655,12 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 9. Discount Coupons */}
                   <Card
-                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm"
+                    className="group cursor-pointer border-border/70 bg-card hover:bg-accent/40 hover:border-border transition-all duration-150 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-sm rounded-xl"
                     onClick={() => handleNavClick('coupons', '/admin/coupons')}
                     title="Open Discount Coupons & Promo Offers"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-8 w-8 rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-md bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400 flex items-center justify-center">
                         <Tag size={16} />
                       </div>
                       <ArrowUpRight size={13} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
@@ -672,7 +672,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <span className="text-xs font-semibold text-foreground truncate">
                         Promotions
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         Fee Concessions
                       </span>
                     </div>
@@ -690,11 +690,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                   {/* RIGHT COLUMN (~33% Width — Compact Metric Gauges & Live Stream) */}
                   <div className="lg:col-span-4 flex flex-col gap-6">
                     {/* Top Metric Card 1: Fee Collections */}
-                    <Card className="border-border/60 bg-card p-5 shadow-xs">
+                    <Card className="border-border/60 bg-card p-5 shadow-xs rounded-xl">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex flex-col gap-1.5">
                           <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center">
+                            <div className="h-8 w-8 rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center">
                               <Receipt size={16} />
                             </div>
                             <span className="text-xs font-semibold text-muted-foreground">Fee Collections</span>
@@ -703,11 +703,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                             <span className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
                               ₹{liveAnalytics.grossRevenue.toLocaleString('en-IN')}
                             </span>
-                            <Badge variant="secondary" className="text-[11px] font-semibold py-0.5 px-2 tabular-nums text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60">
+                            <Badge variant="secondary" className="text-xs font-semibold py-0.5 px-2 tabular-nums text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 rounded-md">
                               {liveAnalytics.revenueGrowth}
                             </Badge>
                           </div>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             Verified offline &amp; online payments
                           </span>
                         </div>
@@ -724,11 +724,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                     </Card>
 
                     {/* Top Metric Card 2: Enrolled Aspirants */}
-                    <Card className="border-border/60 bg-card p-5 shadow-xs">
+                    <Card className="border-border/60 bg-card p-5 shadow-xs rounded-xl">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex flex-col gap-1.5">
                           <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 flex items-center justify-center">
+                            <div className="h-8 w-8 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 flex items-center justify-center">
                               <Users size={16} />
                             </div>
                             <span className="text-xs font-semibold text-muted-foreground">Enrolled Aspirants</span>
@@ -737,11 +737,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                             <span className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
                               {liveAnalytics.totalEnrolments}
                             </span>
-                            <Badge variant="secondary" className="text-[11px] font-semibold py-0.5 px-2 tabular-nums text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60">
+                            <Badge variant="secondary" className="text-xs font-semibold py-0.5 px-2 tabular-nums text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 rounded-md">
                               {liveAnalytics.studentsGrowth}
                             </Badge>
                           </div>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             Active students enrolled in batches
                           </span>
                         </div>
