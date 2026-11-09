@@ -150,9 +150,9 @@ export const Topbar: React.FC<TopbarProps> = ({
         <nav className={styles.breadcrumbs} aria-label="Breadcrumbs">
           <span className={styles.crumbParent}>Admin</span>
           <ChevronRight size={13} className={styles.crumbSeparator} />
-          <h1 className={styles.crumbCurrent} aria-current="page">
+          <span className={styles.crumbCurrent} aria-current="page">
             {getBreadcrumbLabel(activeMenu)}
-          </h1>
+          </span>
         </nav>
       </div>
 

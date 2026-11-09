@@ -148,7 +148,7 @@ export const RecentTransactionsCard: React.FC = () => {
                 className="flex items-center justify-between px-5 py-3 hover:bg-muted/40 transition-colors gap-3"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="font-mono text-[10px] bg-muted/80 text-muted-foreground px-1.5 py-0.5 rounded border border-border/50 shrink-0">
+                  <span className="font-mono text-xs bg-muted/80 text-muted-foreground px-2 py-0.5 rounded-md border border-border/50 shrink-0">
                     {txn.id}
                   </span>
                   <div className="flex flex-col min-w-0">
@@ -156,7 +156,7 @@ export const RecentTransactionsCard: React.FC = () => {
                       {txn.studentName}
                     </span>
                     {txn.batchName && (
-                      <span className="text-[11px] text-muted-foreground truncate" title={txn.batchName}>
+                      <span className="text-xs text-muted-foreground line-clamp-1" title={txn.batchName}>
                         {txn.batchName}
                       </span>
                     )}
@@ -167,7 +167,7 @@ export const RecentTransactionsCard: React.FC = () => {
                   <div className="text-xs font-bold text-foreground tabular-nums">
                     {txn.amount}
                   </div>
-                  <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                  <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
                     {txn.timestamp}
                   </div>
                 </div>
@@ -185,7 +185,7 @@ export const RecentTransactionsCard: React.FC = () => {
           <Button
             variant="outline"
             size="icon"
-            className="h-7 w-7 border-border/60"
+            className="h-8 w-8 rounded-md"
             disabled={page === 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             aria-label="Previous page"
@@ -195,7 +195,7 @@ export const RecentTransactionsCard: React.FC = () => {
           <Button
             variant="outline"
             size="icon"
-            className="h-7 w-7 border-border/60"
+            className="h-8 w-8 rounded-md"
             disabled={page * rowsPerPage >= totalRows}
             onClick={() => setPage((p) => p + 1)}
             aria-label="Next page"
