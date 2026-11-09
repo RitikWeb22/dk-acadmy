@@ -60,13 +60,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  const adminInitials = (admin?.name || 'Admin')
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  const adminInitials = (admin?.name || 'Ritik')
+    .trim()
+    .charAt(0)
+    .toUpperCase() || 'R';
 
   // Grouped Navigation structure matching reference layout
   const navSections: NavSectionDef[] = [
@@ -257,19 +254,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => setIsProfileModalOpen(true)}
               title="Click to edit profile"
             >
-              <div className={styles.profileNameRow}>
-                <span className={styles.profileName} title={admin?.name || 'Administrator'}>
-                  {admin?.name || 'Administrator'}
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={styles.profileName} title={admin?.name || 'Ritik'}>
+                  {admin?.name || 'Ritik'}
+                </span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 shrink-0">
+                  {admin?.role?.replace('_', ' ') || 'Super Admin'}
                 </span>
               </div>
-              <span className={styles.profileRole} title={admin?.designation || admin?.role}>
-                - {admin?.designation || (admin?.role ? admin.role.replace('_', ' ') : 'Super Admin')}
+              <span
+                className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 block"
+                title={admin?.designation || 'Academic Director & Founder'}
+              >
+                {admin?.designation || 'Academic Director & Founder'}
               </span>
             </div>
           )}
 
           {!isCollapsed && (
-            <div className={styles.profileMenuTriggerWrap}>
+            <div className={`${styles.profileMenuTriggerWrap} ml-auto shrink-0`}>
               <button
                 type="button"
                 className={styles.profileMenuBtn}
@@ -277,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 aria-label="Account options"
                 aria-expanded={isProfileMenuOpen}
               >
-                <MoreVertical size={15} />
+                <MoreVertical size={16} />
               </button>
 
               {isProfileMenuOpen && (
