@@ -215,11 +215,21 @@ export function cleanWordMathArtifacts(text: string): string {
   s = parseWordMatricesAndCases(s);
 
   // Repair corrupted differential residues:
-  // e.g. \dfrac{} \, dy}{\, dx -> \dfrac{dy}{dx}
-  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
-  s = s.replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/g, '\\dfrac{$1}{$2}');
+  // e.g. \dfrac{} \ dy}{\, dx or \dfrac{} \, dy}{\, dx -> \dfrac{dy}{dx}
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}/gi, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\{\s*\})?\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\/\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])(?![a-zA-Z{])/gi, '\\dfrac{$1}{dx}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/gi, '\\dfrac{$1}{$2}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
-  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{dx}');
+
+  // Convert radical fractions: x/\sqrt{...} or x/ \sqrt{...} or x/√(x^2-y^2)
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\{([^}]+)\}/gi, '\\dfrac{$1}{\\sqrt{$2}}');
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\(([^)]+)\)/gi, '\\dfrac{$1}{\\sqrt{$2}}');
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)/g, '\\dfrac{$1}{\\sqrt{$2}}');
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}');
 
   // Clean stray closing braces directly after radicals or brackets:
   // e.g. \sqrt{x^2 - y^2} } -> \sqrt{x^2 - y^2}
@@ -780,6 +790,11 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])([-+]?\s*\\(?:d?frac)\{[^{}]+\}\{[^{}]+\})(?![a-zA-Z0-9_\$])/g,
     (_, m) => protect(m.trim()));
 
+  // Clean empty \dfrac{} or \frac{} so they are never protected into standalone invalid $\dfrac{}$
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');
+  s = s.replace(/\\(?:d?frac)(?!\s*\{)/g, '');
+
   // Step 7: Standalone math commands
   s = s.replace(/(?<!\$)([-+]?\s*(\\(?:tan|cot|sin|cos|sec|csc)\^\{[^}]+\}|\\(?:frac|dfrac|sqrt|log_e|ln|alpha|beta|gamma|theta|lambda|pi|sum|lim|int|mathbb\{[A-Z]\}|neq|leq|geq|in|to|subset|subseteq|cap|cup|pm|mp|times|div|cdot|hat\{[^{}]+\}|vec\{[^{}]+\}|Delta|phi))\S*(?:\s*[=+*/\-]\s*\S+)*)(?!\$)/g,
     (_, m) => protect(m));
@@ -788,6 +803,15 @@ export function wrapMathInDollars(text: string): string {
   for (let idx = 0; idx < protectedBlocks.length; idx++) {
     s = s.replace(`___PROT_${idx}___`, protectedBlocks[idx]);
   }
+
+  // Final cleanup of orphan tokens & empty fractions
+  s = s.replace(/___PROT_\d+___/g, '');
+  s = s.replace(/\u27E6MATH_\d+\u27E7/g, '');
+  s = s.replace(/\[\s*MATH_\d+\s*\]/gi, '');
+  s = s.replace(/⟦\s*MATH_\d+\s*⟧/gi, '');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');
+  s = s.replace(/\\(?:d?frac)(?!\s*\{)/g, '');
 
   // Clean double dollars and redundant spaces around punctuation
   s = s.replace(/\$\s*\$/g, ' ');

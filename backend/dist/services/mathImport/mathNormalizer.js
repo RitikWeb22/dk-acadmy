@@ -332,10 +332,14 @@ export function repairLinearMathResidues(text) {
     s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\b/g, '\\dfrac{$1}{$2}');
     s = s.replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1');
     // Repair corrupted differential residues:
-    s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
-    s = s.replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/g, '\\dfrac{$1}{$2}');
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}');
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}/gi, '\\dfrac{$1}{$2}');
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}');
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\{\s*\})?\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\/\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}');
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])(?![a-zA-Z{])/gi, '\\dfrac{$1}{dx}');
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}');
+    s = s.replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/gi, '\\dfrac{$1}{$2}');
     s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
-    s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{dx}');
     // Clean stray closing braces directly after radicals:
     s = s.replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}/g, '$1');
     s = s.replace(/\}\s*(\+\s*e\^)/g, ' $1');
@@ -352,6 +356,8 @@ export function repairLinearMathResidues(text) {
     s = s.replace(/(?<![a-zA-Z0-9_\\])\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*([A-Za-z0-9_\\^{}]+)/g, '\\dfrac{$1}{$2}');
     s = s.replace(/(?<![a-zA-Z0-9_\\])([A-Za-z0-9_\\^{}]+)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
     // Radical fractions: e.g. x/√(x^2-y^2) or x/\sqrt{x^2-y^2} -> \dfrac{x}{\sqrt{x^2-y^2}}
+    s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\{([^}]+)\}/gi, '\\dfrac{$1}{\\sqrt{$2}}');
+    s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\(([^)]+)\)/gi, '\\dfrac{$1}{\\sqrt{$2}}');
     s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)/g, '\\dfrac{$1}{\\sqrt{$2}}');
     s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}');
     s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}');
@@ -605,15 +611,17 @@ export function wrapBareLatexInDollars(text) {
     // 14c. Simple variable assignments after at/for/where/when/if: at x = 0, for x = 1
     s = s.replace(new RegExp(`(?<=\\b(?:at|for|where|when|if|with)\\s+)([a-zA-Z]\\s*=\\s*[-+]?[0-9a-zA-Z_\\\\^{}()]+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'), (_, m) => protect(m));
     // Clean empty \dfrac{} or \frac{} so they are never protected into standalone invalid $\dfrac{}$
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
     s = s.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');
+    s = s.replace(/\\(?:d?frac)(?!\s*\{)/g, '');
     // 15. Remaining standalone LaTeX commands with balanced braces
     s = s.replace(new RegExp(`(?<![$\\w])(\\\\(?:d?frac)\\{(?:[^{}]|\\{[^{}]*\\})+\\}\\{(?:[^{}]|\\{[^{}]*\\})+\\}|\\\\(?:sqrt|vec|hat|bar|dot|ddot|tilde|mathbf|mathrm|text|operatorname)\\{(?:[^{}]|\\{[^{}]*\\})*\\}(?:[A-Za-z0-9_^{}\\\\()[\\]+\\-*/\\s.]*[A-Za-z0-9_^{}\\\\()[\\]+\\-*/])?|\\\\(?:alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|infty|times|div|pm|mp|le|ge|ne|approx|sim|to|partial|nabla|degree|circ)(?![a-zA-Z]))(?=\\s*[,;.]|\\s+${proseStops}|$|\\s+[a-zA-Z]{3,})`, 'gi'), (fullMatch, cmd) => protect(cmd));
     // 1. Expand any remaining nested ⟦MATH_...⟧ tokens inside protectedBlocks
     for (let p = 0; p < 10; p++) {
         let changed = false;
         for (let i = 0; i < protectedBlocks.length; i++) {
-            if (/\u27E6MATH_(\d+)\u27E7/.test(protectedBlocks[i])) {
-                protectedBlocks[i] = protectedBlocks[i].replace(/\u27E6MATH_(\d+)\u27E7/g, (_, id) => {
+            if (/[\u27E6⟦\[]MATH_?(\d+)[\u27E7⟧\]]/i.test(protectedBlocks[i])) {
+                protectedBlocks[i] = protectedBlocks[i].replace(/[\u27E6⟦\[]MATH_?(\d+)[\u27E7⟧\]]/gi, (_, id) => {
                     const inner = protectedBlocks[Number(id)] || '';
                     return inner.replace(/^\$|\$$/g, '').trim();
                 });
@@ -625,8 +633,8 @@ export function wrapBareLatexInDollars(text) {
     }
     // 2. Restore all protected blocks into s recursively with global regex
     let restorePasses = 0;
-    while (/\u27E6MATH_(\d+)\u27E7/.test(s) && restorePasses < 10) {
-        s = s.replace(/\u27E6MATH_(\d+)\u27E7/g, (_, id) => {
+    while (/[\u27E6⟦\[]MATH_?(\d+)[\u27E7⟧\]]/i.test(s) && restorePasses < 10) {
+        s = s.replace(/[\u27E6⟦\[]MATH_?(\d+)[\u27E7⟧\]]/gi, (_, id) => {
             const block = protectedBlocks[Number(id)];
             return block !== undefined ? block : '';
         });
@@ -638,6 +646,9 @@ export function wrapBareLatexInDollars(text) {
     s = s.replace(/___PROT_\d+___/g, '');
     s = s.replace(/\[\s*MATH_\d+\s*\]/gi, '');
     s = s.replace(/⟦\s*MATH_\d+\s*⟧/gi, '');
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');
+    s = s.replace(/\\(?:d?frac)(?!\s*\{)/g, '');
     // 4. Clean adjacent dollars and spacing
     s = s.replace(/\$\s*\$/g, ' ');
     s = s.replace(/\$\$+/g, '$');

@@ -70,6 +70,18 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
     text = normalizeMathString(singleDollarText);
   }
 
+  // Final safety scrub: clean corrupted differentials, bare \dfrac{}, and orphan tokens
+  text = text
+    .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])(?![a-zA-Z{])/gi, '\\dfrac{$1}{dx}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '')
+    .replace(/\\(?:d?frac)\{\s*\}\s*/g, '')
+    .replace(/\\(?:d?frac)(?!\s*\{)/g, '')
+    .replace(/\[\s*MATH_\d+\s*\]/gi, '')
+    .replace(/⟦\s*MATH_\d+\s*⟧/gi, '')
+    .replace(/\u27E6MATH_\d+\u27E7/g, '');
+
   // Delimiters supported:
   // 1. Display math: $$ ... $$ and \[ ... \]
   // 2. Inline math: $ ... $ and \( ... \) (including multiline inline math)

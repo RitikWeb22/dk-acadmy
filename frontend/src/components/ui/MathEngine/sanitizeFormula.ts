@@ -14,10 +14,33 @@ export function sanitizeFormula(str: string): string {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
+    // Strip orphan internal tokens if present
+    .replace(/\[\|MATH_\d+\|\]/g, '')
+    .replace(/\u27E6MATH_\d+\u27E7/g, '')
+    .replace(/___PROT_\d+___/g, '')
+    .replace(/\[\s*MATH_\d+\s*\]/gi, '')
+    .replace(/⟦\s*MATH_\d+\s*⟧/gi, '')
+    // Repair broken/corrupted differentials: e.g. \dfrac{} \ dy}{\, dx or \dfrac{} \, dy}{\, dx -> \dfrac{dy}{dx}
+    .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*(?:\{\s*\})?\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\/\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])(?![a-zA-Z{])/gi, '\\dfrac{$1}{dx}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}')
     // Repair Word linear differential residue: dy/(" " \, dx) or dy/(dx) or dy/dx
     .replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z]\^?[0-9]?)\s*\)/g, '\\dfrac{$1}{$2}')
     .replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\dfrac{$1}{$2}')
     .replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1')
+    // Convert radical fractions: x/\sqrt{...} or x/ \sqrt{...} or x/√(x^2-y^2)
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\{([^}]+)\}/gi, '\\dfrac{$1}{\\sqrt{$2}}')
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\(([^)]+)\)/gi, '\\dfrac{$1}{\\sqrt{$2}}')
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)/g, '\\dfrac{$1}{\\sqrt{$2}}')
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}')
+    // Clean stray closing braces directly after sqrt: \sqrt{x^2-y^2} } -> \sqrt{x^2-y^2}
+    .replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}/g, '$1')
+    .replace(/\}\s*(\+\s*e\^)/g, ' $1')
     // Convert linear fractions into \dfrac (numerator upon denominator) so they render as vertical fractions
     // Parens over parens: (A)/(B) -> \dfrac{A}{B}
     .replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}')
@@ -36,21 +59,17 @@ export function sanitizeFormula(str: string): string {
     // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi^2/32 -> \dfrac{\pi^2}{32}
     .replace(/(\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}')
     .replace(/(?<![a-zA-Z0-9_\\/])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)/g, '\\dfrac{$1}{$2}')
-    // Radical fractions
-    .replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)/g, '\\dfrac{$1}{\\sqrt{$2}}')
-    .replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}')
     // Upgrade \frac to \dfrac for proper "upon" height
     .replace(/\\frac\b/g, '\\dfrac')
-    // Repair broken/corrupted differentials: \dfrac{} \, dy}{\, dx -> \dfrac{dy}{dx}
-    .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}')
-    .replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/g, '\\dfrac{$1}{$2}')
-    .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}')
-    .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{dx}')
-    // Clean any empty fraction residues so KaTeX never throws "Expected group after '\dfrac'"
+    // Second pass repair for broken/corrupted differentials:
+    .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])(?![a-zA-Z{])/gi, '\\dfrac{$1}{dx}')
+    // Clean any empty fraction residues so KaTeX NEVER throws "Expected group after '\dfrac'"
     .replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '')
+    .replace(/\\(?:d?frac)\{\s*\}\s*\{([^{}]+)\}/g, '\\dfrac{1}{$1}')
+    .replace(/\\(?:d?frac)\{([^{}]+)\}\s*\{\s*\}/g, '\\dfrac{$1}{1}')
     .replace(/\\(?:d?frac)\{\s*\}\s*/g, '')
-    .replace(/\\(?:d?frac)\{\s*\}\{([^{}]+)\}/g, '\\frac{1}{$1}')
-    .replace(/\\(?:d?frac)\{([^{}]+)\}\{\s*\}/g, '\\frac{$1}{1}')
+    .replace(/\\(?:d?frac)(?!\s*\{)/g, '')
     // Clean redundant parens inside sqrt: \sqrt{(1+x^6)} -> \sqrt{1+x^6}
     .replace(/\\sqrt\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}')
     .replace(/\\sqrt\{\s*\(([^()]+)\)\s*\}/g, '\\sqrt{$1}')
@@ -175,6 +194,20 @@ export function sanitizeFormula(str: string): string {
   // Strip stray & characters if no alignment/cases/matrix environment is present
   if (!/\\begin\{(?:cases|aligned|matrix|bmatrix|pmatrix|vmatrix|Vmatrix|split|gather|alignat)\}/.test(res)) {
     res = res.replace(/&/g, ' ');
+  } else {
+    // Strip any stray & that appears before the first \begin{...}
+    const firstBegin = res.indexOf('\\begin{');
+    if (firstBegin > 0) {
+      res = res.slice(0, firstBegin).replace(/&/g, ' ') + res.slice(firstBegin);
+    }
+    // Strip any stray & that appears after the last \end{...}
+    const lastEnd = res.lastIndexOf('\\end{');
+    if (lastEnd !== -1) {
+      const endBrace = res.indexOf('}', lastEnd);
+      if (endBrace !== -1 && endBrace + 1 < res.length) {
+        res = res.slice(0, endBrace + 1) + res.slice(endBrace + 1).replace(/&/g, ' ');
+      }
+    }
   }
 
   // Auto-close unclosed environments: e.g. \begin{cases} without \end{cases}
@@ -244,5 +277,15 @@ export function sanitizeFormula(str: string): string {
   }
   res = balanced;
 
-  return res;
+  // Final safeguard: Never allow empty \dfrac{} or bare \dfrac to escape to KaTeX
+  res = res.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
+  res = res.replace(/\\(?:d?frac)\{\s*\}\s*\{([^{}]+)\}/g, '\\dfrac{1}{$1}');
+  res = res.replace(/\\(?:d?frac)\{([^{}]+)\}\s*\{\s*\}/g, '\\dfrac{$1}{1}');
+  res = res.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');
+  res = res.replace(/\\(?:d?frac)(?!\s*\{)/g, '');
+  res = res.replace(/\u27E6MATH_\d+\u27E7/g, '');
+  res = res.replace(/\[\s*MATH_\d+\s*\]/gi, '');
+  res = res.replace(/⟦\s*MATH_\d+\s*⟧/gi, '');
+
+  return res.trim();
 }
