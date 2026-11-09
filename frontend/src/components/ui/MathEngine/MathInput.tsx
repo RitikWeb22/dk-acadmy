@@ -140,8 +140,24 @@ export const MathInput: React.FC<MathInputProps> = ({
     // If this input is an Option field (compact or label starts with Option), use normalizeOptionMath
     // Otherwise use full statement normalizer normalizeMathString
     const isOptionField = compact || Boolean(label && /^Option\s+[A-D]/i.test(label));
-    let normalized = isOptionField ? normalizeOptionMath(baseClean) : normalizeMathString(convertWordEquationToLatex(baseClean));
-    normalized = normalized.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '');
+    let normalized = '';
+    if (isOptionField) {
+      normalized = normalizeOptionMath(baseClean);
+    } else {
+      const alreadyHasLatex = /\\(?:frac|dfrac|sqrt|lim|int|sum|prod|begin|matrix|cases)\b/.test(baseClean);
+      normalized = alreadyHasLatex ? normalizeMathString(baseClean) : normalizeMathString(convertWordEquationToLatex(baseClean));
+    }
+    normalized = normalized
+      .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '')
+      .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}')
+      .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}')
+      .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])(?![a-zA-Z{])/gi, '\\dfrac{$1}{dx}')
+      .replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '')
+      .replace(/\\(?:d?frac)\{\s*\}\s*/g, '')
+      .replace(/\\(?:d?frac)(?!\s*\{)/g, '')
+      .replace(/\[\s*MATH_\d+\s*\]/gi, '')
+      .replace(/⟦\s*MATH_\d+\s*⟧/gi, '')
+      .replace(/\u27E6MATH_\d+\u27E7/g, '');
 
     if (!normalized) return;
 

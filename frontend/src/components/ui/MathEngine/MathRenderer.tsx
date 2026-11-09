@@ -141,6 +141,9 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
 }) => {
   const renderedHtml = useMemo(() => {
     const cleanFormula = sanitizeFormula(formula);
+    if (!cleanFormula) {
+      return { html: '', error: null };
+    }
 
     const baseOptions = {
       displayMode: isDisplay,
@@ -157,11 +160,18 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
       // If KaTeX encountered an error node, attempt auto-balancing repair
       if (html.includes('katex-error')) {
         let repaired = cleanFormula
+          .replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '')
+          .replace(/\\(?:d?frac)\{\s*\}\s*/g, '')
+          .replace(/\\(?:d?frac)(?!\s*\{)/g, '')
           .replace(/(?:\\left\s*)+/g, '\\left')
           .replace(/(?:\\right\s*)+/g, '\\right')
           .replace(/\\left\s*\\left\s*([\[\(\{\|])/g, '\\left$1')
           .replace(/\\right\s*\\right\s*([\]\)\}\|])/g, '\\right$1')
           .replace(/,\s*\]/g, ']');
+
+        if (!repaired.trim()) {
+          return { html: '', error: null };
+        }
 
         const leftCount = (repaired.match(/\\left(?:[\[\(\{\|.]|\\\{)/g) || []).length;
         const rightCount = (repaired.match(/\\right(?:[\]\)\}\|.]|\\\})/g) || []).length;
@@ -187,9 +197,18 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
             if (!thirdTry.includes('katex-error')) {
               html = thirdTry;
             } else {
-              // Final fallback: KaTeX could not render even after all repairs.
-              // Show red inline error chip with original LaTeX expression
-              html = `<span class="katex-error-inline" title="KaTeX rendering error" style="color:#dc2626;background-color:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 5px;font-family:monospace;font-size:0.85em;display:inline-block;margin:0 2px;">${cleanFormula.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+              // Fourth attempt: strip stray & if outside alignment environment
+              const noStrayAmp = stripped.replace(/&/g, ' ');
+              const fourthTry = katex.renderToString(noStrayAmp, baseOptions);
+              if (!fourthTry.includes('katex-error')) {
+                html = fourthTry;
+              } else if (!stripped.replace(/[\\{}]/g, '').trim()) {
+                html = '';
+              } else {
+                // Final fallback: KaTeX could not render even after all repairs.
+                // Show red inline error chip with original LaTeX expression
+                html = `<span class="katex-error-inline" title="KaTeX rendering error" style="color:#dc2626;background-color:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 5px;font-family:monospace;font-size:0.85em;display:inline-block;margin:0 2px;">${cleanFormula.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+              }
             }
           }
         } catch {}
