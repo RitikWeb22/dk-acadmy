@@ -28,6 +28,8 @@ export interface ParsedWordQuestion {
 export function cleanWordMathArtifacts(text: string): string {
   if (!text) return '';
   let s = parseWordMatricesAndCases(text);
+  // Function multiplication dot: f(x).f(y) -> f(x) \cdot f(y)
+  s = s.replace(/\)\s*\.\s*([a-zA-Z]\s*\()/g, ') \\cdot $1');
   return s
     .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
     .replace(/[\u200B-\u200F\u2060-\u2064\uFEFF\u00AD\u034F\u180E\uFFF9-\uFFFC]/g, '')
@@ -601,11 +603,142 @@ export function splitIntoQuestionSegments(rawText: string): string[] {
 }
 
 /**
+ * Validates whether an extracted string candidate can legitimately be an option choice.
+ * Returns false if candidate text is a question connective, query prompt, or condition prose.
+ */
+export function isValidOptionText(opt: string): boolean {
+  if (!opt) return false;
+  const t = opt.trim();
+  if (!t) return false;
+
+  // Cannot be pure sentence connective or conjunction
+  if (/^(?:if|then|where|when|and|or|but|for|with|at|in|on|to|let|the|of|a|an|is|are|was|were|so|as)$/i.test(t)) {
+    return false;
+  }
+
+  // Cannot start with sentence introductory clause
+  if (/^(?:if|then|where|when|let|suppose|for\s+all|for\s+any)\s+/i.test(t)) {
+    return false;
+  }
+
+  // Cannot contain question query or prompt
+  if (/\b(?:is\s+equal\s+to|equal\s+to|equals\b|find\b|calculate\b|determine\b|evaluate\b|\?)/i.test(t)) {
+    return false;
+  }
+
+  // Cannot contain fill-in-the-blank line
+  if (/__+|_+$/.test(t)) {
+    return false;
+  }
+
+  // Cannot contain problem condition prose
+  if (/\b(?:satisfy|satisfies|satisfying|differentiable|continuous\s+at|given\s+that)\b/i.test(t)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Validates whether extracted candidate options A, B, C, D form a legitimate set of choices
+ * and did not mutilate or steal the question prompt.
+ */
+export function areValidExtractedOptions(
+  options: { A: string; B: string; C: string; D: string },
+  statement: string
+): boolean {
+  const nonBlank = [options.A, options.B, options.C, options.D].filter((o) => o.trim().length > 0);
+  if (nonBlank.length < 2) return false;
+
+  // All extracted non-blank options must pass isValidOptionText
+  for (const opt of nonBlank) {
+    if (!isValidOptionText(opt)) {
+      return false;
+    }
+  }
+
+  // Remaining statement must not be left hanging
+  const stmtTrim = statement.trim();
+  if (!stmtTrim) return false;
+
+  if (/\b(?:satisfy|satisfies|equation|function|such\s+that|let|suppose|and|with|if)$/i.test(stmtTrim)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Scans for sequential option keys, prioritizing bottom-most matches and ensuring all candidates pass validation.
+ */
+export function findSequentialOptions(
+  text: string,
+  markerRegex: RegExp,
+  numToLetterMap: Record<string, 'A' | 'B' | 'C' | 'D'> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' },
+  requireFour = false
+): { options: { A: string; B: string; C: string; D: string }; statement: string } | null {
+  const allMatches = [...text.matchAll(markerRegex)];
+  if (allMatches.length < 2) return null;
+
+  const parsedMatches = allMatches.map((m) => {
+    const rawK = (m[1] || m[2] || m[3] || m[4] || '').toUpperCase();
+    const key = numToLetterMap[rawK] || (rawK as 'A' | 'B' | 'C' | 'D');
+    return {
+      index: m.index!,
+      length: m[0].length,
+      key
+    };
+  });
+
+  const expectedKeys: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
+  const aIndices = parsedMatches
+    .map((m, idx) => (m.key === 'A' ? idx : -1))
+    .filter((idx) => idx !== -1);
+
+  // Try from latest 'A' backwards to prioritize bottom-most options
+  for (const aIdx of [...aIndices].reverse()) {
+    const sequence: typeof parsedMatches = [];
+    let nextExpected = 0;
+
+    for (let i = aIdx; i < parsedMatches.length; i++) {
+      if (parsedMatches[i].key === expectedKeys[nextExpected]) {
+        sequence.push(parsedMatches[i]);
+        nextExpected++;
+        if (nextExpected === 4) break;
+      }
+    }
+
+    if (requireFour && sequence.length < 4) continue;
+    if (sequence.length < 2) continue;
+
+    const firstOptIndex = sequence[0].index;
+    const extractedStatement = text.slice(0, firstOptIndex).trim();
+    const candidateMap = { A: '', B: '', C: '', D: '' };
+
+    for (let i = 0; i < sequence.length; i++) {
+      const cur = sequence[i];
+      const start = cur.index + cur.length;
+      const end = i + 1 < sequence.length ? sequence[i + 1].index : text.length;
+      let optVal = text.slice(start, end).trim();
+      optVal = optVal.replace(/\s*\.$/, '');
+      candidateMap[cur.key] = optVal;
+    }
+
+    if (areValidExtractedOptions(candidateMap, extractedStatement)) {
+      return { options: candidateMap, statement: extractedStatement };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Parses a single question text block into structured components.
  */
 export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
   // Normalize unicode spaces and strip invisible Word/PDF mathematical formatting markers
   let text = cleanWordMathArtifacts(rawBlock).trim();
+  text = convertWordEquationToLatex(text);
 
   // 1. Remove leading bullets, stray dots, and question numbering e.g. ". If a curve", "1.", "Q.1:", "(1)"
   text = text.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*(?=[A-Za-z])/g, '');
@@ -657,115 +790,143 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
   }
 
   // 5. Extract Options (Supports A-D, 1-4, Bare Labels, Single-Space Delimiters, and Blank/Unlabeled Newlines)
-  const optionsMap: Record<string, string> = { A: '', B: '', C: '', D: '' };
+  let optionsMap: Record<string, string> = { A: '', B: '', C: '', D: '' };
 
-  const trySequentialMatches = (markerRegex: RegExp): boolean => {
-    const allMatches = [...text.matchAll(markerRegex)];
-    if (allMatches.length < 2) return false;
-
-    // Filter to sequential keys: A->B(->C->D) or 1->2(->3->4)
-    const validMatches: { index: number; length: number; key: 'A' | 'B' | 'C' | 'D' }[] = [];
-    const expectedKeys: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
-    let nextExpectedIdx = 0;
-
-    for (const m of allMatches) {
-      const rawK = (m[1] || m[2] || m[3] || m[4] || '').toUpperCase();
-      const k = numToLetterMap[rawK] || (rawK as 'A' | 'B' | 'C' | 'D');
-      const expectedK = expectedKeys[nextExpectedIdx];
-      if (k === expectedK && typeof m.index === 'number') {
-        validMatches.push({ index: m.index, length: m[0].length, key: k });
-        nextExpectedIdx++;
-      }
-    }
-
-    if (validMatches.length >= 2) {
-      const firstOptIndex = validMatches[0].index;
-      const extractedStatement = text.slice(0, firstOptIndex).trim();
-
-      for (let i = 0; i < validMatches.length; i++) {
-        const cur = validMatches[i];
-        const start = cur.index + cur.length;
-        const end = (i + 1 < validMatches.length) ? validMatches[i + 1].index : text.length;
-        let optVal = text.slice(start, end).trim();
-        optVal = optVal.replace(/\s*\.$/, '');
-        optionsMap[cur.key] = optVal;
-      }
-      text = extractedStatement;
-      return true;
-    }
-    return false;
-  };
-
-  // Strategy 1: Enclosed markers: (A), (1), [A], [1], Option A, Option 1 (preceded by start or ANY whitespace)
-  let extracted = trySequentialMatches(/(?:^|\s+)(?:\(([A-Da-d1-4])\)|\[([A-Da-d1-4])\]|Option\s*\(?([A-Da-d1-4])\)?[:.]?)(?:\s+|$)/gi);
-
-  // Strategy 2: Punctuation markers: A., A), A:, A -, 1., 1), 1:, 1 -
-  if (!extracted) {
-    extracted = trySequentialMatches(/(?:^|[\n\r\t]|\s+)([A-Da-d1-4])(?:[\.:\)]|\s*[-–—])(?:\s+|$)/gi);
+  // Priority 1: Letter markers (A-D) enclosed: (A), [A], Option A
+  let res = findSequentialOptions(text, /(?:^|\s+)(?:\(([A-Da-d])\)|\[([A-Da-d])\]|Option\s*\(?([A-Da-d])\)?[:.]?)(?:\s+|$)/gi);
+  if (res) {
+    optionsMap = res.options;
+    text = res.statement;
   }
 
-  // Strategy 3: Bare letter/number markers: A 10  B 20  C 30  D 40
-  if (!extracted) {
-    extracted = trySequentialMatches(/(?:^|[\n\r\t]|\s{2,})([A-Da-d1-4])\s+(?=\S)/gi);
+  // Priority 2: Letter markers with punctuation: A., A), A:
+  if (!res) {
+    res = findSequentialOptions(text, /(?:^|[\n\r\t]|\s+)([A-Da-d])[\.:\)](?:\s+|$)/gi);
+    if (res) {
+      optionsMap = res.options;
+      text = res.statement;
+    }
   }
 
-  // Strategy 4: Single-line sequential A ... B ... C ... D ... or 1 ... 2 ... 3 ... 4 ...
-  if (!extracted) {
+  // Priority 3: Fresh newline dash letter markers: e.g. "\n- A" or "\nA - "
+  if (!res) {
+    res = findSequentialOptions(text, /(?:^|[\n\r])\s*([A-Da-d])\s*[-–—]\s+/gi);
+    if (res) {
+      optionsMap = res.options;
+      text = res.statement;
+    }
+  }
+
+  // Priority 4: Numbered markers (1-4) enclosed: (1), [1], Option 1 (require 4 options or explicit Option)
+  if (!res) {
+    res = findSequentialOptions(text, /(?:^|\s+)(?:Option\s*\(?([1-4])\)?[:.]?)(?:\s+|$)/gi);
+    if (!res) {
+      res = findSequentialOptions(text, /(?:^|\s+)(?:\(([1-4])\)|\[([1-4])\])(?:\s+|$)/gi, numToLetterMap, true);
+    }
+    if (res) {
+      optionsMap = res.options;
+      text = res.statement;
+    }
+  }
+
+  // Priority 5: Numbered markers with punctuation on fresh newline: \n1., \n1), \n1:
+  if (!res) {
+    res = findSequentialOptions(text, /(?:^|[\n\r])\s*([1-4])[\.:\)](?:\s+|$)/gi, numToLetterMap, true);
+    if (res) {
+      optionsMap = res.options;
+      text = res.statement;
+    }
+  }
+
+  // Priority 6: Bare letter markers: A 10  B 20  C 30  D 40 (require all 4)
+  if (!res) {
+    res = findSequentialOptions(text, /(?:^|[\n\r\t]|\s{2,})([A-Da-d])\s+(?=\S)/gi, numToLetterMap, true);
+    if (res) {
+      optionsMap = res.options;
+      text = res.statement;
+    }
+  }
+
+  // Priority 7: Single-line sequential A ... B ... C ... D ...
+  if (!res) {
     const singleLineMatchLetters = text.match(/(?:^|[\n\r\s])\(?A\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?B\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?C\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?D\)?\s*[\.:\)]?\s+([\s\S]+)$/i);
-    const singleLineMatchNumbers = text.match(/(?:^|[\n\r\s])\(?1\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?2\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?3\)?\s*[\.:\)]?\s+([\s\S]+?)\s+\(?4\)?\s*[\.:\)]?\s+([\s\S]+)$/i);
-    const match = singleLineMatchLetters || singleLineMatchNumbers;
-    if (match && typeof match.index === 'number') {
-      const statement = text.slice(0, match.index).trim();
-      optionsMap.A = match[1].trim().replace(/\s*\.$/, '');
-      optionsMap.B = match[2].trim().replace(/\s*\.$/, '');
-      optionsMap.C = match[3].trim().replace(/\s*\.$/, '');
-      optionsMap.D = match[4].trim().replace(/\s*\.$/, '');
-      text = statement;
-      extracted = true;
+    if (singleLineMatchLetters && typeof singleLineMatchLetters.index === 'number') {
+      const statement = text.slice(0, singleLineMatchLetters.index).trim();
+      const cand = {
+        A: singleLineMatchLetters[1].trim().replace(/\s*\.$/, ''),
+        B: singleLineMatchLetters[2].trim().replace(/\s*\.$/, ''),
+        C: singleLineMatchLetters[3].trim().replace(/\s*\.$/, ''),
+        D: singleLineMatchLetters[4].trim().replace(/\s*\.$/, '')
+      };
+      if (areValidExtractedOptions(cand, statement)) {
+        optionsMap = cand;
+        text = statement;
+        res = { options: cand, statement };
+      }
     }
   }
 
-  // Strategy 4: Blank / Unlabeled Options (New Lines or Tab/Space Separated)
-  // When options have NO marker (no A, B, C, D and no 1, 2, 3, 4)
-  if (!optionsMap.A && !optionsMap.B) {
+  // Priority 8: Blank / Unlabeled Options (Only when non-prose and distinct)
+  if (!res) {
     const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
-    // Case 4a: Last 4 non-empty lines are options A, B, C, D
     if (lines.length >= 5) {
+      const candidateStmt = lines.slice(0, -4).join('\n').trim();
       const last4 = lines.slice(-4);
-      if (last4.every((l) => l.length < 200)) {
-        optionsMap.A = last4[0].replace(/\s*\.$/, '');
-        optionsMap.B = last4[1].replace(/\s*\.$/, '');
-        optionsMap.C = last4[2].replace(/\s*\.$/, '');
-        optionsMap.D = last4[3].replace(/\s*\.$/, '');
-        text = lines.slice(0, -4).join('\n').trim();
+      const stmtEndsWithPrompt = /(?:[\.\?\:\=]|__+|is\s+equal\s+to|equals|is)\s*$/i.test(candidateStmt);
+      const cand = {
+        A: last4[0].replace(/\s*\.$/, ''),
+        B: last4[1].replace(/\s*\.$/, ''),
+        C: last4[2].replace(/\s*\.$/, ''),
+        D: last4[3].replace(/\s*\.$/, '')
+      };
+      if (stmtEndsWithPrompt && last4.every((l) => l.length < 80) && areValidExtractedOptions(cand, candidateStmt)) {
+        optionsMap = cand;
+        text = candidateStmt;
+        res = { options: cand, statement: candidateStmt };
       }
     } else if (lines.length >= 3) {
-      // Case 4c: Last 2 lines each have 2 tokens separated by tabs or 2+ spaces (2x2 grid)
-      const line1Tokens = lines[lines.length - 2].split(/\t+|\s{2,}/).map((t) => t.trim()).filter(Boolean);
-      const line2Tokens = lines[lines.length - 1].split(/\t+|\s{2,}/).map((t) => t.trim()).filter(Boolean);
+      const line1Tokens = lines[lines.length - 2].split(/\t+|\s{4,}/).map((t) => t.trim()).filter(Boolean);
+      const line2Tokens = lines[lines.length - 1].split(/\t+|\s{4,}/).map((t) => t.trim()).filter(Boolean);
       if (line1Tokens.length === 2 && line2Tokens.length === 2) {
-        optionsMap.A = line1Tokens[0].replace(/\s*\.$/, '');
-        optionsMap.B = line1Tokens[1].replace(/\s*\.$/, '');
-        optionsMap.C = line2Tokens[0].replace(/\s*\.$/, '');
-        optionsMap.D = line2Tokens[1].replace(/\s*\.$/, '');
-        text = lines.slice(0, -2).join('\n').trim();
+        const candidateStmt = lines.slice(0, -2).join('\n').trim();
+        const cand = {
+          A: line1Tokens[0].replace(/\s*\.$/, ''),
+          B: line1Tokens[1].replace(/\s*\.$/, ''),
+          C: line2Tokens[0].replace(/\s*\.$/, ''),
+          D: line2Tokens[1].replace(/\s*\.$/, '')
+        };
+        if (areValidExtractedOptions(cand, candidateStmt)) {
+          optionsMap = cand;
+          text = candidateStmt;
+          res = { options: cand, statement: candidateStmt };
+        }
       }
     } else if (lines.length >= 2) {
-      // Case 4b: Last line has 4 tokens separated by tabs or 2+ spaces
       const lastLine = lines[lines.length - 1];
-      const tokens = lastLine.split(/\t+|\s{2,}/).map((t) => t.trim()).filter(Boolean);
+      const tokens = lastLine.split(/\t+|\s{4,}/).map((t) => t.trim()).filter(Boolean);
       if (tokens.length === 4) {
-        optionsMap.A = tokens[0].replace(/\s*\.$/, '');
-        optionsMap.B = tokens[1].replace(/\s*\.$/, '');
-        optionsMap.C = tokens[2].replace(/\s*\.$/, '');
-        optionsMap.D = tokens[3].replace(/\s*\.$/, '');
-        text = lines.slice(0, -1).join('\n').trim();
+        const candidateStmt = lines.slice(0, -1).join('\n').trim();
+        const cand = {
+          A: tokens[0].replace(/\s*\.$/, ''),
+          B: tokens[1].replace(/\s*\.$/, ''),
+          C: tokens[2].replace(/\s*\.$/, ''),
+          D: tokens[3].replace(/\s*\.$/, '')
+        };
+        if (areValidExtractedOptions(cand, candidateStmt)) {
+          optionsMap = cand;
+          text = candidateStmt;
+          res = { options: cand, statement: candidateStmt };
+        }
       }
     }
   }
 
   // 6. Mathematical & LaTeX Normalization (KaTeX / MathJax Compatibility via Master Normalizer)
   const normStatement = normalizeMathString(text.trim());
+  const hasExtractedOptions = [optionsMap.A, optionsMap.B, optionsMap.C, optionsMap.D].some(
+    (o) => o.trim().length > 0
+  );
+
   const finalOptions: { key: 'A' | 'B' | 'C' | 'D'; text: string }[] = [
     { key: 'A', text: normalizeOptionMath(optionsMap.A || '') },
     { key: 'B', text: normalizeOptionMath(optionsMap.B || '') },
@@ -773,11 +934,15 @@ export function parseSingleQuestionBlock(rawBlock: string): ParsedWordQuestion {
     { key: 'D', text: normalizeOptionMath(optionsMap.D || '') }
   ];
 
+  const isNumerical = !hasExtractedOptions || Boolean(numericalAnswer);
+  const type: 'SINGLE_CORRECT' | 'NUMERICAL' = isNumerical ? 'NUMERICAL' : 'SINGLE_CORRECT';
+
   return {
     statement: normStatement,
     options: finalOptions,
-    type: 'SINGLE_CORRECT',
+    type,
     correctKey,
+    numericalAnswer: numericalAnswer || undefined,
     examTag: examTag || undefined,
     solution: solution ? normalizeMathString(solution) : undefined,
     shortcut: shortcut ? normalizeMathString(shortcut) : undefined

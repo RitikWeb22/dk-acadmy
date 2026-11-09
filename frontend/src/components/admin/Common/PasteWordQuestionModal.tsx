@@ -168,50 +168,62 @@ Ans: B`;
               <div className={styles.extractedQuestionsList}>
                 {parsedList.map((q, idx) => (
                   <div key={idx} className={styles.questionPreviewCard}>
-                    {/* Exam Tag if detected */}
-                    {q.examTag && (
-                      <div className={styles.examTagRow}>
-                        <span className={styles.examTagBadge}>{q.examTag}</span>
-                      </div>
-                    )}
+                    {/* Header tags: Type and Exam Tag */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          background: q.type === 'NUMERICAL' ? '#f3e8ff' : '#eff6ff',
+                          color: q.type === 'NUMERICAL' ? '#7e22ce' : '#1d4ed8'
+                        }}
+                      >
+                        {q.type === 'NUMERICAL' ? '📝 Numerical / Integer Answer (No Options)' : '🔘 Multiple Choice Question (MCQ)'}
+                      </span>
+                      {q.examTag && (
+                        <div className={styles.examTagRow} style={{ margin: 0 }}>
+                          <span className={styles.examTagBadge}>{q.examTag}</span>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Question Statement Live KaTeX Preview */}
                     <div className={styles.statementPreviewBox}>
                       <MathText text={q.statement || 'Empty statement'} />
                     </div>
 
-                    {/* Options Live KaTeX Preview Grid (A, B, C, D) */}
-                    <div className={styles.optionsPreviewGrid}>
-                      {(q.options && q.options.length > 0
-                        ? q.options
-                        : [
-                            { key: 'A' as const, text: '' },
-                            { key: 'B' as const, text: '' },
-                            { key: 'C' as const, text: '' },
-                            { key: 'D' as const, text: '' }
-                          ]
-                      ).map((opt) => {
-                        const isCorrect = q.correctKey === opt.key;
-                        return (
-                          <div
-                            key={opt.key}
-                            className={`${styles.optionPreviewTile} ${isCorrect ? styles.isCorrectOpt : ''}`}
-                            onClick={() => updateCorrectKey(idx, opt.key)}
-                            title={`Option ${opt.key} (Click to set as correct answer)`}
-                          >
-                            <span className={`${styles.optionKeyCircle} ${isCorrect ? styles.correctCircle : ''}`}>
-                              {opt.key}
-                            </span>
-                            <div className={styles.optionMathText}>
-                              <MathText text={opt.text || '-'} />
+                    {/* Options Live KaTeX Preview Grid (A, B, C, D) - only shown when question has options */}
+                    {q.type !== 'NUMERICAL' && q.options && q.options.some((o) => o.text && o.text.trim()) ? (
+                      <div className={styles.optionsPreviewGrid}>
+                        {q.options.map((opt) => {
+                          const isCorrect = q.correctKey === opt.key;
+                          return (
+                            <div
+                              key={opt.key}
+                              className={`${styles.optionPreviewTile} ${isCorrect ? styles.isCorrectOpt : ''}`}
+                              onClick={() => updateCorrectKey(idx, opt.key)}
+                              title={`Option ${opt.key} (Click to set as correct answer)`}
+                            >
+                              <span className={`${styles.optionKeyCircle} ${isCorrect ? styles.correctCircle : ''}`}>
+                                {opt.key}
+                              </span>
+                              <div className={styles.optionMathText}>
+                                <MathText text={opt.text || '-'} />
+                              </div>
+                              {isCorrect && (
+                                <span className={styles.correctPillTag}>✓ Correct</span>
+                              )}
                             </div>
-                            {isCorrect && (
-                              <span className={styles.correctPillTag}>✓ Correct</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    ) : q.type === 'NUMERICAL' ? (
+                      <div style={{ padding: '8px 12px', background: '#faf5ff', border: '1px solid #f3e8ff', borderRadius: '6px', fontSize: '12px', color: '#6b21a8' }}>
+                        ✓ Question statement identified as Numerical/Integer type without options. {q.numericalAnswer ? <span>Correct Answer: <strong>{q.numericalAnswer}</strong></span> : null}
+                      </div>
+                    ) : null}
 
                     {/* Solution or Shortcut if present */}
                     {(q.solution || q.shortcut) && (
