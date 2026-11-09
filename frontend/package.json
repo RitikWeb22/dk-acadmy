@@ -16,7 +16,7 @@
     "@types/katex": "^0.16.8",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
-    "hls.js": "^1.7.3",
+    "hls.js": "^1.7.4",
     "katex": "^0.19.1",
     "livekit-client": "^2.23.0",
     "lucide-react": "^1.61.0",
