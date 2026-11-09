@@ -1,8 +1,0 @@
-import { parseWordQuestions } from '../frontend/src/utils/wordPasteParser';
-
-const q1 = "Let f:R→R satisfy the equation f(x + y) = f(x).f(y) for all x , y ∈R and f(x)≠ 0 for any x∈ R. if  the function f is differentiable at x = 0 and f'(0)= 3 , then  (lim)┬(h→0) 1/h(f(h)-1) is equal to__";
-
-const res = parseWordQuestions(q1);
-console.log('Result length:', res.length);
-console.log(JSON.stringify(res, null, 2));
-

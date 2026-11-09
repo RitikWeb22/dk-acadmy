@@ -23,12 +23,20 @@ export function sanitizeFormula(str: string): string {
     // Repair broken/corrupted differentials: e.g. \dfrac{} \ dy}{\, dx or \dfrac{} \, dy}{\, dx -> \dfrac{dy}{dx}
     .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}/gi, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\?\s*\{\s*)?[^a-zA-Z\n]{0,8}(d[a-zA-Z])[^a-zA-Z\n]{1,8}(d[a-zA-Z])\}?/gi, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{\s*\}\s*(?:\{\s*\})?\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\/\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])(?![a-zA-Z{])/gi, '\\dfrac{$1}{dx}')
     .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/gi, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}')
+    // Separate glued math functions: 2xexp -> 2x exp, xexp -> x exp, 2xsin -> 2x sin
+    .replace(/([0-9a-zA-Z])\s*(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b/gi, '$1 $2')
+    // Double parens on radicals: √((1+x^6)) or \sqrt((1+x^6)) or 4√2
+    .replace(/√\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}')
+    .replace(/\\?sqrt\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}')
+    .replace(/(\d+)\s*√\s*(\d+)/g, '$1\\sqrt{$2}')
+    .replace(/√\s*(\d+)/g, '\\sqrt{$1}')
     // Repair Word linear differential residue: dy/(" " \, dx) or dy/(dx) or dy/dx
     .replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z]\^?[0-9]?)\s*\)/g, '\\dfrac{$1}{$2}')
     .replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\dfrac{$1}{$2}')
@@ -82,9 +90,10 @@ export function sanitizeFormula(str: string): string {
     .replace(/___PROT_\d+___/g, '')
     .replace(/\[\s*MATH_\d+\s*\]/gi, '')
     .replace(/⟦\s*MATH_\d+\s*⟧/gi, '')
-    // Tall delimiters for \exp{ ... } or \exp( ... ) with balanced braces
-    .replace(/\\exp\s*\{([^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*)\}/g, (_m, inner) => `\\exp\\left\\{${inner.replace(/\\frac\b/g, '\\dfrac')}\\right\\}`)
-    .replace(/\\exp\s*\(([^()]+)\)/g, (_m, inner) => `\\exp\\left(${inner.replace(/\\frac\b/g, '\\dfrac')}\\right)`)
+    // Tall delimiters for \exp( ... ) with balanced parens
+    .replace(/\\?exp\s*\(\s*\(\s*([^()]+)\s*\)\s*\/\s*\(\s*([^()]+)\s*\)\s*\)/gi, '\\exp\\left(\\dfrac{$1}{$2}\\right)')
+    .replace(/\\?exp\s*\(\s*([^/()]+)\s*\/\s*([^/()]+)\s*\)/gi, '\\exp\\left(\\dfrac{$1}{$2}\\right)')
+    .replace(/\\?exp\s*\(([^()]+)\)/g, (_m, inner) => `\\exp\\left(${inner.replace(/\\frac\b/g, '\\dfrac')}\\right)`)
     // Ensure infty and common Greek letters have backslash if inside math formula
     .replace(/(?<!\\)\binfty\b/g, '\\infty')
     .replace(/(?<!\\)\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)\b/g, '\\$1')
@@ -189,6 +198,38 @@ export function sanitizeFormula(str: string): string {
       i++;
     }
     res = result;
+  }
+
+  // Convert balanced exp{ ... } or \exp{ ... } into \exp\left\{ ... \right\} with tall curly braces
+  if (/\\?exp\s*(?:\\?\{|\{)/i.test(res)) {
+    const expRegex = /\\?exp\s*(?:\\?\{|\{)/gi;
+    let expMatch: RegExpExecArray | null;
+    let expResult = '';
+    let expLastIndex = 0;
+    while ((expMatch = expRegex.exec(res)) !== null) {
+      expResult += res.substring(expLastIndex, expMatch.index);
+      const startInner = expRegex.lastIndex;
+      let depth = 1;
+      let i = startInner;
+      let foundClose = false;
+      for (; i < res.length; i++) {
+        if (res[i] === '{' && (i === 0 || res[i - 1] !== '\\')) depth++;
+        else if (res[i] === '}' && (i === 0 || res[i - 1] !== '\\')) {
+          depth--;
+          if (depth === 0) {
+            foundClose = true;
+            break;
+          }
+        }
+      }
+      let inner = res.substring(startInner, i).trim();
+      inner = inner.replace(/\\frac\b/g, '\\dfrac');
+      expResult += `\\exp\\left\\{${inner}\\right\\}`;
+      expLastIndex = foundClose ? i + 1 : i;
+      expRegex.lastIndex = expLastIndex;
+    }
+    expResult += res.substring(expLastIndex);
+    res = expResult;
   }
 
   // Strip stray & characters if no alignment/cases/matrix environment is present

@@ -160,7 +160,12 @@ const RenderMathExpression: React.FC<{ formula: string; isDisplay: boolean }> = 
       // If KaTeX encountered an error node, attempt auto-balancing repair
       if (html.includes('katex-error')) {
         let repaired = cleanFormula
+          .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}')
+          .replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}/gi, '\\dfrac{$1}{$2}')
+          .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\?\s*\{\s*)?[^a-zA-Z\n]{0,8}(d[a-zA-Z])[^a-zA-Z\n]{1,8}(d[a-zA-Z])\}?/gi, '\\dfrac{$1}{$2}')
           .replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '')
+          .replace(/\\(?:d?frac)\{\s*\}\s*\{([^{}]+)\}/g, '\\dfrac{1}{$1}')
+          .replace(/\\(?:d?frac)\{([^{}]+)\}\s*\{\s*\}/g, '\\dfrac{$1}{1}')
           .replace(/\\(?:d?frac)\{\s*\}\s*/g, '')
           .replace(/\\(?:d?frac)(?!\s*\{)/g, '')
           .replace(/(?:\\left\s*)+/g, '\\left')
