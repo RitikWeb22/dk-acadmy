@@ -426,6 +426,9 @@ export function reconstructFractions(input: string): string {
             if (nextP < str.length && str[nextP] === '{') {
               const closeBrace = findMatchingDelimiter(str, nextP);
               if (closeBrace !== -1) rightEnd = closeBrace;
+            } else if (nextP < str.length && str[nextP] === '(') {
+              const closePowParen = findMatchingDelimiter(str, nextP);
+              if (closePowParen !== -1) rightEnd = closePowParen;
             } else if (nextP < str.length && /[a-zA-Z0-9]/.test(str[nextP])) {
               while (nextP < str.length && /[a-zA-Z0-9]/.test(str[nextP])) nextP++;
               rightEnd = nextP - 1;
@@ -445,6 +448,9 @@ export function reconstructFractions(input: string): string {
             if (nextP < str.length && str[nextP] === '{') {
               const closeBrace = findMatchingDelimiter(str, nextP);
               if (closeBrace !== -1) rightEnd = closeBrace;
+            } else if (nextP < str.length && str[nextP] === '(') {
+              const closePowParen = findMatchingDelimiter(str, nextP);
+              if (closePowParen !== -1) rightEnd = closePowParen;
             } else if (nextP < str.length && /[a-zA-Z0-9]/.test(str[nextP])) {
               while (nextP < str.length && /[a-zA-Z0-9]/.test(str[nextP])) nextP++;
               rightEnd = nextP - 1;

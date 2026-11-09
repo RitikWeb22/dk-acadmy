@@ -251,15 +251,13 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/&\s*\$/g, '');
   s = s.replace(/(?<!\\begin\{[^}]*)\$\s*&/g, '');
 
-  // Auto-close \begin{cases} if unclosed before prose or end, and strip internal $
-  s = s.replace(/\\begin\{cases\}([\s\S]*?)(?=\\end\{cases\}|\b(?:Then|where|when|if|for)\b|$)/gi, (match, body, offset, fullStr) => {
-    const after = fullStr.slice(offset + match.length);
-    if (/^\s*\\end\{cases\}/i.test(after)) {
-      return `\\begin{cases}${body.replace(/\$/g, '')}`;
-    }
-    const cleanedBody = body.replace(/\$/g, '').trimEnd();
-    return `\\begin{cases}${cleanedBody} \\end{cases} `;
-  });
+  // Auto-close unclosed \begin{cases} (only when \end{cases} is missing in the block)
+  if (/\\begin\{cases\}/i.test(s) && !/\\end\{cases\}/i.test(s)) {
+    s = s.replace(/\\begin\{cases\}([\s\S]*?)(?=\b(?:Then|where|when)\b|$)/gi, (match, body) => {
+      const cleanedBody = body.replace(/\$/g, '').trimEnd();
+      return `\\begin{cases}${cleanedBody} \\end{cases} `;
+    });
+  }
 
   // Convert function composition: (fog)(x) -> (f \circ g)(x), fog(x) -> (f \circ g)(x)
   s = s.replace(/(?<![a-zA-Z0-9_\$])\(([a-zA-Z])\s*o\s*([a-zA-Z])\)\s*\(\s*([a-zA-Z0-9]+)\s*\)/g, '($1 \\circ $2)($3)');
@@ -269,6 +267,7 @@ export function normalizeMathString(raw: string): string {
   s = fixNestedExponents(s);
 
   // Greek letter fractions with powers: \pi^2/32 -> \dfrac{\pi^2}{32}, \pi/2 -> \dfrac{\pi}{2}
+  s = s.replace(/(\\[a-zA-Z]+)\s*\^/g, '$1^');
   s = s.replace(/(\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
 
   // Differentials: dy/(" "\, dx) -> \dfrac{dy}{dx}, d^n/dx^n -> \dfrac{d^n}{dx^n}
@@ -296,21 +295,17 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/(\d+)\s*√\s*(\d+)/g, '$1\\sqrt{$2}');
   s = s.replace(/√\s*(\d+)/g, '\\sqrt{$1}');
 
-  // Clean stray closing braces directly after radicals:
-  s = s.replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}/g, '$1');
-  s = s.replace(/\}\s*(\+\s*e\^)/g, ' $1');
-
   // Space between glued math and words: ypassthrough -> y pass through
   s = s.replace(/([a-zA-Z0-9\]\)])\s*[\r\n]+\s*([a-zA-Z])/g, '$1 $2');
   s = s.replace(/([a-zA-Z0-9\]\)])passthrough\b/gi, '$1 pass through');
-  s = s.replace(/([a-zA-Z0-9\]\)])\s*(pass(?:es)?\s+through|touch(?:es)?|intersect(?:s)?|where|when|such|then|with|at)\b/gi, '$1 $2');
+  s = s.replace(/(?<!\\[a-zA-Z]*)([a-zA-Z0-9\]\)])\s*(pass(?:es)?\s+through|touch(?:es)?|intersect(?:s)?|where|when|such|then|with)\b/gi, '$1 $2');
 
-  // Radical fractions: e.g. x/√(x^2-y^2) or x/\sqrt{x^2-y^2} -> \dfrac{x}{\sqrt{x^2-y^2}}
-  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\{([^}]+)\}/gi, '\\dfrac{$1}{\\sqrt{$2}}');
-  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\(([^)]+)\)/gi, '\\dfrac{$1}{\\sqrt{$2}}');
-  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)/g, '\\dfrac{$1}{\\sqrt{$2}}');
-  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}');
-  s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}');
+  // Radical fractions: e.g. x/√(x^2-y^2) or x/\sqrt{x^2-y^2} -> \dfrac{x}{\sqrt{x^2-y^2}} (safely swallow stray Word trailing brace)
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\{([^}]+)\}\s*\}?/gi, '\\dfrac{$1}{\\sqrt{$2}}');
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\(([^)]+)\)\s*\}?/gi, '\\dfrac{$1}{\\sqrt{$2}}');
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)\s*\}?/g, '\\dfrac{$1}{\\sqrt{$2}}');
+  s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}?/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}?/g, '\\dfrac{$1}{$2}');
   s = s.replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
 
   // Exponential fraction: e.g. e^{y/x} or e^(y/x) -> e^{\frac{y}{x}}
@@ -318,9 +313,16 @@ export function normalizeMathString(raw: string): string {
 
   // Word linear fractions with nested parens and exponents: (3x^{5} \tan^{-1}(x^3))/(1+x^{6})^{\frac{3}{2}}
   s = s.replace(
-    /\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)\^(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[A-Za-z0-9_+\-]+)/g,
+    /\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)\^(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|\([0-9a-zA-Z_+/\\-]+\)|[A-Za-z0-9_+\-]+)/g,
     (_, num, den, exp) => {
-      const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
+      let expClean = exp.trim();
+      if (expClean.startsWith('(') && expClean.endsWith(')')) {
+        expClean = expClean.slice(1, -1).trim();
+      }
+      if (expClean.includes('/')) {
+        expClean = expClean.replace(/(\d+)\s*\/\s*(\d+)/g, '\\dfrac{$1}{$2}');
+      }
+      const expStr = expClean.startsWith('{') ? expClean : `{${expClean}}`;
       return `\\dfrac{${num}}{(${den})^${expStr}}`;
     }
   );
@@ -332,16 +334,20 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\\])([A-Za-z0-9_\\^{}]+)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
   
   // Number over number: 1/2, -1/2, 3/4
-  s = s.replace(/(?<![a-zA-Z0-9_\/])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
-  // Number over variable: 1/x -> \dfrac{1}{x}, 1/a -> \dfrac{1}{a}, 4/k -> \dfrac{4}{k}
-  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*([a-zA-Z](?:_[a-zA-Z0-9]+|_[0-9]+)?)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(?<![a-zA-Z0-9_\/\^\\])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
+  // Number over variable: 1/x -> \dfrac{1}{x}, 1/x^2 -> \dfrac{1}{x^2}, 1/a -> \dfrac{1}{a}, 4/k -> \dfrac{4}{k}
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*([a-zA-Z](?:_[a-zA-Z0-9]+|_[0-9]+)?(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
   // Variable over number: x/2 -> \dfrac{x}{2}
-  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?[a-zA-Z])\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
-  // Variable over variable: x/a -> \dfrac{x}{a}, x/b -> \dfrac{x}{b}, a/b -> \dfrac{a}{b}
-  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?[a-zA-Z])\s*\/\s*([a-zA-Z](?:_[a-zA-Z0-9]+|_[0-9]+)?)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
+  // Variable over variable: x/a -> \dfrac{x}{a}, x/b -> \dfrac{x}{b}, a/b -> \dfrac{a}{b} (not inside \text{...})
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([a-zA-Z](?:_[a-zA-Z0-9]+|_[0-9]+)?(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)(?![a-zA-Z0-9_])/g, (match, v1, v2, offset, full) => {
+    const before = full.substring(Math.max(0, offset - 20), offset);
+    if (/\\text\{[^{}]*$/.test(before)) return match;
+    return `\\dfrac{${v1}}{${v2}}`;
+  });
   // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi/4 -> \dfrac{\pi}{4}
-  s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
-  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)/g, '\\dfrac{$1}{$2}');
   // Convert complex balanced fractions and exp{...} braces
   s = convertFractionsBalanced(s);
   s = convertExpBraces(s);
@@ -408,10 +414,10 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/\\?exp\s*\(\s*([^()]+)\s*\)/g, '\\exp\\left($1\\right)');
 
   // Trig (safe inverse trig without consuming enclosing parentheses)
-  s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*\(\s*-?\s*1\s*\)\s*\(\s*([a-zA-Z0-9_\^]+)\s*\)/gi, '\\$1^{-1}($2)');
-  s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*\(\s*-?\s*1\s*\)\s*(?![\\(])([a-zA-Z0-9_\^]+)/gi, '\\$1^{-1}($2)');
-  s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*\(\s*-?\s*1\s*\)/gi, '\\$1^{-1}');
-  s = s.replace(/(?<!\\)\b(sin|cos|tan|cot|sec|csc)\b(?!\^\{-?1\})/gi, '\\$1');
+  s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*(?:\{\s*-?\s*1\s*\}|\(\s*-?\s*1\s*\))\s*\(\s*([a-zA-Z0-9_\^]+)\s*\)/gi, '\\$1^{-1}($2)');
+  s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*(?:\{\s*-?\s*1\s*\}|\(\s*-?\s*1\s*\))\s*(?![\\(])([a-zA-Z0-9]+(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)/gi, '\\$1^{-1}($2)');
+  s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*(?:\{\s*-?\s*1\s*\}|\(\s*-?\s*1\s*\))/gi, '\\$1^{-1}');
+  s = s.replace(/(?<!\\)\b(sin|cos|tan|cot|sec|csc)\b/gi, '\\$1');
 
   // Fractions inside \exp: \frac -> \dfrac
   s = s.replace(/\\exp\\left\\\{([\s\S]*?)\\right\\\}/g, (_, inner) => {
@@ -763,17 +769,22 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/\\?sqrt\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}');
   s = s.replace(/(\d+)\s*√\s*(\d+)/g, '$1\\sqrt{$2}');
   s = s.replace(/√\s*(\d+)/g, '\\sqrt{$1}');
-  s = s.replace(/√/g, '\\sqrt');
+  s = s.replace(/√\s*\(([^()]+)\)/g, '\\sqrt{$1}');
+  s = s.replace(/√\s*\{([^{}]+)\}/g, '\\sqrt{$1}');
+  s = s.replace(/√\s*([a-zA-Z]+)/g, '\\sqrt{$1}');
+  s = s.replace(/√/g, '\\sqrt ');
 
   // 4. Exponentials and square roots (including nested fraction arguments)
   s = s.replace(/\\?exp\s*\(\s*\(\s*([^()]+)\s*\)\s*\/\s*\(\s*([^()]+)\s*\)\s*\)/gi, '\\exp\\left(\\dfrac{$1}{$2}\\right)');
   s = s.replace(/\\?exp\s*\(\s*\(\s*([^()]+)\s*\)\s*\/\s*([^()]+)\s*\)/gi, '\\exp\\left(\\dfrac{$1}{$2}\\right)');
   s = s.replace(/\\?exp\s*\(\s*([^/()]+)\s*\/\s*\(\s*([^()]+)\s*\)\s*\)/gi, '\\exp\\left(\\dfrac{$1}{$2}\\right)');
   s = s.replace(/\\?exp\s*\(\s*([^/()]+)\s*\/\s*([^/()]+)\s*\)/gi, '\\exp\\left(\\dfrac{$1}{$2}\\right)');
+  s = s.replace(/\\?exp\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/gi, '\\exp\\left($1\\right)');
   s = convertExpBraces(s);
   s = s.replace(/\\?exp\s*\(\s*([^()]+)\s*\)/g, '\\exp\\left($1\\right)');
   s = s.replace(/\\?sqrt\s*\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}');
   s = s.replace(/\\frac\b/g, '\\dfrac');
+  s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
 
   // 5. English prose check vs mathematical expression
   const isEnglishProse = /\b(?:none|both|all|neither|either|cannot|can|not|be|determined|true|false|correct|incorrect|statement|above|below)\b/i.test(s);

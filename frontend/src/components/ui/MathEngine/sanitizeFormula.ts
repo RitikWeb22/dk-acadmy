@@ -42,13 +42,11 @@ export function sanitizeFormula(str: string): string {
     .replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\dfrac{$1}{$2}')
     .replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1')
     // Convert radical fractions: x/\sqrt{...} or x/ \sqrt{...} or x/√(x^2-y^2)
-    .replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\{([^}]+)\}/gi, '\\dfrac{$1}{\\sqrt{$2}}')
-    .replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\(([^)]+)\)/gi, '\\dfrac{$1}{\\sqrt{$2}}')
-    .replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)/g, '\\dfrac{$1}{\\sqrt{$2}}')
-    .replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})/g, '\\dfrac{$1}{$2}')
-    // Clean stray closing braces directly after sqrt: \sqrt{x^2-y^2} } -> \sqrt{x^2-y^2}
-    .replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}/g, '$1')
-    .replace(/\}\s*(\+\s*e\^)/g, ' $1')
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\{([^}]+)\}\s*\}?/gi, '\\dfrac{$1}{\\sqrt{$2}}')
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\(([^)]+)\)\s*\}?/gi, '\\dfrac{$1}{\\sqrt{$2}}')
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*√\s*\(([^()]+)\)\s*\}?/g, '\\dfrac{$1}{\\sqrt{$2}}')
+    .replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}?/g, '\\dfrac{$1}{$2}')
+
     // Convert linear fractions into \dfrac (numerator upon denominator) so they render as vertical fractions
     // Parens over parens: (A)/(B) -> \dfrac{A}{B}
     .replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}')
@@ -81,9 +79,7 @@ export function sanitizeFormula(str: string): string {
     // Clean redundant parens inside sqrt: \sqrt{(1+x^6)} -> \sqrt{1+x^6}
     .replace(/\\sqrt\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}')
     .replace(/\\sqrt\{\s*\(([^()]+)\)\s*\}/g, '\\sqrt{$1}')
-    // Clean stray closing braces directly after sqrt: \sqrt{x^2-y^2} } -> \sqrt{x^2-y^2}
-    .replace(/(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}/g, '$1')
-    .replace(/\}\s*(\+\s*e\^)/g, ' $1')
+
     // Strip orphan internal tokens if present
     .replace(/\[\|MATH_\d+\|\]/g, '')
     .replace(/\u27E6MATH_\d+\u27E7/g, '')
