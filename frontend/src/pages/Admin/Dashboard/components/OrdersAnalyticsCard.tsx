@@ -8,8 +8,10 @@ import {
   Tooltip,
   CartesianGrid
 } from 'recharts';
-import { Sparkles, FileSpreadsheet } from 'lucide-react';
+import { FileSpreadsheet } from 'lucide-react';
 import { apiClient } from '../../../../services/apiClient';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import styles from './OrdersAnalyticsCard.module.scss';
 
 // Mock Test Submissions & Batch Admissions with weekend surge spikes
@@ -133,26 +135,28 @@ export const OrdersAnalyticsCard: React.FC = () => {
   }, [chartData]);
 
   return (
-    <div className={styles.ordersCard}>
+    <Card className="border-border/60 bg-card p-5">
       {/* Header with Consolidated Title and Metric Badge */}
-      <div className={styles.cardHeader}>
-        <div className={styles.titleGroup}>
-          <h2 className={styles.cardTitle}>Orders &amp; CBT Attempts</h2>
-          <span className={styles.cardSubtitle}>
-            (Live admissions &amp; CBT mock test submissions)
-          </span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
+        <div>
+          <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
+            Orders &amp; CBT Attempts
+          </CardTitle>
+          <CardDescription className="text-xs text-muted-foreground mt-0.5">
+            Admissions &amp; mock test submissions
+          </CardDescription>
         </div>
 
-        <div className={styles.badgeGroup}>
+        <div className="flex items-center gap-2">
           {totalAdmissions > 0 && (
-            <div className={styles.metricSummaryPill}>
-              <span>{totalAdmissions} Total Admissions</span>
-            </div>
+            <Badge variant="secondary" className="text-xs font-normal tabular-nums">
+              {totalAdmissions} Total Admissions
+            </Badge>
           )}
-          <div className={styles.surgeBadge}>
-            <Sparkles size={12} className={styles.surgeIcon} aria-hidden="true" />
-            <span>Live DB Synced</span>
-          </div>
+          <Badge variant="outline" className="gap-1.5 py-0.5 px-2 text-[11px] font-normal border-border/60 text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span>Live Sync</span>
+          </Badge>
         </div>
       </div>
 
@@ -242,6 +246,6 @@ export const OrdersAnalyticsCard: React.FC = () => {
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </Card>
   );
 };

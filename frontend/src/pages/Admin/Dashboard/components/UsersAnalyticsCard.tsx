@@ -10,6 +10,8 @@ import {
 } from 'recharts';
 import { TrendingUp, Users } from 'lucide-react';
 import { apiClient } from '../../../../services/apiClient';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import styles from './UsersAnalyticsCard.module.scss';
 
 // Chronological timeline data matching IIT-JEE enrollment cycles
@@ -135,34 +137,34 @@ export const UsersAnalyticsCard: React.FC = () => {
   const yDomainMax = Math.ceil((maxVal * 1.15) / 50) * 50;
 
   return (
-    <div className={styles.analyticsCard}>
+    <Card className="border-border/60 bg-card p-5">
       {/* Header with Title and Filter Dropdown */}
-      <div className={styles.cardHeader}>
-        <div className={styles.titleGroup}>
-          <h2 className={styles.cardTitle}>Users Analytics</h2>
-          <span className={styles.cardSubtitle}>
-            (Aspirant enrollments over time)
-          </span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
+        <div>
+          <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
+            Users Analytics
+          </CardTitle>
+          <CardDescription className="text-xs text-muted-foreground mt-0.5">
+            Aspirant enrollments over time
+          </CardDescription>
         </div>
 
-        <div className={styles.filterGroup}>
-          <div className={styles.growthBadge}>
-            <TrendingUp size={13} />
+        <div className="flex items-center gap-2.5">
+          <Badge variant="secondary" className="gap-1 py-0.5 px-2 text-xs font-normal tabular-nums">
+            <TrendingUp size={12} className="text-muted-foreground" />
             <span>{growthBadgeText}</span>
-          </div>
+          </Badge>
 
-          <div className={styles.selectWrapper}>
-            <select
-              aria-label="Filter Users Analytics timeframe"
-              className={styles.timeSelect}
-              value={timeFilter}
-              onChange={(e) => setTimeFilter(e.target.value as '12M' | '6M' | '30D')}
-            >
-              <option value="12M">Last 12 Months ▾</option>
-              <option value="6M">Last 6 Months ▾</option>
-              <option value="30D">Last 30 Days ▾</option>
-            </select>
-          </div>
+          <select
+            aria-label="Filter Users Analytics timeframe"
+            className="h-8 rounded-lg border border-border/60 bg-background px-2.5 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-ring transition-colors cursor-pointer"
+            value={timeFilter}
+            onChange={(e) => setTimeFilter(e.target.value as '12M' | '6M' | '30D')}
+          >
+            <option value="12M">Last 12 Months</option>
+            <option value="6M">Last 6 Months</option>
+            <option value="30D">Last 30 Days</option>
+          </select>
         </div>
       </div>
 
@@ -218,6 +220,6 @@ export const UsersAnalyticsCard: React.FC = () => {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </Card>
   );
 };
