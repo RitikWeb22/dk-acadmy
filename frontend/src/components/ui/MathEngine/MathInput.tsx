@@ -6,7 +6,7 @@ import { MathPreview } from './MathPreview';
 import { parseContentToBlocks } from './mathParser';
 import type { MathContentBlock } from './mathParser';
 import { resolveMathInputPaste } from '../../../utils/mathInputPaste';
-import { parseWordQuestions } from '../../../utils/wordPasteParser';
+import { parseWordQuestions, convertWordEquationToLatex } from '../../../utils/wordPasteParser';
 import {
   extractMathFromHtml,
   normalizeMathString,
@@ -140,7 +140,7 @@ export const MathInput: React.FC<MathInputProps> = ({
     // If this input is an Option field (compact or label starts with Option), use normalizeOptionMath
     // Otherwise use full statement normalizer normalizeMathString
     const isOptionField = compact || Boolean(label && /^Option\s+[A-D]/i.test(label));
-    let normalized = isOptionField ? normalizeOptionMath(baseClean) : normalizeMathString(baseClean);
+    let normalized = isOptionField ? normalizeOptionMath(baseClean) : normalizeMathString(convertWordEquationToLatex(baseClean));
     normalized = normalized.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '');
 
     if (!normalized) return;
