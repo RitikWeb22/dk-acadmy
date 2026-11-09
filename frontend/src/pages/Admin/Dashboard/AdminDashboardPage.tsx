@@ -446,10 +446,6 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       Real-time admissions, live batch curriculum, CBT simulations, and verified fee collections across DK Academy JEE.
                     </p>
                   </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                      Real-time admissions, live batch curriculum, CBT simulations, and verified fee collections across DK Academy JEE.
-                    </p>
-                  </div>
 
                   {/* Action Toolbar */}
                   <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
