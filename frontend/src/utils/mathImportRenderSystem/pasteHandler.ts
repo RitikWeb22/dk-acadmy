@@ -1,11 +1,11 @@
 /**
  * DK Academy JEE - Smart Clipboard Math Ingestion Engine (Pipeline Stage 1 & 4)
- *
+ * 
  * Intercepts copy-paste from:
  * - Microsoft Word (Desktop & 365) via conditional comments <!--[if gte msEquation 12]>
  * - Web browsers (KaTeX annotations, MathML, MathJax img alt attributes)
  * - PDFs and plain text notes
- *
+ * 
  * Automatically repairs linear equation residues, differentials, and bare math,
  * wrapping them into canonical $...$ KaTeX syntax with ZERO manual fixing.
  */
@@ -50,6 +50,19 @@ const OPERATOR_UNICODE_MAP: Record<string, string> = {
   '°': '^\\circ', '′': "'", '″': "''", '⋅': '\\cdot', '…': '\\dots'
 };
 
+const PROSE_LIST = 'if|let|the|be|is|are|in|on|at|by|for|to|of|and|or|then|than|where|when|what|which|who|how|why|such|that|with|from|into|curve|passing|through|solution|differential|equation|point|points|value|values|find|evaluate|calculate|equal|equals|given|suppose|assume|consider|hence|therefore|show|prove|origin|axis|plane|line|slope';
+const PROSE_GUARD = '(?!(?:' + PROSE_LIST + ')\\b)';
+
+const MATH_COEFF_VAR = '(?<![a-zA-Z])' + PROSE_GUARD + '[0-9]*[a-zA-Z]{1,3}(?:\\^\\{?[^{}]+\\}?|_\\{?[^{}]+\\}?)*(?![a-zA-Z])';
+const MATH_NUM = '(?<![a-zA-Z0-9])[0-9]+(?:\\.[0-9]+)?(?![a-zA-Z0-9])';
+const MATH_CMD = '\\\\[a-zA-Z]+(?:\\^\\{?[^{}]+\\}?|_\\{?[^{}]+\\}?)*';
+const MATH_PAREN = '\\([^()\\n]+\\)(?:\\^\\{?[^{}]+\\}?)*';
+const MATH_ATOM = '(?:' + [MATH_CMD, MATH_PAREN, MATH_COEFF_VAR, MATH_NUM].join('|') + ')';
+const MATH_OPERATOR = '(?:[+\\-*/=><≤≥≠])';
+const MATH_UNIT = '(?:' + MATH_ATOM + '|' + MATH_OPERATOR + ')';
+const DIFF_SIDE = '(?:' + MATH_UNIT + '(?:\\s*' + MATH_UNIT + ')*)';
+const DIFF_EQ = new RegExp('(?<![$\\w])(' + DIFF_SIDE + '\\s*=\\s*' + DIFF_SIDE + ')(?=(?:\\s*[,;.]|\\s+(?:then|where|when|if|and|pass|through|at|with)\\b|$))', 'gi');
+
 /**
  * Strips Microsoft Office HTML formatting and comments while extracting OMML
  */
@@ -77,7 +90,7 @@ export function extractMathFromHtml(html: string): string {
           (doc.querySelector && doc.querySelector('oMath, m\\:oMath'));
         if (oMath) {
           const latex = ommlNodeToLatex(oMath);
-          if (latex && latex.trim()) return ` $${latex.trim()}$ `;
+          if (latex) return ` $${latex}$ `;
         }
       } catch {}
     }
@@ -86,8 +99,7 @@ export function extractMathFromHtml(html: string): string {
 
   // 2. Convert Web KaTeX annotations: <annotation encoding="application/x-tex">...
   s = s.replace(/<annotation[^>]*encoding=["']application\/x-tex["'][^>]*>([\s\S]*?)<\/annotation>/gi, (_m, tex: string) => {
-    const t = tex.trim();
-    return t ? ` $${t}$ ` : ' ';
+    return ` $${tex.trim()}$ `;
   });
 
   // 3. Convert MathML: <math>...</math>
@@ -99,7 +111,7 @@ export function extractMathFromHtml(html: string): string {
         const mathEl = doc.querySelector('math');
         if (mathEl) {
           const latex = mathMLNodeToLatex(mathEl);
-          if (latex && latex.trim()) return ` $${latex.trim()}$ `;
+          if (latex) return ` $${latex}$ `;
         }
       } catch {}
     }
@@ -126,13 +138,13 @@ export function extractMathFromHtml(html: string): string {
   s = s.replace(/<br\s*\/?>/gi, '\n');
   s = s.replace(/<[^>]+>/g, ' ');
 
-  // 7. Decode HTML entities (&amp; MUST be last so "&amp;lt;" stays "&lt;")
+  // 7. Decode HTML entities
   s = s.replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&#x27;|&apos;/gi, "'")
-    .replace(/&amp;/gi, '&');
+    .replace(/&#39;/gi, "'");
 
   return s;
 }
@@ -172,11 +184,6 @@ export function normalizeMathString(raw: string): string {
     const code = c.codePointAt(0);
     return String.fromCharCode(65 + ((code || 0) - 0x1D434));
   });
-
-  // Square roots: capture the argument BEFORE the generic operator map runs,
-  // otherwise "√x" / "√(x+1)" become the invalid "\sqrt x" / "\sqrt (x+1)".
-  s = s.replace(/√\s*\(((?:[^()\n]|\([^()\n]*\))+)\)/g, '\\sqrt{$1}');
-  s = s.replace(/√\s*([A-Za-z0-9.]+(?:\^\{[^{}]+\}|\^[A-Za-z0-9]+|_\{[^{}]+\}|_[A-Za-z0-9]+)*)/g, '\\sqrt{$1}');
 
   // Greek and operators
   for (const [uni, cmd] of Object.entries(GREEK_UNICODE_MAP)) {
@@ -224,7 +231,7 @@ export function normalizeMathString(raw: string): string {
   );
   s = s.replace(/(?<![a-zA-Z0-9_\\])\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*([A-Za-z0-9_\\^{}]+)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/(?<![a-zA-Z0-9_\\])([A-Za-z0-9_\\^{}]+)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
-
+  
   // Number over number: 1/2, -1/2, 3/4
   s = s.replace(/(?<![a-zA-Z0-9_\/])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
   // Number over variable: 1/x -> \dfrac{1}{x}, 1/a -> \dfrac{1}{a}, 4/k -> \dfrac{4}{k}
@@ -358,15 +365,14 @@ export function normalizeMathString(raw: string): string {
   );
 
   // 3. Symmetric 3D Line Equations: \frac{x-x1}{a} = \frac{y-y1}{b} = \frac{z-z1}{c}
-  //    (built with RegExp + String.raw so ${proseStops} is really interpolated)
   s = s.replace(
-    new RegExp(String.raw`(?<![$\w])((?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[a-zA-Z0-9_+-]+)\s*=\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[a-zA-Z0-9_+-]+)\s*=\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[a-zA-Z0-9_+-]+))(?=\s*[,;.]|\s+${proseStops}|$)`, 'gi'),
+    /(?<![$\w])((?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[a-zA-Z0-9_+-]+)\s*=\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[a-zA-Z0-9_+-]+)\s*=\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[a-zA-Z0-9_+-]+))(?=\s*[,;.]|\s+${proseStops}|$)/gi,
     (_, m) => protect(m)
   );
 
-  // 4. Integrals: \int ... dx   (also fixes "d\theta": previously "\t" was a TAB in the pattern)
+  // 4. Integrals: \int ... dx
   s = s.replace(
-    new RegExp(String.raw`(?<![$\w])(\\(?:int|iint|iiint|oint)(?:_[^{}\s]+|_\{\s*[^{}]*(?:\{[^{}]*\}[^{}]*)*\s*\}|\^[^{}\s]+|\^\{\s*[^{}]*(?:\{[^{}]*\}[^{}]*)*\s*\})*\s*[\s\S]+?(?:\\,?\s*d[a-zA-Z]|dx|dy|dt|dz|du|dv|d\\theta|dr)(?![a-zA-Z]))(?=(?:\s*=\s*[^,;.\n]+)?(?:\s*[,;.]|\s+${proseStops}|$))`, 'gi'),
+    /(?<![$\w])(\\(?:int|iint|iiint|oint)(?:_[^{}\s]+|_\{\s*[^{}]*(?:\{[^{}]*\}[^{}]*)*\s*\}|\^[^{}\s]+|\^\{\s*[^{}]*(?:\{[^{}]*\}[^{}]*)*\s*\})*\s*[\s\S]+?(?:\\,?\s*d[a-zA-Z]|dx|dy|dt|dz|du|dv|d\theta|dr)(?![a-zA-Z]))(?=(?:\s*=\s*[^,;.\n]+)?(?:\s*[,;.]|\s+${proseStops}|$))/gi,
     (fullMatch) => protect(fullMatch)
   );
 
@@ -403,7 +409,7 @@ export function normalizeMathString(raw: string): string {
     (_, m) => protect(m)
   );
   s = s.replace(
-    new RegExp(String.raw`(?<![$\w])(\\vec\{[^{}]+\}\s*=\s*[^,;.\n]+?)(?=\s*[,;.]|\s+${proseStops}|$)`, 'gi'),
+    /(?<![$\w])(\\vec\{[^{}]+\}\s*=\s*[^,;.\n]+?)(?=\s*[,;.]|\s+${proseStops}|$)/gi,
     (_, m) => protect(m)
   );
 
@@ -464,7 +470,7 @@ export function normalizeMathString(raw: string): string {
 
   // 13. Inequalities: x > 1, \alpha, \beta > 0, \det A \neq 0
   s = s.replace(
-    new RegExp(String.raw`(?<![$\w])((?:\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+)(?:\s*,\s*(?:\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+))*\s*(?:[><=≤≥≠]|\\(?:neq|le|ge))\s*[-+]?[0-9a-zA-Z_\\]+)(?=\s*[,;.]|\s+${proseStops}|$)`, 'g'),
+    /(?<![$\w])((?:\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+)(?:\s*,\s*(?:\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+))*\s*(?:[><=≤≥≠]|\\(?:neq|le|ge))\s*[-+]?[0-9a-zA-Z_\\]+)(?=\s*[,;.]|\s+${proseStops}|$)/g,
     (fullMatch, eq) => {
       const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
       if (/\b(?:if|then|and|where|when|for|let)\b/i.test(nonLatex)) return fullMatch;
@@ -487,24 +493,17 @@ export function normalizeMathString(raw: string): string {
 
   // 15. Remaining standalone LaTeX commands with balanced braces
   s = s.replace(
-    new RegExp(String.raw`(?<![$\w])(\\(?:d?frac|sqrt|vec|hat|bar|dot|ddot|tilde|mathbf|mathrm|text|operatorname)\{(?:[^{}]|\{[^{}]*\})*\}(?:\{(?:[^{}]|\{[^{}]*\})*\})*(?:[A-Za-z0-9_^{}\\()\[\]+\-*/\s.]*[A-Za-z0-9_^{}\\()\[\]+\-*/])?|\\(?:alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|infty|times|div|pm|mp|le|ge|ne|approx|sim|to|partial|nabla|degree|circ)(?![a-zA-Z]))(?=\s*[,;.]|\s+${proseStops}|$|\s+[a-zA-Z]{3,})`, 'gi'),
-    (_fullMatch, cmd) => protect(cmd)
+    /(?<![$\w])(\\(?:d?frac|sqrt|vec|hat|bar|dot|ddot|tilde|mathbf|mathrm|text|operatorname)\{(?:[^{}]|\{[^{}]*\})*\}(?:\{(?:[^{}]|\{[^{}]*\})*\})*(?:[A-Za-z0-9_^{}\\()\[\]+\-*/\s.]*[A-Za-z0-9_^{}\\()\[\]+\-*/])?|\\(?:alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|infty|times|div|pm|mp|le|ge|ne|approx|sim|to|partial|nabla|degree|circ)(?![a-zA-Z]))(?=\s*[,;.]|\s+${proseStops}|$|\s+[a-zA-Z]{3,})/gi,
+    (fullMatch, cmd) => protect(cmd)
   );
 
-  // Restore protected blocks.
-  // - Descending order: a later block may contain placeholders of earlier blocks
-  //   (protect() wraps text that already holds placeholders), so restore the
-  //   outermost (highest index) first and let the inner ones resolve after.
-  // - Function replacer: a string replacement would interpret "$&", "$'", "$$"
-  //   inside the LaTeX as special patterns.
-  for (let idx = protectedBlocks.length - 1; idx >= 0; idx--) {
-    const block = protectedBlocks[idx];
-    s = s.replaceAll(`\u27E6MATH_${idx}\u27E7`, () => block);
+  // Restore protected blocks
+  for (let idx = 0; idx < protectedBlocks.length; idx++) {
+    s = s.replace(`\u27E6MATH_${idx}\u27E7`, protectedBlocks[idx]);
   }
 
-  // NOTE: the old cleanup `s.replace(/\$\s*\$/g, ' ')` and `s.replace(/\$\$+/g, '$')`
-  // were removed. They destroyed $$...$$ display math and merged adjacent inline
-  // blocks ("$a$ $b$" -> "$a b$"). Empty math is now never emitted upstream.
+  s = s.replace(/\$\s*\$/g, ' ');
+  s = s.replace(/\$\$+/g, '$');
   s = s.replace(/\s+,/g, ',');
   s = s.replace(/\s+\./g, '.');
   s = s.replace(/[^\S\r\n]+/g, ' ').trim();
@@ -541,9 +540,7 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/\(([^\(\)\n]+)\)\s*\/\s*\(([^\(\)\n]+)\)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/(?<![a-zA-Z0-9_\/])(-?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
 
-  // 3. Unicode math in options (√ with argument capture first)
-  s = s.replace(/√\s*\(((?:[^()\n]|\([^()\n]*\))+)\)/g, '\\sqrt{$1}');
-  s = s.replace(/√\s*([A-Za-z0-9.]+(?:\^\{[^{}]+\}|\^[A-Za-z0-9]+|_\{[^{}]+\}|_[A-Za-z0-9]+)*)/g, '\\sqrt{$1}');
+  // 3. Unicode math in options
   s = s.replace(/−/g, '-').replace(/°/g, '^\\circ').replace(/×/g, '\\times').replace(/÷/g, '\\div').replace(/√/g, '\\sqrt');
 
   // 4. Exponentials and square roots
@@ -576,11 +573,7 @@ export function extractQuestionAndOptions(text: string): ExtractedQuestionData {
   let shortcut: string | undefined;
 
   // Answer key detection: "Ans: B", "Answer: (C)", "Key: 4"
-  // Must start a line, have a word boundary and an explicit ":" "=" or "-" separator,
-  // and run to the end of that line, so "Keyword", "Answers" or prose never match.
-  const ansMatch = cleaned.match(
-    /^[ \t]*(?:Ans(?:wer)?|Key|Correct[ \t]*Option)\b[ \t]*[:=\-][ \t]*\(?([A-Da-d]|-?\d+(?:\.\d+)?)\)?[ \t]*$/im
-  );
+  const ansMatch = cleaned.match(/(?:Ans(?:wer)?|Key|Correct\s*Option)\s*[:=\-]?\s*\(?([A-Da-d0-9.\-]+)\)?/i);
   if (ansMatch) {
     const keyCandidate = ansMatch[1].toUpperCase();
     if (['A', 'B', 'C', 'D'].includes(keyCandidate)) {
@@ -591,68 +584,39 @@ export function extractQuestionAndOptions(text: string): ExtractedQuestionData {
     cleaned = cleaned.replace(ansMatch[0], '').trim();
   }
 
-  // Solution detection (line-anchored; runs until Shortcut/Trick/Ans/Key line or end of text)
-  const solMatch = cleaned.match(
-    /^[ \t]*(?:Solution|Soln|Explanation)\b[ \t]*[:\-][ \t]*([\s\S]+?)(?=^[ \t]*(?:Shortcut|DK\s*Sir\s*Shortcut|Trick|Ans(?:wer)?|Key)\b|(?![\s\S]))/im
-  );
+  // Solution detection
+  const solMatch = cleaned.match(/(?:Solution|Soln|Explanation)\s*[:\-]\s*([\s\S]+?)(?=(?:Shortcut|DK\s*Sir\s*Shortcut|Trick|Ans|Key)\b|$)/i);
   if (solMatch) {
     solution = solMatch[1].trim();
     cleaned = cleaned.replace(solMatch[0], '').trim();
   }
 
-  // Shortcut detection (previously declared but never populated)
-  const shortMatch = cleaned.match(
-    /^[ \t]*(?:DK\s*Sir\s*Shortcut|Shortcut|Trick)\b[ \t]*[:\-][ \t]*([\s\S]+?)(?=^[ \t]*(?:Solution|Soln|Explanation|Ans(?:wer)?|Key)\b|(?![\s\S]))/im
-  );
-  if (shortMatch) {
-    shortcut = shortMatch[1].trim();
-    cleaned = cleaned.replace(shortMatch[0], '').trim();
-  }
-
-  // Options detection.
-  //  - "(A)" / "(1)" markers may appear after any whitespace.
-  //  - Bare "A." / "A)" / "1." / "1)" markers count ONLY at the start of a line,
-  //    so sentences like "... at x = 4. The curve ..." are not split.
-  //  - After matching, only a sequential run A, B, C, D starting at A is accepted.
-  const optRegex =
-    /(?:(?<=^|\s)\(([A-Da-d1-4])\)|(?<![^\n])[ \t]*([A-Da-d1-4])[.)])[ \t]+([\s\S]+?)(?=\s\([A-Da-d1-4]\)[ \t]|\n[ \t]*[A-Da-d1-4][.)][ \t]|(?![\s\S]))/g;
-  const toKey = (raw: string): string => {
-    const k = raw.toUpperCase();
-    return k === '1' ? 'A' : k === '2' ? 'B' : k === '3' ? 'C' : k === '4' ? 'D' : k;
-  };
-
+  // Options detection: (A), (B), (C), (D) or (1), (2), (3), (4)
+  const optionsMap: Record<string, string> = {};
+  const optRegex = /(?:^|[\n\s])(?:\(([A-Da-d1-4])\)|([A-Da-d1-4])\.)\s+([\s\S]+?)(?=(?:[\n\s](?:\([A-Da-d1-4]\)|[A-Da-d1-4]\.)\s+)|$)/g;
   let optMatch: RegExpExecArray | null;
-  const allMatches: { key: string; text: string; index: number }[] = [];
+  const matches: { key: string; text: string; fullMatch: string }[] = [];
+
   while ((optMatch = optRegex.exec(cleaned)) !== null) {
-    allMatches.push({
-      key: toKey(optMatch[1] || optMatch[2]),
+    const rawKey = (optMatch[1] || optMatch[2]).toUpperCase();
+    const key = rawKey === '1' ? 'A' : rawKey === '2' ? 'B' : rawKey === '3' ? 'C' : rawKey === '4' ? 'D' : rawKey;
+    matches.push({
+      key,
       text: optMatch[3].trim(),
-      index: optMatch.index
+      fullMatch: optMatch[0]
     });
   }
 
-  // Keep the first sequential A,B,C,D run
-  const matches: { key: string; text: string; index: number }[] = [];
-  const order = ['A', 'B', 'C', 'D'];
-  const startAt = allMatches.findIndex((m) => m.key === 'A');
-  if (startAt >= 0) {
-    for (let i = startAt; i < allMatches.length; i++) {
-      if (allMatches[i].key === order[matches.length]) {
-        matches.push(allMatches[i]);
-      } else {
-        break;
-      }
-    }
-  }
-
-  const optionsMap: Record<string, string> = {};
   let statement = cleaned;
   if (matches.length >= 2) {
     const candidateMap = { A: '', B: '', C: '', D: '' };
     for (const m of matches) {
-      candidateMap[m.key as 'A' | 'B' | 'C' | 'D'] = m.text;
+      if (['A', 'B', 'C', 'D'].includes(m.key)) {
+        candidateMap[m.key as 'A' | 'B' | 'C' | 'D'] = m.text;
+      }
     }
-    const candidateStmt = matches[0].index > 0 ? cleaned.substring(0, matches[0].index).trim() : '';
+    const firstOptIndex = cleaned.indexOf(matches[0].fullMatch);
+    const candidateStmt = firstOptIndex > 0 ? cleaned.substring(0, firstOptIndex).trim() : '';
 
     if (candidateStmt && areValidExtractedOptions(candidateMap, candidateStmt)) {
       for (const m of matches) {
@@ -698,8 +662,12 @@ export function handleSmartMathPaste(e: ClipboardEvent | { clipboardData?: DataT
   const html = cd.getData('text/html') || '';
   const plain = cd.getData('text/plain') || cd.getData('text') || '';
 
-  // Both branches previously ran the same call; one is enough.
-  const converted = html ? extractMathFromHtml(html) : '';
+  let converted = '';
+  if (html && /<(?:m:)?(?:oMath|oMathPara|math)\b|<!--\[if\s+gte\s+msEquation/i.test(html)) {
+    converted = extractMathFromHtml(html);
+  } else if (html) {
+    converted = extractMathFromHtml(html);
+  }
 
   let baseText = converted.trim() || plain;
   baseText = baseText.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
