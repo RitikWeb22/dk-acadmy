@@ -11,8 +11,7 @@ import {
   Activity,
   LogOut,
   ChevronDown,
-  UserCog,
-  Home
+  UserCog
 } from 'lucide-react';
 import { useAdminAuth } from '../../../../context/AdminAuthContext';
 import { AdminProfileModal } from '../../../../components/admin/AdminProfileModal/AdminProfileModal';
@@ -149,20 +148,11 @@ export const Topbar: React.FC<TopbarProps> = ({
         </button>
 
         <nav className={styles.breadcrumbs} aria-label="Breadcrumbs">
-          <button
-            type="button"
-            className={styles.homeCrumbBtn}
-            onClick={() => navigate('/admin/dashboard')}
-            aria-label="Dashboard Home"
-          >
-            <Home size={15} />
-          </button>
-          <ChevronRight size={13} className={styles.crumbSeparator} />
           <span className={styles.crumbParent}>Admin</span>
           <ChevronRight size={13} className={styles.crumbSeparator} />
-          <span className={styles.crumbCurrent} aria-current="page">
+          <h1 className={styles.crumbCurrent} aria-current="page">
             {getBreadcrumbLabel(activeMenu)}
-          </span>
+          </h1>
         </nav>
       </div>
 
@@ -205,13 +195,15 @@ export const Topbar: React.FC<TopbarProps> = ({
               setIsNotificationsOpen(!isNotificationsOpen);
               setIsUserDropdownOpen(false);
             }}
-            aria-label={`${unreadCount || 3} Unread Notifications`}
+            aria-label={`${unreadCount} Unread Notifications`}
             aria-expanded={isNotificationsOpen}
           >
             <Bell size={17} />
-            <span className={styles.redBadgePill} aria-hidden="true">
-              {unreadCount > 0 ? unreadCount : 3}
-            </span>
+            {unreadCount > 0 && (
+              <span className={styles.greenBadgePill}>
+                <span className={styles.greenBadgeDot}>●</span> {unreadCount}
+              </span>
+            )}
           </button>
 
           {isNotificationsOpen && (

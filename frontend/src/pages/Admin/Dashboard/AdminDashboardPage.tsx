@@ -2,29 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Users,
-  UserPlus,
-  Play,
-  CheckSquare,
-  TrendingUp,
   Receipt,
   CheckCircle2,
   ShieldCheck,
   CreditCard,
   PlusSquare,
-  PlusCircle,
   FileText,
   Crosshair,
-  CloudUpload,
   RefreshCw,
   ArrowUpRight,
-  ArrowRight,
   Sparkles,
   Video,
   Mail,
-  Tag,
-  Calendar,
-  Zap,
-  ChevronDown
+  Tag
 } from 'lucide-react';
 // Lazy-loaded administrative workspaces for bundle optimization
 const StudentManagementWorkspace = React.lazy(() =>
@@ -74,9 +64,6 @@ const AdminWorkspaceLoader: React.FC = () => (
 );
 
 // Modular Components
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { CommandPaletteModal } from './components/CommandPaletteModal';
@@ -251,8 +238,6 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
     totalDppPyq: number;
     totalFreeLectures: number;
     totalPaidLectures: number;
-    totalLeads: number;
-    totalCoupons: number;
   }>({
     grossRevenue: 0,
     totalEnrolments: 0,
@@ -264,27 +249,8 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
     totalTestSeries: 0,
     totalDppPyq: 0,
     totalFreeLectures: 0,
-    totalPaidLectures: 0,
-    totalLeads: 0,
-    totalCoupons: 0
+    totalPaidLectures: 0
   });
-
-  const formatCompactCurrency = (amount: number): string => {
-    if (!amount || amount === 0) return '₹0';
-    if (amount >= 10000000) {
-      const val = amount / 10000000;
-      return `₹${val.toFixed(val >= 10 ? 0 : 1).replace(/\.0$/, '')}Cr`;
-    }
-    if (amount >= 100000) {
-      const val = amount / 100000;
-      return `₹${val.toFixed(val >= 10 ? 0 : 1).replace(/\.0$/, '')}L`;
-    }
-    if (amount >= 1000) {
-      const val = amount / 1000;
-      return `₹${val.toFixed(val >= 10 ? 0 : 1).replace(/\.0$/, '')}K`;
-    }
-    return `₹${amount.toLocaleString('en-IN')}`;
-  };
 
   const isSyncingRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
@@ -309,9 +275,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
           totalTestSeries: res.summary.totalTestSeries ?? 0,
           totalDppPyq: res.summary.totalDppPyq ?? 0,
           totalFreeLectures: res.summary.totalFreeLectures ?? 0,
-          totalPaidLectures: res.summary.totalPaidLectures ?? 0,
-          totalLeads: res.summary.totalLeads ?? res.summary.leadsCount ?? 0,
-          totalCoupons: res.summary.totalCoupons ?? res.summary.couponsCount ?? 0
+          totalPaidLectures: res.summary.totalPaidLectures ?? 0
         });
       }
     } catch (err) {
@@ -431,271 +395,290 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
             ) : activeMenu === 'coupons' ? (
               <CouponManagementWorkspace />
             ) : (
-              <div className="flex flex-col gap-6 w-full max-w-[1440px] mx-auto p-6 sm:p-8 pb-16">
-                {/* ─── COCKPIT WELCOME HERO ─── */}
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-[28px] font-bold tracking-tight text-[#111B34] dark:text-slate-100">
-                      Welcome, {admin?.name || 'Ritik'} (Super Admin) 👋
-                    </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                      Real-time admissions, live batch curriculum, CBT simulations, and verified fee collections across DK Academy JEE.
+              <div className={styles.dashboardContainerStack}>
+              {/* ─── EXECUTIVE COMMAND HEADER STRIP ─── */}
+              <div className={styles.execHeaderStrip}>
+                <div className={styles.execHeaderInfo}>
+                  <div className={styles.execIconCircle}>
+                    <Sparkles size={20} className={styles.execSparkleIcon} />
+                  </div>
+                  <div>
+                    <h1 className={styles.execTitle}>Executive Command Center</h1>
+                    <p className={styles.execSubtitle}>
+                      Real-time admissions, active curriculum, CBT simulations, and verified fee collections across DK Academy JEE.
                     </p>
                   </div>
+                </div>
 
-                  <div className="flex flex-col items-start md:items-end gap-2.5 shrink-0">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                      Live Sync Active
+                <div className={styles.execActionsGroup}>
+                  <button
+                    type="button"
+                    className={styles.syncDbBtn}
+                    onClick={fetchAnalytics}
+                    disabled={isSyncing}
+                    title="Refresh live metrics"
+                  >
+                    <RefreshCw size={14} className={isSyncing ? styles.spinIcon : ''} />
+                    <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.quickCommandBtn}
+                    onClick={() => setIsCommandPaletteOpen(true)}
+                    title="Open Command Palette (Ctrl+K)"
+                  >
+                    <span>⌘ Quick Actions</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* ─── 6-MODULE CORE ACADEMIC & DATA BENTO STRIP ─── */}
+              <div className={styles.moduleBentoStrip}>
+                {/* 1. Student Management */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('students', '/admin/students')}
+                  title="Open Student Management"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.emeraldModuleTile}`}>
+                      <Users size={18} />
+                    </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
+                  </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>{liveAnalytics.totalStudents}</span>
+                    <span className={styles.moduleLabel}>Student Management</span>
+                    <span className={styles.moduleSubText}>Aspirants Roster &amp; Batches</span>
+                  </div>
+                </div>
+
+                {/* 2. Teachers & Admin */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('teachers', '/admin/teachers')}
+                  title="Open Teachers & Admin"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.purpleModuleTile}`}>
+                      <ShieldCheck size={18} />
+                    </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
+                  </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>{liveAnalytics.totalTeachers}</span>
+                    <span className={styles.moduleLabel}>Teachers &amp; Admin</span>
+                    <span className={styles.moduleSubText}>Faculty &amp; RBAC Control</span>
+                  </div>
+                </div>
+
+                {/* 3. Invoices & Fee Slips */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('invoices', '/admin/invoices')}
+                  title="Open Invoices & Fee Slips"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.blueModuleTile}`}>
+                      <CreditCard size={18} />
+                    </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
+                  </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>
+                      ₹{(liveAnalytics.grossRevenue / 100000).toFixed(1)}L
                     </span>
-
-                    <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-2xs">
-                      <Calendar size={13} className="text-slate-400" />
-                      <span>Nov 8, 2026 – Today</span>
-                      <ChevronDown size={13} className="text-slate-400 ml-1" />
-                    </div>
+                    <span className={styles.moduleLabel}>Invoices &amp; Fees</span>
+                    <span className={styles.moduleSubText}>Razorpay &amp; Offline Slips</span>
                   </div>
                 </div>
 
-                {/* ─── 4 CORE HERO PILLARS (Executive KPI Cockpit) ─── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Card 1: Fee Collections (Blue Gradient) */}
-                  <div
-                    className="rounded-2xl border border-blue-100 dark:border-slate-800 bg-gradient-to-br from-[#EEF4FF] via-[#F3F7FF] to-[#DCE8FE] dark:from-slate-900 dark:to-slate-800/80 p-5 flex flex-col justify-between cursor-pointer hover:shadow-md transition-all duration-150"
-                    onClick={() => handleNavClick('invoices', '/admin/invoices')}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="h-10 w-10 rounded-xl bg-blue-100/80 dark:bg-blue-950/60 text-[#245BFF] flex items-center justify-center shrink-0">
-                        <Users size={19} />
-                      </div>
+                {/* 4. Courses Create */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('courses', '/admin/courses/create')}
+                  title="Open Course Builder"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.amberModuleTile}`}>
+                      <PlusSquare size={18} />
                     </div>
-                    <div className="mt-4">
-                      <div className="text-3xl font-extrabold text-[#111B34] dark:text-slate-100 tabular-nums tracking-tight">
-                        ₹{liveAnalytics.grossRevenue.toLocaleString('en-IN') || '10'}
-                      </div>
-                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
-                        Fee Collections
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                        <span>↑</span>
-                        <span>{liveAnalytics.revenueGrowth || '+18.4%'}</span>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-2">
-                      <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">
-                        Goal: ₹25L | Target: 40%
-                      </div>
-                      <div className="h-1.5 w-full bg-blue-200/60 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#245BFF] rounded-full w-[40%]" />
-                      </div>
-                    </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
                   </div>
-
-                  {/* Card 2: Enrolled Aspirants (Purple Gradient) */}
-                  <div
-                    className="rounded-2xl border border-purple-100 dark:border-slate-800 bg-gradient-to-br from-[#FAF5FF] via-[#FAF5FF] to-[#F3E8FF] dark:from-slate-900 dark:to-slate-800/80 p-5 flex flex-col justify-between cursor-pointer hover:shadow-md transition-all duration-150"
-                    onClick={() => handleNavClick('students', '/admin/students')}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="h-10 w-10 rounded-xl bg-purple-100/80 dark:bg-purple-950/60 text-[#7955EF] flex items-center justify-center shrink-0">
-                        <UserPlus size={19} />
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-3xl font-extrabold text-[#111B34] dark:text-slate-100 tabular-nums tracking-tight">
-                        {liveAnalytics.totalStudents || 13}
-                      </div>
-                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
-                        Enrolled Aspirants
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                        <span>↑</span>
-                        <span>+13 enrolled</span>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-2">
-                      <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">
-                        Capacity: 500 | Max: 2.6%
-                      </div>
-                      <div className="h-1.5 w-full bg-purple-200/60 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#7955EF] rounded-full w-[15%]" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Course Batches (Green Gradient) */}
-                  <div
-                    className="rounded-2xl border border-emerald-100 dark:border-slate-800 bg-gradient-to-br from-[#F0FDF4] via-[#F4FDF7] to-[#DCFCE7] dark:from-slate-900 dark:to-slate-800/80 p-5 flex flex-col justify-between cursor-pointer hover:shadow-md transition-all duration-150"
-                    onClick={() => handleNavClick('courses', '/admin/courses')}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="h-10 w-10 rounded-xl bg-emerald-100/80 dark:bg-emerald-950/60 text-[#10B981] flex items-center justify-center shrink-0">
-                        <Play size={17} className="fill-[#10B981]" />
-                      </div>
-                      <TrendingUp size={19} className="text-emerald-500/80" />
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-3xl font-extrabold text-[#111B34] dark:text-slate-100 tabular-nums tracking-tight">
-                        {liveAnalytics.totalCourses || 6}
-                      </div>
-                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
-                        Course Batches
-                      </div>
-                      <div className="mt-1.5">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/90 text-emerald-700 border border-emerald-200/60 shadow-2xs">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          Live Batches
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-2">
-                      <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        Target JEE 2026, 2027 &amp; Droppers
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 4: Test Series Mocks (Orange Gradient) */}
-                  <div
-                    className="rounded-2xl border border-orange-100 dark:border-slate-800 bg-gradient-to-br from-[#FFF7ED] via-[#FFF9F2] to-[#FFEDD5] dark:from-slate-900 dark:to-slate-800/80 p-5 flex flex-col justify-between cursor-pointer hover:shadow-md transition-all duration-150"
-                    onClick={() => handleNavClick('test-series', '/admin/test-series')}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="h-10 w-10 rounded-xl bg-orange-100/80 dark:bg-orange-950/60 text-[#F59E0B] flex items-center justify-center shrink-0">
-                        <CheckSquare size={18} />
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-3xl font-extrabold text-[#111B34] dark:text-slate-100 tabular-nums tracking-tight">
-                        {liveAnalytics.totalTestSeries || 9}
-                      </div>
-                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
-                        Test Series Mocks
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                        <span>↑</span>
-                        <span>+9 Active</span>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-2">
-                      <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        Full-Length CBT Mock Tests
-                      </div>
-                    </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>{liveAnalytics.totalCourses}</span>
+                    <span className={styles.moduleLabel}>Courses Create</span>
+                    <span className={styles.moduleSubText}>Batches &amp; Video Vault</span>
                   </div>
                 </div>
 
-                {/* ─── 2-COLUMN ASYMMETRIC BENTO GRID (Left minmax(0,1fr) / Right 390px) ─── */}
-                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_390px] gap-6 items-start">
-                  {/* LEFT COLUMN (Analytics & Visual Trend Graphs) */}
-                  <div className="min-w-0 flex flex-col gap-6">
-                    <UsersAnalyticsCard />
-                    <OrdersAnalyticsCard />
-                  </div>
-
-                  {/* RIGHT COLUMN (390px Width — Recent Transactions, Fast Access & Promo Banner) */}
-                  <div className="w-full lg:w-[390px] min-w-0 flex flex-col gap-6">
-                    {/* Live Financial & Admissions Ledger */}
-                    <RecentTransactionsCard />
-
-                    {/* Fast Navigation Quick Action Hub */}
-                    <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
-                      <div className="flex items-center gap-2.5">
-                        <Zap size={18} className="text-[#245BFF] fill-[#245BFF]" />
-                        <h2 className="text-base font-bold text-[#111B34] dark:text-slate-100 tracking-tight">
-                          Quick Administrative Access
-                        </h2>
-                      </div>
-                      <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">
-                        Direct shortcuts to manage curriculum and students
-                      </p>
-
-                      <div className="grid grid-cols-2 gap-2.5 mt-4">
-                        <button
-                          type="button"
-                          onClick={() => handleNavClick('courses', '/admin/courses/create')}
-                          className="h-11 px-3 rounded-xl border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-[#111B34] dark:text-slate-200 flex items-center justify-between transition-colors shadow-2xs"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <PlusCircle size={15} className="text-[#245BFF] shrink-0" />
-                            <span className="truncate">New Course</span>
-                          </div>
-                          <ArrowRight size={13} className="text-slate-400 shrink-0 ml-1" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleNavClick('test-series', '/admin/test-series')}
-                          className="h-11 px-3 rounded-xl border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-[#111B34] dark:text-slate-200 flex items-center justify-between transition-colors shadow-2xs"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <FileText size={15} className="text-[#7955EF] shrink-0" />
-                            <span className="truncate">New CBT Mock</span>
-                          </div>
-                          <ArrowRight size={13} className="text-slate-400 shrink-0 ml-1" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleNavClick('dpp-pyq', '/admin/dpp-pyq')}
-                          className="h-11 px-3 rounded-xl border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-[#111B34] dark:text-slate-200 flex items-center justify-between transition-colors shadow-2xs"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <CloudUpload size={15} className="text-[#245BFF] shrink-0" />
-                            <span className="truncate">Upload DPP</span>
-                          </div>
-                          <ArrowRight size={13} className="text-slate-400 shrink-0 ml-1" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleNavClick('invoices', '/admin/invoices')}
-                          className="h-11 px-3 rounded-xl border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-[#111B34] dark:text-slate-200 flex items-center justify-between transition-colors shadow-2xs"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <CreditCard size={15} className="text-[#10B981] shrink-0" />
-                            <span className="truncate">Fee Slips</span>
-                          </div>
-                          <ArrowRight size={13} className="text-slate-400 shrink-0 ml-1" />
-                        </button>
-                      </div>
-                    </Card>
-
-                    {/* DK ACADEMY JEE Promotional Banner */}
-                    <div className="relative rounded-2xl bg-gradient-to-r from-[#0A1329] via-[#101C38] to-[#1A2E5A] text-white p-5 overflow-hidden flex items-end justify-between shadow-sm">
-                      <div className="flex flex-col z-10 max-w-[210px] pb-1">
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-300">
-                          DK ACADEMY JEE
-                        </span>
-                        <h3 className="text-base sm:text-[17px] font-black leading-tight text-amber-400 mt-1">
-                          Dream Big. Prepare Better.
-                        </h3>
-                        <p className="text-xs text-slate-300 mt-1">
-                          Your Success is Our Mission 🚀
-                        </p>
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => handleNavClick('courses', '/admin/courses')}
-                            className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F59E0B] text-slate-950 hover:bg-amber-400 shadow-sm transition-colors"
-                          >
-                            <span>View Courses</span>
-                            <ArrowRight size={12} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="absolute right-0 bottom-0 top-0 w-[140px] flex items-end justify-end pointer-events-none">
-                        <img
-                          src="/img/founder.jpeg"
-                          alt="DK Academy Founder"
-                          className="h-32 object-contain object-bottom -mb-0.5 rounded-br-2xl"
-                        />
-                      </div>
+                {/* 5. Test Series */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('test-series', '/admin/test-series')}
+                  title="Open Test Series Engine"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.roseModuleTile}`}>
+                      <FileText size={18} />
                     </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
+                  </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>{liveAnalytics.totalTestSeries}</span>
+                    <span className={styles.moduleLabel}>Test Series</span>
+                    <span className={styles.moduleSubText}>JEE &amp; BITSAT CBT Engine</span>
+                  </div>
+                </div>
+
+                {/* 6. DPP & PYQ Practice */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('dpp-pyq', '/admin/dpp-pyq')}
+                  title="Open DPP & PYQ Practice"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.tealModuleTile}`}>
+                      <Crosshair size={18} />
+                    </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
+                  </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>{liveAnalytics.totalDppPyq}</span>
+                    <span className={styles.moduleLabel}>DPP &amp; PYQ Practice</span>
+                    <span className={styles.moduleSubText}>Daily Drills &amp; Archives</span>
+                  </div>
+                </div>
+
+                {/* 7. Free Lectures Create */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('free-lectures', '/admin/free-lectures')}
+                  title="Open Free Lectures Create"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.cyanModuleTile}`}>
+                      <Video size={18} />
+                    </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
+                  </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>{liveAnalytics.totalFreeLectures} Free</span>
+                    <span className={styles.moduleLabel}>Free Lectures Create</span>
+                    <span className={styles.moduleSubText}>5-Free Rule &amp; Paid Pricing</span>
+                  </div>
+                </div>
+
+                {/* 8. Contact Us & Leads Desk */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('contact', '/admin/contact')}
+                  title="Open Contact Us & Customer Inquiries Desk"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.blueModuleTile}`}>
+                      <Mail size={18} />
+                    </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
+                  </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>Active Leads</span>
+                    <span className={styles.moduleLabel}>Contact Us Desk</span>
+                    <span className={styles.moduleSubText}>Callbacks &amp; Inquiries</span>
+                  </div>
+                </div>
+
+                {/* 9. Discount Coupons */}
+                <div
+                  className={styles.moduleCard}
+                  onClick={() => handleNavClick('coupons', '/admin/coupons')}
+                  title="Open Discount Coupons & Promo Offers"
+                >
+                  <div className={styles.moduleCardHeader}>
+                    <div className={`${styles.moduleIconTile} ${styles.purpleModuleTile}`}>
+                      <Tag size={18} />
+                    </div>
+                    <ArrowUpRight size={15} className={styles.moduleArrow} />
+                  </div>
+                  <div className={styles.moduleCardBody}>
+                    <span className={styles.moduleValue}>Promo Codes</span>
+                    <span className={styles.moduleLabel}>Discount Coupons</span>
+                    <span className={styles.moduleSubText}>Fee Concessions</span>
                   </div>
                 </div>
               </div>
+
+              {/* ─── 2-COLUMN ASYMMETRIC BENTO GRID (Left 68% / Right 32%) ─── */}
+              <div className={styles.bentoGridWorkspace}>
+                {/* LEFT COLUMN (~68% Width — Analytics & Visual Trend Graphs) */}
+                <div className={styles.leftColumn}>
+                  {/* Top Card: Users Analytics */}
+                  <UsersAnalyticsCard />
+
+                  {/* Bottom Card: Orders Analytics */}
+                  <OrdersAnalyticsCard />
+                </div>
+
+                {/* RIGHT COLUMN (~32% Width — Compact Metric Gauges & Live Stream) */}
+                <div className={styles.rightColumn}>
+                  {/* Top Metric Card 1: Sales Obtained / Fee Collections */}
+                  <div className={styles.kpiRadialCard}>
+                    <div className={styles.kpiLeftContent}>
+                      <div className={`${styles.iconContainer} ${styles.iconContainerBlue}`}>
+                        <Receipt size={18} className={styles.iconBlue} />
+                      </div>
+                      <div className={styles.kpiMetaGroup}>
+                        <div className={styles.valueRow}>
+                          <span className={styles.kpiBoldValue}>
+                            ₹{liveAnalytics.grossRevenue.toLocaleString('en-IN')}
+                          </span>
+                          <span className={styles.growthPillEmerald}>{liveAnalytics.revenueGrowth}</span>
+                        </div>
+                        <span className={styles.kpiLabelText}>Fee Collections</span>
+                      </div>
+                    </div>
+                    <div className={styles.kpiRightRing}>
+                      <CircularProgressRing
+                        progress={Math.min(100, Math.max(15, Math.round((liveAnalytics.grossRevenue / 2500000) * 100)))}
+                        size={58}
+                        strokeWidth={5}
+                        strokeColor="#2563EB"
+                        trackColor="#EFF6FF"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Top Metric Card 2: New Users / Student Enrollments */}
+                  <div className={styles.kpiRadialCard}>
+                    <div className={styles.kpiLeftContent}>
+                      <div className={`${styles.iconContainer} ${styles.iconContainerIndigo}`}>
+                        <Users size={18} className={styles.iconIndigo} />
+                      </div>
+                      <div className={styles.kpiMetaGroup}>
+                        <div className={styles.valueRow}>
+                          <span className={styles.kpiBoldValue}>{liveAnalytics.totalEnrolments}</span>
+                          <span className={styles.growthPillEmerald}>{liveAnalytics.studentsGrowth}</span>
+                        </div>
+                        <span className={styles.kpiLabelText}>Enrolled Aspirants</span>
+                      </div>
+                    </div>
+                    <div className={styles.kpiRightRing}>
+                      <CircularProgressRing
+                        progress={Math.min(100, Math.max(20, Math.round((liveAnalytics.totalEnrolments / 50) * 100)))}
+                        size={58}
+                        strokeWidth={5}
+                        strokeColor="#4F46E5"
+                        trackColor="#EEF2FF"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bottom Card: Recent Transactions (Live Admissions & Invoices) */}
+                  <RecentTransactionsCard />
+                </div>
+              </div>
+            </div>
           )}
           </React.Suspense>
         </main>
