@@ -141,13 +141,13 @@ export const UsersAnalyticsCard: React.FC = () => {
   const yDomainMax = Math.ceil((maxVal * 1.15) / 50) * 50;
 
   return (
-    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
+    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
       {/* Header with Title and Filter Dropdown */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h3 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             Users Analytics
-          </h3>
+          </h2>
           <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
             Aspirant enrollments over time
           </p>

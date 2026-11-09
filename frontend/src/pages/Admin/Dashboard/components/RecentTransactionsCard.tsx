@@ -116,13 +116,13 @@ export const RecentTransactionsCard: React.FC = () => {
   const currentSlice = transactions.slice(startIndex, startIndex + rowsPerPage);
 
   return (
-    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5 flex flex-col justify-between">
+    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6 flex flex-col justify-between">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Recent Transactions
-          </h3>
+          </h2>
           <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
             Real-time student fee completions
           </p>
@@ -134,14 +134,14 @@ export const RecentTransactionsCard: React.FC = () => {
       </div>
 
       {/* Real Table with Fixed Column Widths */}
-      <div className="w-full overflow-x-auto my-2">
+      <div className="w-full overflow-x-auto my-2.5">
         <table className="w-full table-fixed text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 uppercase text-[11px] font-semibold tracking-wider">
-              <th scope="col" className="w-[20%] px-3 py-2.5">ID</th>
-              <th scope="col" className="w-[40%] px-3 py-2.5">Student</th>
-              <th scope="col" className="w-[20%] px-3 py-2.5 text-right">Amount</th>
-              <th scope="col" className="w-[20%] px-3 py-2.5 text-right">Time</th>
+              <th scope="col" className="w-[18%] px-4 py-3">ID</th>
+              <th scope="col" className="w-[42%] px-4 py-3">Student</th>
+              <th scope="col" className="w-[20%] px-4 py-3 text-right">Amount</th>
+              <th scope="col" className="w-[20%] px-4 py-3 text-right">Time</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -154,25 +154,25 @@ export const RecentTransactionsCard: React.FC = () => {
             ) : (
               currentSlice.map((txn, idx) => (
                 <tr key={txn.id + idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className="w-[20%] px-3 py-3 font-mono text-xs text-slate-500 dark:text-slate-400 truncate" title={txn.id}>
+                  <td className="w-[18%] px-4 py-3.5 font-mono text-xs text-slate-500 dark:text-slate-400 break-all" title={txn.id}>
                     {txn.id}
                   </td>
-                  <td className="w-[40%] px-3 py-3">
+                  <td className="w-[42%] px-4 py-3.5">
                     <div className="flex flex-col min-w-0">
-                      <span className="font-semibold text-slate-900 dark:text-slate-100 truncate text-xs" title={txn.studentName}>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs break-words" title={txn.studentName}>
                         {txn.studentName}
                       </span>
                       {txn.batchName && (
-                        <span className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5" title={txn.batchName}>
+                        <span className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 break-words leading-snug" title={txn.batchName}>
                           {txn.batchName}
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="w-[20%] px-3 py-3 text-right font-semibold text-xs text-slate-900 dark:text-slate-100 tabular-nums">
+                  <td className="w-[20%] px-4 py-3.5 text-right font-semibold text-xs text-slate-900 dark:text-slate-100 tabular-nums">
                     {txn.amount}
                   </td>
-                  <td className="w-[20%] px-3 py-3 text-right text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                  <td className="w-[20%] px-4 py-3.5 text-right text-xs text-slate-500 dark:text-slate-400 tabular-nums">
                     {txn.timestamp}
                   </td>
                 </tr>

@@ -421,16 +421,16 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
             ) : activeMenu === 'coupons' ? (
               <CouponManagementWorkspace />
             ) : (
-              <div className="flex flex-col gap-6 w-full max-w-[1440px] mx-auto p-4 sm:p-6 pb-12">
+              <div className="flex flex-col gap-6 w-full max-w-[1440px] mx-auto p-6 sm:p-8 pb-16">
                 {/* ─── HEADER ─── */}
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1 min-w-0">
+                    <div className="space-y-1.5 min-w-0">
                       <div className="flex items-center gap-3 flex-wrap">
-                        <h1 className="text-2xl sm:text-[26px] font-semibold text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap">
-                          Welcome, {admin?.name || 'Ritik'}
+                        <h1 className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap">
+                          Welcome, {admin?.name || 'Ritik'} (Super Admin)
                         </h1>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                           <span>Live Sync</span>
                         </span>
@@ -445,7 +445,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                         variant="outline"
                         onClick={fetchAnalytics}
                         disabled={isSyncing}
-                        className="h-10 px-4 rounded-xl text-xs font-medium border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-xs transition-colors shrink-0 flex items-center gap-2"
+                        className="h-10 px-4 rounded-lg text-xs font-medium border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-xs transition-colors shrink-0 flex items-center gap-2"
                         title="Refresh live metrics"
                       >
                         <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
@@ -455,11 +455,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       <Button
                         variant="default"
                         onClick={() => setIsCommandPaletteOpen(true)}
-                        className="h-10 px-4 rounded-xl text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs transition-colors whitespace-nowrap shrink-0 flex items-center"
+                        className="h-10 px-4 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs transition-colors whitespace-nowrap shrink-0 flex items-center"
                         title="Open Command Palette (Ctrl+K)"
                       >
                         <span>Quick Actions</span>
-                        <kbd className="ml-2 font-mono text-[10px] bg-primary-foreground/20 text-primary-foreground px-1.5 py-0.5 rounded font-semibold whitespace-nowrap shrink-0">
+                        <kbd className="ml-2 font-mono text-[10px] bg-primary-foreground/20 text-primary-foreground px-1.5 py-0.5 rounded-sm font-semibold whitespace-nowrap shrink-0">
                           ⌘K
                         </kbd>
                       </Button>
@@ -471,17 +471,17 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   {/* 1. Student Management */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-5 flex flex-col justify-between min-h-[148px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
                     onClick={() => handleNavClick('students', '/admin/students')}
                     title="Open Student Management"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
                         <Users size={18} />
                       </div>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="flex flex-col mt-3 min-w-0">
+                    <div className="flex flex-col mt-3.5 min-w-0">
                       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
                         {liveAnalytics.totalStudents}
                       </span>
@@ -496,17 +496,17 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 2. Teachers & Admin */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-5 flex flex-col justify-between min-h-[148px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
                     onClick={() => handleNavClick('teachers', '/admin/teachers')}
                     title="Open Teachers & Admin"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
                         <ShieldCheck size={18} />
                       </div>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="flex flex-col mt-3 min-w-0">
+                    <div className="flex flex-col mt-3.5 min-w-0">
                       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
                         {liveAnalytics.totalTeachers}
                       </span>
@@ -521,17 +521,17 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 3. Invoices & Fee Slips */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-5 flex flex-col justify-between min-h-[148px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
                     onClick={() => handleNavClick('invoices', '/admin/invoices')}
                     title="Open Invoices & Fee Slips"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
                         <CreditCard size={18} />
                       </div>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="flex flex-col mt-3 min-w-0">
+                    <div className="flex flex-col mt-3.5 min-w-0">
                       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
                         {formatCompactCurrency(liveAnalytics.grossRevenue)}
                       </span>
@@ -546,17 +546,17 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 4. Course Builder */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-5 flex flex-col justify-between min-h-[148px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
                     onClick={() => handleNavClick('courses', '/admin/courses/create')}
                     title="Open Course Builder"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
                         <PlusSquare size={18} />
                       </div>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="flex flex-col mt-3 min-w-0">
+                    <div className="flex flex-col mt-3.5 min-w-0">
                       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
                         {liveAnalytics.totalCourses}
                       </span>
@@ -571,17 +571,17 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 5. Test Series */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-5 flex flex-col justify-between min-h-[148px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
                     onClick={() => handleNavClick('test-series', '/admin/test-series')}
                     title="Open Test Series Engine"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
                         <FileText size={18} />
                       </div>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="flex flex-col mt-3 min-w-0">
+                    <div className="flex flex-col mt-3.5 min-w-0">
                       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
                         {liveAnalytics.totalTestSeries}
                       </span>
@@ -596,17 +596,17 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 6. DPP & PYQ Practice */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-5 flex flex-col justify-between min-h-[148px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
                     onClick={() => handleNavClick('dpp-pyq', '/admin/dpp-pyq')}
                     title="Open DPP & PYQ Practice"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
                         <Crosshair size={18} />
                       </div>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="flex flex-col mt-3 min-w-0">
+                    <div className="flex flex-col mt-3.5 min-w-0">
                       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
                         {liveAnalytics.totalDppPyq}
                       </span>
@@ -621,17 +621,17 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 7. Free Lectures */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-5 flex flex-col justify-between min-h-[148px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
                     onClick={() => handleNavClick('free-lectures', '/admin/free-lectures')}
                     title="Open Free Lectures Create"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
                         <Video size={18} />
                       </div>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="flex flex-col mt-3 min-w-0">
+                    <div className="flex flex-col mt-3.5 min-w-0">
                       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
                         {liveAnalytics.totalFreeLectures}
                       </span>
@@ -646,17 +646,17 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 8. Contact Us & Leads Desk */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-5 flex flex-col justify-between min-h-[148px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
                     onClick={() => handleNavClick('contact', '/admin/contact')}
                     title="Open Contact Us & Customer Inquiries Desk"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
                         <Mail size={18} />
                       </div>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="flex flex-col mt-3 min-w-0">
+                    <div className="flex flex-col mt-3.5 min-w-0">
                       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
                         {liveAnalytics.totalLeads ?? 0}
                       </span>
@@ -671,17 +671,17 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
 
                   {/* 9. Discount Coupons */}
                   <Card
-                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-5 flex flex-col justify-between min-h-[148px]"
+                    className="group cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-150 p-6 flex flex-col justify-between min-h-[156px]"
                     onClick={() => handleNavClick('coupons', '/admin/coupons')}
                     title="Open Discount Coupons & Promo Offers"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400 flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0">
                         <Tag size={18} />
                       </div>
                       <ArrowUpRight size={14} className="text-slate-400 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="flex flex-col mt-3 min-w-0">
+                    <div className="flex flex-col mt-3.5 min-w-0">
                       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
                         {liveAnalytics.totalCoupons ?? 0}
                       </span>
@@ -706,11 +706,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                   {/* RIGHT COLUMN (380px Width — Compact Metric Gauges & Transactions Table) */}
                   <div className="w-full lg:w-[380px] min-w-0 flex flex-col gap-6">
                     {/* Top Metric Card 1: Fee Collections */}
-                    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
+                    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex flex-col gap-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <div className="h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                            <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
                               <Receipt size={18} />
                             </div>
                             <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
@@ -743,11 +743,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                     </Card>
 
                     {/* Top Metric Card 2: Enrolled Aspirants */}
-                    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
+                    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex flex-col gap-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <div className="h-9 w-9 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                            <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
                               <Users size={18} />
                             </div>
                             <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">

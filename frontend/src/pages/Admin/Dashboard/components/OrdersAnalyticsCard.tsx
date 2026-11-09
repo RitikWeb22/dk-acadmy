@@ -139,13 +139,13 @@ export const OrdersAnalyticsCard: React.FC = () => {
   }, [chartData]);
 
   return (
-    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
+    <Card className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6">
       {/* Header with Title and Metric Badges */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h3 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             Orders &amp; CBT Attempts
-          </h3>
+          </h2>
           <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
             Admissions &amp; mock test submissions
           </p>
