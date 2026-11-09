@@ -201,8 +201,8 @@ export function sanitizeFormula(str: string): string {
   }
 
   // Convert balanced exp{ ... } or \exp{ ... } into \exp\left\{ ... \right\} with tall curly braces
-  if (/\\?exp\s*(?:\\?\{|\{)/i.test(res)) {
-    const expRegex = /\\?exp\s*(?:\\?\{|\{)/gi;
+  if (/\\?exp[\s\u2061\u2060-\u2064\u200B-\u200D\uFEFF]*(?:\\?\{|\{)/i.test(res)) {
+    const expRegex = /\\?exp[\s\u2061\u2060-\u2064\u200B-\u200D\uFEFF]*(?:\\?\{|\{)/gi;
     let expMatch: RegExpExecArray | null;
     let expResult = '';
     let expLastIndex = 0;
@@ -212,17 +212,25 @@ export function sanitizeFormula(str: string): string {
       let depth = 1;
       let i = startInner;
       let foundClose = false;
+      const openedWithEscape = expMatch[0].endsWith('\\{');
+
       for (; i < res.length; i++) {
-        if (res[i] === '{' && (i === 0 || res[i - 1] !== '\\')) depth++;
-        else if (res[i] === '}' && (i === 0 || res[i - 1] !== '\\')) {
-          depth--;
-          if (depth === 0) {
-            foundClose = true;
-            break;
+        const isEsc = i > 0 && res[i - 1] === '\\';
+        if (res[i] === '{') {
+          if (openedWithEscape ? isEsc : !isEsc) depth++;
+        } else if (res[i] === '}') {
+          if (openedWithEscape ? isEsc : !isEsc) {
+            depth--;
+            if (depth === 0) {
+              foundClose = true;
+              break;
+            }
           }
         }
       }
-      let inner = res.substring(startInner, i).trim();
+
+      const closePos = foundClose && openedWithEscape ? i - 1 : i;
+      let inner = res.substring(startInner, closePos).trim();
       inner = inner.replace(/\\frac\b/g, '\\dfrac');
       expResult += `\\exp\\left\\{${inner}\\right\\}`;
       expLastIndex = foundClose ? i + 1 : i;

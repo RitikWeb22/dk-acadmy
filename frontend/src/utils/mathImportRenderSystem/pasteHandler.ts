@@ -490,13 +490,13 @@ export function normalizeMathString(raw: string): string {
 
   // 5. Limits, Summations, Products: \lim_{...} ... (stop strictly before prose)
   s = s.replace(
-    new RegExp(`(?<![$\\w])(\\\\(?:lim|sum|prod)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*(?:[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]*?[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\]]))(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'),
+    new RegExp(`(?<![$\\w])(\\\\(?:lim|sum|prod)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*(?:[-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]\\s.]*?[-a-zA-Z0-9_^{}()'|\\\\+*/\\]]))(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'),
     (_, m) => protect(m)
   );
 
   // 6. Differential equations with explicit differentials: 2x^2 dy = (2xy+y^2) dx OR y(x+1) dx - x^2 dy = 0 OR [ ... ] x \dfrac{dy}{dx} = ...
   s = s.replace(
-    new RegExp(`(${proseLead})?([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]*?\\b(?:d\\^?[0-9]?[a-zA-Z]?\\/d[a-zA-Z]\\^?[0-9]?|\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}|dy|dx|dt|dz)\\b[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]*?=[a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]+?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
+    new RegExp(`(${proseLead})?([-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]\\s.]*?\\b(?:d\\^?[0-9]?[a-zA-Z]?\\/d[a-zA-Z]\\^?[0-9]?|\\\\(?:d?frac)\\{d\\^?[0-9]?[a-zA-Z]?\\}\\{d[a-zA-Z]\\^?[0-9]?\\}|dy|dx|dt|dz)\\b[-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]\\s.]*?=[-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]\\s.]+?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
     (fullMatch, lead, eq) => {
       let activeLead = lead || '';
       let activeEq = eq;
@@ -527,7 +527,7 @@ export function normalizeMathString(raw: string): string {
 
   // 8. General equations with LaTeX operators / functions: A^{-1} = ..., E = E^\circ - ...
   s = s.replace(
-    new RegExp(`(${proseLead})?([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]+=([a-zA-Z0-9_^{}()'|\\\\+\\-*/\\[\\]\\s.]|\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\})+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'),
+    new RegExp(`(${proseLead})?([-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]\\s.]+=([-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]\\s.]|\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\})+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'),
     (fullMatch, lead, eq) => {
       let activeLead = lead || '';
       let activeEq = eq;
