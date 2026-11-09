@@ -218,12 +218,22 @@ export function cleanWordMathArtifacts(text: string): string {
   // e.g. \dfrac{} \ dy}{\, dx or \dfrac{} \, dy}{\, dx -> \dfrac{dy}{dx}
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}/gi, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\?\s*\{\s*)?[^a-zA-Z\n]{0,8}(d[a-zA-Z])[^a-zA-Z\n]{1,8}(d[a-zA-Z])\}?/gi, '\\dfrac{$1}{$2}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\{\s*\})?\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])\s*\/\s*(?:\\,)?\s*(d[a-zA-Z])/gi, '\\dfrac{$1}{$2}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*(d[a-zA-Z])(?![a-zA-Z{])/gi, '\\dfrac{$1}{dx}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}');
   s = s.replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/gi, '\\dfrac{$1}{$2}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
+
+  // Separate glued math functions: 2xexp -> 2x exp, xexp -> x exp, 2xsin -> 2x sin
+  s = s.replace(/([0-9a-zA-Z])\s*(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b/gi, '$1 $2');
+
+  // Double parens on radicals: √((1+x^6)) or \sqrt((1+x^6)) or 4√2
+  s = s.replace(/√\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}');
+  s = s.replace(/\\?sqrt\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}');
+  s = s.replace(/(\d+)\s*√\s*(\d+)/g, '$1\\sqrt{$2}');
+  s = s.replace(/√\s*(\d+)/g, '\\sqrt{$1}');
 
   // Convert radical fractions: x/\sqrt{...} or x/ \sqrt{...} or x/√(x^2-y^2)
   s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\{([^}]+)\}/gi, '\\dfrac{$1}{\\sqrt{$2}}');
@@ -425,6 +435,168 @@ export function parseWordMatricesAndCases(input: string): string {
 }
 
 /**
+ * Robust balanced fraction converter for complex fractions like:
+ * -(3x^5 \tan^{-1}(x^3))/(1+x^6)^(3/2) or (x^3 - \tan^{-1} x^3)/\sqrt{1+x^6}
+ */
+export function convertFractionsBalanced(text: string): string {
+  let s = text;
+  let slashIdx: number;
+  let searchStart = 0;
+
+  while ((slashIdx = s.indexOf('/', searchStart)) !== -1) {
+    if (slashIdx > 0 && s[slashIdx - 1] === '\\') {
+      searchStart = slashIdx + 1;
+      continue;
+    }
+
+    let numEnd = slashIdx;
+    while (numEnd > 0 && /\s/.test(s[numEnd - 1])) numEnd--;
+    if (numEnd === 0) { searchStart = slashIdx + 1; continue; }
+
+    let num = '';
+    let numStart = -1;
+
+    if (s[numEnd - 1] === ')') {
+      let depth = 1;
+      let j = numEnd - 2;
+      while (j >= 0 && depth > 0) {
+        if (s[j] === ')') depth++;
+        else if (s[j] === '(') depth--;
+        j--;
+      }
+      if (depth === 0) {
+        numStart = j + 1;
+        num = s.substring(numStart + 1, numEnd - 1).trim();
+      }
+    } else {
+      let j = numEnd - 1;
+      while (j >= 0 && /[0-9a-zA-Z_\\^{}]/.test(s[j])) j--;
+      numStart = j + 1;
+      num = s.substring(numStart, numEnd).trim();
+    }
+
+    if (!num || numStart === -1) { searchStart = slashIdx + 1; continue; }
+
+    let denStart = slashIdx + 1;
+    while (denStart < s.length && /\s/.test(s[denStart])) denStart++;
+    if (denStart >= s.length) { searchStart = slashIdx + 1; continue; }
+
+    let den = '';
+    let denEnd = -1;
+
+    if (s[denStart] === '(') {
+      let depth = 1;
+      let j = denStart + 1;
+      while (j < s.length && depth > 0) {
+        if (s[j] === '(') depth++;
+        else if (s[j] === ')') depth--;
+        j++;
+      }
+      if (depth === 0) {
+        denEnd = j;
+        den = s.substring(denStart + 1, denEnd - 1).trim();
+
+        if (denEnd < s.length && s[denEnd] === '^') {
+          let expStart = denEnd + 1;
+          while (expStart < s.length && /\s/.test(s[expStart])) expStart++;
+          if (expStart < s.length) {
+            if (s[expStart] === '(' || s[expStart] === '{') {
+              const closeChar = s[expStart] === '(' ? ')' : '}';
+              let expDepth = 1;
+              let k = expStart + 1;
+              while (k < s.length && expDepth > 0) {
+                if (s[k] === s[expStart]) expDepth++;
+                else if (s[k] === closeChar) expDepth--;
+                k++;
+              }
+              if (expDepth === 0) {
+                let innerExp = s.substring(expStart + 1, k - 1).trim();
+                innerExp = innerExp.replace(/(\d+)\s*\/\s*(\d+)/, '\\frac{$1}{$2}');
+                den = `(${den})^{${innerExp}}`;
+                denEnd = k;
+              }
+            } else if (/[0-9a-zA-Z]/.test(s[expStart])) {
+              den = `(${den})^{${s[expStart]}}`;
+              denEnd = expStart + 1;
+            }
+          }
+        }
+      }
+    } else if (s.startsWith('\\sqrt', denStart) || s.startsWith('√', denStart)) {
+      let k = denStart + (s.startsWith('\\sqrt', denStart) ? 5 : 1);
+      while (k < s.length && /\s/.test(s[k])) k++;
+      if (s[k] === '{' || s[k] === '(') {
+        const closeChar = s[k] === '{' ? '}' : ')';
+        let depth = 1;
+        let m = k + 1;
+        while (m < s.length && depth > 0) {
+          if (s[m] === s[k]) depth++;
+          else if (s[m] === closeChar) depth--;
+          m++;
+        }
+        if (depth === 0) {
+          let innerRad = s.substring(k + 1, m - 1).trim();
+          if (innerRad.startsWith('(') && innerRad.endsWith(')')) innerRad = innerRad.slice(1, -1).trim();
+          den = `\\sqrt{${innerRad}}`;
+          denEnd = m;
+        }
+      }
+    } else {
+      let j = denStart;
+      while (j < s.length && /[0-9a-zA-Z_\\^{}]/.test(s[j])) j++;
+      denEnd = j;
+      den = s.substring(denStart, denEnd).trim();
+    }
+
+    if (!den || denEnd === -1) { searchStart = slashIdx + 1; continue; }
+
+    const frac = `\\dfrac{${num}}{${den}}`;
+    s = s.substring(0, numStart) + frac + s.substring(denEnd);
+    searchStart = numStart + frac.length;
+  }
+
+  return s;
+}
+
+/**
+ * Converts exp{ ... } or \exp{ ... } with balanced braces into visible \exp\left\{ ... \right\}
+ */
+export function convertExpBraces(text: string): string {
+  let s = text;
+  const expBraceRegex = /\\?exp\s*\{/gi;
+  let match: RegExpExecArray | null;
+  let result = '';
+  let lastIndex = 0;
+
+  while ((match = expBraceRegex.exec(s)) !== null) {
+    result += s.substring(lastIndex, match.index);
+    const startInner = expBraceRegex.lastIndex;
+    let depth = 1;
+    let i = startInner;
+    let foundClose = false;
+
+    for (; i < s.length; i++) {
+      if (s[i] === '{' && s[i - 1] !== '\\') depth++;
+      else if (s[i] === '}' && s[i - 1] !== '\\') {
+        depth--;
+        if (depth === 0) {
+          foundClose = true;
+          break;
+        }
+      }
+    }
+
+    let inner = s.substring(startInner, i).trim();
+    inner = inner.replace(/\\frac\b/g, '\\dfrac');
+    result += `\\exp\\left\\{${inner}\\right\\}`;
+    lastIndex = foundClose ? i + 1 : i;
+    expBraceRegex.lastIndex = lastIndex;
+  }
+  result += s.substring(lastIndex);
+  return result;
+}
+
+/**
  * Reconstructs Word linear UnicodeMath equations, integrals, summations, limits,
  * fractions, powers, and inverse trig functions into standardized LaTeX syntax.
  */
@@ -504,6 +676,10 @@ export function convertWordEquationToLatex(raw: string): string {
   s = s.replace(/([a-zA-Z])[\u20D7⃗]/g, '\\vec{$1}');
 
   // 9. Square roots: √x or √(x+1) or √{x^2-y^2}
+  s = s.replace(/√\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}');
+  s = s.replace(/\\?sqrt\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}');
+  s = s.replace(/(\d+)\s*√\s*(\d+)/g, '$1\\sqrt{$2}');
+  s = s.replace(/√\s*(\d+)/g, '\\sqrt{$1}');
   s = s.replace(/√\s*\(([^()]+)\)/g, '\\sqrt{$1}');
   s = s.replace(/√\s*\{([^{}]+)\}/g, '\\sqrt{$1}');
   s = s.replace(/√\s*([0-9a-zA-Z]+)/g, '\\sqrt{$1}');
@@ -537,7 +713,9 @@ export function convertWordEquationToLatex(raw: string): string {
        .replace(/(?:>=|[≥\u2265]|\\ge\b)/g, '\\geq ')
        .replace(/(?:!=|[≠\u2260])/g, '\\neq ');
 
-  // Inverse trig notation: tan^(-1) -> \tan^{-1}
+  // Inverse trig notation: tan^(-1) -> \tan^{-1} (only match matching parens, never steal an enclosing unmatched ')')
+  s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*\(\s*-?\s*1\s*\)\s*\(\s*([a-zA-Z0-9_\^]+)\s*\)/gi, '\\$1^{-1}($2)');
+  s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*\(\s*-?\s*1\s*\)\s*(?![\\(])([a-zA-Z0-9_\^]+)/gi, '\\$1^{-1}($2)');
   s = s.replace(/\\?(sin|cos|tan|cot|sec|csc)\s*\^\s*\(\s*-?\s*1\s*\)/gi, '\\$1^{-1}');
   s = s.replace(/(?<!\\)\b(sin|cos|tan|cot|sec|csc)\b(?!\^\{-?1\})/gi, '\\$1');
 
@@ -578,6 +756,10 @@ export function convertWordEquationToLatex(raw: string): string {
   // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi/4 -> \dfrac{\pi}{4}
   s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega))/g, '\\dfrac{$1}{$2}');
+  // Convert complex balanced fractions and exp{...} braces before wrapping
+  s = convertFractionsBalanced(s);
+  s = convertExpBraces(s);
+
   // Upgrade \frac to \dfrac for proper "upon" height
   s = s.replace(/\\frac\b/g, '\\dfrac');
 
@@ -792,6 +974,8 @@ export function wrapMathInDollars(text: string): string {
 
   // Clean empty \dfrac{} or \frac{} so they are never protected into standalone invalid $\dfrac{}$
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{([^{}]+)\}/g, '\\dfrac{1}{$1}');
+  s = s.replace(/\\(?:d?frac)\{([^{}]+)\}\s*\{\s*\}/g, '\\dfrac{$1}{1}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');
   s = s.replace(/\\(?:d?frac)(?!\s*\{)/g, '');
 
@@ -810,6 +994,8 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(/\[\s*MATH_\d+\s*\]/gi, '');
   s = s.replace(/⟦\s*MATH_\d+\s*⟧/gi, '');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
+  s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{([^{}]+)\}/g, '\\dfrac{1}{$1}');
+  s = s.replace(/\\(?:d?frac)\{([^{}]+)\}\s*\{\s*\}/g, '\\dfrac{$1}{1}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');
   s = s.replace(/\\(?:d?frac)(?!\s*\{)/g, '');
 
