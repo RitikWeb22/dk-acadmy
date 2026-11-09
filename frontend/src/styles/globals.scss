@@ -49,7 +49,7 @@ a {
   transition: color $transition-fast;
 }
 
-button {
+button:not([class]) {
   font-family: inherit;
   border: none;
   background: none;

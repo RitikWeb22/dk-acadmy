@@ -398,9 +398,9 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
             ) : activeMenu === 'coupons' ? (
               <CouponManagementWorkspace />
             ) : (
-              <div className="flex flex-col gap-6 p-6 max-w-[1600px] w-full mx-auto">
+              <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto pb-8">
                 {/* ─── EXECUTIVE COMMAND HEADER STRIP ─── */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border/40">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-border/50">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2.5">
                       <h1 className="text-xl font-semibold tracking-tight text-foreground">
@@ -422,7 +422,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       size="sm"
                       onClick={fetchAnalytics}
                       disabled={isSyncing}
-                      className="h-9 gap-2 text-xs font-medium border-border/60"
+                      className="h-8 gap-2 text-xs font-medium border-border/60"
                       title="Refresh live metrics"
                     >
                       <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
@@ -433,7 +433,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                       variant="default"
                       size="sm"
                       onClick={() => setIsCommandPaletteOpen(true)}
-                      className="h-9 gap-2 text-xs font-medium"
+                      className="h-8 gap-2 text-xs font-medium"
                       title="Open Command Palette (Ctrl+K)"
                     >
                       <span>Quick Actions</span>
@@ -445,7 +445,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                 </div>
 
                 {/* ─── 9-MODULE CORE ACADEMIC & DATA BENTO STRIP ─── */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-3">
                   {/* 1. Student Management */}
                   <Card
                     className="group cursor-pointer border-border/50 bg-card hover:bg-accent/40 hover:border-border transition-colors p-3.5 gap-2.5"
