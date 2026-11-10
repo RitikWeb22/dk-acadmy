@@ -4799,17 +4799,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                       <button
                         type="button"
-                        onClick={() => setIsBulkDocxModalOpen(true)}
-                        className={styles.addNewQuestionBtn}
-                        style={{ background: '#059669', color: '#FFFFFF', border: '1px solid #047857' }}
-                        title="Upload Word (.docx) file to import all questions in one go"
-                      >
-                        <FileText size={14} />
-                        <span>Bulk Import .DOCX</span>
-                      </button>
-
-                      <button
-                        type="button"
                         onClick={handlePasteWordQuestionClick}
                         className={styles.addNewQuestionBtn}
                         style={{ background: '#2563EB', color: '#FFFFFF', border: '1px solid #1D4ED8' }}
@@ -4840,13 +4829,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       if (firstRed) {
                         setSelectedQuestionId(firstRed.id);
                         showToast(`Jumped to Question ${questions.findIndex((q) => q.id === firstRed.id) + 1}`);
-                      }
-                    }}
-                    onTriggerAiRepairAll={() => {
-                      const firstRed = questions.find((q) => questionValidations[q.id]?.status === 'RED');
-                      if (firstRed) {
-                        setSelectedQuestionId(firstRed.id);
-                        setIsAiRepairModalOpen(true);
                       }
                     }}
                   />
@@ -5058,28 +5040,6 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             />
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <button
-                              type="button"
-                              onClick={() => setIsAiRepairModalOpen(true)}
-                              className={styles.smartPasteActionBtn}
-                              title="Auto-repair LaTeX syntax with Google Gemini 2.5 Flash"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                background: '#F0FDF4',
-                                color: '#166534',
-                                border: '1px solid #BBF7D0',
-                                borderRadius: '6px',
-                                padding: '4px 9px',
-                                fontSize: '11.5px',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <Sparkles size={13} color="#16a34a" />
-                              <span>✨ AI Repair</span>
-                            </button>
                             <button
                               type="button"
                               onClick={handlePasteWordQuestionClick}
