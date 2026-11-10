@@ -174,11 +174,21 @@ export const apiClient = {
 
   async get<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
-      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
+      let res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'GET',
         headers: getAuthHeaders(),
         ...options
       });
+      if (res.status === 401) {
+        const refreshed = await ensureValidJwtToken();
+        if (refreshed) {
+          res = await fetchWithTimeout(formatEndpoint(endpoint), {
+            method: 'GET',
+            headers: getAuthHeaders(),
+            ...options
+          });
+        }
+      }
       return await safeJsonParse<T>(res);
     } catch (error: any) {
       if (import.meta.env.DEV) {
@@ -190,12 +200,23 @@ export const apiClient = {
 
   async post<T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
-      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
+      let res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'POST',
         headers: getAuthHeaders(),
         body: body ? JSON.stringify(body) : undefined,
         ...options
       });
+      if (res.status === 401) {
+        const refreshed = await ensureValidJwtToken();
+        if (refreshed) {
+          res = await fetchWithTimeout(formatEndpoint(endpoint), {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: body ? JSON.stringify(body) : undefined,
+            ...options
+          });
+        }
+      }
       return await safeJsonParse<T>(res);
     } catch (error: any) {
       if (import.meta.env.DEV) {
@@ -207,12 +228,23 @@ export const apiClient = {
 
   async put<T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
-      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
+      let res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: body ? JSON.stringify(body) : undefined,
         ...options
       });
+      if (res.status === 401) {
+        const refreshed = await ensureValidJwtToken();
+        if (refreshed) {
+          res = await fetchWithTimeout(formatEndpoint(endpoint), {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: body ? JSON.stringify(body) : undefined,
+            ...options
+          });
+        }
+      }
       return await safeJsonParse<T>(res);
     } catch (error: any) {
       if (import.meta.env.DEV) {
@@ -224,12 +256,23 @@ export const apiClient = {
 
   async patch<T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
-      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
+      let res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'PATCH',
         headers: getAuthHeaders(),
         body: body ? JSON.stringify(body) : undefined,
         ...options
       });
+      if (res.status === 401) {
+        const refreshed = await ensureValidJwtToken();
+        if (refreshed) {
+          res = await fetchWithTimeout(formatEndpoint(endpoint), {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: body ? JSON.stringify(body) : undefined,
+            ...options
+          });
+        }
+      }
       return await safeJsonParse<T>(res);
     } catch (error: any) {
       if (import.meta.env.DEV) {
@@ -241,11 +284,21 @@ export const apiClient = {
 
   async delete<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
-      const res = await fetchWithTimeout(formatEndpoint(endpoint), {
+      let res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'DELETE',
         headers: getAuthHeaders(),
         ...options
       });
+      if (res.status === 401) {
+        const refreshed = await ensureValidJwtToken();
+        if (refreshed) {
+          res = await fetchWithTimeout(formatEndpoint(endpoint), {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+            ...options
+          });
+        }
+      }
       return await safeJsonParse<T>(res);
     } catch (error: any) {
       if (import.meta.env.DEV) {

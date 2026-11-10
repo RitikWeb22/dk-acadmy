@@ -41,7 +41,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     const refreshTests = async () => {
       try {
-        const live = await cmsService.fetchTestSeriesFromAPI();
+        const live = await cmsService.fetchTestSeriesFromAPI(true);
         if (live && live.length > 0) {
           setAllTestSeries(live);
         }

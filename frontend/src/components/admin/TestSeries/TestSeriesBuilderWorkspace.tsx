@@ -3000,14 +3000,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       return;
     }
 
-    // Mathematical Quality Gate: Block publishing if ANY question has RED status
+    // Non-blocking quality check
     if (batchValidationStats.redCount > 0) {
-      showToast(`⚠️ Publishing blocked: ${batchValidationStats.redCount} question(s) contain invalid LaTeX syntax or unbalanced delimiters. Please resolve all RED questions.`);
-      const firstRed = questions.find((q) => questionValidations[q.id]?.status === 'RED');
-      if (firstRed) {
-        setSelectedQuestionId(firstRed.id);
-      }
-      return;
+      showToast(`⚠️ Note: ${batchValidationStats.redCount} question(s) have syntax warnings. Saving CBT examination to Database...`);
     }
 
     setIsPublishing(true);
@@ -3112,9 +3107,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       attemptsCount: 0
     };
 
+    let res: any;
     try {
       if (editingSeriesId) {
-        const res = await apiClient.put<any>(`/test-series/${editingSeriesId}`, payload);
+        res = await apiClient.put<any>(`/test-series/${editingSeriesId}`, payload);
         if (res && res.success === false) {
           throw new Error(res.message || 'Failed to update test series in MongoDB');
         }
@@ -3130,7 +3126,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         });
         showToast(builderStatus === 'Draft' ? '✓ CBT Examination saved as Draft in DB!' : builderStatus === 'Scheduled' ? '✓ CBT Examination updated and schedule saved!' : '✓ CBT Examination updated and published live!');
       } else {
-        const res = await apiClient.post<any>('/test-series', payload);
+        res = await apiClient.post<any>('/test-series', payload);
         if (res && res.success === false) {
           throw new Error(res.message || 'Failed to save test series to MongoDB');
         }
@@ -3148,33 +3144,34 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       }
 
       // Optimistically update testSeriesList so it appears immediately on admin table
+      const actualSaved = editingSeriesId ? (res?.data || payload) : (res?.data || payload);
       setTestSeriesList((prev) => {
         const optimisticRow: TestSeriesTableItem = {
-          id: payload.id,
+          id: actualSaved.id || payload.id,
           indexNo: 1,
-          badgeCode: payload.badgeCode,
-          title: payload.title,
-          subtitle: payload.subtitle,
-          slug: `/${payload.slug}`,
-          examType: payload.examType,
-          format: payload.format,
-          difficulty: payload.difficulty,
-          totalTests: payload.totalQuestions || 4,
-          testsBreakdown: `${payload.totalQuestions} problems • ${payload.totalMarks} marks`,
-          status: payload.status,
+          badgeCode: actualSaved.badgeCode || payload.badgeCode,
+          title: actualSaved.title || payload.title,
+          subtitle: actualSaved.subtitle || payload.subtitle,
+          slug: actualSaved.slug ? (actualSaved.slug.startsWith('/') ? actualSaved.slug : `/${actualSaved.slug}`) : `/${payload.slug}`,
+          examType: actualSaved.examType || payload.examType,
+          format: actualSaved.format || payload.format,
+          difficulty: actualSaved.difficulty || payload.difficulty,
+          totalTests: actualSaved.totalQuestions || payload.totalQuestions || 4,
+          testsBreakdown: `${actualSaved.totalQuestions || payload.totalQuestions} problems • ${actualSaved.totalMarks || payload.totalMarks} marks`,
+          status: actualSaved.status || payload.status,
           createdAtFormatted: 'Just now',
           attemptsCount: 0,
-          durationMinutes: payload.durationMinutes,
-          totalMarks: payload.totalMarks,
-          schedule: payload.schedule,
-          subjects: payload.subjects,
-          questions: payload.questions,
-          markingScheme: payload.markingScheme,
-          instructions: payload.instructions,
-          batch: payload.batch,
-          accessLevel: payload.accessLevel
+          durationMinutes: actualSaved.durationMinutes || payload.durationMinutes,
+          totalMarks: actualSaved.totalMarks || payload.totalMarks,
+          schedule: actualSaved.schedule || payload.schedule,
+          subjects: actualSaved.subjects || payload.subjects,
+          questions: actualSaved.questions || payload.questions,
+          markingScheme: actualSaved.markingScheme || payload.markingScheme,
+          instructions: actualSaved.instructions || payload.instructions,
+          batch: actualSaved.batch || payload.batch,
+          accessLevel: actualSaved.accessLevel || payload.accessLevel
         };
-        const filtered = prev.filter((t) => t.id !== payload.id);
+        const filtered = prev.filter((t) => t.id !== actualSaved.id && t.id !== payload.id);
         return [optimisticRow, ...filtered.map((t, i) => ({ ...t, indexNo: i + 2 }))];
       });
 

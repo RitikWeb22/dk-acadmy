@@ -1874,8 +1874,18 @@ export const cmsService = {
 
   saveTestSeries(items: TestSeriesItem[]): void {
     const deletedIds = this.getDeletedIds();
+    // Ensure newly saved items are removed from deletedIds
+    const nextDeleted = deletedIds.filter(
+      (delId) => !items.some((t) => t.id === delId || t.slug === delId)
+    );
+    if (nextDeleted.length !== deletedIds.length) {
+      try {
+        localStorage.setItem('dk_deleted_test_series_ids', JSON.stringify(nextDeleted));
+      } catch {}
+    }
+
     const active = items.filter(
-      (t) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
+      (t) => !nextDeleted.includes(t.id) && !(t.slug && nextDeleted.includes(t.slug))
     );
     localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(active));
     apiClient.post('/cms/test_series', { data: active }).catch(() => {});
@@ -1893,9 +1903,9 @@ export const cmsService = {
 
     try {
       const res = await apiClient.post<any>('/test-series', newItem);
-      if (res && res.data) {
-        const saved = res.data;
-        const updatedItems = items.map((t) => (t.id === newItem.id ? { ...t, ...saved } : t));
+      if (res && res.success !== false && (res.data || res.id)) {
+        const saved = res.data || res;
+        const updatedItems = [saved, ...items.filter((t) => t.id !== saved.id && t.id !== newItem.id)];
         localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(updatedItems));
         this.notifyUpdate('test_series');
         return saved;
@@ -2499,6 +2509,35 @@ export const cmsService = {
     this.notifyUpdate('pages', pageId);
   }
 };
+
+if (typeof window !== 'undefined') {
+  const syncTestSeriesRealtime = (e: any) => {
+    const item = e?.detail?.data || e?.detail;
+    if (item && (item.id || (item as any)._id || item.slug)) {
+      const current = cmsService.getTestSeries();
+      const targetId = item.id || (item as any)._id;
+      const exists = current.some(
+        (t) => (targetId && (t.id === targetId || (t as any)._id === targetId)) || (item.slug && t.slug === item.slug)
+      );
+      let updated: TestSeriesItem[];
+      if (exists) {
+        updated = current.map((t) =>
+          (targetId && (t.id === targetId || (t as any)._id === targetId)) || (item.slug && t.slug === item.slug)
+            ? { ...t, ...item }
+            : t
+        );
+      } else {
+        updated = [item, ...current];
+      }
+      localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(updated));
+      cmsService.notifyUpdate('test_series', undefined, { source: 'realtime_event' });
+    }
+    cmsService.fetchTestSeriesFromAPI(true).catch(() => {});
+  };
+
+  window.addEventListener('dk_test_series_created', syncTestSeriesRealtime);
+  window.addEventListener('dk_test_series_updated', syncTestSeriesRealtime);
+}
 
 export const DEFAULT_CLASSROOM_BATCHES: ClassroomBatch[] = [
   {

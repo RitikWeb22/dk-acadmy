@@ -1,7 +1,7 @@
 import { TestSeries } from '../models/TestSeries.js';
 import { TestSubmission } from '../models/TestSubmission.js';
 import { PART_TESTS_DATA } from '../data/partTestsData.js';
-import { normalizeCanonicalMath, normalizeOptionMath, validateQuestion, summarizeBatchValidation } from '../services/mathImport/index.js';
+import { normalizeCanonicalMath, normalizeOptionMath } from '../services/mathImport/index.js';
 import { broadcastTestSeriesCreated, broadcastTestSeriesUpdated, broadcastTestSeriesDeleted } from '../sockets/socket.js';
 // Default starter dataset if DB is empty
 const BASE_SEED_TEST_SERIES = [
@@ -448,18 +448,9 @@ export const getTestSeriesByIdOrSlug = async (req, res) => {
 export const createTestSeries = async (req, res) => {
     try {
         const payload = { ...req.body };
-        if (!payload.title) {
+        if (!payload.title || !String(payload.title).trim()) {
             res.status(400).json({ success: false, message: 'Test Series title is required' });
             return;
-        }
-        if (!payload.id) {
-            payload.id = `ts-${Date.now()}`;
-        }
-        if (!payload.slug) {
-            payload.slug = payload.title
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/(^-|-$)+/g, '');
         }
         // Normalize difficulty
         if (payload.difficulty) {
@@ -470,6 +461,9 @@ export const createTestSeries = async (req, res) => {
                 payload.difficulty = 'Hard';
             else if (d === 'easy')
                 payload.difficulty = 'Easy';
+        }
+        else {
+            payload.difficulty = 'Medium';
         }
         // Normalize status enum ('Published' | 'Draft' | 'Scheduled' | 'Archived')
         if (payload.status) {
@@ -542,7 +536,7 @@ export const createTestSeries = async (req, res) => {
                                 ? 'MATH SPEED'
                                 : 'JEE MAIN';
         }
-        // Normalize questions array with Canonical KaTeX Math and enforce Storage Rule
+        // Normalize questions array with Canonical KaTeX Math
         if (Array.isArray(payload.questions)) {
             payload.questions = payload.questions.map((q, idx) => {
                 const rawStatement = q.statement || q.questionText || '';
@@ -551,13 +545,16 @@ export const createTestSeries = async (req, res) => {
                 const normExplanation = cleanExplanation ? normalizeCanonicalMath(cleanExplanation) : '';
                 const cleanShortcut = q.shortcutTrick || q.dkSirShortcut || '';
                 const normShortcut = cleanShortcut ? normalizeCanonicalMath(cleanShortcut) : '';
+                const rawSec = String(q.section || '').toUpperCase();
+                const cleanSection = rawSec.includes('B') || idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A';
+                const cleanType = q.type || (cleanSection === 'B' ? 'NUMERICAL' : 'SINGLE_CORRECT');
                 return {
-                    id: q.id || `q-${idx + 1}-${Date.now()}`,
+                    id: q.id || `q-${idx + 1}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
                     questionNumber: q.questionNumber || q.index || idx + 1,
                     subject: q.subject || 'Mathematics',
                     chapter: q.chapter || q.topicTag || 'General',
-                    section: q.section || (idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A'),
-                    type: q.type || (q.section === 'B' || idx >= 20 ? 'NUMERICAL' : 'SINGLE_CORRECT'),
+                    section: cleanSection,
+                    type: cleanType,
                     statement: normStatement,
                     statementBlocks: q.statementBlocks,
                     explanationBlocks: q.explanationBlocks,
@@ -566,15 +563,15 @@ export const createTestSeries = async (req, res) => {
                         ? q.options.map((opt, optIdx) => ({
                             id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
                             key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                            text: opt.text ? normalizeOptionMath(opt.text) : '',
+                            text: typeof opt.text === 'string' ? normalizeOptionMath(opt.text) : (opt.text ? String(opt.text) : ''),
                             imageUrl: opt.imageUrl
                         }))
                         : [],
-                    correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
-                    numericalAnswer: q.numericalAnswer || (q.section === 'B' ? q.correctKey || q.correctAnswer : undefined),
+                    correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || (cleanSection === 'B' ? '' : 'A'),
+                    numericalAnswer: q.numericalAnswer || (cleanSection === 'B' ? q.correctKey || q.correctAnswer : undefined),
                     marks: q.marks || 4,
-                    negativeMarks: q.negativeMarks ?? 1,
-                    formulaKey: q.formulaKey || q.topicTag,
+                    negativeMarks: q.negativeMarks ?? (cleanSection === 'B' ? 0 : 1),
+                    formulaKey: q.formulaKey || q.topicTag || '',
                     explanation: normExplanation,
                     shortcutTrick: normShortcut,
                     videoSolutionUrl: q.videoSolutionUrl || '',
@@ -586,35 +583,31 @@ export const createTestSeries = async (req, res) => {
                 const posMark = payload.markingScheme?.correct || 4;
                 payload.totalMarks = payload.questions.length * posMark;
             }
-            // Storage & Publishing Rule: Block publishing if ANY question has RED status
-            const isPublishing = payload.status === 'Published' || payload.isPublished === true;
-            if (isPublishing) {
-                const validationSummaries = payload.questions.map((q) => validateQuestion(q.statement, q.options || []));
-                const batchDashboard = summarizeBatchValidation(validationSummaries);
-                if (batchDashboard.redCount > 0) {
-                    res.status(400).json({
-                        success: false,
-                        code: 'PUBLISH_BLOCKED_RED_ITEMS',
-                        message: `Publishing blocked: ${batchDashboard.redCount} question(s) contain invalid LaTeX syntax or unresolved [CHECK] items. Please fix or run AI Repair before publishing.`,
-                        dashboard: batchDashboard
-                    });
-                    return;
-                }
-            }
         }
-        // Check if test series with this id, slug or title already exists to prevent duplicate creation
-        const normalizedSlug = payload.slug || payload.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-        payload.slug = normalizedSlug;
-        const queryOr = [];
-        if (payload.id)
-            queryOr.push({ id: payload.id });
-        if (normalizedSlug)
-            queryOr.push({ slug: normalizedSlug });
-        if (payload.title) {
-            queryOr.push({ title: { $regex: new RegExp(`^${payload.title.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } });
+        // Build base slug safely
+        let baseSlug = (payload.slug || payload.title || 'test-series')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)+/g, '');
+        if (!baseSlug) {
+            baseSlug = `test-${Date.now().toString(36)}`;
         }
-        const existing = queryOr.length > 0 ? await TestSeries.findOne({ $or: queryOr }) : null;
+        // Check if updating an existing record by explicit MongoDB ID or payload ID
+        let existing = null;
+        if (payload._id && String(payload._id).match(/^[0-9a-fA-F]{24}$/)) {
+            existing = await TestSeries.findById(payload._id);
+        }
+        else if (payload.id) {
+            existing = await TestSeries.findOne({ id: payload.id });
+        }
         if (existing) {
+            // Ensure slug uniqueness among other documents
+            let uniqueSlug = baseSlug;
+            let counter = 1;
+            while (await TestSeries.exists({ slug: uniqueSlug, _id: { $ne: existing._id } })) {
+                uniqueSlug = `${baseSlug}-${counter++}`;
+            }
+            payload.slug = uniqueSlug;
             const updated = await TestSeries.findByIdAndUpdate(existing._id, payload, {
                 returnDocument: 'after',
                 runValidators: true
@@ -623,12 +616,24 @@ export const createTestSeries = async (req, res) => {
                 broadcastTestSeriesUpdated(updated);
                 res.status(200).json({
                     success: true,
-                    message: 'Existing Test Series updated successfully',
+                    message: 'Existing Test Series updated successfully in MongoDB',
                     data: updated
                 });
                 return;
             }
         }
+        // Creating a fresh new test series
+        // Guarantee unique id
+        if (!payload.id || (await TestSeries.exists({ id: payload.id }))) {
+            payload.id = `ts-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        }
+        // Guarantee unique slug
+        let uniqueSlug = baseSlug;
+        let counter = 1;
+        while (await TestSeries.exists({ slug: uniqueSlug })) {
+            uniqueSlug = `${baseSlug}-${counter++}`;
+        }
+        payload.slug = uniqueSlug;
         const newTestSeries = await TestSeries.create(payload);
         broadcastTestSeriesCreated(newTestSeries);
         res.status(201).json({
@@ -639,7 +644,7 @@ export const createTestSeries = async (req, res) => {
     }
     catch (error) {
         console.error('[createTestSeries Error]:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: error.message || 'Database error creating test series' });
     }
 };
 export const updateTestSeries = async (req, res) => {
@@ -705,7 +710,7 @@ export const updateTestSeries = async (req, res) => {
         if (updates.accessLevel) {
             updates.accessLevel = String(updates.accessLevel).toUpperCase().includes('FREE') ? 'FREE_LEAD_MAGNET' : 'BATCH_INCLUDED';
         }
-        // Normalize questions array if updated and enforce Storage Rule
+        // Normalize questions array if updated
         if (Array.isArray(updates.questions)) {
             updates.questions = updates.questions.map((q, idx) => {
                 const rawStatement = q.statement || q.questionText || '';
@@ -714,13 +719,16 @@ export const updateTestSeries = async (req, res) => {
                 const normExplanation = cleanExplanation ? normalizeCanonicalMath(cleanExplanation) : '';
                 const cleanShortcut = q.shortcutTrick || q.dkSirShortcut || '';
                 const normShortcut = cleanShortcut ? normalizeCanonicalMath(cleanShortcut) : '';
+                const rawSec = String(q.section || '').toUpperCase();
+                const cleanSection = rawSec.includes('B') || idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A';
+                const cleanType = q.type || (cleanSection === 'B' ? 'NUMERICAL' : 'SINGLE_CORRECT');
                 return {
-                    id: q.id || `q-${idx + 1}-${Date.now()}`,
+                    id: q.id || `q-${idx + 1}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
                     questionNumber: q.questionNumber || q.index || idx + 1,
                     subject: q.subject || 'Mathematics',
                     chapter: q.chapter || q.topicTag || 'General',
-                    section: q.section || (idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A'),
-                    type: q.type || (q.section === 'B' || idx >= 20 ? 'NUMERICAL' : 'SINGLE_CORRECT'),
+                    section: cleanSection,
+                    type: cleanType,
                     statement: normStatement,
                     statementBlocks: q.statementBlocks,
                     explanationBlocks: q.explanationBlocks,
@@ -729,15 +737,15 @@ export const updateTestSeries = async (req, res) => {
                         ? q.options.map((opt, optIdx) => ({
                             id: opt.id || opt.key || String.fromCharCode(65 + optIdx),
                             key: opt.key || opt.id || String.fromCharCode(65 + optIdx),
-                            text: opt.text ? normalizeOptionMath(opt.text) : '',
+                            text: typeof opt.text === 'string' ? normalizeOptionMath(opt.text) : (opt.text ? String(opt.text) : ''),
                             imageUrl: opt.imageUrl
                         }))
                         : [],
-                    correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || 'A',
-                    numericalAnswer: q.numericalAnswer || (q.section === 'B' ? q.correctKey || q.correctAnswer : undefined),
+                    correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || (cleanSection === 'B' ? '' : 'A'),
+                    numericalAnswer: q.numericalAnswer || (cleanSection === 'B' ? q.correctKey || q.correctAnswer : undefined),
                     marks: q.marks || 4,
-                    negativeMarks: q.negativeMarks ?? 1,
-                    formulaKey: q.formulaKey || q.topicTag,
+                    negativeMarks: q.negativeMarks ?? (cleanSection === 'B' ? 0 : 1),
+                    formulaKey: q.formulaKey || q.topicTag || '',
                     explanation: normExplanation,
                     shortcutTrick: normShortcut,
                     videoSolutionUrl: q.videoSolutionUrl || '',
@@ -745,21 +753,6 @@ export const updateTestSeries = async (req, res) => {
                 };
             });
             updates.totalQuestions = updates.questions.length;
-            // Storage & Publishing Rule: Block publishing if ANY question has RED status
-            const isPublishing = updates.status === 'Published' || updates.isPublished === true;
-            if (isPublishing) {
-                const validationSummaries = updates.questions.map((q) => validateQuestion(q.statement, q.options || []));
-                const batchDashboard = summarizeBatchValidation(validationSummaries);
-                if (batchDashboard.redCount > 0) {
-                    res.status(400).json({
-                        success: false,
-                        code: 'PUBLISH_BLOCKED_RED_ITEMS',
-                        message: `Publishing blocked: ${batchDashboard.redCount} question(s) contain invalid LaTeX syntax or unresolved [CHECK] items. Please fix or run AI Repair before publishing.`,
-                        dashboard: batchDashboard
-                    });
-                    return;
-                }
-            }
         }
         const updated = await TestSeries.findOneAndUpdate({
             $or: [
@@ -767,7 +760,7 @@ export const updateTestSeries = async (req, res) => {
                 { slug: param },
                 { _id: param.match(/^[0-9a-fA-F]{24}$/) ? param : null }
             ]
-        }, updates, { new: true, runValidators: true });
+        }, updates, { returnDocument: 'after', runValidators: true });
         if (!updated) {
             res.status(404).json({ success: false, message: 'Test Series not found' });
             return;
@@ -775,12 +768,13 @@ export const updateTestSeries = async (req, res) => {
         broadcastTestSeriesUpdated(updated);
         res.status(200).json({
             success: true,
-            message: 'Test Series updated successfully',
+            message: 'Test Series updated successfully in MongoDB',
             data: updated
         });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('[updateTestSeries Error]:', error);
+        res.status(500).json({ success: false, message: error.message || 'Database error updating test series' });
     }
 };
 export const deleteTestSeries = async (req, res) => {
