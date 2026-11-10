@@ -255,14 +255,16 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
   const isSyncingRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (force = false) => {
+    if (isSyncingRef.current) return;
     const now = Date.now();
-    if (isSyncingRef.current || now - lastSyncTimeRef.current < 2500) return;
+    if (!force && now - lastSyncTimeRef.current < 2000) return;
     isSyncingRef.current = true;
     lastSyncTimeRef.current = now;
     setIsSyncing(true);
     try {
-      const res = await apiClient.get('/analytics');
+      const url = force ? `/analytics?force=true&_t=${now}` : '/analytics';
+      const res = await apiClient.get(url);
       if (res.success && res.summary) {
         setLiveAnalytics({
           grossRevenue: res.summary.grossRevenue || 0,
@@ -277,6 +279,9 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
           totalFreeLectures: res.summary.totalFreeLectures ?? 0,
           totalPaidLectures: res.summary.totalPaidLectures ?? 0
         });
+        if (force) {
+          showToast('✓ Live executive metrics synced from database!');
+        }
       }
     } catch (err) {
       console.warn('[AdminDashboard] Analytics load fallback:', err);
@@ -302,23 +307,25 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
       fetchAnalytics();
     };
 
+    const handleSync = () => fetchAnalytics(false);
+
     window.addEventListener('dk_payment_success', handleRealtimePayment);
     window.addEventListener('dk_order_created', handleRealtimePayment);
-    window.addEventListener('dk_course_created', fetchAnalytics);
-    window.addEventListener('dk_course_updated', fetchAnalytics);
-    window.addEventListener('dk_free_lecture_created', fetchAnalytics);
-    window.addEventListener('dk_dpp_pyq_created', fetchAnalytics);
-    window.addEventListener('dk_test_series_created', fetchAnalytics);
-    window.addEventListener('dk_student_registered', fetchAnalytics);
+    window.addEventListener('dk_course_created', handleSync);
+    window.addEventListener('dk_course_updated', handleSync);
+    window.addEventListener('dk_free_lecture_created', handleSync);
+    window.addEventListener('dk_dpp_pyq_created', handleSync);
+    window.addEventListener('dk_test_series_created', handleSync);
+    window.addEventListener('dk_student_registered', handleSync);
     return () => {
       window.removeEventListener('dk_payment_success', handleRealtimePayment);
       window.removeEventListener('dk_order_created', handleRealtimePayment);
-      window.removeEventListener('dk_course_created', fetchAnalytics);
-      window.removeEventListener('dk_course_updated', fetchAnalytics);
-      window.removeEventListener('dk_free_lecture_created', fetchAnalytics);
-      window.removeEventListener('dk_dpp_pyq_created', fetchAnalytics);
-      window.removeEventListener('dk_test_series_created', fetchAnalytics);
-      window.removeEventListener('dk_student_registered', fetchAnalytics);
+      window.removeEventListener('dk_course_created', handleSync);
+      window.removeEventListener('dk_course_updated', handleSync);
+      window.removeEventListener('dk_free_lecture_created', handleSync);
+      window.removeEventListener('dk_dpp_pyq_created', handleSync);
+      window.removeEventListener('dk_test_series_created', handleSync);
+      window.removeEventListener('dk_student_registered', handleSync);
     };
   }, []);
 
@@ -414,7 +421,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
                   <button
                     type="button"
                     className={styles.syncDbBtn}
-                    onClick={fetchAnalytics}
+                    onClick={() => fetchAnalytics(true)}
                     disabled={isSyncing}
                     title="Refresh live metrics"
                   >

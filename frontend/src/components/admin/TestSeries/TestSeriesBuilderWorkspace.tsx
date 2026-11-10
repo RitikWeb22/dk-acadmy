@@ -833,14 +833,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
   const isFetchingLiveRef = useRef(false);
   const lastLiveFetchTimeRef = useRef(0);
 
-  const fetchLiveTestSeries = async () => {
+  const fetchLiveTestSeries = async (force = false) => {
+    if (isFetchingLiveRef.current) return;
     const now = Date.now();
-    if (isFetchingLiveRef.current || now - lastLiveFetchTimeRef.current < 2500) return;
+    if (!force && now - lastLiveFetchTimeRef.current < 2000) return;
     isFetchingLiveRef.current = true;
     lastLiveFetchTimeRef.current = now;
     setIsLoadingList(true);
     try {
-      const res = await apiClient.get<any>('/test-series');
+      const url = force ? `/test-series?force=true&_t=${now}` : '/test-series';
+      const res = await apiClient.get<any>(url);
       const items = Array.isArray(res) ? res : res?.data || [];
       let deletedIds: string[] = [];
       try {
@@ -879,9 +881,23 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           accessLevel: item.accessLevel
         }));
         setTestSeriesList(formatted);
+        try {
+          cmsService.saveTestSeries(formatted as any);
+        } catch {}
+        if (force) {
+          setToastMessage(`✓ Synced ${formatted.length} test series live from database!`);
+          setTimeout(() => setToastMessage(null), 3000);
+        }
+      } else if (force) {
+        setToastMessage('✓ Test series up-to-date.');
+        setTimeout(() => setToastMessage(null), 2500);
       }
     } catch (err) {
       console.warn('[TestSeries] Could not fetch live test series, using cached:', err);
+      if (force) {
+        setToastMessage('⚠️ Synced with local cached data.');
+        setTimeout(() => setToastMessage(null), 3000);
+      }
     } finally {
       setIsLoadingList(false);
       isFetchingLiveRef.current = false;
@@ -3245,12 +3261,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
             <div className={styles.headerRightAction}>
               <button
                 type="button"
-                onClick={fetchLiveTestSeries}
-                title="Refresh test series"
+                onClick={() => fetchLiveTestSeries(true)}
+                disabled={isLoadingList}
+                title="Refresh test series live from database"
                 className={styles.syncLiveBtn}
               >
-                <RefreshCw size={14} className={isLoadingList ? 'animate-spin' : ''} />
-                <span>Sync Live</span>
+                <RefreshCw size={14} className={isLoadingList ? `${styles.spinIcon || ''} animate-spin` : ''} />
+                <span>{isLoadingList ? 'Syncing...' : 'Sync Live'}</span>
               </button>
               <button
                 type="button"

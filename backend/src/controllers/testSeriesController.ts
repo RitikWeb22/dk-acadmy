@@ -356,9 +356,20 @@ const BASE_SEED_TEST_SERIES = [
 
 const SEED_TEST_SERIES = [...BASE_SEED_TEST_SERIES, ...PART_TESTS_DATA];
 
+// High-speed in-memory cache for live test series listing (TTL: 30 seconds)
+let testSeriesListCache: any[] | null = null;
+let lastTestSeriesCacheTime = 0;
+const TEST_SERIES_CACHE_TTL = 30000;
+
+export const invalidateTestSeriesCache = () => {
+  testSeriesListCache = null;
+  lastTestSeriesCacheTime = 0;
+};
+
 export const getAllTestSeries = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { examType, format, status, search } = req.query;
+    const { examType, format, status, search, force } = req.query;
+    const isForce = force === 'true' || force === '1';
     const filter: any = {};
 
     if (examType && examType !== 'ALL' && examType !== 'All') {
@@ -379,28 +390,38 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
       ];
     }
 
-    // Ensure legacy items have correct formats
-    await TestSeries.updateOne(
-      { id: 'test-ja-coord-geom-01', format: 'Part Test' },
-      { $set: { format: 'Chapter Test' } }
-    ).catch(() => {});
+    const hasFilters = Object.keys(filter).length > 0;
 
-    let items = await TestSeries.find(filter).sort({ createdAt: -1 });
+    // Fast-path: serve instantly from in-memory cache if no custom search/filters and not force-refreshing
+    if (!hasFilters && !isForce && testSeriesListCache && (Date.now() - lastTestSeriesCacheTime < TEST_SERIES_CACHE_TTL)) {
+      res.status(200).json({
+        success: true,
+        count: testSeriesListCache.length,
+        data: testSeriesListCache,
+        fromCache: true
+      });
+      return;
+    }
+
+    let items = await TestSeries.find(filter)
+      .sort({ createdAt: -1 })
+      .lean()
+      .maxTimeMS(4000);
 
     // Only seed initial default test series if database collection is completely empty
-    if (items.length === 0 && Object.keys(filter).length === 0) {
+    if (items.length === 0 && !hasFilters) {
       for (const seed of SEED_TEST_SERIES) {
         await TestSeries.findOneAndUpdate(
           { slug: seed.slug },
           seed,
           { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
-        );
+        ).catch(() => {});
       }
-      items = await TestSeries.find({}).sort({ createdAt: -1 });
+      items = await TestSeries.find({}).sort({ createdAt: -1 }).lean().maxTimeMS(4000);
     }
 
     const sanitizedItems = items.map((it: any) => {
-      const obj = it.toObject ? it.toObject() : { ...it };
+      const obj = { ...it };
       if (!obj.markingScheme || typeof obj.markingScheme.correct !== 'number') {
         obj.markingScheme = { correct: 4, incorrect: 1, unattempted: 0 };
       }
@@ -414,6 +435,11 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
       }
       return obj;
     });
+
+    if (!hasFilters) {
+      testSeriesListCache = sanitizedItems;
+      lastTestSeriesCacheTime = Date.now();
+    }
 
     res.status(200).json({
       success: true,
@@ -637,6 +663,7 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
         runValidators: true
       });
       if (updated) {
+        invalidateTestSeriesCache();
         broadcastTestSeriesUpdated(updated);
         res.status(200).json({
           success: true,
@@ -662,6 +689,7 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
     payload.slug = uniqueSlug;
 
     const newTestSeries = await TestSeries.create(payload);
+    invalidateTestSeriesCache();
     broadcastTestSeriesCreated(newTestSeries);
 
     res.status(201).json({
@@ -792,6 +820,7 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    invalidateTestSeriesCache();
     broadcastTestSeriesUpdated(updated);
 
     res.status(200).json({
@@ -818,6 +847,7 @@ export const deleteTestSeries = async (req: Request, res: Response): Promise<voi
     });
 
     const deletedId = deleted?.id || param;
+    invalidateTestSeriesCache();
     broadcastTestSeriesDeleted(deletedId);
 
     res.status(200).json({

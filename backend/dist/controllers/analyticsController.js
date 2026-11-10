@@ -6,9 +6,21 @@ import { Review } from '../models/Review.js';
 import { TestSeries } from '../models/TestSeries.js';
 import { DppPyq } from '../models/DppPyq.js';
 import { FreeLecture } from '../models/FreeLecture.js';
+// High-speed cache for executive dashboard analytics (TTL: 20 seconds)
+let cachedDashboardAnalytics = null;
+const ANALYTICS_CACHE_TTL = 20000;
+export const invalidateAnalyticsCache = () => {
+    cachedDashboardAnalytics = null;
+};
 export const getDashboardAnalytics = async (req, res) => {
     try {
-        const { timeRange = '30d', courseId = 'ALL', category = 'ALL', status = 'ALL', startDate, endDate } = req.query;
+        const { timeRange = '30d', courseId = 'ALL', category = 'ALL', status = 'ALL', startDate, endDate, force } = req.query;
+        const isForce = force === 'true' || force === '1';
+        const cacheKey = `${timeRange}-${courseId}-${category}-${status}-${startDate || ''}-${endDate || ''}`;
+        if (!isForce && cachedDashboardAnalytics && cachedDashboardAnalytics.key === cacheKey && (Date.now() - cachedDashboardAnalytics.time < ANALYTICS_CACHE_TTL)) {
+            res.status(200).json({ ...cachedDashboardAnalytics.data, fromCache: true });
+            return;
+        }
         // 1. Date Range Filter calculation
         const now = new Date();
         let fromDate;
@@ -32,21 +44,21 @@ export const getDashboardAnalytics = async (req, res) => {
                     break;
             }
         }
-        // 2. Fetch Base Aggregates
+        // 2. Fetch Base Aggregates with fast timeouts
         const [totalStudents, totalTeachers, totalCourses, totalTestSeries, totalDppPyq, totalFreeLectures, totalPaidLectures, pendingLeadsCount, allOrders, reviewsStats] = await Promise.all([
-            User.countDocuments({ role: 'STUDENT' }),
-            User.countDocuments({ role: { $in: ['TEACHER', 'ADMIN', 'SUPER_ADMIN'] } }),
-            Course.countDocuments({}),
-            TestSeries.countDocuments({}),
-            DppPyq.countDocuments({}),
-            FreeLecture.countDocuments({ isFree: true }),
-            FreeLecture.countDocuments({ isFree: false }),
-            Lead.countDocuments({ status: 'New' }),
-            Order.find({}).lean(),
+            User.countDocuments({ role: 'STUDENT' }).maxTimeMS(3500).catch(() => 0),
+            User.countDocuments({ role: { $in: ['TEACHER', 'ADMIN', 'SUPER_ADMIN'] } }).maxTimeMS(3500).catch(() => 0),
+            Course.countDocuments({}).maxTimeMS(3500).catch(() => 0),
+            TestSeries.countDocuments({}).maxTimeMS(3500).catch(() => 0),
+            DppPyq.countDocuments({}).maxTimeMS(3500).catch(() => 0),
+            FreeLecture.countDocuments({ isFree: true }).maxTimeMS(3500).catch(() => 0),
+            FreeLecture.countDocuments({ isFree: false }).maxTimeMS(3500).catch(() => 0),
+            Lead.countDocuments({ status: 'New' }).maxTimeMS(3500).catch(() => 0),
+            Order.find({}).lean().maxTimeMS(3500).catch(() => []),
             Review.aggregate([
                 { $match: { status: 'APPROVED' } },
                 { $group: { _id: null, avgRating: { $avg: '$rating' }, totalReviews: { $sum: 1 } } }
-            ])
+            ]).option({ maxTimeMS: 3500 }).catch(() => [])
         ]);
         // 3. Filter orders based on query parameters
         let filteredOrders = allOrders.filter((o) => {
@@ -168,7 +180,7 @@ export const getDashboardAnalytics = async (req, res) => {
             Lead.find({}).sort({ createdAt: -1 }).limit(4).lean(),
             Review.find({}).sort({ createdAt: -1 }).limit(4).lean()
         ]);
-        res.status(200).json({
+        const responsePayload = {
             success: true,
             summary: {
                 totalStudents,
@@ -205,7 +217,13 @@ export const getDashboardAnalytics = async (req, res) => {
                 recentEnquiries: recentInquiries,
                 recentReviews: recentReviewsList
             }
-        });
+        };
+        cachedDashboardAnalytics = {
+            key: cacheKey,
+            time: Date.now(),
+            data: responsePayload
+        };
+        res.status(200).json(responsePayload);
     }
     catch (error) {
         res.status(500).json({ success: false, message: error.message });

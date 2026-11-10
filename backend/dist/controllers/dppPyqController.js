@@ -178,15 +178,18 @@ const SEED_DPP_PYQ_ITEMS = [
         questions: SEED_QUESTIONS
     }
 ];
+// High-speed in-memory cache for DPP & PYQ sets (TTL: 30 seconds)
+let cachedDppPyqList = null;
+let lastDppPyqCacheTime = 0;
+const DPP_CACHE_TTL = 30000;
+export const invalidateDppPyqCache = () => {
+    cachedDppPyqList = null;
+    lastDppPyqCacheTime = 0;
+};
 export const getAllDppPyq = async (req, res) => {
     try {
-        const count = await DppPyq.countDocuments();
-        if (count === 0) {
-            console.log('[DppPyq] Database empty. Auto-seeding initial DPP & PYQ sets...');
-            await DppPyq.insertMany(SEED_DPP_PYQ_ITEMS);
-            console.log('[DppPyq] Successfully seeded initial problem sets.');
-        }
-        const { moduleType, subject, status, search } = req.query;
+        const { moduleType, subject, status, search, force } = req.query;
+        const isForce = force === 'true' || force === '1';
         const filter = {};
         if (moduleType && moduleType !== 'ALL') {
             filter.moduleType = { $regex: new RegExp(`^${String(moduleType).trim()}$`, 'i') };
@@ -206,9 +209,15 @@ export const getAllDppPyq = async (req, res) => {
                 { chapter: { $regex: search.trim(), $options: 'i' } }
             ];
         }
-        const items = await DppPyq.find(filter).sort({ createdAt: -1 });
+        const hasFilters = Object.keys(filter).length > 0;
+        // Fast memory cache path
+        if (!hasFilters && !isForce && cachedDppPyqList && (Date.now() - lastDppPyqCacheTime < DPP_CACHE_TTL)) {
+            res.status(200).json(cachedDppPyqList);
+            return;
+        }
+        const items = await DppPyq.find(filter).sort({ createdAt: -1 }).lean().maxTimeMS(4000);
         const sanitizedItems = items.map((item) => {
-            const doc = item.toObject ? item.toObject() : item;
+            const doc = { ...item };
             if (Array.isArray(doc.questions) &&
                 doc.questions.length === 4 &&
                 doc.questions.every((q) => q.id && (String(q.id).startsWith('q-sample-') || String(q.id).startsWith('q-math-')))) {
@@ -217,6 +226,10 @@ export const getAllDppPyq = async (req, res) => {
             }
             return doc;
         });
+        if (!hasFilters) {
+            cachedDppPyqList = sanitizedItems;
+            lastDppPyqCacheTime = Date.now();
+        }
         res.status(200).json(sanitizedItems);
     }
     catch (error) {
@@ -333,6 +346,7 @@ export const createDppPyq = async (req, res) => {
             questions: sanitizedQuestions
         });
         const saved = await newItem.save();
+        invalidateDppPyqCache();
         broadcastDppPyqCreated(saved);
         res.status(201).json(saved);
     }
@@ -362,6 +376,7 @@ export const updateDppPyq = async (req, res) => {
             res.status(404).json({ error: 'DPP/PYQ item not found' });
             return;
         }
+        invalidateDppPyqCache();
         broadcastDppPyqUpdated(updated);
         res.status(200).json(updated);
     }
@@ -383,6 +398,7 @@ export const deleteDppPyq = async (req, res) => {
             res.status(404).json({ error: 'DPP/PYQ item not found' });
             return;
         }
+        invalidateDppPyqCache();
         broadcastDppPyqDeleted(deleted.id || String(id));
         res.status(200).json({ success: true, message: 'DPP/PYQ set deleted successfully' });
     }

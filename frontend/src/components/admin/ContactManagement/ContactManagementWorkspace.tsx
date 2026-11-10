@@ -73,12 +73,15 @@ export const ContactManagementWorkspace: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Load leads from API
-  const loadLeadsData = async () => {
+  const loadLeadsData = async (showSuccessToast = false) => {
     setIsSyncing(true);
     try {
       const result = await leadService.fetchLeadsFromApi();
       setLeads(result.leads);
       if (result.stats) setStats(result.stats);
+      if (showSuccessToast) {
+        showToast(`✓ Synced ${result.leads.length} inquiries live from database!`, 'success');
+      }
     } catch {
       showToast('Error syncing with live inquiries database', 'error');
     } finally {
@@ -344,7 +347,7 @@ export const ContactManagementWorkspace: React.FC = () => {
           <button
             type="button"
             className={styles.refreshBtn}
-            onClick={loadLeadsData}
+            onClick={() => loadLeadsData(true)}
             disabled={isSyncing}
             title="Sync latest inquiries"
           >

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileSpreadsheet,
@@ -1030,10 +1030,14 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
   }, [searchQuery]);
 
   // Fetch live items from MongoDB backend
-  const fetchLiveDppPyq = async () => {
+  const isFetchingLiveRef = useRef(false);
+  const fetchLiveDppPyq = async (force = false) => {
+    if (isFetchingLiveRef.current) return;
+    isFetchingLiveRef.current = true;
     setIsLoading(true);
     try {
-      const res = await apiClient.get<any>('/dpp-pyq');
+      const url = force ? `/dpp-pyq?force=true&_t=${Date.now()}` : '/dpp-pyq';
+      const res = await apiClient.get<any>(url);
       const items = Array.isArray(res) ? res : res?.data || [];
       if (Array.isArray(items) && items.length > 0) {
         const formatted: DppPyqItem[] = items.map((item: any, idx: number) => {
@@ -1068,11 +1072,15 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
           };
         });
         setProblemSets(formatted);
+        if (force) {
+          showToast(`✓ Synced ${formatted.length} DPP & PYQ sets live from database!`);
+        }
       }
     } catch (err: any) {
       console.warn('[DppPyq] Backend sync notice:', err);
     } finally {
       setIsLoading(false);
+      isFetchingLiveRef.current = false;
     }
   };
 
@@ -1727,11 +1735,12 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
           <button
             type="button"
             className={styles.syncBtn}
-            onClick={fetchLiveDppPyq}
+            onClick={() => fetchLiveDppPyq(true)}
+            disabled={isLoading}
             title="Refresh problem sets"
           >
             <RefreshCw size={15} className={isLoading ? styles.spinIcon : ''} />
-            <span>Sync Live</span>
+            <span>{isLoading ? 'Syncing...' : 'Sync Live'}</span>
           </button>
 
           <Link
