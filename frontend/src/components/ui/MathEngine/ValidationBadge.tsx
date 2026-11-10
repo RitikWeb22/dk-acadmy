@@ -47,9 +47,11 @@ export const ValidationBadge: React.FC<ValidationBadgeProps> = ({
   };
 
   const config = getBadgeConfig();
-  const tooltipText = issues.length > 0
-    ? issues.map((i) => i.message).join('\n')
-    : config.label;
+  const tooltipText = status === 'RED'
+    ? (issues.length > 0
+        ? `⚠️ Formula me error hai:\n• ${issues.map((i) => i.message).join('\n• ')}\n\nNeeche diye gaye '⚡ 1-Click Auto-Fix' button par click karke theek karein.`
+        : '⚠️ Formula me error hai. Neeche diye gaye Auto-Fix button se theek karein.')
+    : (issues.length > 0 ? issues.map((i) => i.message).join('\n') : config.label);
 
   return (
     <span

@@ -25,6 +25,7 @@ import {
   Download,
   AlertTriangle,
   AlertCircle,
+  Wrench,
   RotateCcw,
   CheckCircle,
   X,
@@ -70,7 +71,7 @@ import { GeminiApiKeyModal } from '../../common/GeminiApiKeyModal/GeminiApiKeyMo
 
 import { PART_TESTS_DATA } from '../../../data/partTestsData';
 import { MathText } from '../../ui/MathText/MathText';
-import { MathInput, parseContentToBlocks, ValidationDashboard, ValidationBadge } from '../../ui/MathEngine';
+import { MathInput, parseContentToBlocks, ValidationDashboard, ValidationBadge, getFriendlyMathExplanation, autoRepairQuestionFormula } from '../../ui/MathEngine';
 import { extractStatementAndOptions, normalizeMathText } from '../../../utils/questionBulkParser';
 import { normalizeMathString, normalizeOptionMath, extractMathFromHtml } from '../../../utils/mathImportRenderSystem/pasteHandler';
 import { normalizePastedQuestion } from '../../../utils/universalDocxParser';
@@ -2392,18 +2393,22 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       parsedList.forEach((parsed, pIdx) => {
         const slotIdx = curIdx + pIdx;
         const assignedSubj = selectedSubjects.length === 1 ? selectedSubjects[0] : activeSubjectTab;
-        const assignedSec = parsed.type === 'NUMERICAL' ? 'B' : 'A';
+        const hasOptions = parsed.options && parsed.options.length >= 2;
+        const resolvedType = hasOptions ? 'SINGLE_CORRECT' : parsed.type;
 
         if (slotIdx < newQuestions.length) {
           // AUTO-FILL the existing slot!
           const targetSlot = newQuestions[slotIdx];
           if (pIdx === 0) firstTargetId = targetSlot.id;
 
+          // Crucial: PRESERVE targetSlot.section so Question 5 in Section A NEVER jumps to Section B!
+          const assignedSec = targetSlot.section || (resolvedType === 'NUMERICAL' ? 'B' : 'A');
+
           newQuestions[slotIdx] = {
             ...targetSlot,
             subject: assignedSubj,
             section: assignedSec,
-            type: parsed.type,
+            type: resolvedType,
             questionText: parsed.statement,
             statementBlocks: parseContentToBlocks(parsed.statement),
             options: parsed.options,
@@ -2418,13 +2423,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           const newId = `q-word-${Date.now()}-${pIdx}`;
           if (pIdx === 0) firstTargetId = newId;
 
+          const assignedSec = (currentEditingQuestion?.section) || (resolvedType === 'NUMERICAL' ? 'B' : 'A');
+
           const newQ: QuestionItem = {
             id: newId,
             subject: assignedSubj,
             section: assignedSec,
             index: newQuestions.length + 1,
-            type: parsed.type,
-            difficulty: parsed.type === 'NUMERICAL' ? 'HARD' : 'MEDIUM',
+            type: resolvedType,
+            difficulty: resolvedType === 'NUMERICAL' ? 'HARD' : 'MEDIUM',
             topicTag: parsed.examTag || '',
             questionText: parsed.statement,
             statementBlocks: parseContentToBlocks(parsed.statement),
@@ -5100,6 +5107,86 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             </span>
                           </div>
                         </div>
+
+                        {questionValidations[currentEditingQuestion.id]?.status === 'RED' && (() => {
+                          const diag = getFriendlyMathExplanation(currentEditingQuestion.questionText || '');
+                          return (
+                            <div style={{
+                              background: '#FEF2F2',
+                              border: '1px solid #FECACA',
+                              borderRadius: '8px',
+                              padding: '12px 14px',
+                              marginBottom: '10px'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1, minWidth: '240px' }}>
+                                  <AlertTriangle size={18} color="#DC2626" style={{ marginTop: '2px', flexShrink: 0 }} />
+                                  <div>
+                                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#991B1B', marginBottom: '2px' }}>
+                                      ⚠️ {diag.title}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#7F1D1D', lineHeight: 1.5, marginBottom: '4px' }}>
+                                      {diag.explanation}
+                                    </div>
+                                    {diag.issues.length > 0 && (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                                        {diag.issues.map((iss, i) => (
+                                          <span key={i} style={{ fontSize: '11.5px', color: '#B91C1C', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <span style={{ fontWeight: 'bold' }}>•</span> {iss}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <div style={{ fontSize: '11.5px', color: '#4B5563', marginTop: '6px', fontStyle: 'italic' }}>
+                                      💡 {diag.tip}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const raw = currentEditingQuestion.questionText || '';
+                                    const { repairedText, repairedIssues } = autoRepairQuestionFormula(raw);
+                                    const normalized = normalizeMathString(repairedText);
+                                    const newBlocks = parseContentToBlocks(normalized);
+                                    updateCurrentQuestion({
+                                      questionText: normalized,
+                                      statementBlocks: newBlocks
+                                    });
+                                    showToast(
+                                      repairedIssues.length > 0
+                                        ? `⚡ Formula Theek Ho Gaya! (${repairedIssues.join(', ')})`
+                                        : '⚡ Formula Automatically Repair Ho Gaya!'
+                                    );
+                                  }}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    background: '#DC2626',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '7px 14px',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 4px rgba(220, 38, 38, 0.25)',
+                                    transition: 'all 0.15s ease',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = '#B91C1C')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = '#DC2626')}
+                                >
+                                  <Wrench size={14} />
+                                  <span>⚡ 1-Click Auto-Fix (Theek Karein)</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         <MathInput
                           value={currentEditingQuestion.questionText}
                           onChange={(val, blocks) => updateCurrentQuestion({ questionText: val, statementBlocks: blocks })}

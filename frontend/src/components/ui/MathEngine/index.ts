@@ -16,4 +16,6 @@ export { ValidationDashboard } from './ValidationDashboard';
 export type { ValidationDashboardProps, BatchValidationStats } from './ValidationDashboard';
 export { renderMath, JEE_KATEX_MACROS } from '../../../utils/mathImportRenderSystem/renderMath';
 export type { RenderMathOptions } from '../../../utils/mathImportRenderSystem/renderMath';
+export { sanitizeFormula, getFriendlyMathExplanation, autoRepairQuestionFormula } from './sanitizeFormula';
+export type { MathDiagnosticInfo } from './sanitizeFormula';
 
