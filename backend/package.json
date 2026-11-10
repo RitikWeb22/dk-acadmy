@@ -40,6 +40,7 @@
     "jszip": "^3.10.2",
     "katex": "^0.19.1",
     "livekit-server-sdk": "^2.19.2",
+    "mongodb": "^6.0.0",
     "mongoose": "^9.11.3",
     "multer": "^2.5.0",
     "pdf-parse": "^2.4.5",

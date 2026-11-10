@@ -11,6 +11,9 @@
     "start": "node backend/dist/server.js",
     "test": "npm --prefix backend test"
   },
+  "dependencies": {
+    "mongodb": "^6.0.0"
+  },
   "keywords": [
     "dk-academy",
     "jee",
