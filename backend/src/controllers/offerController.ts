@@ -40,8 +40,27 @@ const SEED_OFFERS: Array<Partial<IOffer>> = [
   }
 ];
 
+let cachedOffersData: any = null;
+let lastOffersCacheTime = 0;
+const OFFERS_CACHE_TTL = 30000; // 30s
+
+const invalidateOffersCache = () => {
+  cachedOffersData = null;
+  lastOffersCacheTime = 0;
+};
+
 export const getAllOffers = async (_req: Request, res: Response): Promise<void> => {
   try {
+    const now = Date.now();
+    if (cachedOffersData && now - lastOffersCacheTime < OFFERS_CACHE_TTL) {
+      res.status(200).json({
+        success: true,
+        data: cachedOffersData,
+        fromCache: true
+      });
+      return;
+    }
+
     if (mongoose.connection.readyState !== 1) {
       const bannerOffer = SEED_OFFERS.find((o) => o.offerType === 'banner') || null;
       const popupOffer = SEED_OFFERS.find((o) => o.offerType === 'popup') || null;
@@ -53,25 +72,25 @@ export const getAllOffers = async (_req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const count = await Offer.countDocuments().maxTimeMS(3000);
-    if (count === 0) {
-      await Offer.insertMany(SEED_OFFERS);
-    }
-
-    const offers = await Offer.find().sort({ priority: 1, updatedAt: -1, createdAt: -1 }).maxTimeMS(3000);
+    const offers = await Offer.find().sort({ priority: 1, updatedAt: -1, createdAt: -1 }).lean().maxTimeMS(2500);
 
     const bannerOffer = offers.find((o) => o.offerType === 'banner') || null;
     const popupOffer = offers.find((o) => o.offerType === 'popup') || null;
     const itemOffers = offers.filter((o) => o.offerType === 'item_discount');
 
+    const resultData = {
+      all: offers.length > 0 ? offers : SEED_OFFERS,
+      bannerOffer: bannerOffer || SEED_OFFERS.find((o) => o.offerType === 'banner') || null,
+      popupOffer: popupOffer || SEED_OFFERS.find((o) => o.offerType === 'popup') || null,
+      itemOffers: itemOffers.length > 0 ? itemOffers : SEED_OFFERS.filter((o) => o.offerType === 'item_discount')
+    };
+
+    cachedOffersData = resultData;
+    lastOffersCacheTime = Date.now();
+
     res.status(200).json({
       success: true,
-      data: {
-        all: offers,
-        bannerOffer,
-        popupOffer,
-        itemOffers
-      }
+      data: resultData
     });
   } catch (error: any) {
     const bannerOffer = SEED_OFFERS.find((o) => o.offerType === 'banner') || null;
@@ -79,7 +98,8 @@ export const getAllOffers = async (_req: Request, res: Response): Promise<void> 
     const itemOffers = SEED_OFFERS.filter((o) => o.offerType === 'item_discount');
     res.status(200).json({
       success: true,
-      data: { all: SEED_OFFERS, bannerOffer, popupOffer, itemOffers }
+      data: { all: SEED_OFFERS, bannerOffer, popupOffer, itemOffers },
+      isFallback: true
     });
   }
 };
@@ -106,11 +126,13 @@ export const createOrUpdateOffer = async (req: Request, res: Response): Promise<
       Object.assign(existingOffer, offerData);
       existingOffer.updatedAt = new Date();
       await existingOffer.save();
+      invalidateOffersCache();
       res.status(200).json({ success: true, message: 'Offer updated successfully', data: existingOffer });
       return;
     }
 
     const newOffer = await Offer.create(offerData);
+    invalidateOffersCache();
     res.status(201).json({ success: true, message: 'Offer created successfully', data: newOffer });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -150,6 +172,7 @@ export const toggleOfferStatus = async (req: Request, res: Response): Promise<vo
     offer.isActive = !offer.isActive;
     offer.updatedAt = new Date();
     await offer.save();
+    invalidateOffersCache();
 
     res.status(200).json({
       success: true,
@@ -174,6 +197,7 @@ export const deleteOffer = async (req: Request, res: Response): Promise<void> =>
       res.status(404).json({ success: false, message: 'Offer not found' });
       return;
     }
+    invalidateOffersCache();
 
     res.status(200).json({ success: true, message: `Offer "${deleted.title}" deleted successfully` });
   } catch (error: any) {

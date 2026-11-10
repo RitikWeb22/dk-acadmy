@@ -97,7 +97,7 @@ export const directoryProtect = async (req, res, next) => {
     protect(req, res, (err) => {
         if (err)
             return next(err);
-        authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'LEAD_MANAGER')(req, res, next);
+        authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'LEAD_MANAGER', 'TEACHER', 'COUNSELOR')(req, res, next);
     });
 };
 export const authorize = (...roles) => {

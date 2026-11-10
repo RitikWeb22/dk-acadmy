@@ -119,7 +119,7 @@ export const optionalProtect = async (req: AuthRequest, _res: Response, next: Ne
 export const directoryProtect = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   protect(req, res, (err?: any) => {
     if (err) return next(err);
-    authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'LEAD_MANAGER')(req, res, next);
+    authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'LEAD_MANAGER', 'TEACHER', 'COUNSELOR')(req, res, next);
   });
 };
 

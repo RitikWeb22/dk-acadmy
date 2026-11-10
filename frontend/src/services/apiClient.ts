@@ -32,6 +32,8 @@ export interface ApiResponse<T = any> {
 
 export const getActiveAuthToken = (): string | null => {
   try {
+    const isAdminRoute = typeof window !== 'undefined' && window.location?.pathname?.startsWith('/admin');
+
     const adminSession =
       localStorage.getItem('dk_academy_admin_session_v1') ||
       localStorage.getItem('dk_academy_admin_session');
@@ -40,13 +42,15 @@ export const getActiveAuthToken = (): string | null => {
       if (parsed.token) return parsed.token;
     }
 
-    const studentSession = localStorage.getItem('dk_academy_student_session');
-    if (studentSession) {
-      const parsed = JSON.parse(studentSession);
-      if (parsed.token) return parsed.token;
+    if (!isAdminRoute) {
+      const studentSession = localStorage.getItem('dk_academy_student_session');
+      if (studentSession) {
+        const parsed = JSON.parse(studentSession);
+        if (parsed.token) return parsed.token;
+      }
     }
 
-    const directToken = localStorage.getItem('token') || localStorage.getItem('adminToken');
+    const directToken = localStorage.getItem('adminToken') || (!isAdminRoute ? localStorage.getItem('token') : null);
     if (directToken) return directToken;
   } catch {}
   return null;
@@ -181,7 +185,7 @@ export const apiClient = {
         headers: getAuthHeaders(),
         ...options
       });
-      if (res.status === 401 && !endpoint.includes('/auth/')) {
+      if ((res.status === 401 || (res.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
@@ -208,7 +212,7 @@ export const apiClient = {
         body: body ? JSON.stringify(body) : undefined,
         ...options
       });
-      if (res.status === 401 && !endpoint.includes('/auth/')) {
+      if ((res.status === 401 || (res.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
@@ -236,7 +240,7 @@ export const apiClient = {
         body: body ? JSON.stringify(body) : undefined,
         ...options
       });
-      if (res.status === 401 && !endpoint.includes('/auth/')) {
+      if ((res.status === 401 || (res.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
@@ -264,7 +268,7 @@ export const apiClient = {
         body: body ? JSON.stringify(body) : undefined,
         ...options
       });
-      if (res.status === 401 && !endpoint.includes('/auth/')) {
+      if ((res.status === 401 || (res.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
@@ -291,7 +295,7 @@ export const apiClient = {
         headers: getAuthHeaders(),
         ...options
       });
-      if (res.status === 401 && !endpoint.includes('/auth/')) {
+      if ((res.status === 401 || (res.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
