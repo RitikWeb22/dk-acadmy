@@ -82,6 +82,23 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
     .replace(/⟦\s*MATH_\d+\s*⟧/gi, '')
     .replace(/\u27E6MATH_\d+\u27E7/g, '');
 
+  // Repair split math delimiters, such as ( $\frac{y}{x}$ )^{3} or 6 $\sqrt{10}$
+  text = text
+    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\(\s*|\(\s*)\$([^\$\n]+?)\$(?:\s*\\right\s*\)|\s*\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
+      (_, math, exp) => {
+        const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
+        return `$\\left(${math.trim()}\\right)^${expStr}$`;
+      })
+    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\[\s*|\[\s*)\$([^\$\n]+?)\$(?:\s*\\right\s*\]|\s*\])\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
+      (_, math, exp) => {
+        const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
+        return `$\\left[${math.trim()}\\right]^${expStr}$`;
+      })
+    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\(\s*|\(\s*)\$([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})\$(?:\s*\\right\s*\)|\s*\))(?![a-zA-Z0-9_\$])/g,
+      (_, frac) => `$\\left(${frac.trim()}\\right)$`)
+    .replace(/(?<![a-zA-Z0-9_\$])(\d+)\s*\$(\\(?:sqrt|cbrt)(?:\[[^\]]+\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})\$/g,
+      (_, coef, rad) => `$${coef}${rad}$`);
+
   // Delimiters supported:
   // 1. Display math: $$ ... $$ and \[ ... \]
   // 2. Inline math: $ ... $ and \( ... \) (including multiline inline math)
