@@ -39,11 +39,21 @@ const SEED_OFFERS = [
 ];
 export const getAllOffers = async (_req, res) => {
     try {
-        const count = await Offer.countDocuments();
+        if (mongoose.connection.readyState !== 1) {
+            const bannerOffer = SEED_OFFERS.find((o) => o.offerType === 'banner') || null;
+            const popupOffer = SEED_OFFERS.find((o) => o.offerType === 'popup') || null;
+            const itemOffers = SEED_OFFERS.filter((o) => o.offerType === 'item_discount');
+            res.status(200).json({
+                success: true,
+                data: { all: SEED_OFFERS, bannerOffer, popupOffer, itemOffers }
+            });
+            return;
+        }
+        const count = await Offer.countDocuments().maxTimeMS(3000);
         if (count === 0) {
             await Offer.insertMany(SEED_OFFERS);
         }
-        const offers = await Offer.find().sort({ priority: 1, updatedAt: -1, createdAt: -1 });
+        const offers = await Offer.find().sort({ priority: 1, updatedAt: -1, createdAt: -1 }).maxTimeMS(3000);
         const bannerOffer = offers.find((o) => o.offerType === 'banner') || null;
         const popupOffer = offers.find((o) => o.offerType === 'popup') || null;
         const itemOffers = offers.filter((o) => o.offerType === 'item_discount');
@@ -58,7 +68,13 @@ export const getAllOffers = async (_req, res) => {
         });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        const bannerOffer = SEED_OFFERS.find((o) => o.offerType === 'banner') || null;
+        const popupOffer = SEED_OFFERS.find((o) => o.offerType === 'popup') || null;
+        const itemOffers = SEED_OFFERS.filter((o) => o.offerType === 'item_discount');
+        res.status(200).json({
+            success: true,
+            data: { all: SEED_OFFERS, bannerOffer, popupOffer, itemOffers }
+        });
     }
 };
 export const createOrUpdateOffer = async (req, res) => {
