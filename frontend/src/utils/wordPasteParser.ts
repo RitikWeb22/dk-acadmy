@@ -657,6 +657,169 @@ export function convertExpBraces(text: string): string {
 }
 
 /**
+ * Converts literal mathematical curly braces (sets, fractional part, intervals, etc.)
+ * into visible \{ and \} while preserving LaTeX macro syntax groups (e.g. \frac{a}{b}, ^{2}, \text{...}).
+ */
+export function convertLiteralCurlyBraces(latex: string): string {
+  if (!latex || !latex.includes('{')) return latex;
+
+  const oneArgMacros = new Set([
+    'sqrt', 'text', 'textbf', 'textit', 'textrm', 'textsf', 'texttt', 'textnormal',
+    'mathrm', 'mathbf', 'mathit', 'mathsf', 'mathtt', 'mathbb', 'mathcal', 'mathfrak', 'mathscr', 'bm', 'boldsymbol',
+    'begin', 'end',
+    'vec', 'hat', 'bar', 'tilde', 'dot', 'ddot', 'dddot', 'check', 'acute', 'grave', 'breve', 'mathring',
+    'overbrace', 'underbrace', 'overline', 'underline', 'overleftarrow', 'overrightarrow', 'overleftrightarrow',
+    'boxed', 'color', 'phantom', 'vphantom', 'hphantom',
+    'cancel', 'bcancel', 'xcancel', 'cancelto',
+    'operatorname', 'operatornamewithlimits', 'tag', 'label'
+  ]);
+  const twoArgMacros = new Set([
+    'frac', 'dfrac', 'cfrac', 'tfrac',
+    'binom', 'overset', 'underset', 'stackrel', 'pmod', 'pod',
+    'textcolor', 'colorbox'
+  ]);
+
+  let result = '';
+  let i = 0;
+  const stack: Array<{ kind: 'syntax' | 'literal'; macro?: string; argIndex?: number }> = [];
+
+  while (i < latex.length) {
+    const ch = latex[i];
+
+    if (ch === '\\') {
+      if (latex[i + 1] === '{' || latex[i + 1] === '}') {
+        result += latex.slice(i, i + 2);
+        i += 2;
+        continue;
+      }
+      const matchDelimiter = latex.slice(i).match(/^\\(left|right|big|Big|bigg|Bigg)\s*\\?([{}])/);
+      if (matchDelimiter) {
+        result += matchDelimiter[0];
+        i += matchDelimiter[0].length;
+        continue;
+      }
+
+      const macroMatch = latex.slice(i).match(/^\\([a-zA-Z]+)/);
+      if (macroMatch) {
+        const macroName = macroMatch[1];
+        result += macroMatch[0];
+        i += macroMatch[0].length;
+
+        while (i < latex.length && /\s/.test(latex[i])) {
+          result += latex[i];
+          i++;
+        }
+
+        if (macroName === 'sqrt' && latex[i] === '[') {
+          let opt = '[';
+          i++;
+          while (i < latex.length && latex[i] !== ']') {
+            opt += latex[i];
+            i++;
+          }
+          if (i < latex.length) {
+            opt += ']';
+            i++;
+          }
+          result += opt;
+          while (i < latex.length && /\s/.test(latex[i])) {
+            result += latex[i];
+            i++;
+          }
+        }
+
+        if (latex[i] === '{') {
+          if (twoArgMacros.has(macroName)) {
+            stack.push({ kind: 'syntax', macro: macroName, argIndex: 1 });
+            result += '{';
+            i++;
+          } else if (oneArgMacros.has(macroName)) {
+            stack.push({ kind: 'syntax', macro: macroName, argIndex: 1 });
+            result += '{';
+            i++;
+          } else {
+            stack.push({ kind: 'literal' });
+            result += '\\{';
+            i++;
+          }
+          continue;
+        }
+        continue;
+      }
+
+      result += ch;
+      i++;
+      continue;
+    }
+
+    if (ch === '^' || ch === '_') {
+      result += ch;
+      i++;
+      while (i < latex.length && /\s/.test(latex[i])) {
+        result += latex[i];
+        i++;
+      }
+      if (latex[i] === '{') {
+        stack.push({ kind: 'syntax' });
+        result += '{';
+        i++;
+        continue;
+      }
+      continue;
+    }
+
+    if (ch === '{') {
+      const top = stack[stack.length - 1];
+      if (top && top.kind === 'syntax' && top.macro && twoArgMacros.has(top.macro) && top.argIndex === 2) {
+        result += '{';
+        i++;
+        continue;
+      }
+
+      stack.push({ kind: 'literal' });
+      result += '\\{';
+      i++;
+      continue;
+    }
+
+    if (ch === '}') {
+      const top = stack.pop();
+      if (top && top.kind === 'literal') {
+        result += '\\}';
+        i++;
+        continue;
+      }
+
+      result += '}';
+      i++;
+
+      if (top && top.macro && twoArgMacros.has(top.macro) && top.argIndex === 1) {
+        let peek = i;
+        while (peek < latex.length && /\s/.test(latex[peek])) peek++;
+        if (peek < latex.length && latex[peek] === '{') {
+          stack.push({ kind: 'syntax', macro: top.macro, argIndex: 2 });
+        }
+      }
+      continue;
+    }
+
+    result += ch;
+    i++;
+  }
+
+  while (stack.length > 0) {
+    const top = stack.pop();
+    if (top && top.kind === 'literal') {
+      result += '\\}';
+    } else {
+      result += '}';
+    }
+  }
+
+  return result;
+}
+
+/**
  * Reconstructs Word linear UnicodeMath equations, integrals, summations, limits,
  * fractions, powers, and inverse trig functions into standardized LaTeX syntax.
  */
@@ -840,6 +1003,7 @@ export function convertWordEquationToLatex(raw: string): string {
   // Convert complex balanced fractions and exp{...} braces before wrapping
   s = convertFractionsBalanced(s);
   s = convertExpBraces(s);
+  s = convertLiteralCurlyBraces(s);
 
   // Upgrade \frac to \dfrac for proper "upon" height
   s = s.replace(/\\frac\b/g, '\\dfrac');
@@ -1086,6 +1250,7 @@ export function wrapMathInDollars(text: string): string {
   s = s.replace(/\s+,/g, ',');
   s = s.replace(/\s+\./g, '.');
   s = s.replace(/\s+/g, ' ').trim();
+  s = convertLiteralCurlyBraces(s);
 
   return s;
 }

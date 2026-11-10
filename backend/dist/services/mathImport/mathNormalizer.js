@@ -508,6 +508,155 @@ export function convertExpBraces(text) {
     return result;
 }
 /**
+ * Converts literal mathematical curly braces (sets, fractional part, intervals, etc.)
+ * into visible \{ and \} while preserving LaTeX macro syntax groups (e.g. \frac{a}{b}, ^{2}, \text{...}).
+ */
+export function convertLiteralCurlyBraces(latex) {
+    if (!latex || !latex.includes('{'))
+        return latex;
+    const oneArgMacros = new Set([
+        'sqrt', 'text', 'textbf', 'textit', 'textrm', 'textsf', 'texttt', 'textnormal',
+        'mathrm', 'mathbf', 'mathit', 'mathsf', 'mathtt', 'mathbb', 'mathcal', 'mathfrak', 'mathscr', 'bm', 'boldsymbol',
+        'begin', 'end',
+        'vec', 'hat', 'bar', 'tilde', 'dot', 'ddot', 'dddot', 'check', 'acute', 'grave', 'breve', 'mathring',
+        'overbrace', 'underbrace', 'overline', 'underline', 'overleftarrow', 'overrightarrow', 'overleftrightarrow',
+        'boxed', 'color', 'phantom', 'vphantom', 'hphantom',
+        'cancel', 'bcancel', 'xcancel', 'cancelto',
+        'operatorname', 'operatornamewithlimits', 'tag', 'label'
+    ]);
+    const twoArgMacros = new Set([
+        'frac', 'dfrac', 'cfrac', 'tfrac',
+        'binom', 'overset', 'underset', 'stackrel', 'pmod', 'pod',
+        'textcolor', 'colorbox'
+    ]);
+    let result = '';
+    let i = 0;
+    const stack = [];
+    while (i < latex.length) {
+        const ch = latex[i];
+        if (ch === '\\') {
+            if (latex[i + 1] === '{' || latex[i + 1] === '}') {
+                result += latex.slice(i, i + 2);
+                i += 2;
+                continue;
+            }
+            const matchDelimiter = latex.slice(i).match(/^\\(left|right|big|Big|bigg|Bigg)\s*\\?([{}])/);
+            if (matchDelimiter) {
+                result += matchDelimiter[0];
+                i += matchDelimiter[0].length;
+                continue;
+            }
+            const macroMatch = latex.slice(i).match(/^\\([a-zA-Z]+)/);
+            if (macroMatch) {
+                const macroName = macroMatch[1];
+                result += macroMatch[0];
+                i += macroMatch[0].length;
+                while (i < latex.length && /\s/.test(latex[i])) {
+                    result += latex[i];
+                    i++;
+                }
+                if (macroName === 'sqrt' && latex[i] === '[') {
+                    let opt = '[';
+                    i++;
+                    while (i < latex.length && latex[i] !== ']') {
+                        opt += latex[i];
+                        i++;
+                    }
+                    if (i < latex.length) {
+                        opt += ']';
+                        i++;
+                    }
+                    result += opt;
+                    while (i < latex.length && /\s/.test(latex[i])) {
+                        result += latex[i];
+                        i++;
+                    }
+                }
+                if (latex[i] === '{') {
+                    if (twoArgMacros.has(macroName)) {
+                        stack.push({ kind: 'syntax', macro: macroName, argIndex: 1 });
+                        result += '{';
+                        i++;
+                    }
+                    else if (oneArgMacros.has(macroName)) {
+                        stack.push({ kind: 'syntax', macro: macroName, argIndex: 1 });
+                        result += '{';
+                        i++;
+                    }
+                    else {
+                        stack.push({ kind: 'literal' });
+                        result += '\\{';
+                        i++;
+                    }
+                    continue;
+                }
+                continue;
+            }
+            result += ch;
+            i++;
+            continue;
+        }
+        if (ch === '^' || ch === '_') {
+            result += ch;
+            i++;
+            while (i < latex.length && /\s/.test(latex[i])) {
+                result += latex[i];
+                i++;
+            }
+            if (latex[i] === '{') {
+                stack.push({ kind: 'syntax' });
+                result += '{';
+                i++;
+                continue;
+            }
+            continue;
+        }
+        if (ch === '{') {
+            const top = stack[stack.length - 1];
+            if (top && top.kind === 'syntax' && top.macro && twoArgMacros.has(top.macro) && top.argIndex === 2) {
+                result += '{';
+                i++;
+                continue;
+            }
+            stack.push({ kind: 'literal' });
+            result += '\\{';
+            i++;
+            continue;
+        }
+        if (ch === '}') {
+            const top = stack.pop();
+            if (top && top.kind === 'literal') {
+                result += '\\}';
+                i++;
+                continue;
+            }
+            result += '}';
+            i++;
+            if (top && top.macro && twoArgMacros.has(top.macro) && top.argIndex === 1) {
+                let peek = i;
+                while (peek < latex.length && /\s/.test(latex[peek]))
+                    peek++;
+                if (peek < latex.length && latex[peek] === '{') {
+                    stack.push({ kind: 'syntax', macro: top.macro, argIndex: 2 });
+                }
+            }
+            continue;
+        }
+        result += ch;
+        i++;
+    }
+    while (stack.length > 0) {
+        const top = stack.pop();
+        if (top && top.kind === 'literal') {
+            result += '\\}';
+        }
+        else {
+            result += '}';
+        }
+    }
+    return result;
+}
+/**
  * Repairs linear equations residues:
  * - dy/(" " \, dx) -> \dfrac{dy}{dx}
  * - a/b -> \dfrac{a}{b}
@@ -602,6 +751,8 @@ export function repairLinearMathResidues(text) {
     // Convert complex balanced fractions and exp{...} braces
     s = convertFractionsBalanced(s);
     s = convertExpBraces(s);
+    s = convertLiteralCurlyBraces(s);
+    s = convertLiteralCurlyBraces(s);
     // 2. Word linear fractions with nested parens and exponents: (3x^{5} \tan^{-1}(x^3))/(1+x^{6})^{\frac{3}{2}}
     s = s.replace(/\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)\^(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|\([0-9a-zA-Z_+/\\-]+\)|[A-Za-z0-9_+\-]+)/g, (_, num, den, exp) => {
         let expClean = exp.trim();
@@ -991,6 +1142,7 @@ export function normalizeOptionMath(raw) {
     s = s.replace(/\\?exp\s*\(\s*([^/()]+)\s*\/\s*([^/()]+)\s*\)/gi, '\\exp\\left(\\dfrac{$1}{$2}\\right)');
     s = s.replace(/\\?exp\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/gi, '\\exp\\left($1\\right)');
     s = convertExpBraces(s);
+    s = convertLiteralCurlyBraces(s);
     s = s.replace(/\\?exp\s*\(\s*([^()]+)\s*\)/g, '\\exp\\left($1\\right)');
     s = s.replace(/\\?sqrt\s*\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}');
     s = s.replace(/\\frac\b/g, '\\dfrac');
