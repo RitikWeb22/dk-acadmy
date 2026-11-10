@@ -203,31 +203,6 @@ export const ValidationDashboard: React.FC<ValidationDashboardProps> = ({
               Jump to Red Q <ChevronRight size={14} />
             </button>
           )}
-
-          {redCount > 0 && onTriggerAiRepairAll && (
-            <button
-              type="button"
-              onClick={onTriggerAiRepairAll}
-              disabled={isAiRepairing}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '5px 12px',
-                backgroundColor: '#2563eb',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: isAiRepairing ? 'not-allowed' : 'pointer',
-                opacity: isAiRepairing ? 0.7 : 1
-              }}
-            >
-              <Sparkles size={14} />
-              {isAiRepairing ? 'Repairing with Gemini...' : 'AI Repair (Gemini)'}
-            </button>
-          )}
         </div>
       </div>
 
@@ -250,7 +225,7 @@ export const ValidationDashboard: React.FC<ValidationDashboardProps> = ({
           <AlertTriangle size={15} color="#dc2626" />
           <span>
             <strong>Publishing Blocked:</strong> {redCount} question(s) contain invalid LaTeX syntax or empty formulas.
-            Click <strong>"Jump to Red Q"</strong> to inspect or use <strong>"AI Repair (Gemini)"</strong> to auto-fix formatting.
+            Click <strong>"Jump to Red Q"</strong> to inspect and use the <strong>"1-Click Auto-Fix"</strong> button to repair formatting.
           </span>
         </div>
       )}
