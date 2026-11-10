@@ -645,8 +645,8 @@ export function getFriendlyMathExplanation(text: string): MathDiagnosticInfo {
   }
 
   let title = 'Formula me KaTeX Error Hai';
-  let explanation = 'Formula me brackets ya math delimiters theek se match nahi ho rahe hain.';
-  let tip = '"⚡ Theek Karein (Auto-Fix)" button dabayein taaki system isse automatically repair kar sake.';
+  let explanation = 'Formula me koi aisi command, brackets ya formatting hai jo KaTeX theek se render nahi kar pa raha.';
+  let tip = '"⚡ Theek Karein (Auto-Fix)" button dabayein, ya agar formula bohot complex ho to upar "✨ AI Repair" button dabayein.';
 
   if (openBraces !== closeBraces && dollarCount % 2 !== 0) {
     title = 'Bracket {} aur Dollar $ Dono Missing Hain';
@@ -734,7 +734,45 @@ export function autoRepairQuestionFormula(text: string): {
     repairedIssues.push('Fixed empty denominator');
   }
 
-  // 5. Clean review markers and orphan tokens
+  // 5. Balance \left and \right delimiters
+  const leftCount = (s.match(/\\left(?:[\[\(\{\|.]|\\\{)/g) || []).length;
+  const rightCount = (s.match(/\\right(?:[\]\)\}\|.]|\\\})/g) || []).length;
+  if (leftCount > rightCount) {
+    const diff = leftCount - rightCount;
+    if (s.endsWith('$')) {
+      s = s.slice(0, -1) + '\\right.'.repeat(diff) + '$';
+    } else {
+      s = s + '\\right.'.repeat(diff);
+    }
+    repairedIssues.push(`Balanced ${diff} unclosed \\left delimiter(s)`);
+  } else if (rightCount > leftCount) {
+    const diff = rightCount - leftCount;
+    s = s.replace(/\\right([\[\]\(\)\{\}|.])/g, '$1');
+    repairedIssues.push('Normalized extra \\right delimiter(s)');
+  }
+
+  // 6. Fix double superscripts / carets: e.g. x^^2 -> x^2, x^{2}^{3} -> x^{2 \cdot 3}
+  if (/\^{2,}/.test(s)) {
+    s = s.replace(/\^{2,}/g, '^');
+    repairedIssues.push('Fixed duplicate exponent carets (^^)');
+  }
+
+  // 7. Fix empty square roots: \sqrt{} or \sqrt\s*{}
+  if (/\\sqrt\{\s*\}/.test(s)) {
+    s = s.replace(/\\sqrt\{\s*\}/g, '');
+    repairedIssues.push('Removed empty \\sqrt{}');
+  }
+
+  // 8. Fix missing backslashes on standard LaTeX commands inside math:
+  // e.g. $dfrac{a}{b}$ -> $\dfrac{a}{b}$, $sqrt{x}$ -> $\sqrt{x}$
+  s = s.replace(/\$([^\$]+)\$/g, (_m, inner) => {
+    const fixedInner = inner
+      .replace(/(?<!\\)\b(dfrac|cbrt|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|phi|omega|sum|int|lim|infty|leq|geq|neq|approx|times|cdot|to|pm)\b/g, '\\$1')
+      .replace(/(?<!\\)\bsqrt\{/g, '\\sqrt{');
+    return `$${fixedInner}$`;
+  });
+
+  // 9. Clean review markers and orphan tokens
   if (/\[CHECK(?::\s*[^\]]*)?\]/i.test(s)) {
     s = s.replace(/\[CHECK(?::\s*[^\]]*)?\]/gi, '').trim();
     repairedIssues.push('Cleared [CHECK]');
