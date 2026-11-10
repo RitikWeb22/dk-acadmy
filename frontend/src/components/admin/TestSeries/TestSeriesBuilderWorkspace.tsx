@@ -327,10 +327,7 @@ const PART_TEST_TABLE_ITEMS: TestSeriesTableItem[] = PART_TESTS_DATA.map((pt, id
   questions: pt.questions || []
 }));
 
-const INITIAL_TABLE_ITEMS: TestSeriesTableItem[] = [
-  ...BASE_INITIAL_TABLE_ITEMS,
-  ...PART_TEST_TABLE_ITEMS
-];
+const INITIAL_TABLE_ITEMS: TestSeriesTableItem[] = [];
 
 const INITIAL_SUBJECT_RULES: Record<'Physics' | 'Chemistry' | 'Mathematics', SubjectRuleDef> = {
   Physics: {
@@ -852,7 +849,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         (it: any) => !deletedIds.includes(it.id) && !deletedIds.includes(it.slug)
       );
 
-      if (activeItems.length > 0 || (Array.isArray(items) && items.length > 0)) {
+      if (Array.isArray(items)) {
         const formatted: TestSeriesTableItem[] = activeItems.map((item: any, idx: number) => ({
           id: item.id || `ts-${idx}`,
           indexNo: idx + 1,

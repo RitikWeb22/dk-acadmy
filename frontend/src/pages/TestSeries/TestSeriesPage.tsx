@@ -231,16 +231,22 @@ export const TestSeriesPage: React.FC = () => {
 
   const isTestPart = (test: TestSeriesItem): boolean => {
     if (isTestMathSpeed(test)) return false;
+    const f = String(test.format || '').toLowerCase().replace(/[\s-_]+/g, '');
+    const b = String(test.badgeCode || '').toLowerCase().replace(/[\s-_]+/g, '');
+    const e = String((test as any).examType || '').toLowerCase().replace(/[\s-_]+/g, '');
+    const t = String(test.title || '').toLowerCase();
+    const s = String(test.subtitle || '').toLowerCase();
     return (
-      test.format === 'Part Test' ||
-      test.badgeCode === 'PART TEST' ||
-      (test as any).examType === 'PartTest' ||
-      test.title?.toLowerCase().includes('part test') ||
-      test.subtitle?.toLowerCase().includes('part test')
+      f === 'parttest' ||
+      b.includes('parttest') ||
+      e === 'parttest' ||
+      t.includes('part test') ||
+      s.includes('part test')
     );
   };
 
   const isTestAllIndia = (test: TestSeriesItem): boolean => {
+    if (isTestPart(test) || isTestMathSpeed(test)) return false;
     return (
       test.format === 'Full Mock' ||
       test.badgeCode === 'FULL CBT' ||
@@ -248,8 +254,7 @@ export const TestSeriesPage: React.FC = () => {
       test.title?.toLowerCase().includes('all india') ||
       test.title?.toLowerCase().includes('full mock') ||
       test.title?.toLowerCase().includes('cbt mock') ||
-      (test as any).examType === 'AllIndia' ||
-      (test.format !== 'Chapter Test' && (test.examType === 'JEE Main' || test.examType === 'JEE Advanced' || test.examType === 'BITSAT'))
+      (test as any).examType === 'AllIndia'
     );
   };
 

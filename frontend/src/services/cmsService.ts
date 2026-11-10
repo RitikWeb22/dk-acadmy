@@ -24,7 +24,7 @@ const NAVBAR_STORAGE_KEY = 'dk_academy_cms_navbar_v1';
 const FOOTER_STORAGE_KEY = 'dk_academy_cms_footer_v1';
 const COURSES_STORAGE_KEY = 'dk_academy_cms_courses_v1';
 const PAGES_STORAGE_KEY = 'dk_academy_cms_pages_v1';
-const TEST_SERIES_STORAGE_KEY = 'dk_academy_cms_test_series_v1';
+const TEST_SERIES_STORAGE_KEY = 'dk_academy_cms_test_series_v2';
 const PYQ_STORAGE_KEY = 'dk_academy_cms_pyq_v1';
 const DPP_STORAGE_KEY = 'dk_academy_cms_dpp_v1';
 const RESULTS_STORAGE_KEY = 'dk_academy_cms_results_v2';
@@ -1864,9 +1864,7 @@ export const cmsService = {
     } catch {
       // fallback
     }
-    return TEST_SERIES_DATA.filter(
-      (t) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
-    );
+    return [];
   },
 
   getTestSeriesById(id: string): TestSeriesItem | undefined {

@@ -390,13 +390,6 @@ export const getAllTestSeries = async (req, res) => {
             .sort({ createdAt: -1 })
             .lean()
             .maxTimeMS(4000);
-        // Only seed initial default test series if database collection is completely empty
-        if (items.length === 0 && !hasFilters) {
-            for (const seed of SEED_TEST_SERIES) {
-                await TestSeries.findOneAndUpdate({ slug: seed.slug }, seed, { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }).catch(() => { });
-            }
-            items = await TestSeries.find({}).sort({ createdAt: -1 }).lean().maxTimeMS(4000);
-        }
         const sanitizedItems = items.map((it) => {
             const obj = { ...it };
             if (!obj.markingScheme || typeof obj.markingScheme.correct !== 'number') {
@@ -423,12 +416,12 @@ export const getAllTestSeries = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('[getAllTestSeries Notice]: Serving fallback test series during DB reconnection:', error?.message || error);
+        console.error('[getAllTestSeries Error]:', error?.message || error);
         res.status(200).json({
             success: true,
-            count: SEED_TEST_SERIES.length,
-            data: SEED_TEST_SERIES,
-            isFallback: true
+            count: 0,
+            data: [],
+            error: error?.message || 'DB query error'
         });
     }
 };

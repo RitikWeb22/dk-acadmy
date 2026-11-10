@@ -1151,7 +1151,4 @@ const BASE_TEST_SERIES_DATA: TestSeriesItem[] = [
   },
 ];
 
-export const TEST_SERIES_DATA: TestSeriesItem[] = [
-  ...BASE_TEST_SERIES_DATA,
-  ...PART_TESTS_DATA
-];
+export const TEST_SERIES_DATA: TestSeriesItem[] = [];
