@@ -26,7 +26,7 @@ export const saveCMSConfig = async (req: Request, res: Response): Promise<void> 
     const config = await CMSConfig.findOneAndUpdate(
       { key: type },
       { key: type, data, updatedAt: new Date() },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     broadcastCMSUpdated(type);

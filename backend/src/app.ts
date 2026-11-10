@@ -50,7 +50,25 @@ app.use(
           'https://cdnfonts.com',
           'https://*.cdnfonts.com'
         ],
+        styleSrcElem: [
+          "'self'",
+          "'unsafe-inline'",
+          'https://fonts.googleapis.com',
+          'https://cdn.jsdelivr.net',
+          'https://fonts.cdnfonts.com',
+          'https://cdnfonts.com',
+          'https://*.cdnfonts.com'
+        ],
         fontSrc: [
+          "'self'",
+          'https://fonts.gstatic.com',
+          'https://cdn.jsdelivr.net',
+          'https://fonts.cdnfonts.com',
+          'https://cdnfonts.com',
+          'https://*.cdnfonts.com',
+          'data:'
+        ],
+        fontSrcElem: [
           "'self'",
           'https://fonts.gstatic.com',
           'https://cdn.jsdelivr.net',

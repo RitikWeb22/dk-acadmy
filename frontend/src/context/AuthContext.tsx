@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { StudentProfile, NotificationPreferences, AppNotification } from '../types';
 import { INITIAL_NOTIFICATIONS } from '../data/notificationsData';
-import { apiClient } from '../services/apiClient';
+import { apiClient, getActiveAuthToken } from '../services/apiClient';
 import { generateStudentId } from '../utils/uuid';
 import { soundEffects } from '../utils/sound';
 
@@ -148,44 +148,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
 
-    // Real database sync from MongoDB backend
-    apiClient.get('/auth/me')
-      .then((res) => {
-        if (res && res.success && res.data) {
-          const u = res.data;
-          setStudent((prev) => {
-            const rawEnrolled = u.enrolledCourses || [];
-            const realEnrolledIds = Array.isArray(rawEnrolled)
-              ? rawEnrolled.map((c: any) => (typeof c === 'string' ? c : c._id || c.id || c))
-              : [];
+    // Real database sync from MongoDB backend only if active token exists
+    const token = getActiveAuthToken();
+    if (token) {
+      apiClient.get('/auth/me')
+        .then((res) => {
+          if (res && res.success && res.data) {
+            const u = res.data;
+            setStudent((prev) => {
+              const rawEnrolled = u.enrolledCourses || [];
+              const realEnrolledIds = Array.isArray(rawEnrolled)
+                ? rawEnrolled.map((c: any) => (typeof c === 'string' ? c : c._id || c.id || c))
+                : [];
 
-            const updated: StudentProfile = {
-              id: u.studentId || u._id || prev?.id || 'student',
-              studentId: u.studentId || u._id,
-              name: u.name || prev?.name || 'Student Aspirant',
-              email: u.email || prev?.email || '',
-              phone: u.phone || prev?.phone || '',
-              targetExam: u.targetExam || prev?.targetExam || 'JEE Main & Advanced',
-              targetClass: u.targetClass || prev?.targetClass || 'Class 11th',
-              targetYear: u.targetYear || prev?.targetYear || '2028',
-              avatarUrl: u.avatarUrl || prev?.avatarUrl,
-              city: u.city || prev?.city,
-              state: u.state || prev?.state,
-              enrolledCourseIds: realEnrolledIds,
-              joinedDate: prev?.joinedDate || 'Active Student',
-              lastActiveTimestamp: Date.now(),
-              token: prev?.token
-            };
+              const updated: StudentProfile = {
+                id: u.studentId || u._id || prev?.id || 'student',
+                studentId: u.studentId || u._id,
+                name: u.name || prev?.name || 'Student Aspirant',
+                email: u.email || prev?.email || '',
+                phone: u.phone || prev?.phone || '',
+                targetExam: u.targetExam || prev?.targetExam || 'JEE Main & Advanced',
+                targetClass: u.targetClass || prev?.targetClass || 'Class 11th',
+                targetYear: u.targetYear || prev?.targetYear || '2028',
+                avatarUrl: u.avatarUrl || prev?.avatarUrl,
+                city: u.city || prev?.city,
+                state: u.state || prev?.state,
+                enrolledCourseIds: realEnrolledIds,
+                joinedDate: prev?.joinedDate || 'Active Student',
+                lastActiveTimestamp: Date.now(),
+                token: prev?.token
+              };
 
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-            } catch {}
+              try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+              } catch {}
 
-            return updated;
-          });
-        }
-      })
-      .catch(() => {});
+              return updated;
+            });
+          }
+        })
+        .catch(() => {});
+    }
   }, []);
 
   // Initialize and sync notifications (scoped to student or site-wide public for visitors)

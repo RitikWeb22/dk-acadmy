@@ -134,7 +134,7 @@ export const updateDoubtStatus = async (req, res) => {
             res.status(400).json({ success: false, message: 'Invalid status' });
             return;
         }
-        const doubt = await Doubt.findByIdAndUpdate(id, { status }, { new: true });
+        const doubt = await Doubt.findByIdAndUpdate(id, { status }, { returnDocument: 'after' });
         if (!doubt) {
             res.status(404).json({ success: false, message: 'Doubt not found' });
             return;
