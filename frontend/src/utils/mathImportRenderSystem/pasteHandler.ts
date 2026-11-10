@@ -11,7 +11,7 @@
  */
 
 import { ommlNodeToLatex, mathMLNodeToLatex } from '../universalMathEngine';
-import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents, convertFractionsBalanced, convertExpBraces } from '../wordPasteParser';
+import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents, convertFractionsBalanced, convertExpBraces, convertLiteralCurlyBraces } from '../wordPasteParser';
 
 export interface ParsedOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -351,6 +351,8 @@ export function normalizeMathString(raw: string): string {
   // Convert complex balanced fractions and exp{...} braces
   s = convertFractionsBalanced(s);
   s = convertExpBraces(s);
+  s = convertLiteralCurlyBraces(s);
+  s = convertLiteralCurlyBraces(s);
 
   // Upgrade \frac to \dfrac for proper "upon" height
   s = s.replace(/\\frac\b/g, '\\dfrac');
@@ -781,6 +783,7 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/\\?exp\s*\(\s*([^/()]+)\s*\/\s*([^/()]+)\s*\)/gi, '\\exp\\left(\\dfrac{$1}{$2}\\right)');
   s = s.replace(/\\?exp\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/gi, '\\exp\\left($1\\right)');
   s = convertExpBraces(s);
+  s = convertLiteralCurlyBraces(s);
   s = s.replace(/\\?exp\s*\(\s*([^()]+)\s*\)/g, '\\exp\\left($1\\right)');
   s = s.replace(/\\?sqrt\s*\(\s*([^()]+)\s*\)/g, '\\sqrt{$1}');
   s = s.replace(/\\frac\b/g, '\\dfrac');
