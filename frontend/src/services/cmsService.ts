@@ -1813,10 +1813,10 @@ export const cmsService = {
     inFlightTestSeries = (async () => {
       try {
         const response = await apiClient.get<TestSeriesItem[]>('/test-series');
-        const items = Array.isArray(response) ? response : (response as any)?.data || [];
-        if (Array.isArray(items)) {
+        const rawList = Array.isArray(response) ? response : (response as any)?.data;
+        if (Array.isArray(rawList) && rawList.length > 0) {
           const deletedIds = this.getDeletedIds();
-          const activeItems = items.filter(
+          const activeItems = rawList.filter(
             (t: any) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
           );
           const sanitized = activeItems.map((t: any) => ({
@@ -1827,7 +1827,6 @@ export const cmsService = {
             questions: Array.isArray(t.questions) ? t.questions : []
           }));
           localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(sanitized));
-          this.notifyUpdate('test_series', undefined, { source: 'cache_sync' });
           return sanitized;
         }
       } catch (err) {
@@ -1847,17 +1846,19 @@ export const cmsService = {
       const stored = localStorage.getItem(TEST_SERIES_STORAGE_KEY);
       if (stored) {
         const parsed: TestSeriesItem[] = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           const active = parsed.filter(
             (t: any) => !deletedIds.includes(t.id) && !(t.slug && deletedIds.includes(t.slug))
           );
-          return active.map((t: any) => ({
-            ...t,
-            markingScheme: t.markingScheme && typeof t.markingScheme.correct === 'number'
-              ? t.markingScheme
-              : { correct: 4, incorrect: 1, unattempted: 0 },
-            questions: Array.isArray(t.questions) ? t.questions : []
-          }));
+          if (active.length > 0) {
+            return active.map((t: any) => ({
+              ...t,
+              markingScheme: t.markingScheme && typeof t.markingScheme.correct === 'number'
+                ? t.markingScheme
+                : { correct: 4, incorrect: 1, unattempted: 0 },
+              questions: Array.isArray(t.questions) ? t.questions : []
+            }));
+          }
         }
       }
     } catch {
@@ -2530,9 +2531,7 @@ if (typeof window !== 'undefined') {
         updated = [item, ...current];
       }
       localStorage.setItem(TEST_SERIES_STORAGE_KEY, JSON.stringify(updated));
-      cmsService.notifyUpdate('test_series', undefined, { source: 'realtime_event' });
     }
-    cmsService.fetchTestSeriesFromAPI(true).catch(() => {});
   };
 
   window.addEventListener('dk_test_series_created', syncTestSeriesRealtime);

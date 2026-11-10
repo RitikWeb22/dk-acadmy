@@ -351,6 +351,10 @@ export const invalidateTestSeriesCache = () => {
 };
 export const getAllTestSeries = async (req, res) => {
     try {
+        // Prevent browser & CDN caching so newly published tests appear instantly
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         const { examType, format, status, search, force } = req.query;
         const isForce = force === 'true' || force === '1';
         const filter = {};

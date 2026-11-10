@@ -48,10 +48,10 @@ export const TestSeriesPage: React.FC = () => {
   // Derive initial or URL-synced exam filter
   const selectedExam: ExamFilterValue = useMemo(() => {
     if (urlSubject?.toLowerCase() === 'mathematics' || urlFilter === 'math-speed' || urlExam === 'MathSpeed') return 'MathSpeed';
-    if (urlFormat === 'Part Test' || urlExam === 'PartTest') return 'PartTest';
-    if (urlExam === 'JEE Main') return 'JEE Main';
-    if (urlExam === 'JEE Advanced') return 'JEE Advanced';
-    if (urlExam === 'BITSAT') return 'BITSAT';
+    if (urlFormat === 'Part Test' || urlFormat === 'part-test' || urlFormat === 'Part-Test' || urlExam === 'PartTest' || urlExam === 'part-test') return 'PartTest';
+    if (urlExam === 'JEE Main' || urlExam === 'jee-main') return 'JEE Main';
+    if (urlExam === 'JEE Advanced' || urlExam === 'jee-advanced') return 'JEE Advanced';
+    if (urlExam === 'BITSAT' || urlExam === 'bitsat') return 'BITSAT';
     if (urlExam === 'AllIndia' || urlFilter === 'all-india') return 'AllIndia';
     if (urlExam === 'All') return 'All';
     return 'All';
@@ -59,9 +59,9 @@ export const TestSeriesPage: React.FC = () => {
 
   // Derive initial or URL-synced format filter
   const selectedFormat: FormatFilterValue = useMemo(() => {
-    if (urlFormat === 'Full Mock') return 'Full Mock';
-    if (urlFormat === 'Part Test') return 'Part Test';
-    if (urlFormat === 'Chapter Test') return 'Chapter Test';
+    if (urlFormat === 'Full Mock' || urlFormat === 'full-mock' || urlFormat === 'Full-Mock') return 'Full Mock';
+    if (urlFormat === 'Part Test' || urlFormat === 'part-test' || urlFormat === 'Part-Test') return 'Part Test';
+    if (urlFormat === 'Chapter Test' || urlFormat === 'chapter-test' || urlFormat === 'Chapter-Test') return 'Chapter Test';
     return 'All';
   }, [urlFormat]);
 
@@ -152,6 +152,7 @@ export const TestSeriesPage: React.FC = () => {
     syncTestSeries();
 
     const handleUpsert = (e: any) => {
+      if (e?.detail?.source === 'cache_sync') return;
       const incoming = e?.detail?.data || e?.detail;
       if (incoming && incoming.title && (incoming.id || incoming._id || incoming.slug)) {
         const targetId = incoming.id || incoming._id;
@@ -170,11 +171,6 @@ export const TestSeriesPage: React.FC = () => {
           }
         });
       }
-      cmsService.fetchTestSeriesFromAPI(true).then((items) => {
-        if (Array.isArray(items) && items.length > 0) {
-          setTestSeriesList(items);
-        }
-      }).catch(() => {});
     };
 
     const handleDeleteEvent = (e: any) => {
