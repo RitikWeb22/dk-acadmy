@@ -1,5 +1,5 @@
 import { autoWrapMathDelimiters, normalizeMathText } from '../../../utils/questionBulkParser';
-import { wrapMathInDollars, convertWordEquationToLatex, normalizeAllRadicals } from '../../../utils/wordPasteParser';
+import { wrapMathInDollars, convertWordEquationToLatex, normalizeAllRadicals, normalizePrimes } from '../../../utils/wordPasteParser';
 import { normalizeMathString } from '../../../utils/mathImportRenderSystem/pasteHandler';
 
 /**
@@ -52,7 +52,7 @@ export function normalizeNewlines(text: string): string {
 export function parseContentToBlocks(rawText: string): MathContentBlock[] {
   if (!rawText) return [];
 
-  const cleanRawText = normalizeNewlines(rawText)
+  const cleanRawText = normalizePrimes(normalizeNewlines(rawText))
     .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
     .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '');
 

@@ -305,6 +305,34 @@ export function fixNestedExponents(text: string): string {
   return result;
 }
 
+export function normalizePrimes(text: string): string {
+  if (!text) return '';
+  return text
+    // Normalize unicode primes and LaTeX prime macros
+    .replace(/[\u2034]/g, "'''")
+    .replace(/[\u2033]/g, "''")
+    .replace(/[\u2032]/g, "'")
+    .replace(/\\prime\s*\\prime\s*\\prime/g, "'''")
+    .replace(/\\prime\s*\\prime/g, "''")
+    .replace(/\\prime/g, "'")
+    // Double quotes used as double primes on variables or closing brackets: y" -> y'', )" -> )''
+    .replace(/([a-zA-Z\)\]\}])\s*["\u201D]/g, "$1''")
+    // Normalize prime derivatives in powers: y^{''} -> y'', ϕ^' (t) -> \phi'(t)
+    .replace(/([a-zA-Z\\\)\]\}]+)\s*\^\s*\{?\s*['′’`´]\s*['′’`´]\s*['′’`´]\s*\}?/g, "$1'''")
+    .replace(/([a-zA-Z\\\)\]\}]+)\s*\^\s*\{?\s*['′’`´]\s*['′’`´]\s*\}?/g, "$1''")
+    .replace(/([a-zA-Z\\\)\]\}]+)\s*\^\s*\{?\s*['′’`´]\s*\}?/g, "$1'")
+    // Strip illegal prime / quote superscripts on digits e.g. 0^' or 0^{'} or 0' -> 0
+    .replace(/(\d+)\s*\^\s*\{?\s*['′’`´]+\s*\}?/g, '$1')
+    .replace(/(\d+)\s*['′’`´]+/g, '$1')
+    .replace(/\^\s*\{?\s*['′’`´]\s*\}?/g, "'")
+    // Collapse any spaces between or before prime ticks: y' ' -> y'', y' ' ' -> y'''
+    .replace(/([a-zA-Z\\\)\]\}])\s*['’`´]\s+['’`´]\s+['’`´]/g, "$1'''")
+    .replace(/([a-zA-Z\\\)\]\}])\s*['’`´]\s+['’`´]/g, "$1''")
+    .replace(/([a-zA-Z\\\)\]\}])\s+['’`´](?!['’`´])/g, "$1'")
+    // Any remaining spaced prime pairs: ' ' -> ''
+    .replace(/['’`´]\s+['’`´]/g, "''");
+}
+
 /**
  * Robust balanced fraction converter for complex fractions
  */
@@ -792,10 +820,15 @@ export function repairLinearMathResidues(text: string): string {
   s = s.replace(/(\d+)\s*√\s*(\d+)/g, '$1\\sqrt{$2}');
   s = s.replace(/√\s*(\d+)/g, '\\sqrt{$1}');
 
-  // Space between glued math and words: ypassthrough -> y pass through
-  s = s.replace(/([a-zA-Z0-9\]\)])\s*[\r\n]+\s*([a-zA-Z])/g, '$1 $2');
+  // Join words hyphenated across a newline: e.g. differ-\nential -> differential
+  s = s.replace(/([a-zA-Z])-\s*[\r\n]+\s*([a-zA-Z])/g, '$1$2');
+  // Only connect math closing brackets directly preceding prose continuation verbs across a newline:
+  s = s.replace(/([\]\)])\s*[\r\n]+\s*(pass(?:es)?|touch(?:es)?|intersect(?:s)?|where|when|such|then|with)\b/gi, '$1 $2');
   s = s.replace(/([a-zA-Z0-9\]\)])passthrough\b/gi, '$1 pass through');
   s = s.replace(/(?<!\\[a-zA-Z]*)([a-zA-Z0-9\]\)])\s*(pass(?:es)?\s+through|touch(?:es)?|intersect(?:s)?|where|when|such|then|with)\b/gi, '$1 $2');
+
+  // Normalize prime derivatives e.g. y' ' -> y'', y" -> y''
+  s = normalizePrimes(s);
 
   // Convert complex balanced fractions and exp{...} braces
   s = convertFractionsBalanced(s);
@@ -1334,8 +1367,9 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/\blog_([a-zA-Z0-9]+|\{[^{}]+\})/g, '\\log_{$1}');
   s = s.replace(/(?<!\\)\b(log|ln)\b/g, '\\$1');
 
-  // Exponents with nested parens e.g. (8)^(1/4) -> (8)^{1/4}
+  // Exponents with nested parens e.g. (8)^(1/4) -> (8)^{1/4} and prime derivatives
   s = fixNestedExponents(s);
+  s = normalizePrimes(s);
 
   // 2. Fractions: balanced parentheses and nested fractions (e.g. 3/(1+(8)^(1/4)), 1/(1-log_e 2))
   s = convertFractionsBalanced(s);

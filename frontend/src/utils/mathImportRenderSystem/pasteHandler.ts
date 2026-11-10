@@ -11,7 +11,7 @@
  */
 
 import { ommlNodeToLatex, mathMLNodeToLatex } from '../universalMathEngine';
-import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents, convertFractionsBalanced, convertExpBraces, convertLiteralCurlyBraces, normalizeAllRadicals } from '../wordPasteParser';
+import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents, normalizePrimes, convertFractionsBalanced, convertExpBraces, convertLiteralCurlyBraces, normalizeAllRadicals } from '../wordPasteParser';
 
 export interface ParsedOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -263,8 +263,9 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\$])\(([a-zA-Z])\s*o\s*([a-zA-Z])\)\s*\(\s*([a-zA-Z0-9]+)\s*\)/g, '($1 \\circ $2)($3)');
   s = s.replace(/\b([fg])\s*o\s*([fg])\s*\(\s*([a-zA-Z0-9]+)\s*\)/g, '($1 \\circ $2)($3)');
 
-  // Fix nested exponents
+  // Fix nested exponents and prime derivatives
   s = fixNestedExponents(s);
+  s = normalizePrimes(s);
 
   // Greek letter fractions with powers: \pi^2/32 -> \dfrac{\pi^2}{32}, \pi/2 -> \dfrac{\pi}{2}
   s = s.replace(/(\\[a-zA-Z]+)\s*\^/g, '$1^');
@@ -852,8 +853,9 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/\blog_([a-zA-Z0-9]+|\{[^{}]+\})/g, '\\log_{$1}');
   s = s.replace(/(?<!\\)\b(log|ln)\b/g, '\\$1');
 
-  // Exponents with nested parens e.g. (8)^(1/4) -> (8)^{1/4}
+  // Exponents with nested parens e.g. (8)^(1/4) -> (8)^{1/4} and prime derivatives
   s = fixNestedExponents(s);
+  s = normalizePrimes(s);
 
   // 2. Fractions: balanced parentheses and nested fractions (e.g. 3/(1+(8)^(1/4)), 1/(1-log_e 2))
   s = convertFractionsBalanced(s);
