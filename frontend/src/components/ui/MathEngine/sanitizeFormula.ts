@@ -126,13 +126,28 @@ export function sanitizeFormula(str: string): string {
       '\\left(\\cot\\left(x - \\frac{\\pi}{3}\\right) \\cot\\left(x + \\frac{\\pi}{3}\\right) + 1\\right) \\, dx')
     .replace(/\\log_e\s*\(\s*\(\s*\)\s*/g, '\\log_e(')
     .replace(/\\log_e\s*\(\s*\(\s*/g, '\\log_e(')
-    // Normalize prime derivatives: ϕ^' (t) -> \phi'(t)
-    .replace(/([a-zA-Z\\]+)\s*\^['′]\s*/g, "$1' ")
+    // Normalize unicode primes and LaTeX prime macros
+    .replace(/[\u2034]/g, "'''")
+    .replace(/[\u2033]/g, "''")
+    .replace(/[\u2032]/g, "'")
+    .replace(/\\prime\s*\\prime\s*\\prime/g, "'''")
+    .replace(/\\prime\s*\\prime/g, "''")
+    .replace(/\\prime/g, "'")
+    // Double quotes used as double primes on variables or closing brackets: y" -> y'', )" -> )''
+    .replace(/([a-zA-Z\)\]\}])\s*["\u201D]/g, "$1''")
+    // Normalize prime derivatives: ϕ^' (t) -> \phi'(t), y^{''} -> y'', y^' -> y'
+    .replace(/([a-zA-Z\\\)\]\}]+)\s*\^\s*\{?\s*['′’`´]\s*['′’`´]\s*['′’`´]\s*\}?/g, "$1'''")
+    .replace(/([a-zA-Z\\\)\]\}]+)\s*\^\s*\{?\s*['′’`´]\s*['′’`´]\s*\}?/g, "$1''")
+    .replace(/([a-zA-Z\\\)\]\}]+)\s*\^\s*\{?\s*['′’`´]\s*\}?/g, "$1'")
     // Strip illegal prime / quote superscripts on digits e.g. 0^' or 0^{'} or 0' -> 0
-    .replace(/(\d+)\s*\^\s*\{?\s*['′]\s*\}?/g, '$1')
-    .replace(/(\d+)\s*['′]/g, '$1')
-    .replace(/([a-zA-Z\\]+)\s*\^\s*\{?\s*['′]\s*\}?/g, "$1' ")
-    .replace(/\^\s*\{?\s*['′]\s*\}?/g, "'")
+    .replace(/(\d+)\s*\^\s*\{?\s*['′’`´]+\s*\}?/g, '$1')
+    .replace(/(\d+)\s*['′’`´]+/g, '$1')
+    .replace(/\^\s*\{?\s*['′’`´]\s*\}?/g, "'")
+    // Collapse any spaces between or before prime ticks: y' ' -> y'', y' ' ' -> y'''
+    .replace(/([a-zA-Z\\\)\]\}])\s*['’`´]\s+['’`´]\s+['’`´]/g, "$1'''")
+    .replace(/([a-zA-Z\\\)\]\}])\s*['’`´]\s+['’`´]/g, "$1''")
+    .replace(/([a-zA-Z\\\)\]\}])\s+['’`´](?!['’`´])/g, "$1'")
+    .replace(/['’`´]\s+['’`´]/g, "''")
     // Normalize empty set phi
     .replace(/∅/g, '\\phi ')
     // Normalize unbraced fractions and radicals in powers/subscripts: x^\frac{1}{2} -> x^{\frac{1}{2}}, e^\sqrt{x} -> e^{\sqrt{x}}

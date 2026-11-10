@@ -184,6 +184,34 @@ export function normalizeDocxMath(raw: string): string {
   return s;
 }
 
+export function normalizePrimes(text: string): string {
+  if (!text) return '';
+  return text
+    // Normalize unicode primes and LaTeX prime macros
+    .replace(/[\u2034]/g, "'''")
+    .replace(/[\u2033]/g, "''")
+    .replace(/[\u2032]/g, "'")
+    .replace(/\\prime\s*\\prime\s*\\prime/g, "'''")
+    .replace(/\\prime\s*\\prime/g, "''")
+    .replace(/\\prime/g, "'")
+    // Double quotes used as double primes on variables or closing brackets: y" -> y'', )" -> )''
+    .replace(/([a-zA-Z\)\]\}])\s*["\u201D]/g, "$1''")
+    // Normalize prime derivatives in powers: y^{''} -> y'', ϕ^' (t) -> \phi'(t)
+    .replace(/([a-zA-Z\\\)\]\}]+)\s*\^\s*\{?\s*['′’`´]\s*['′’`´]\s*['′’`´]\s*\}?/g, "$1'''")
+    .replace(/([a-zA-Z\\\)\]\}]+)\s*\^\s*\{?\s*['′’`´]\s*['′’`´]\s*\}?/g, "$1''")
+    .replace(/([a-zA-Z\\\)\]\}]+)\s*\^\s*\{?\s*['′’`´]\s*\}?/g, "$1'")
+    // Strip illegal prime / quote superscripts on digits e.g. 0^' or 0^{'} or 0' -> 0
+    .replace(/(\d+)\s*\^\s*\{?\s*['′’`´]+\s*\}?/g, '$1')
+    .replace(/(\d+)\s*['′’`´]+/g, '$1')
+    .replace(/\^\s*\{?\s*['′’`´]\s*\}?/g, "'")
+    // Collapse any spaces between or before prime ticks: y' ' -> y'', y' ' ' -> y'''
+    .replace(/([a-zA-Z\\\)\]\}])\s*['’`´]\s+['’`´]\s+['’`´]/g, "$1'''")
+    .replace(/([a-zA-Z\\\)\]\}])\s*['’`´]\s+['’`´]/g, "$1''")
+    .replace(/([a-zA-Z\\\)\]\}])\s+['’`´](?!['’`´])/g, "$1'")
+    // Any remaining spaced prime pairs: ' ' -> ''
+    .replace(/['’`´]\s+['’`´]/g, "''");
+}
+
 export function fixNestedExponents(text: string): string {
   let result = '';
   let i = 0;
@@ -216,6 +244,7 @@ export function cleanWordMathArtifacts(text: string): string {
   if (!text) return '';
   let s = normalizeDocxMath(text);
   s = parseWordMatricesAndCases(s);
+  s = normalizePrimes(s);
 
   // Repair corrupted differential residues:
   // e.g. \dfrac{} \ dy}{\, dx or \dfrac{} \, dy}{\, dx -> \dfrac{dy}{dx}
@@ -1115,6 +1144,7 @@ export function convertWordEquationToLatex(raw: string): string {
 export function wrapMathInDollars(text: string): string {
   let s = text.trim();
   if (!s) return '';
+  s = normalizePrimes(s);
 
   // Already single math block wrapped
   if (s.startsWith('$') && s.endsWith('$') && !s.slice(1, -1).includes('$')) {
