@@ -11,7 +11,7 @@
  */
 
 import { ommlNodeToLatex, mathMLNodeToLatex } from '../universalMathEngine';
-import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents, convertFractionsBalanced, convertExpBraces, convertLiteralCurlyBraces } from '../wordPasteParser';
+import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents, convertFractionsBalanced, convertExpBraces, convertLiteralCurlyBraces, normalizeAllRadicals } from '../wordPasteParser';
 
 export interface ParsedOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -300,6 +300,9 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/([a-zA-Z0-9\]\)])passthrough\b/gi, '$1 pass through');
   s = s.replace(/(?<!\\[a-zA-Z]*)([a-zA-Z0-9\]\)])\s*(pass(?:es)?\s+through|touch(?:es)?|intersect(?:s)?|where|when|such|then|with)\b/gi, '$1 $2');
 
+  // Normalize all radicals first so they have proper \sqrt{...} format with balanced parens
+  s = normalizeAllRadicals(s);
+
   // Radical fractions: e.g. x/√(x^2-y^2) or x/\sqrt{x^2-y^2} -> \dfrac{x}{\sqrt{x^2-y^2}} (safely swallow stray Word trailing brace)
   s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\{([^}]+)\}\s*\}?/gi, '\\dfrac{$1}{\\sqrt{$2}}');
   s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*\\?sqrt\s*\(([^)]+)\)\s*\}?/gi, '\\dfrac{$1}{\\sqrt{$2}}');
@@ -330,7 +333,7 @@ export function normalizeMathString(raw: string): string {
     /\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g,
     '\\dfrac{$1}{$2}'
   );
-  s = s.replace(/(?<![a-zA-Z0-9_\\])\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*([A-Za-z0-9_\\^{}]+)/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(?<![a-zA-Z0-9_\\])\(((?:[^()\n]|\([^()\n]*\))+?)\)\s*\/\s*(?!\\(?:sqrt|cbrt)\b)([A-Za-z0-9_\\^{}]+)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/(?<![a-zA-Z0-9_\\])([A-Za-z0-9_\\^{}]+)\s*\/\s*\(((?:[^()\n]|\([^()\n]*\))+?)\)/g, '\\dfrac{$1}{$2}');
   
   // Number over number: 1/2, -1/2, 3/4
@@ -348,7 +351,8 @@ export function normalizeMathString(raw: string): string {
   // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi/4 -> \dfrac{\pi}{4}
   s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)/g, '\\dfrac{$1}{$2}');
-  // Convert complex balanced fractions and exp{...} braces
+  // Convert complex balanced fractions, radicals, and exp{...} braces
+  s = normalizeAllRadicals(s);
   s = convertFractionsBalanced(s);
   s = convertExpBraces(s);
   s = convertLiteralCurlyBraces(s);
@@ -445,6 +449,17 @@ export function normalizeMathString(raw: string): string {
     protectedBlocks.push(m);
     return key;
   });
+
+  const isInsideLatexGroup = (str: string, offset: number): boolean => {
+    let depth = 0;
+    for (let i = 0; i < offset; i++) {
+      if (str[i] === '{' && (i === 0 || str[i - 1] !== '\\')) depth++;
+      else if (str[i] === '}' && (i === 0 || str[i - 1] !== '\\')) {
+        if (depth > 0) depth--;
+      }
+    }
+    return depth > 0;
+  };
 
   const protect = (mathContent: string) => {
     let clean = mathContent.trim();
@@ -636,25 +651,26 @@ export function normalizeMathString(raw: string): string {
   );
 
   // 13c. Standalone blackboard bold sets: \mathbb{R}, \mathbb{N}, etc.
-  s = s.replace(/(?<![$\w])(\\(?:mathbb|mathbf|mathcal)\{[A-Z]\})(?![$\w])/g, (_, m) => protect(m));
+  s = s.replace(/(?<![$\w])(\\(?:mathbb|mathbf|mathcal)\{[A-Z]\})(?![$\w])/g, (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m));
 
   // 13d. Function composition expressions: e.g. (f \circ g)(x) or (fog)(x)
-  s = s.replace(/(?<![$\w])(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*(?:\([^()\n]+\))?)(?![$\w])/gi, (_m, expr) => protect(expr));
+  s = s.replace(/(?<![$\w])(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*(?:\([^()\n]+\))?)(?![$\w])/gi, (m, expr, offset) => isInsideLatexGroup(s, offset) ? m : protect(expr));
 
   // 14b. Set membership relations: x, y \in \mathbb{R} or x \in R or n \in \mathbb{N}
-  s = s.replace(/(?<![$\w])([a-zA-Z](?:\s*,\s*[a-zA-Z])*\s*\\in\s*(?:\\mathbb\{[RNZQ]\}|[RNZQ]|\[[^\[\]\n]+\]|\([^()\n]+\)))(?![$\w])/g, (_, m) => protect(m));
+  s = s.replace(/(?<![$\w])([a-zA-Z](?:\s*,\s*[a-zA-Z])*\s*\\in\s*(?:\\mathbb\{[RNZQ]\}|[RNZQ]|\[[^\[\]\n]+\]|\([^()\n]+\)))(?![$\w])/g, (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m));
 
   // 14c. Simple variable assignments after at/for/where/when/if: at x = 0, for x = 1
   s = s.replace(
     new RegExp(`(?<=\\b(?:at|for|where|when|if|with)\\s+)([a-zA-Z]\\s*=\\s*[-+]?[0-9a-zA-Z_\\\\^{}()]+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'),
-    (_, m) => protect(m)
+    (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m)
   );
 
   // 14d. Parenthesized or bracketed expressions with exponents or fractions:
   // e.g. (\dfrac{y}{x})^{3}, \left(\dfrac{y}{x}\right)^3, \left[\dfrac{y}{x}\right]^2, (\dfrac{1}{2})^n
   s = s.replace(
     /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}[\s\S]*?)(?:\\right\s*\)|\))(?:\s*\^\s*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z]+))?(?![a-zA-Z0-9_\$])/g,
-    (m) => {
+    (m, _, offset) => {
+      if (isInsideLatexGroup(s, offset)) return m;
       let cleaned = m.trim();
       let exp = '';
       const expMatch = cleaned.match(/\^\s*(\{[\s\S]+\}|[0-9a-zA-Z]+)$/);
@@ -673,7 +689,8 @@ export function normalizeMathString(raw: string): string {
 
   s = s.replace(
     /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\[\s*|\[\s*)([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}[\s\S]*?)(?:\\right\s*\]|\])(?:\s*\^\s*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z]+))?(?![a-zA-Z0-9_\$])/g,
-    (m) => {
+    (m, _, offset) => {
+      if (isInsideLatexGroup(s, offset)) return m;
       let cleaned = m.trim();
       let exp = '';
       const expMatch = cleaned.match(/\^\s*(\{[\s\S]+\}|[0-9a-zA-Z]+)$/);
@@ -693,7 +710,8 @@ export function normalizeMathString(raw: string): string {
   // General parenthesized math expressions with powers: e.g. (1+x^6)^{3/2}, (x+1)^2
   s = s.replace(
     /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+0-9a-zA-Z_\\^\{\}\s/+\-*.,]+?)(?:\\right\s*\)|\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
-    (full, inner, exp) => {
+    (full, inner, exp, offset) => {
+      if (isInsideLatexGroup(s, offset)) return full;
       const stripped = inner.replace(/\\[a-zA-Z]+/g, ' ');
       if (/\b(?:let|the|and|is|are|in|on|at|of|to|for|with|then|if|which|where|be)\b/i.test(stripped)) {
         return full;
@@ -705,7 +723,31 @@ export function normalizeMathString(raw: string): string {
 
   // 14e. Radicals with optional leading coefficient: e.g. 6\sqrt{10}, 2\sqrt{2}, \sqrt{x^2+1}
   s = s.replace(/(?<![a-zA-Z0-9_\$\\])([-+]?\s*\d*\s*\\(?:sqrt|cbrt)(?:\[[^\]]+\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?![a-zA-Z0-9_\$])/g,
-    (_, m) => protect(m.trim()));
+    (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m.trim()));
+
+  // 14f. Set definitions: e.g. A = {1, 3, 7, 9, 11}, B = {2, 4, 5, 7, 8, 10, 12}, S = {a \in \mathbb{R} : ...}
+  s = s.replace(
+    /(?<![$\w])([A-Z]\s*=\s*\\?\{[^{}\n]+?\\?\})(?![$\w])/g,
+    (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m)
+  );
+
+  // 14g. Set differences: e.g. \mathbb{R} - \{0\}, R - {-1, 1}, (-1, \infty) - {3}, N - {1}
+  s = s.replace(
+    /(?<![$\w])((?:\\mathbb\{[RNZQ]\}|[RNZQ]|\([^()\n]+\)|\[[^\[\]\n]+\])\s*[-−]\s*\\?\{[^{}\n]+?\\?\})(?![$\w])/g,
+    (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m)
+  );
+
+  // 14h. Function domains or mappings with sets: e.g. f: {1, 2, 3, 4} \to ..., n \in {1, 2, 3}
+  s = s.replace(
+    /(?<![$\w])([a-zA-Z]\s*:\s*\\?\{[^{}\n]+?\\?\}\s*(?:\\to|->|→)\s*[-+*/a-zA-Z0-9_\\\\^{}()'|\\[\\]\\{\\}\\s.]+?)(?=\\s*[,;.]|\\s+${proseStops}|$)/g,
+    (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m)
+  );
+
+  // 14i. Standalone finite sets after "is" or "in" or "to": e.g. "is {1, 2, 3, 4, 5}", "in {1, 2, 3}"
+  s = s.replace(
+    /(?<=\b(?:is|in|to)\s+)(\\?\{[-+0-9a-zA-Z_\s,;.\-\\/]+\\?\})(?=\s*[,;.]|\s+${proseStops}|$)/g,
+    (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m)
+  );
 
   // Clean empty \dfrac{} or \frac{} so they are never protected into standalone invalid $\dfrac{}$
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
@@ -715,7 +757,7 @@ export function normalizeMathString(raw: string): string {
   // 15. Remaining standalone LaTeX commands with balanced braces
   s = s.replace(
     new RegExp(`(?<![$\\w])(\\\\(?:d?frac)\\{(?:[^{}]|\\{[^{}]*\\})+\\}\\{(?:[^{}]|\\{[^{}]*\\})+\\}|\\\\(?:sqrt|vec|hat|bar|dot|ddot|tilde|mathbf|mathrm|text|operatorname)\\{(?:[^{}]|\\{[^{}]*\\})*\\}(?:[A-Za-z0-9_^{}\\\\()[\\]+\\-*/\\s.]*[A-Za-z0-9_^{}\\\\()[\\]+\\-*/])?|\\\\(?:alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|infty|times|div|pm|mp|le|ge|ne|approx|sim|to|partial|nabla|degree|circ)(?![a-zA-Z]))(?=\\s*[,;.]|\\s+${proseStops}|$|\\s+[a-zA-Z]{3,})`, 'gi'),
-    (fullMatch, cmd) => protect(cmd)
+    (fullMatch, cmd, offset) => isInsideLatexGroup(s, offset) ? fullMatch : protect(cmd)
   );
 
   // 1. Expand any remaining nested ⟦MATH_...⟧ tokens inside protectedBlocks

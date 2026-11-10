@@ -92,13 +92,8 @@ export const AdminLoginPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Map username to admin account if short ID is provided
-      let loginEmail = trimmed;
-      if (trimmed === 'superadmin' || trimmed === 'director' || trimmed === 'admin') {
-        loginEmail = 'ritikweb30@gmail.com';
-      }
-
-      const res = await login(loginEmail, password);
+      // Pass identifier directly to login (adminService handles smart alias resolution)
+      const res = await login(trimmed, password);
       if (res.success) {
         if (selectedRole === 'FACULTY' && !returnUrl.startsWith('/admin')) {
           navigate('/teacher', { replace: true });
@@ -268,8 +263,8 @@ export const AdminLoginPage: React.FC = () => {
                     className={styles.textInput}
                     placeholder={
                       selectedRole === 'FACULTY'
-                        ? 'faculty.name@dkacademy.com'
-                        : 'ritikweb30@gmail.com or admin ID'
+                        ? 'teacher@dkacademy.com or faculty ID'
+                        : 'admin@dkacademy.com, ritikweb30@gmail.com, or admin'
                     }
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}

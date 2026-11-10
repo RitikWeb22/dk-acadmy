@@ -29,15 +29,6 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [gisLoaded, setGisLoaded] = useState(false);
-  const [isBrave, setIsBrave] = useState(false);
-
-  useEffect(() => {
-    if ((navigator as any).brave && typeof (navigator as any).brave.isBrave === 'function') {
-      (navigator as any).brave.isBrave().then((res: boolean) => {
-        if (res) setIsBrave(true);
-      }).catch(() => {});
-    }
-  }, []);
 
   const clientId =
     (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) ||
@@ -215,12 +206,6 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
           <AlertCircle size={14} />
           <span>{errorMsg}</span>
         </div>
-      )}
-
-      {isBrave && (
-        <p style={{ fontSize: '11px', color: '#64748b', marginTop: '6px', textAlign: 'center', lineHeight: 1.4 }}>
-          🛡️ <em>Brave users:</em> If the Google login window stays blank, toggle Brave Shields to &quot;Down&quot; for this site or enable Google sign-in in Brave settings.
-        </p>
       )}
     </div>
   );

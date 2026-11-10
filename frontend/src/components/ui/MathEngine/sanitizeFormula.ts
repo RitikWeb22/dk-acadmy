@@ -5,7 +5,8 @@
  */
 export function sanitizeFormula(str: string): string {
   if (!str) return '';
-  let res = str.split('$$').join('$')
+  let res = normalizeAllRadicals(str);
+  res = res.split('$$').join('$')
     // Strip internal dollar delimiters so KaTeX never throws "Can't use function '$' in math mode"
     .replace(/\$/g, '')
     // Clean invisible Word formatting characters & hair spaces
@@ -30,13 +31,11 @@ export function sanitizeFormula(str: string): string {
     .replace(/\\(?:d?frac)\{\s*\}\s*\\?\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{?\s*(?:\\,)?\s*([a-zA-Z]+)/gi, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/gi, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}')
+    // Repair corrupted fraction with closing paren in denominator: \dfrac{A}{)} (B)^n -> \dfrac{A}{(B)^n}
+    .replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*(\([^\)]+\)\^\{[^{}]+\})/g, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*([A-Za-z0-9_^{}()]+)/g, '\\dfrac{$1}{$2}')
     // Separate glued math functions: 2xexp -> 2x exp, xexp -> x exp, 2xsin -> 2x sin
     .replace(/([0-9a-zA-Z])\s*(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b/gi, '$1 $2')
-    // Double parens on radicals: √((1+x^6)) or \sqrt((1+x^6)) or 4√2
-    .replace(/√\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}')
-    .replace(/\\?sqrt\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}')
-    .replace(/(\d+)\s*√\s*(\d+)/g, '$1\\sqrt{$2}')
-    .replace(/√\s*(\d+)/g, '\\sqrt{$1}')
     // Repair Word linear differential residue: dy/(" " \, dx) or dy/(dx) or dy/dx
     .replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z]\^?[0-9]?)\s*\)/g, '\\dfrac{$1}{$2}')
     .replace(/\b(d\^?[0-9]?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z]\^?[0-9]?)\b/g, '\\dfrac{$1}{$2}')
@@ -342,7 +341,86 @@ export function sanitizeFormula(str: string): string {
   res = res.replace(/\[\s*MATH_\d+\s*\]/gi, '');
   res = res.replace(/⟦\s*MATH_\d+\s*⟧/gi, '');
 
+  res = normalizeAllRadicals(res);
   return res.trim();
+}
+
+/**
+ * Normalizes all radicals (√, \sqrt) with balanced parens, redundant paren unwrap,
+ * and coefficient handling so that \sqrt NEVER renders as an empty upward arrow or caret.
+ */
+export function normalizeAllRadicals(text: string): string {
+  if (!text) return '';
+  let s = text;
+
+  // 1. Double/single parens on radicals with balanced parenthesis counter
+  // Matches \sqrt(...) or \sqrt (...) or √(...) or √ (...)
+  const radRegex = /(?:\\sqrt|√)\s*\(/g;
+  let match: RegExpExecArray | null;
+  let result = '';
+  let lastIndex = 0;
+
+  while ((match = radRegex.exec(s)) !== null) {
+    result += s.substring(lastIndex, match.index);
+    const startParen = radRegex.lastIndex - 1; // position of '('
+    let depth = 1;
+    let i = startParen + 1;
+    for (; i < s.length; i++) {
+      if (s[i] === '(') depth++;
+      else if (s[i] === ')') {
+        depth--;
+        if (depth === 0) break;
+      }
+    }
+    if (depth === 0) {
+      let inner = s.substring(startParen + 1, i).trim();
+      // If inner itself is wrapped in redundant parens: ((...))
+      while (inner.startsWith('(') && inner.endsWith(')')) {
+        let innerParenDepth = 0;
+        let canStrip = true;
+        for (let k = 0; k < inner.length - 1; k++) {
+          if (inner[k] === '(') innerParenDepth++;
+          else if (inner[k] === ')') {
+            innerParenDepth--;
+            if (innerParenDepth === 0) {
+              canStrip = false;
+              break;
+            }
+          }
+        }
+        if (canStrip) {
+          inner = inner.slice(1, -1).trim();
+        } else {
+          break;
+        }
+      }
+      result += `\\sqrt{${inner}}`;
+      lastIndex = i + 1;
+      radRegex.lastIndex = lastIndex;
+    } else {
+      result += s.substring(match.index, radRegex.lastIndex);
+      lastIndex = radRegex.lastIndex;
+    }
+  }
+  result += s.substring(lastIndex);
+  s = result;
+
+  // 2. Coeff before √ with number: e.g. 6√10, 4√2, 2√3
+  s = s.replace(/(\d+)\s*√\s*(\d+)/g, '$1\\sqrt{$2}');
+  // 3. √ with number: e.g. √10, √2, √3
+  s = s.replace(/√\s*(\d+)/g, '\\sqrt{$1}');
+  // 4. √ with identifier or Greek letter: e.g. √x, √y, √α, √\alpha
+  s = s.replace(/√\s*(\\[a-zA-Z]+|[a-zA-Z])/g, '\\sqrt{$1}');
+  // 5. Bare √ followed by braces
+  s = s.replace(/√\s*\{([^{}]+)\}/g, '\\sqrt{$1}');
+  // Clean empty \sqrt with parens: e.g. \sqrt (x+1) that wasn't caught
+  s = s.replace(/\\sqrt\s+\{([^}]+)\}/g, '\\sqrt{$1}');
+  // Clean redundant parens inside \sqrt{ ( ... ) }
+  s = s.replace(/\\sqrt\{\s*\(([^()]+)\)\s*\}/g, '\\sqrt{$1}');
+  // Any leftover bare √
+  s = s.replace(/√/g, '\\sqrt{}');
+
+  return s;
 }
 
 /**
