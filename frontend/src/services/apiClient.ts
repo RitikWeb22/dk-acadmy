@@ -59,16 +59,20 @@ export const ensureValidJwtToken = async (): Promise<string | null> => {
     return token;
   }
 
-  // Attempt transparent re-authentication with backend if token is missing or legacy mock format
+  // Attempt transparent re-authentication with backend ONLY if an admin session actually exists in storage
   try {
     const adminRaw =
       localStorage.getItem('dk_academy_admin_session_v1') ||
       localStorage.getItem('dk_academy_admin_session');
 
+    if (!adminRaw) {
+      return null;
+    }
+
     let email = 'ritikweb30@gmail.com';
     let password = 'ritik@123';
 
-    if (adminRaw) {
+    try {
       const parsed = JSON.parse(adminRaw);
       if (parsed?.user?.email) {
         email = parsed.user.email;
@@ -76,7 +80,7 @@ export const ensureValidJwtToken = async (): Promise<string | null> => {
           password = 'admin123';
         }
       }
-    }
+    } catch {}
 
     const cleanBase = getApiBaseUrl();
     const res = await fetch(`${cleanBase}/auth/login`, {
@@ -88,19 +92,17 @@ export const ensureValidJwtToken = async (): Promise<string | null> => {
     const data = await res.json();
     if (res.ok && data?.success && data?.data?.token) {
       const newJwt = data.data.token;
-      if (adminRaw) {
-        try {
-          const parsed = JSON.parse(adminRaw);
-          parsed.token = newJwt;
-          localStorage.setItem('dk_academy_admin_session_v1', JSON.stringify(parsed));
-          localStorage.setItem('dk_academy_admin_session', JSON.stringify(parsed));
-        } catch {}
-      }
+      try {
+        const parsed = JSON.parse(adminRaw);
+        parsed.token = newJwt;
+        localStorage.setItem('dk_academy_admin_session_v1', JSON.stringify(parsed));
+        localStorage.setItem('dk_academy_admin_session', JSON.stringify(parsed));
+      } catch {}
       return newJwt;
     }
   } catch {}
 
-  return token;
+  return null;
 };
 
 export const getAuthHeaders = (includeContentType: boolean = true): Record<string, string> => {
@@ -179,7 +181,7 @@ export const apiClient = {
         headers: getAuthHeaders(),
         ...options
       });
-      if (res.status === 401) {
+      if (res.status === 401 && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
@@ -206,7 +208,7 @@ export const apiClient = {
         body: body ? JSON.stringify(body) : undefined,
         ...options
       });
-      if (res.status === 401) {
+      if (res.status === 401 && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
@@ -234,7 +236,7 @@ export const apiClient = {
         body: body ? JSON.stringify(body) : undefined,
         ...options
       });
-      if (res.status === 401) {
+      if (res.status === 401 && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
@@ -262,7 +264,7 @@ export const apiClient = {
         body: body ? JSON.stringify(body) : undefined,
         ...options
       });
-      if (res.status === 401) {
+      if (res.status === 401 && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
@@ -289,7 +291,7 @@ export const apiClient = {
         headers: getAuthHeaders(),
         ...options
       });
-      if (res.status === 401) {
+      if (res.status === 401 && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
