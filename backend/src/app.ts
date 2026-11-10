@@ -151,6 +151,16 @@ app.use(
       });
     }
 
+    // Always allow production domain dkacademyjee.com, its subdomains (including www) & protocol variants
+    if (/^https?:\/\/([a-zA-Z0-9-]+\.)*dkacademyjee\.com(:\d+)?$/.test(origin)) {
+      return callback(null, {
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+      });
+    }
+
     // Check strict allowlist exact match
     if (allowedOrigins.includes(origin)) {
       return callback(null, {
