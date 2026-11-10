@@ -295,8 +295,10 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/(\d+)\s*√\s*(\d+)/g, '$1\\sqrt{$2}');
   s = s.replace(/√\s*(\d+)/g, '\\sqrt{$1}');
 
-  // Space between glued math and words: ypassthrough -> y pass through
-  s = s.replace(/([a-zA-Z0-9\]\)])\s*[\r\n]+\s*([a-zA-Z])/g, '$1 $2');
+  // Join words hyphenated across a newline: e.g. differ-\nential -> differential
+  s = s.replace(/([a-zA-Z])-\s*[\r\n]+\s*([a-zA-Z])/g, '$1$2');
+  // Only connect math closing brackets directly preceding prose continuation verbs across a newline:
+  s = s.replace(/([\]\)])\s*[\r\n]+\s*(pass(?:es)?|touch(?:es)?|intersect(?:s)?|where|when|such|then|with)\b/gi, '$1 $2');
   s = s.replace(/([a-zA-Z0-9\]\)])passthrough\b/gi, '$1 pass through');
   s = s.replace(/(?<!\\[a-zA-Z]*)([a-zA-Z0-9\]\)])\s*(pass(?:es)?\s+through|touch(?:es)?|intersect(?:s)?|where|when|such|then|with)\b/gi, '$1 $2');
 
@@ -709,7 +711,7 @@ export function normalizeMathString(raw: string): string {
 
   // General parenthesized math expressions with powers: e.g. (1+x^6)^{3/2}, (x+1)^2
   s = s.replace(
-    /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+0-9a-zA-Z_\\^\{\}\s/+\-*.,]+?)(?:\\right\s*\)|\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
+    /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+0-9a-zA-Z_\\^\{\}\s/+\-*.,]+?)(?:\\right\s*\)|\))\s*\^\s*((?:\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}|[0-9a-zA-Z]+))(?![a-zA-Z0-9_\$])/g,
     (full, inner, exp, offset) => {
       if (isInsideLatexGroup(s, offset)) return full;
       const stripped = inner.replace(/\\[a-zA-Z]+/g, ' ');
@@ -850,7 +852,11 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/\blog_([a-zA-Z0-9]+|\{[^{}]+\})/g, '\\log_{$1}');
   s = s.replace(/(?<!\\)\b(log|ln)\b/g, '\\$1');
 
-  // 2. Fractions: 1/(1-log_e 2) -> \dfrac{1}{1-\log_e 2}
+  // Exponents with nested parens e.g. (8)^(1/4) -> (8)^{1/4}
+  s = fixNestedExponents(s);
+
+  // 2. Fractions: balanced parentheses and nested fractions (e.g. 3/(1+(8)^(1/4)), 1/(1-log_e 2))
+  s = convertFractionsBalanced(s);
   s = s.replace(/(?<![a-zA-Z0-9_\\])(-?[0-9a-zA-Z_\\^{}]+)\s*\/\s*\(([^\(\)\n]+)\)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/\(([^\(\)\n]+)\)\s*\/\s*(-?[0-9a-zA-Z_\\^{}]+)(?![a-zA-Z0-9_\\])/g, '\\dfrac{$1}{$2}');
   s = s.replace(/\(([^\(\)\n]+)\)\s*\/\s*\(([^\(\)\n]+)\)/g, '\\dfrac{$1}{$2}');

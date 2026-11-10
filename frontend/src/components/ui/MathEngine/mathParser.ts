@@ -56,6 +56,31 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
     .replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '')
     .replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '');
 
+  // If the raw text is already a single complete delimited math block, return directly
+  const trimmedDirect = cleanRawText.trim();
+  if (
+    (trimmedDirect.startsWith('$') && trimmedDirect.endsWith('$') && !trimmedDirect.slice(1, -1).includes('$')) ||
+    (trimmedDirect.startsWith('$$') && trimmedDirect.endsWith('$$') && !trimmedDirect.slice(2, -2).includes('$$')) ||
+    (trimmedDirect.startsWith('\\[') && trimmedDirect.endsWith('\\]') && !trimmedDirect.slice(2, -2).includes('\\]')) ||
+    (trimmedDirect.startsWith('\\(') && trimmedDirect.endsWith('\\)') && !trimmedDirect.slice(2, -2).includes('\\)')) ||
+    (trimmedDirect.startsWith('\\begin{') && trimmedDirect.includes('\\end{'))
+  ) {
+    const isBlock = trimmedDirect.startsWith('$$') || trimmedDirect.startsWith('\\[') || trimmedDirect.startsWith('\\begin{');
+    const content = (trimmedDirect.startsWith('$$') || trimmedDirect.startsWith('\\['))
+      ? trimmedDirect.slice(2, -2).trim()
+      : trimmedDirect.startsWith('$')
+      ? trimmedDirect.slice(1, -1).trim()
+      : trimmedDirect.startsWith('\\(')
+      ? trimmedDirect.slice(2, -2).trim()
+      : trimmedDirect.trim();
+    return [{
+      id: 'blk-0',
+      type: isBlock ? 'math_block' : 'math_inline',
+      content: content.replace(/\\frac\b/g, '\\dfrac'),
+      rawSource: trimmedDirect
+    }];
+  }
+
   // Convert any double dollar display delimiters to single dollar inline delimiters
   const singleDollarText = cleanRawText.split('$$').join('$');
 
@@ -86,7 +111,7 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
 
   // Repair split math delimiters, such as ( \frac{y}{x} )^{3} or ( $\frac{y}{x}$ )^{3} or 6 $\sqrt{10}$
   text = text
-    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\(\s*|\(\s*)\s*\$?([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}|[^()$\n]+?)\$?\s*(?:\\right\s*\)|\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
+    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\(\s*|\(\s*)\s*\$?([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}|[^()$\n]+?)\$?\s*(?:\\right\s*\)|\))\s*\^\s*((?:\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}|[0-9a-zA-Z]+))(?![a-zA-Z0-9_\$])/g,
       (full, math, exp) => {
         const stripped = math.replace(/\\[a-zA-Z]+/g, ' ');
         if (/\b(?:let|the|and|is|are|in|on|at|of|to|for|with|then|if|which|where|be)\b/i.test(stripped)) {
@@ -95,7 +120,7 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
         const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
         return `$\\left(${math.replace(/^\$|\$$/g, '').trim()}\\right)^${expStr}$`;
       })
-    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\[\s*|\[\s*)\s*\$?([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}|[^[\]$\n]+?)\$?\s*(?:\\right\s*\]|\])\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
+    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\[\s*|\[\s*)\s*\$?([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}|[^[\]$\n]+?)\$?\s*(?:\\right\s*\]|\])\s*\^\s*((?:\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}|[0-9a-zA-Z]+))(?![a-zA-Z0-9_\$])/g,
       (_, math, exp) => {
         const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
         return `$\\left[${math.trim()}\\right]^${expStr}$`;

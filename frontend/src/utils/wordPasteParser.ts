@@ -1295,7 +1295,7 @@ export function wrapMathInDollars(text: string): string {
     (m) => {
       let cleaned = m.trim();
       let exp = '';
-      const expMatch = cleaned.match(/\^\s*(\{[\s\S]+\}|[0-9a-zA-Z]+)$/);
+      const expMatch = cleaned.match(/\^\s*(\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}|[0-9a-zA-Z]+)$/);
       if (expMatch) {
         exp = `^${expMatch[1]}`;
         cleaned = cleaned.slice(0, cleaned.length - expMatch[0].length).trim();
@@ -1314,7 +1314,7 @@ export function wrapMathInDollars(text: string): string {
     (m) => {
       let cleaned = m.trim();
       let exp = '';
-      const expMatch = cleaned.match(/\^\s*(\{[\s\S]+\}|[0-9a-zA-Z]+)$/);
+      const expMatch = cleaned.match(/\^\s*(\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}|[0-9a-zA-Z]+)$/);
       if (expMatch) {
         exp = `^${expMatch[1]}`;
         cleaned = cleaned.slice(0, cleaned.length - expMatch[0].length).trim();
@@ -1330,7 +1330,7 @@ export function wrapMathInDollars(text: string): string {
 
   // General parenthesized math expressions with powers: e.g. (1+x^6)^{3/2}, (x+1)^2
   s = s.replace(
-    /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+0-9a-zA-Z_\\^\{\}\s/+\-*.,]+?)(?:\\right\s*\)|\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
+    /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+0-9a-zA-Z_\\^\{\}\s/+\-*.,]+?)(?:\\right\s*\)|\))\s*\^\s*((?:\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}|[0-9a-zA-Z]+))(?![a-zA-Z0-9_\$])/g,
     (full, inner, exp) => {
       const stripped = inner.replace(/\\[a-zA-Z]+/g, ' ');
       if (/\b(?:let|the|and|is|are|in|on|at|of|to|for|with|then|if|which|where|be)\b/i.test(stripped)) {

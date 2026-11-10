@@ -260,6 +260,32 @@ export function convertUnicodeMathToLatex(text) {
     });
     return res;
 }
+export function fixNestedExponents(text) {
+    let result = '';
+    let i = 0;
+    while (i < text.length) {
+        if (text[i] === '^' && text[i + 1] === '(') {
+            let depth = 1;
+            let j = i + 2;
+            while (j < text.length && depth > 0) {
+                if (text[j] === '(')
+                    depth++;
+                else if (text[j] === ')')
+                    depth--;
+                j++;
+            }
+            if (depth === 0) {
+                const inner = text.slice(i + 2, j - 1);
+                result += `^{${fixNestedExponents(inner)}}`;
+                i = j;
+                continue;
+            }
+        }
+        result += text[i];
+        i++;
+    }
+    return result;
+}
 /**
  * Robust balanced fraction converter for complex fractions
  */
@@ -1065,7 +1091,7 @@ export function wrapBareLatexInDollars(text) {
         return protect(`\\left[${cleaned}\\right]${exp}`);
     });
     // General parenthesized math expressions with powers: e.g. (1+x^6)^{3/2}, (x+1)^2
-    s = s.replace(/(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+0-9a-zA-Z_\\^\{\}\s/+\-*.,]+?)(?:\\right\s*\)|\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g, (full, inner, exp) => {
+    s = s.replace(/(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+0-9a-zA-Z_\\^\{\}\s/+\-*.,]+?)(?:\\right\s*\)|\))\s*\^\s*((?:\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}|[0-9a-zA-Z]+))(?![a-zA-Z0-9_\$])/g, (full, inner, exp) => {
         const stripped = inner.replace(/\\[a-zA-Z]+/g, ' ');
         if (/\b(?:let|the|and|is|are|in|on|at|of|to|for|with|then|if|which|where|be)\b/i.test(stripped)) {
             return full;
@@ -1158,7 +1184,10 @@ export function normalizeOptionMath(raw) {
     // 1b. Logarithm conversions: log_e 2 -> \log_e 2, ln x -> \ln x
     s = s.replace(/\blog_([a-zA-Z0-9]+|\{[^{}]+\})/g, '\\log_{$1}');
     s = s.replace(/(?<!\\)\b(log|ln)\b/g, '\\$1');
-    // 2. Fractions: 1/(1-log_e 2) -> \dfrac{1}{1-\log_e 2}
+    // Exponents with nested parens e.g. (8)^(1/4) -> (8)^{1/4}
+    s = fixNestedExponents(s);
+    // 2. Fractions: balanced parentheses and nested fractions (e.g. 3/(1+(8)^(1/4)), 1/(1-log_e 2))
+    s = convertFractionsBalanced(s);
     s = s.replace(/(?<![a-zA-Z0-9_\\])(-?[0-9a-zA-Z_\\^{}]+)\s*\/\s*\(([^\(\)\n]+)\)/g, '\\dfrac{$1}{$2}');
     s = s.replace(/\(([^\(\)\n]+)\)\s*\/\s*(-?[0-9a-zA-Z_\\^{}]+)(?![a-zA-Z0-9_\\])/g, '\\dfrac{$1}{$2}');
     s = s.replace(/\(([^\(\)\n]+)\)\s*\/\s*\(([^\(\)\n]+)\)/g, '\\dfrac{$1}{$2}');
