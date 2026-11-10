@@ -1030,6 +1030,51 @@ export function wrapBareLatexInDollars(text) {
     s = s.replace(/(?<![$\w])([a-zA-Z](?:\s*,\s*[a-zA-Z])*\s*\\in\s*(?:\\mathbb\{[RNZQ]\}|[RNZQ]|\[[^\[\]\n]+\]|\([^()\n]+\)))(?![$\w])/g, (_, m) => protect(m));
     // 14c. Simple variable assignments after at/for/where/when/if: at x = 0, for x = 1
     s = s.replace(new RegExp(`(?<=\\b(?:at|for|where|when|if|with)\\s+)([a-zA-Z]\\s*=\\s*[-+]?[0-9a-zA-Z_\\\\^{}()]+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'), (_, m) => protect(m));
+    // 14d. Parenthesized or bracketed fractions with optional exponents:
+    // e.g. (\dfrac{y}{x})^{3}, \left(\dfrac{y}{x}\right)^3, \left[\dfrac{y}{x}\right]^2, (\dfrac{1}{2})^n
+    s = s.replace(/(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}[\s\S]*?)(?:\\right\s*\)|\))(?:\s*\^\s*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z]+))?(?![a-zA-Z0-9_\$])/g, (m) => {
+        let cleaned = m.trim();
+        let exp = '';
+        const expMatch = cleaned.match(/\^\s*(\{[\s\S]+\}|[0-9a-zA-Z]+)$/);
+        if (expMatch) {
+            exp = `^${expMatch[1]}`;
+            cleaned = cleaned.slice(0, cleaned.length - expMatch[0].length).trim();
+        }
+        if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
+            cleaned = cleaned.slice(1, -1).trim();
+        }
+        else if (cleaned.startsWith('\\left(') && cleaned.endsWith('\\right)')) {
+            cleaned = cleaned.slice(6, -7).trim();
+        }
+        return protect(`\\left(${cleaned}\\right)${exp}`);
+    });
+    s = s.replace(/(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\[\s*|\[\s*)([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}[\s\S]*?)(?:\\right\s*\]|\])(?:\s*\^\s*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z]+))?(?![a-zA-Z0-9_\$])/g, (m) => {
+        let cleaned = m.trim();
+        let exp = '';
+        const expMatch = cleaned.match(/\^\s*(\{[\s\S]+\}|[0-9a-zA-Z]+)$/);
+        if (expMatch) {
+            exp = `^${expMatch[1]}`;
+            cleaned = cleaned.slice(0, cleaned.length - expMatch[0].length).trim();
+        }
+        if (cleaned.startsWith('[') && cleaned.endsWith(']')) {
+            cleaned = cleaned.slice(1, -1).trim();
+        }
+        else if (cleaned.startsWith('\\left[') && cleaned.endsWith('\\right]')) {
+            cleaned = cleaned.slice(6, -7).trim();
+        }
+        return protect(`\\left[${cleaned}\\right]${exp}`);
+    });
+    // General parenthesized math expressions with powers: e.g. (1+x^6)^{3/2}, (x+1)^2
+    s = s.replace(/(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+0-9a-zA-Z_\\^\{\}\s/+\-*.,]+?)(?:\\right\s*\)|\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g, (full, inner, exp) => {
+        const stripped = inner.replace(/\\[a-zA-Z]+/g, ' ');
+        if (/\b(?:let|the|and|is|are|in|on|at|of|to|for|with|then|if|which|where|be)\b/i.test(stripped)) {
+            return full;
+        }
+        const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
+        return protect(`\\left(${inner.trim()}\\right)^${expStr}`);
+    });
+    // 14e. Radicals with optional leading coefficient: e.g. 6\sqrt{10}, 2\sqrt{2}, \sqrt{x^2+1}
+    s = s.replace(/(?<![a-zA-Z0-9_\$\\])([-+]?\s*\d*\s*\\(?:sqrt|cbrt)(?:\[[^\]]+\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?![a-zA-Z0-9_\$])/g, (_, m) => protect(m.trim()));
     // Clean empty \dfrac{} or \frac{} so they are never protected into standalone invalid $\dfrac{}$
     s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
     s = s.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');

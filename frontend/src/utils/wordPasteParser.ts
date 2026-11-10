@@ -1012,6 +1012,9 @@ export function convertWordEquationToLatex(raw: string): string {
   s = s.replace(/(\\(?:tan|cot|sin|cos|sec|csc)(?:\^\{[^}]+\})?|\\(?:log_e|ln|log))\s*\(\s*(\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})\s*\)/g,
     '$1\\left($2\\right)');
 
+  // Parenthesized vertical fractions: (\dfrac{...}{...}) -> \left( \dfrac{...}{...} \right)
+  s = s.replace(/(?<!\\left\s*)\(\s*(\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})\s*\)(?!\s*\\right)/g, '\\left($1\\right)');
+
   // 12. Spacing around standalone \, dx, \, dy, \, dt, \, dz (never inside \frac or \dfrac)
   s = s.replace(/(?<!\\(?:d?frac)\{[^}]*|\\(?:d?frac)\{[^}]*\}\{[^}]*)(?:\\,)?\s*\b(d[txyz])\b(?!\s*\/|\s*\})/gi, ' \\, $1');
   s = s.replace(/\\(?:d?frac)\{\s*\\,?\s*(d[txyz])\s*\}\{\s*\\,?\s*(d[txyz])\s*\}/gi, '\\dfrac{$1}{$2}');
@@ -1208,6 +1211,63 @@ export function wrapMathInDollars(text: string): string {
   // Step 6c: Polynomials or expressions: e.g. \alpha^4 - \beta^4 or \alpha^{4} - \beta^{4} or x^2 + y^2
   s = s.replace(/(?<![a-zA-Z0-9_\$])((\\[a-zA-Z]+|[a-zA-Z])(?:\^\{[^{}]+\}|\^[0-9a-zA-Z]+)\s*[-+*/]\s*(\\[a-zA-Z]+|[a-zA-Z])(?:\^\{[^{}]+\}|\^[0-9a-zA-Z]+))(?![a-zA-Z0-9_\$])/gi,
     (_, m) => protect(m));
+
+  // Step 6c-1: Parenthesized or bracketed expressions with exponents or fractions:
+  // e.g. (\dfrac{y}{x})^{3}, \left(\dfrac{y}{x}\right)^3, \left[\dfrac{y}{x}\right]^2, (\dfrac{1}{2})^n
+  s = s.replace(
+    /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}[\s\S]*?)(?:\\right\s*\)|\))(?:\s*\^\s*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z]+))?(?![a-zA-Z0-9_\$])/g,
+    (m) => {
+      let cleaned = m.trim();
+      let exp = '';
+      const expMatch = cleaned.match(/\^\s*(\{[\s\S]+\}|[0-9a-zA-Z]+)$/);
+      if (expMatch) {
+        exp = `^${expMatch[1]}`;
+        cleaned = cleaned.slice(0, cleaned.length - expMatch[0].length).trim();
+      }
+      if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
+        cleaned = cleaned.slice(1, -1).trim();
+      } else if (cleaned.startsWith('\\left(') && cleaned.endsWith('\\right)')) {
+        cleaned = cleaned.slice(6, -7).trim();
+      }
+      return protect(`\\left(${cleaned}\\right)${exp}`);
+    }
+  );
+
+  s = s.replace(
+    /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\[\s*|\[\s*)([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}[\s\S]*?)(?:\\right\s*\]|\])(?:\s*\^\s*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z]+))?(?![a-zA-Z0-9_\$])/g,
+    (m) => {
+      let cleaned = m.trim();
+      let exp = '';
+      const expMatch = cleaned.match(/\^\s*(\{[\s\S]+\}|[0-9a-zA-Z]+)$/);
+      if (expMatch) {
+        exp = `^${expMatch[1]}`;
+        cleaned = cleaned.slice(0, cleaned.length - expMatch[0].length).trim();
+      }
+      if (cleaned.startsWith('[') && cleaned.endsWith(']')) {
+        cleaned = cleaned.slice(1, -1).trim();
+      } else if (cleaned.startsWith('\\left[') && cleaned.endsWith('\\right]')) {
+        cleaned = cleaned.slice(6, -7).trim();
+      }
+      return protect(`\\left[${cleaned}\\right]${exp}`);
+    }
+  );
+
+  // General parenthesized math expressions with powers: e.g. (1+x^6)^{3/2}, (x+1)^2
+  s = s.replace(
+    /(?<![a-zA-Z0-9_\$\\])(?:\\left\s*\(\s*|\(\s*)([-+0-9a-zA-Z_\\^\{\}\s/+\-*.,]+?)(?:\\right\s*\)|\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
+    (full, inner, exp) => {
+      const stripped = inner.replace(/\\[a-zA-Z]+/g, ' ');
+      if (/\b(?:let|the|and|is|are|in|on|at|of|to|for|with|then|if|which|where|be)\b/i.test(stripped)) {
+        return full;
+      }
+      const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
+      return protect(`\\left(${inner.trim()}\\right)^${expStr}`);
+    }
+  );
+
+  // Step 6c-2: Radicals with optional leading coefficient: e.g. 6\sqrt{10}, 2\sqrt{2}, \sqrt{x^2+1}
+  s = s.replace(/(?<![a-zA-Z0-9_\$\\])([-+]?\s*\d*\s*\\(?:sqrt|cbrt)(?:\[[^\]]+\])?\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?![a-zA-Z0-9_\$])/g,
+    (_, m) => protect(m.trim()));
 
   // Step 6d: Standalone expressions with powers or subscripts: e.g. 2x^{2}, x^{3}, y^{2}, e^{-x}, e^{x}
   s = s.replace(/(?<![a-zA-Z0-9_\$\\])([0-9]*[a-zA-Z]\^\{[^{}]+\}|[0-9]*[a-zA-Z]\^[0-9a-zA-Z]+|[0-9]*[a-zA-Z]_[0-9a-zA-Z]+)(?![a-zA-Z0-9_\{])/g,

@@ -140,6 +140,16 @@ describe('DK Academy JEE - Math Import & Render System 100+ Test Suite', () => {
       assert.ok(normalized.includes('\\dfrac{dy}{dx}'));
       assert.equal(validateQuestion(normalized).overallStatus, 'GREEN');
     });
+
+    it('1.17 Question 75: Normalizes parenthesized fraction power (y/x)^3 and radical point (\\alpha, 6\\sqrt{10})', () => {
+      const raw = 'Let a curve y = y(x) pass through the point (3,3) and the area of the region under this curve, above the x-axis and between the abscissae 3 and x ( > 3) be (y/x)^3 . If this curve also passes through the point (\\alpha, 6\\sqrt{10}) in the first quadrant, then \\alpha is equal to';
+      const normalized = normalizeCanonicalMath(raw);
+      assert.ok(normalized.includes('\\left(\\dfrac{y}{x}\\right)^3') || normalized.includes('\\left(\\dfrac{y}{x}\\right)^{3}'));
+      assert.ok(!normalized.includes('( \\frac{y}{x} )^{3}'));
+      assert.ok(!normalized.includes(')^{3}'));
+      assert.ok(normalized.includes('6\\sqrt{10}'));
+      assert.equal(validateQuestion(normalized).overallStatus, 'GREEN');
+    });
   });
 
   // ==========================================================================
