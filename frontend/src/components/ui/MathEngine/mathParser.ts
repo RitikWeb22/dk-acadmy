@@ -86,7 +86,7 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
 
   // Repair split math delimiters, such as ( \frac{y}{x} )^{3} or ( $\frac{y}{x}$ )^{3} or 6 $\sqrt{10}$
   text = text
-    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\(\s*|\(\s*)\$?([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}|[^\$\n]+?)\$?(?:\s*\\right\s*\)|\s*\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
+    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\(\s*|\(\s*)\s*\$?([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}|[^()$\n]+?)\$?\s*(?:\\right\s*\)|\))\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
       (full, math, exp) => {
         const stripped = math.replace(/\\[a-zA-Z]+/g, ' ');
         if (/\b(?:let|the|and|is|are|in|on|at|of|to|for|with|then|if|which|where|be)\b/i.test(stripped)) {
@@ -95,7 +95,7 @@ export function parseContentToBlocks(rawText: string): MathContentBlock[] {
         const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
         return `$\\left(${math.replace(/^\$|\$$/g, '').trim()}\\right)^${expStr}$`;
       })
-    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\[\s*|\[\s*)\$([^\$\n]+?)\$(?:\s*\\right\s*\]|\s*\])\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
+    .replace(/(?<![a-zA-Z0-9_\$])(?:\\left\s*\[\s*|\[\s*)\s*\$?([-+]?\s*\\(?:d?frac)\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\}|[^[\]$\n]+?)\$?\s*(?:\\right\s*\]|\])\s*\^\s*(\{[\s\S]+?\}|[0-9a-zA-Z]+)(?![a-zA-Z0-9_\$])/g,
       (_, math, exp) => {
         const expStr = exp.startsWith('{') ? exp : `{${exp}}`;
         return `$\\left[${math.trim()}\\right]^${expStr}$`;

@@ -46,20 +46,23 @@ export function preformatDocxOptions(text: string): string {
   // Separate glued "to(A)" -> "to\n(A)"
   s = s.replace(/([0-9a-zA-Z:])\s*(\([A-D]\)|\[[A-D]\])/g, '$1\n$2');
 
-  // Separate glued "toA", "is :A", "line :A" -> "... \n(A) "
-  s = s.replace(/(?<=\bto|\bis\s*:|[:=_\-])\s*(A)(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(])/gi, '\n(A) ');
+  // Explicit newline bare letters: \nA 90 -> \n(A) 90 (reject English prose words like "a positive constant")
+  s = s.replace(/(?:^|[\n\r])\s*([A-D])\s+(?=[-+0-9a-zA-Z\u0370-\u03FF\\(\$\{\[])(?!positive|negative|real|constant|continuous|differentiable|function|point|curve|line|circle|matrix|vector|set|value|given|unit|straight\b)/g, '\n($1) ');
 
-  // Separate bare A preceded by whitespace/exam tag
-  s = s.replace(/(?<=\b(?:to|is|are|equal|equals|equals\s*:|line\s*:|curve\s*:|radius\s*:|interval\s*:|point\s*:|points\s*:|origin\s*:|by|value\s+of)\s+)(A)(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(])/gi, '\n(A) ');
+  // Separate glued "toA", "is :A", "line :A" -> "... \n(A) " (ONLY uppercase A, never lowercase a)
+  s = s.replace(/(?<=\bto|\bis\s*:|[:=_\-])\s*(A)(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(\$\{\[])(?!positive|negative|real|constant|continuous|differentiable|function|point|curve|line|circle|matrix|vector|set|value|given|unit|straight\b)/g, '\n(A) ');
+
+  // Separate bare uppercase A preceded by whitespace after "equal to" or "equals"
+  s = s.replace(/(?<=\b(?:equal\s+to|equals)\s*(?:[:=_\-]\s*)?)A(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(\$\{\[])(?!positive|negative|real|constant|continuous|differentiable|function|point|curve|line|circle|matrix|vector|set|value|given|unit|straight\b)/g, '\n(A) ');
 
   // Separate glued B, C, D: e.g. "-1B 121", "1e2B 2e2", "π2(C)", "0(D)", "-π12B π2", "2 (B)"
-  s = s.replace(/([0-9a-zA-Z\u0370-\u03FF\)\}\]\.\-])\s*(?:\(\s*([B-D])\s*\)|\[\s*([B-D])\s*\]|([B-D]))(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(\$]|[-+])/g, (_m, prev, p1, p2, p3) => {
+  s = s.replace(/([0-9a-zA-Z\u0370-\u03FF\)\}\]\.\-])\s*(?:\(\s*([B-D])\s*\)|\[\s*([B-D])\s*\]|([B-D]))(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(\$\{\[]|[-+])/g, (_m, prev, p1, p2, p3) => {
     const letter = p1 || p2 || p3;
     return `${prev}\n(${letter}) `;
   });
 
   // Ensure (A) on newline if bare A preceded by newline/whitespace
-  s = s.replace(/(?:^|[\n\r]|\s{2,})A(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(])/g, '\n(A) ');
+  s = s.replace(/(?:^|[\n\r]|\s{2,})A(?=\s+[-+]?[0-9a-zA-Z\u0370-\u03FF\\(\$\{\[])(?!positive|negative|real|constant|continuous|differentiable|function|point|curve|line|circle|matrix|vector|set|value|given|unit|straight\b)/g, '\n(A) ');
 
   return s;
 }
@@ -226,6 +229,10 @@ export function cleanWordMathArtifacts(text: string): string {
   s = s.replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/gi, '\\dfrac{$1}{$2}');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
 
+  // Repair corrupted fraction with closing paren in denominator: \dfrac{A}{)} (B)^n -> \dfrac{A}{(B)^n}
+  s = s.replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*(\([^\)]+\)\^(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z^/]+))/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*([A-Za-z0-9_^{}()]+)/g, '\\dfrac{$1}{$2}');
+
   // Separate glued math functions: 2xexp -> 2x exp, xexp -> x exp, 2xsin -> 2x sin
   s = s.replace(/([0-9a-zA-Z])\s*(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b/gi, '$1 $2');
 
@@ -239,9 +246,10 @@ export function cleanWordMathArtifacts(text: string): string {
   s = s.replace(/([a-zA-Z0-9]+)\s*\/\s*(\\(?:sqrt|cbrt)\{(?:[^{}]|\{[^{}]*\})*\})\s*\}?/g, '\\dfrac{$1}{$2}');
 
 
-  // Preserve space between word boundaries across newlines & glued math/words
-  // e.g. ]y\npass -> ]y pass, ypassthrough -> y pass through
-  s = s.replace(/([a-zA-Z0-9\]\)])\s*[\r\n]+\s*([a-zA-Z])/g, '$1 $2');
+  // Join words hyphenated across a newline: e.g. differ-\nential -> differential
+  s = s.replace(/([a-zA-Z])-\s*[\r\n]+\s*([a-zA-Z])/g, '$1$2');
+  // Only connect math closing brackets directly preceding prose continuation verbs across a newline:
+  s = s.replace(/([\]\)])\s*[\r\n]+\s*(pass(?:es)?|touch(?:es)?|intersect(?:s)?|where|when|such|then|with)\b/gi, '$1 $2');
   s = s.replace(/([a-zA-Z0-9\]\)])passthrough\b/gi, '$1 pass through');
   s = s.replace(/(?<!\\[a-zA-Z]*)([a-zA-Z0-9\]\)])\s*(pass(?:es)?\s+through|touch(?:es)?|intersect(?:s)?|where|when|such|then|with)\b/gi, '$1 $2');
 

@@ -32,7 +32,7 @@ export function sanitizeFormula(str: string): string {
     .replace(/\\(?:d?frac)\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}\s*\{\s*(?:\\,)?\s*([a-zA-Z]+)\s*\}/gi, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{\s*\}\s*(?:\\,)?\s*([a-zA-Z]+)\s*\/\s*(?:\\,)?\s*([a-zA-Z]+)/g, '\\dfrac{$1}{$2}')
     // Repair corrupted fraction with closing paren in denominator: \dfrac{A}{)} (B)^n -> \dfrac{A}{(B)^n}
-    .replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*(\([^\)]+\)\^\{[^{}]+\})/g, '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*(\([^\)]+\)\^(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z^/]+))/g, '\\dfrac{$1}{$2}')
     .replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*([A-Za-z0-9_^{}()]+)/g, '\\dfrac{$1}{$2}')
     // Separate glued math functions: 2xexp -> 2x exp, xexp -> x exp, 2xsin -> 2x sin
     .replace(/([0-9a-zA-Z])\s*(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b/gi, '$1 $2')
@@ -593,4 +593,156 @@ export function convertLiteralCurlyBraces(latex: string): string {
   }
 
   return result;
+}
+
+export interface MathDiagnosticInfo {
+  title: string;
+  explanation: string;
+  tip: string;
+  issues: string[];
+}
+
+/**
+ * Translates KaTeX/LaTeX errors into plain, human-understandable Hindi + English
+ * guidance so any non-technical administrator can instantly know what is wrong and how to fix it.
+ */
+export function getFriendlyMathExplanation(text: string): MathDiagnosticInfo {
+  if (!text) {
+    return {
+      title: 'Valid KaTeX',
+      explanation: 'Formula me koi error nahi hai.',
+      tip: '',
+      issues: []
+    };
+  }
+
+  const issues: string[] = [];
+  const openBraces = (text.match(/\{/g) || []).length;
+  const closeBraces = (text.match(/\}/g) || []).length;
+  const dollarCount = (text.match(/\$/g) || []).length;
+  const hasEmptyFrac = /\\(?:d?frac)\{\s*\}\{\s*\}/.test(text);
+  const hasEmptyNumOrDen = /\\(?:d?frac)\{\s*\}\s*\{[^{}]+\}/.test(text) || /\\(?:d?frac)\{[^{}]+\}\s*\{\s*\}/.test(text);
+  const hasCheck = /\[CHECK(?::\s*[^\]]*)?\]/i.test(text);
+
+  if (openBraces !== closeBraces) {
+    if (openBraces > closeBraces) {
+      issues.push(`Curly bracket '{' band nahi hai (${openBraces - closeBraces} missing '}')`);
+    } else {
+      issues.push(`Extra closing bracket '}' laga hua hai (${closeBraces - openBraces} extra '}')`);
+    }
+  }
+
+  if (dollarCount % 2 !== 0) {
+    issues.push('Math delimiter "$" ka pair pura nahi hai (ek "$" khula reh gaya hai)');
+  }
+
+  if (hasEmptyFrac || hasEmptyNumOrDen) {
+    issues.push('Fraction "\\dfrac{}{}" ka upar (numerator) ya niche (denominator) khali hai');
+  }
+
+  if (hasCheck) {
+    issues.push('[CHECK] review marker laga hua hai');
+  }
+
+  let title = 'Formula me KaTeX Error Hai';
+  let explanation = 'Formula me brackets ya math delimiters theek se match nahi ho rahe hain.';
+  let tip = '"⚡ Theek Karein (Auto-Fix)" button dabayein taaki system isse automatically repair kar sake.';
+
+  if (openBraces !== closeBraces && dollarCount % 2 !== 0) {
+    title = 'Bracket {} aur Dollar $ Dono Missing Hain';
+    explanation = 'Formula me curly brackets match nahi kar rahe aur "$" sign ka pair bhi adhoora hai. Is vajah se preview tut gaya hai.';
+    tip = 'Neeche diye gaye Auto-Fix button par click karein, system automatically missing brackets aur dollar sign jod dega.';
+  } else if (openBraces !== closeBraces) {
+    title = 'Curly Bracket { } Match Nahi Ho Raha';
+    explanation = openBraces > closeBraces
+      ? `Formula me ${openBraces - closeBraces} jagah opening bracket "{" to hai, par closing "}" lagana bhool gaye hain.`
+      : `Formula me ${closeBraces - openBraces} extra closing bracket "}" aa gaya hai.`;
+    tip = 'Auto-Fix button dabakar brackets ko turant barabar karein.';
+  } else if (dollarCount % 2 !== 0) {
+    title = 'Math Delimiter $ Adhoora Hai';
+    explanation = 'KaTeX formula hamesha do "$" ke beech hona chahiye jaise $formula$. Yahan ek "$" akela khula reh gaya hai.';
+    tip = 'Auto-Fix par click karein, system aakhri "$" automatically jod dega.';
+  } else if (hasEmptyFrac || hasEmptyNumOrDen) {
+    title = 'Khali Fraction \\dfrac{}{}';
+    explanation = 'Fraction formula me koi number ya variable chhoot gaya hai (numerator ya denominator khali hai).';
+    tip = 'Auto-Fix click karne par system khali fraction ko default format me heal kar dega.';
+  }
+
+  return { title, explanation, tip, issues };
+}
+
+/**
+ * 1-Click Instant Auto-Repair for broken LaTeX formulas.
+ * Heals unbalanced brackets, orphan dollars, corrupted fractions, and cleans OCR artifacts.
+ */
+export function autoRepairQuestionFormula(text: string): {
+  repairedText: string;
+  repairedIssues: string[];
+} {
+  if (!text) return { repairedText: '', repairedIssues: [] };
+  let s = text;
+  const repairedIssues: string[] = [];
+
+  // 1. Repair corrupted differentials and fractions with closing paren in denominator
+  s = s
+    .replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*(\([^\)]+\)\^(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z^/]+))/g,
+      '\\dfrac{$1}{$2}')
+    .replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*([A-Za-z0-9_^{}()]+)/g,
+      '\\dfrac{$1}{$2}');
+
+  // 2. Balance math dollar delimiters $...$
+  const dollarCount = (s.match(/\$/g) || []).length;
+  if (dollarCount % 2 !== 0) {
+    s = s.trimEnd() + '$';
+    repairedIssues.push('Unpaired "$" sign closed');
+  }
+
+  // 3. Balance curly braces { ... }
+  const openBraces = (s.match(/\{/g) || []).length;
+  const closeBraces = (s.match(/\}/g) || []).length;
+  if (openBraces > closeBraces) {
+    const diff = openBraces - closeBraces;
+    if (s.endsWith('$')) {
+      s = s.slice(0, -1) + '}'.repeat(diff) + '$';
+    } else {
+      s = s + '}'.repeat(diff);
+    }
+    repairedIssues.push(`Added ${diff} missing '}'`);
+  } else if (closeBraces > openBraces) {
+    let diff = closeBraces - openBraces;
+    s = s.replace(/\}(?=[^}]*$)/g, (m) => {
+      if (diff > 0) {
+        diff--;
+        return '';
+      }
+      return m;
+    });
+    repairedIssues.push(`Removed ${closeBraces - openBraces} extra '}'`);
+  }
+
+  // 4. Fix empty fractions
+  if (/\\(?:d?frac)\{\s*\}\{\s*\}/.test(s)) {
+    s = s.replace(/\\(?:d?frac)\{\s*\}\{\s*\}/g, '');
+    repairedIssues.push('Removed empty \\dfrac{}{}');
+  }
+  if (/\\(?:d?frac)\{\s*\}\s*\{([^{}]+)\}/.test(s)) {
+    s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{([^{}]+)\}/g, '\\dfrac{1}{$1}');
+    repairedIssues.push('Fixed empty numerator');
+  }
+  if (/\\(?:d?frac)\{([^{}]+)\}\s*\{\s*\}/.test(s)) {
+    s = s.replace(/\\(?:d?frac)\{([^{}]+)\}\s*\{\s*\}/g, '\\dfrac{$1}{1}');
+    repairedIssues.push('Fixed empty denominator');
+  }
+
+  // 5. Clean review markers and orphan tokens
+  if (/\[CHECK(?::\s*[^\]]*)?\]/i.test(s)) {
+    s = s.replace(/\[CHECK(?::\s*[^\]]*)?\]/gi, '').trim();
+    repairedIssues.push('Cleared [CHECK]');
+  }
+  s = s.replace(/___PROT_\d+___/g, '')
+       .replace(/\[\s*MATH_\d+\s*\]/gi, '')
+       .replace(/⟦\s*MATH_\d+\s*⟧/gi, '')
+       .replace(/\u27E6MATH_\d+\u27E7/g, '');
+
+  return { repairedText: s, repairedIssues };
 }
