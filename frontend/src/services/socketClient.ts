@@ -219,13 +219,13 @@ export const initSocketClient = (): Socket => {
         meta: { ...testSeries, route: '/admin/test-series' }
       });
     }
-    cmsService.fetchTestSeriesFromAPI().catch(() => {});
+    cmsService.fetchTestSeriesFromAPI(true).catch(() => {});
     window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: testSeries }));
     window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'test_series', action: 'create', data: testSeries } }));
   });
 
   socket.on('test_series:updated', (testSeries) => {
-    cmsService.fetchTestSeriesFromAPI().catch(() => {});
+    cmsService.fetchTestSeriesFromAPI(true).catch(() => {});
     window.dispatchEvent(new CustomEvent('dk_test_series_updated', { detail: testSeries }));
     window.dispatchEvent(new CustomEvent(CMS_EVENT_KEY, { detail: { type: 'test_series', action: 'update', data: testSeries } }));
   });

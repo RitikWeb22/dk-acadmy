@@ -259,7 +259,10 @@ export const TestSeriesPage: React.FC = () => {
 
   // Visible tests for students: Published or Scheduled (hide Draft and Archived)
   const visibleStudentTests = useMemo(() => {
-    return testSeriesList.filter((test) => test.status !== 'Draft' && test.status !== 'Archived');
+    return testSeriesList.filter((test) => {
+      const s = String(test.status || 'Published').toLowerCase();
+      return s !== 'draft' && s !== 'archived';
+    });
   }, [testSeriesList]);
 
   // Derive counts per exam from actual test data
