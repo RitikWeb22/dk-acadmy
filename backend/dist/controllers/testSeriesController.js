@@ -342,21 +342,14 @@ const BASE_SEED_TEST_SERIES = [
 ];
 const SEED_TEST_SERIES = [...BASE_SEED_TEST_SERIES, ...PART_TESTS_DATA];
 // High-speed in-memory cache for live test series listing (TTL: 30 seconds)
-let testSeriesListCache = null;
-let lastTestSeriesCacheTime = 0;
-const TEST_SERIES_CACHE_TTL = 30000;
-export const invalidateTestSeriesCache = () => {
-    testSeriesListCache = null;
-    lastTestSeriesCacheTime = 0;
-};
+export const invalidateTestSeriesCache = () => { };
 export const getAllTestSeries = async (req, res) => {
     try {
         // Prevent browser & CDN caching so newly published tests appear instantly
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
-        const { examType, format, status, search, force } = req.query;
-        const isForce = force === 'true' || force === '1';
+        const { examType, format, status, search } = req.query;
         const filter = {};
         if (examType && examType !== 'ALL' && examType !== 'All') {
             filter.examType = examType;
@@ -374,17 +367,6 @@ export const getAllTestSeries = async (req, res) => {
                 { subtitle: { $regex: q, $options: 'i' } },
                 { slug: { $regex: q, $options: 'i' } }
             ];
-        }
-        const hasFilters = Object.keys(filter).length > 0;
-        // Fast-path: serve instantly from in-memory cache if no custom search/filters and not force-refreshing
-        if (!hasFilters && !isForce && testSeriesListCache && (Date.now() - lastTestSeriesCacheTime < TEST_SERIES_CACHE_TTL)) {
-            res.status(200).json({
-                success: true,
-                count: testSeriesListCache.length,
-                data: testSeriesListCache,
-                fromCache: true
-            });
-            return;
         }
         let items = await TestSeries.find(filter)
             .sort({ createdAt: -1 })
@@ -405,10 +387,6 @@ export const getAllTestSeries = async (req, res) => {
             }
             return obj;
         });
-        if (!hasFilters) {
-            testSeriesListCache = sanitizedItems;
-            lastTestSeriesCacheTime = Date.now();
-        }
         res.status(200).json({
             success: true,
             count: sanitizedItems.length,

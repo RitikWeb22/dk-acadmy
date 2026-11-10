@@ -26,6 +26,7 @@ import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { paymentService } from '../../services/paymentService';
 import { requestFullScreen, exitFullScreen } from '../../utils/fullscreen';
 import { useStudentAuth } from '../../context/AuthContext';
+import { subscribeRealtimeEvents } from '../../utils/broadcastSync';
 import { useToast } from '../../context/ToastContext';
 import { apiClient } from '../../services/apiClient';
 import type { TestSeriesItem } from '../../types';
@@ -141,7 +142,7 @@ export const TestSeriesPage: React.FC = () => {
     const syncTestSeries = async () => {
       try {
         const items = await cmsService.fetchTestSeriesFromAPI(true);
-        if (Array.isArray(items) && items.length > 0) {
+        if (Array.isArray(items)) {
           setTestSeriesList(items);
         }
       } catch (err) {
@@ -184,6 +185,16 @@ export const TestSeriesPage: React.FC = () => {
       }
     };
 
+    const unsubscribeBroadcast = subscribeRealtimeEvents((event) => {
+      if (event.type === 'test_series_created' || event.type === 'test_series_updated') {
+        handleUpsert({ detail: event.data });
+        syncTestSeries();
+      } else if (event.type === 'test_series_deleted') {
+        handleDeleteEvent({ detail: event.id });
+        syncTestSeries();
+      }
+    });
+
     window.addEventListener(CMS_EVENT_KEY, handleUpsert);
     window.addEventListener('dk_test_series_created', handleUpsert);
     window.addEventListener('dk_test_series_updated', handleUpsert);
@@ -191,14 +202,15 @@ export const TestSeriesPage: React.FC = () => {
 
     const pollInterval = setInterval(() => {
       cmsService.fetchTestSeriesFromAPI(true).then((items) => {
-        if (Array.isArray(items) && items.length > 0) {
+        if (Array.isArray(items)) {
           setTestSeriesList(items);
         }
       }).catch(() => {});
-    }, 6000);
+    }, 3500);
 
     return () => {
       clearInterval(pollInterval);
+      unsubscribeBroadcast();
       window.removeEventListener(CMS_EVENT_KEY, handleUpsert);
       window.removeEventListener('dk_test_series_created', handleUpsert);
       window.removeEventListener('dk_test_series_updated', handleUpsert);

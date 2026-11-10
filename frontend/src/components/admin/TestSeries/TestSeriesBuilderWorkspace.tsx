@@ -68,6 +68,7 @@ import { apiClient } from '../../../services/apiClient';
 import { cmsService } from '../../../services/cmsService';
 import { notificationService } from '../../../services/notificationService';
 import { GeminiApiKeyModal } from '../../common/GeminiApiKeyModal/GeminiApiKeyModal';
+import { broadcastRealtimeEvent, subscribeRealtimeEvents } from '../../../utils/broadcastSync';
 
 import { PART_TESTS_DATA } from '../../../data/partTestsData';
 import { MathText } from '../../ui/MathText/MathText';
@@ -905,14 +906,19 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     fetchLiveTestSeries();
 
     const handleSync = () => {
-      fetchLiveTestSeries();
+      fetchLiveTestSeries(true);
     };
+
+    const unsubscribe = subscribeRealtimeEvents(() => {
+      fetchLiveTestSeries(true);
+    });
 
     window.addEventListener('dk_test_series_created', handleSync);
     window.addEventListener('dk_test_series_updated', handleSync);
     window.addEventListener('dk_test_series_deleted', handleSync);
 
     return () => {
+      unsubscribe();
       window.removeEventListener('dk_test_series_created', handleSync);
       window.removeEventListener('dk_test_series_updated', handleSync);
       window.removeEventListener('dk_test_series_deleted', handleSync);
@@ -1359,6 +1365,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     try {
       await apiClient.post('/test-series', payload);
+      broadcastRealtimeEvent({ type: 'test_series_created', data: payload });
       notificationService.addNotification({
         title: `📝 New Test Series Live: ${payload.title}`,
         description: `${payload.format} • ${payload.totalMarks} Marks • ${payload.durationMinutes} mins`,
@@ -1800,6 +1807,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
     try {
       await apiClient.delete(`/test-series/${target.id}`);
+      broadcastRealtimeEvent({ type: 'test_series_deleted', id: target.id });
       cmsService.deleteTestSeries(target.id).catch(() => {});
 
       // Real-time admin notification (silent: true so only 1 single operation toast shows)
@@ -3129,7 +3137,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         }
         const updatedData = res?.data || payload;
         cmsService.updateTestSeries(editingSeriesId, updatedData).catch(() => {});
-        window.dispatchEvent(new CustomEvent('dk_test_series_updated', { detail: updatedData }));
+        broadcastRealtimeEvent({ type: 'test_series_updated', data: updatedData });
         notificationService.addNotification({
           title: `📝 CBT Test Updated: ${updatedData.title}`,
           description: `${updatedData.format} • ${updatedData.totalMarks} Marks • Status: ${updatedData.status}`,
@@ -3152,7 +3160,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
           timestamp: Date.now(),
           unread: true
         });
-        window.dispatchEvent(new CustomEvent('dk_test_series_created', { detail: savedData }));
+        broadcastRealtimeEvent({ type: 'test_series_created', data: savedData });
         showToast(builderStatus === 'Draft' ? '✓ CBT Examination saved to Database as Draft!' : builderStatus === 'Scheduled' ? '✓ CBT Examination scheduled successfully!' : '✓ CBT Examination published live to Database!');
       }
 

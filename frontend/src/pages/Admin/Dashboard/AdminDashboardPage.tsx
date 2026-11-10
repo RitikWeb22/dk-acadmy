@@ -73,6 +73,7 @@ import { OrdersAnalyticsCard } from './components/OrdersAnalyticsCard';
 import { RecentTransactionsCard } from './components/RecentTransactionsCard';
 import { CircularProgressRing } from './components/CircularProgressRing';
 import { apiClient } from '../../../services/apiClient';
+import { subscribeRealtimeEvents } from '../../../utils/broadcastSync';
 import { useAdminAuth } from '../../../context/AdminAuthContext';
 
 import styles from './AdminDashboardPage.module.scss';
@@ -307,7 +308,11 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
       fetchAnalytics();
     };
 
-    const handleSync = () => fetchAnalytics(false);
+    const handleSync = () => fetchAnalytics(true);
+
+    const unsubscribe = subscribeRealtimeEvents(() => {
+      fetchAnalytics(true);
+    });
 
     window.addEventListener('dk_payment_success', handleRealtimePayment);
     window.addEventListener('dk_order_created', handleRealtimePayment);
@@ -318,6 +323,7 @@ export const AdminDashboardPage: React.FC<{ initialMenu?: string }> = ({ initial
     window.addEventListener('dk_test_series_created', handleSync);
     window.addEventListener('dk_student_registered', handleSync);
     return () => {
+      unsubscribe();
       window.removeEventListener('dk_payment_success', handleRealtimePayment);
       window.removeEventListener('dk_order_created', handleRealtimePayment);
       window.removeEventListener('dk_course_created', handleSync);

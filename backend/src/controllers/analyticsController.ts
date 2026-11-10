@@ -220,7 +220,7 @@ export const getDashboardAnalytics = async (req: Request, res: Response): Promis
         activeStudents: totalStudents,
         totalTeachers,
         totalCourses,
-        totalTestSeries: Math.max(totalTestSeries, 5),
+        totalTestSeries: totalTestSeries,
         totalDppPyq,
         totalFreeLectures,
         totalPaidLectures,

@@ -18,6 +18,7 @@ import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
 import { COURSES_CATALOG } from '../../data/coursesData';
 import { DPP_SETS } from '../../data/dppData';
 import { TEST_SERIES_DATA } from '../../data/testSeriesData';
+import { subscribeRealtimeEvents } from '../../utils/broadcastSync';
 import type { Course, DPPAttempt, TestAttempt, LearningActivityEvent, TestSeriesItem } from '../../types';
 
 import styles from './DashboardPage.module.scss';
@@ -35,19 +36,19 @@ export const DashboardPage: React.FC = () => {
   // 1. Live test series catalog from MongoDB + local CMS + static fallback
   const [allTestSeries, setAllTestSeries] = useState<TestSeriesItem[]>(() => {
     const cmsTests = cmsService.getTestSeries();
-    return cmsTests && cmsTests.length > 0 ? cmsTests : TEST_SERIES_DATA;
+    return cmsTests && cmsTests.length > 0 ? cmsTests : [];
   });
 
   useEffect(() => {
     const refreshTests = async () => {
       try {
         const live = await cmsService.fetchTestSeriesFromAPI(true);
-        if (live && live.length > 0) {
+        if (Array.isArray(live)) {
           setAllTestSeries(live);
         }
       } catch {
         const cached = cmsService.getTestSeries();
-        if (cached && cached.length > 0) {
+        if (Array.isArray(cached)) {
           setAllTestSeries(cached);
         }
       }
@@ -56,19 +57,28 @@ export const DashboardPage: React.FC = () => {
 
     const handleCmsEvent = (e: any) => {
       if (e?.detail?.type === 'test_series' || !e?.detail?.type) {
-        const updated = cmsService.getTestSeries();
-        if (updated && updated.length > 0) {
-          setAllTestSeries(updated);
-        }
+        refreshTests();
       }
     };
+
+    const unsubscribeBroadcast = subscribeRealtimeEvents((event) => {
+      if (event.type === 'test_series_created' || event.type === 'test_series_updated' || event.type === 'test_series_deleted') {
+        refreshTests();
+      }
+    });
 
     window.addEventListener(CMS_EVENT_KEY, handleCmsEvent);
     window.addEventListener('dk_test_series_created', refreshTests);
     window.addEventListener('dk_test_series_updated', refreshTests);
     window.addEventListener('dk_test_series_deleted', refreshTests);
 
+    const pollTimer = setInterval(() => {
+      refreshTests();
+    }, 4500);
+
     return () => {
+      clearInterval(pollTimer);
+      unsubscribeBroadcast();
       window.removeEventListener(CMS_EVENT_KEY, handleCmsEvent);
       window.removeEventListener('dk_test_series_created', refreshTests);
       window.removeEventListener('dk_test_series_updated', refreshTests);
