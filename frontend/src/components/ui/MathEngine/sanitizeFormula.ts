@@ -288,16 +288,23 @@ export function sanitizeFormula(str: string): string {
   }
 
   // Auto-balance curly braces { and } (excluding escaped \{ and \})
-  // Ensures any open braces inside fraction/macro arguments close before \right delimiters
+  // Track open brace stack or brace depth associated with \left
+  // When a \left is encountered, record the current brace depth
+  // Only close braces that were opened AFTER the corresponding \left
   let openBraces = 0;
   let balanced = '';
+  const leftBraceDepths: number[] = [];
+
   for (let i = 0; i < res.length; i++) {
     const ch = res[i];
     const prev = i > 0 ? res[i - 1] : '';
 
-    // If approaching a \right delimiter while open braces exist inside a macro argument, close them before \right
-    if (res.startsWith('\\right', i) && openBraces > 0) {
-      while (openBraces > 0) {
+    if (res.startsWith('\\left', i)) {
+      leftBraceDepths.push(openBraces);
+    } else if (res.startsWith('\\right', i)) {
+      const minBracesAtLeft = leftBraceDepths.pop() ?? 0;
+      // If any unclosed { were opened inside this \left...\right group, close them before \right
+      while (openBraces > minBracesAtLeft) {
         balanced += '}';
         openBraces--;
       }
