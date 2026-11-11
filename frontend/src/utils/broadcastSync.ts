@@ -57,3 +57,4 @@ export const subscribeRealtimeEvents = (
     channel?.removeEventListener('message', handler);
   };
 };
+

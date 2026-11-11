@@ -100,6 +100,9 @@ export function normalizeDocxMath(raw: string): string {
   // Insert space between coefficient/variable and function keyword
   s = s.replace(/([0-9a-zA-Z])(?=\b(?:loge|log2|log10|log|sin|cos|tan|sec|cot|csc)\b)/g, '$1 ');
 
+  // Dot multiplication between radical/number and trig/function: √2 .sinx -> \sqrt{2} \sin x, 2.sin x -> 2 \sin x
+  s = s.replace(/(\d+|√\s*\d+|\\sqrt\{\d+\}|[a-zA-Z0-9])\s*\.\s*(?=(?:\\)?(?:sin|cos|tan|sec|cot|csc|log|ln|exp|[a-zA-Z]))/gi, '$1 ');
+
   // 6. Exponential attached inverse trig: etan-1 x -> e^{\tan^{-1} x}
   s = s.replace(/e(tan|sin|cos|cot|sec|cosec|csc)-1\s*([a-zA-Z0-9]+|\([a-zA-Z0-9]+\))/gi, 'e^{\\\\$1^{-1}($2)}');
 
@@ -114,6 +117,11 @@ export function normalizeDocxMath(raw: string): string {
   s = s.replace(/\blog10\s*([a-zA-Z0-9\(])/gi, '\\log_{10} $1');
   s = s.replace(/\bcosec\b/gi, '\\csc');
   s = s.replace(/\blog\b(?![_a-zA-Z])/gi, '\\log');
+
+  // Multiple angles: sin2x -> \sin 2x, cos2x -> \cos 2x, tan2x -> \tan 2x, sin3x -> \sin 3x
+  s = s.replace(/\b(sin|cos|tan|sec|cot|csc)([2-9])(?=[a-zA-Z\\])/gi, '\\$1 $2');
+  // Unspaced trig: sinx -> \sin x, cosx -> \cos x, tanx -> \tan x, secx -> \sec x
+  s = s.replace(/\b(sin|cos|tan|sec|cot|csc)([a-zA-Z])\b/gi, '\\$1 $2');
 
   // Trig powers without backslash: cos2 x -> \cos^2 x, cos4 x -> \cos^4 x
   s = s.replace(/\b(sin|cos|tan|sec|cot|csc)([2-9])(?![0-9])/gi, '\\$1^{$2} ');
@@ -1101,6 +1109,10 @@ export function convertWordEquationToLatex(raw: string): string {
     const before = full.substring(Math.max(0, offset - 20), offset);
     if (/\\text\{[^{}]*$/.test(before)) return match;
     return `\\dfrac{${v1}}{${v2}}`;
+  });
+  // Greek letter fractions with leading coefficient or variable: 3\pi/4 -> \dfrac{3\pi}{4}, k\pi/12 -> \dfrac{k\pi}{12}, 7\pi/4 -> \dfrac{7\pi}{4}
+  s = s.replace(/(?<![0-9a-zA-Z_\\])([-+]?(?:[0-9a-zA-Z_]+(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?\s*)?\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, (match, num, den) => {
+    return `\\dfrac{${num.trim()}}{${den.trim()}}`;
   });
   // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi/4 -> \dfrac{\pi}{4}
   s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');

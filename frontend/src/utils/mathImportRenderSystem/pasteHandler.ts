@@ -168,6 +168,30 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
   s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
+  // Convert plain text piecewise cases: e.g. f(x) = { -2, -2 <= x <= 0 \n x - 2, 0 < x <= 2
+  s = s.replace(/([a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*)\{\s*([\s\S]+?)(?=\s*(?:and|where|when|such|for|Then|\.|\b[a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=|$))/gi, (match, lhs, body) => {
+    if (!/(?:<=|>=|<|>|≤|≥|\\le|\\ge)/.test(body)) return match;
+    const lines = body.split(/\n|\r\n|(?<=[0-9a-zA-Z_])\s{3,}/).map((l: string) => l.trim()).filter(Boolean);
+    if (lines.length < 2) return match;
+    const branches: string[] = [];
+    for (const line of lines) {
+      let cleanedLine = line.replace(/^\{+/, '').trim();
+      const parts = cleanedLine.split(/\s*,\s*(?=[-+]?[0-9a-zA-Z_\\|])/);
+      if (parts.length >= 2) {
+        const expr = parts[0].trim();
+        const cond = parts.slice(1).join(', ').trim()
+          .replace(/<=|≤/g, '\\le ')
+          .replace(/<(?!=)/g, ' < ')
+          .replace(/>=|≥/g, '\\ge ')
+          .replace(/>(?!=)/g, ' > ');
+        branches.push(`${expr}, & ${cond}`);
+      } else {
+        branches.push(cleanedLine);
+      }
+    }
+    return `${lhs}\\begin{cases} ${branches.join(' \\\\ ')} \\end{cases} `;
+  });
+
   // Strip illegal prime / quote superscripts on digits e.g. 0^' or 0^{'} or 0' -> 0
   s = s.replace(/(\d+)\s*\^\s*\{?\s*['′]\s*\}?/g, '$1')
        .replace(/(\d+)\s*['′]/g, '$1')
@@ -269,6 +293,10 @@ export function normalizeMathString(raw: string): string {
 
   // Greek letter fractions with powers: \pi^2/32 -> \dfrac{\pi^2}{32}, \pi/2 -> \dfrac{\pi}{2}
   s = s.replace(/(\\[a-zA-Z]+)\s*\^/g, '$1^');
+  // Greek letter fractions with leading coefficient or variable: 3\pi/4 -> \dfrac{3\pi}{4}, k\pi/12 -> \dfrac{k\pi}{12}, 7\pi/4 -> \dfrac{7\pi}{4}
+  s = s.replace(/(?<![0-9a-zA-Z_\\])([-+]?(?:[0-9a-zA-Z_]+(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?\s*)?\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, (match, num, den) => {
+    return `\\dfrac{${num.trim()}}{${den.trim()}}`;
+  });
   s = s.replace(/(\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
 
   // Differentials: dy/(" "\, dx) -> \dfrac{dy}{dx}, d^n/dx^n -> \dfrac{d^n}{dx^n}
@@ -289,6 +317,15 @@ export function normalizeMathString(raw: string): string {
 
   // Separate glued math functions: 2xexp -> 2x exp, xexp -> x exp, 2xsin -> 2x sin
   s = s.replace(/([0-9a-zA-Z])\s*(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b/gi, '$1 $2');
+
+  // Dot multiplication between radical/number and trig/function: √2 .sinx -> \sqrt{2} \sin x, 2.sin x -> 2 \sin x
+  s = s.replace(/(\\(?:sqrt|cbrt)\{[^{}]+\}|\d+|[a-zA-Z0-9])\s*\.\s*(?=(?:\\)?(?:sin|cos|tan|sec|cot|csc|log|ln|exp|[a-zA-Z]))/gi, '$1 ');
+
+  // Multiple angles: sin2x -> \sin 2x, cos2x -> \cos 2x, tan2x -> \tan 2x, sin3x -> \sin 3x
+  s = s.replace(/\b(sin|cos|tan|sec|cot|csc)([2-9])(?=[a-zA-Z\\])/gi, '\\$1 $2');
+
+  // Unspaced trig: sinx -> \sin x, cosx -> \cos x, tanx -> \tan x, secx -> \sec x
+  s = s.replace(/\b(sin|cos|tan|sec|cot|csc)([a-zA-Z])\b/gi, '\\$1 $2');
 
   // Double parens on radicals: √((1+x^6)) or \sqrt((1+x^6)) or 4√2
   s = s.replace(/√\s*\(\s*\(\s*([^()]+)\s*\)\s*\)/g, '\\sqrt{$1}');
@@ -350,6 +387,10 @@ export function normalizeMathString(raw: string): string {
     const before = full.substring(Math.max(0, offset - 20), offset);
     if (/\\text\{[^{}]*$/.test(before)) return match;
     return `\\dfrac{${v1}}{${v2}}`;
+  });
+  // Greek letter fractions with leading coefficient / variable: 3\pi/4 -> \dfrac{3\pi}{4}, k\pi/12 -> \dfrac{k\pi}{12}, 7\pi/4 -> \dfrac{7\pi}{4}
+  s = s.replace(/(?<![0-9a-zA-Z_\\])([-+]?(?:[0-9a-zA-Z_]+(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?\s*)?\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, (match, num, den) => {
+    return `\\dfrac{${num.trim()}}{${den.trim()}}`;
   });
   // Greek letter fractions: \pi/2 -> \dfrac{\pi}{2}, \pi/4 -> \dfrac{\pi}{4}
   s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
@@ -498,9 +539,62 @@ export function normalizeMathString(raw: string): string {
     (_, lead, m) => (lead ? lead + ' ' : '') + protect(m)
   );
 
-  // 1b. Function mappings: e.g. f : \mathbb{R} \to \mathbb{R}
+  // 1b. Function mappings: e.g. f : \mathbb{R} \to \mathbb{R}, g:(0, \infty) \to \mathbb{R}, f: [0, 1] \to \mathbb{R}
+  s = s.replace(
+    /(?<![$\w])([a-zA-Z]\s*:\s*(?:\\mathbb\{[A-Z]\}|[A-Z]|\([^()\n]+\)|\[[^\[\]\n]+\]|\\?\{[^{}\n]+?\\?\}(?:\s*[-−]\s*\\?\{[^{}\n]+?\\?\})?)\s*(?:\\to|->|→)\s*(?:\\mathbb\{[A-Z]\}|[A-Z]|\([^()\n]+\)|\[[^\[\]\n]+\]))(?![$\w])/g,
+    (_, m) => protect(m)
+  );
   s = s.replace(/(?<![a-zA-Z0-9_\$])([a-zA-Z]\s*:\s*(?:\\mathbb\{[A-Z]\}|[A-Z])\s*\\to\s*(?:\\mathbb\{[A-Z]\}|[A-Z]))(?![a-zA-Z0-9_\$])/g,
     (_, m) => protect(m));
+
+  // Dedicated curve & line equations after "with the curve", "and the curve", "the curve", "curve", "the line", "line":
+  // e.g. "with the curve y = \sqrt{2}\sin x is", "curve y = \sqrt{2}\sin x", "the line y = 3x + 1"
+  s = s.replace(
+    /(?<=\b(?:with\s+the\s+curve|and\s+the\s+curve|of\s+the\s+curve|the\s+curve|curve|the\s+line|line)\s+)([a-zA-Z]\s*=\s*[-+*/0-9a-zA-Z_\\^{}()\s.]*?[a-zA-Z0-9_\\^{}()\]]+)(?=\s*[,;.]|\s+(?:is|are|pass|passes|touch|touches|intersect|intersects|has|have|at|where|when|if|then|and|with)\b|$)/gi,
+    (fullMatch, eq) => {
+      const stripped = eq.replace(/\\[a-zA-Z]+/g, ' ');
+      if (/\b(?:let|the|for|with|where|when|if|then|is|are|curve|line)\b/i.test(stripped)) {
+        return fullMatch;
+      }
+      return protect(eq);
+    }
+  );
+
+  // Set equations with intervals and set differences (balanced curly brace matching):
+  // e.g. S = (0, 2\pi) - \{ \pi/2, 3\pi/4, 3\pi/2, 7\pi/4 \}, S = \mathbb{R} - \{0\}, A = [0, 2\pi] - \{ \pi/2 \}
+  const setRegex = /(?<![$\w])([A-Z]\s*=\s*(?:\\mathbb\{[A-Z]\}|[A-Z]|\([^()\n]+\)|\[[^\[\]\n]+\])\s*[-−]\s*(\\?\{)|[A-Z]\s*=\s*(\\?\{)|(?:\([^()\n]+\)|\[[^\[\]\n]+\]|\\mathbb\{[A-Z]\}|[A-Z])\s*[-−]\s*(\\?\{)|(?<=(?:[-−]|\\setminus)\s*)(\\?\{))/g;
+  let setMatch: RegExpExecArray | null;
+  let setRes = '';
+  let setLastIndex = 0;
+  while ((setMatch = setRegex.exec(s)) !== null) {
+    setRes += s.substring(setLastIndex, setMatch.index);
+    const braceStr = setMatch[2] || setMatch[3] || setMatch[4] || setMatch[5] || '{';
+    const isEscaped = braceStr.startsWith('\\');
+    const startInner = setMatch.index + setMatch[0].length;
+    let depth = 1;
+    let i = startInner;
+    for (; i < s.length; i++) {
+      const isEsc = i > 0 && s[i - 1] === '\\';
+      if (s[i] === '{') {
+        if (isEsc === isEscaped) depth++;
+      } else if (s[i] === '}') {
+        if (isEsc === isEscaped) {
+          depth--;
+          if (depth === 0) break;
+        }
+      }
+    }
+    const fullMatched = s.substring(setMatch.index, i + 1);
+    let formattedSet = fullMatched;
+    if (formattedSet.includes('{') && !formattedSet.includes('\\left\\{')) {
+      formattedSet = formattedSet.replace(/\\?\{([\s\S]*)\\?\}/, (_, inner) => `\\left\\{${inner.trim()}\\right\\}`);
+    }
+    setRes += protect(formattedSet);
+    setLastIndex = i + 1;
+    setRegex.lastIndex = setLastIndex;
+  }
+  setRes += s.substring(setLastIndex);
+  s = setRes;
 
   // 3. Symmetric 3D Line Equations: \frac{x-x1}{a} = \frac{y-y1}{b} = \frac{z-z1}{c}
   s = s.replace(
@@ -642,7 +736,7 @@ export function normalizeMathString(raw: string): string {
   // 13b. Expressions before "is equal to" / "equals"
   // e.g. "then 6(y'(0) + (y(log_e √3))^2) is equal to", "then the value of 3\alpha^2 is equal to", "then y(2) is equal to"
   s = s.replace(
-    /\b(then\s+(?:the\s+)?value\s+of|the\s+value\s+of|value\s+of|then|and|if|where|find|evaluate)\s+([^,;\n]+?)\s+(is\s+equal\s+to|equals\b)(?:\s*[:=_\-]+)?/gi,
+    /\b(then\s+(?:the\s+)?value\s+of|the\s+value\s+of|value\s+of|then|and|if|where|find|evaluate)\s+((?:[^,;.\n]|\.(?=\d))+?)\s+(is\s+equal\s+to|equals\b)(?:\s*[:=_\-]+)?/gi,
     (fullMatch, lead, expr, tail) => {
       let trimmed = expr.trim();
       trimmed = trimmed.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
@@ -659,8 +753,32 @@ export function normalizeMathString(raw: string): string {
   // 13d. Function composition expressions: e.g. (f \circ g)(x) or (fog)(x)
   s = s.replace(/(?<![$\w])(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*(?:\([^()\n]+\))?)(?![$\w])/gi, (m, expr, offset) => isInsideLatexGroup(s, offset) ? m : protect(expr));
 
-  // 14b. Set membership relations: x, y \in \mathbb{R} or x \in R or n \in \mathbb{N}
+  // 14b. Generalized set membership relations: x \in S, x, y \in S, x \in A, x \in \mathbb{R}, x \in [0, 1], x \in \{...\}
+  s = s.replace(
+    /(?<![$\w])([a-zA-Z](?:\s*,\s*[a-zA-Z])*\s*\\in\s*(?:\\mathbb\{[A-Z]\}|[A-Z]|\[[^\[\]\n]+\]|\([^()\n]+\)|\\?\{[^{}\n]+?\\?\}))(?![$\w])/g,
+    (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m)
+  );
   s = s.replace(/(?<![$\w])([a-zA-Z](?:\s*,\s*[a-zA-Z])*\s*\\in\s*(?:\\mathbb\{[RNZQ]\}|[RNZQ]|\[[^\[\]\n]+\]|\([^()\n]+\)))(?![$\w])/g, (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m));
+
+  // Expressions after "is" before punctuation or prose stops: e.g. "is \dfrac{k\pi}{12}, then", "is \dfrac{a}{b}, where", "is \sqrt{2}, then"
+  s = s.replace(
+    /(?<=\bis\s+)([-+]?\s*(?:\\(?:d?frac)\{(?:[^{}]|\\{[^{}]*\\})+\\}\{(?:[^{}]|\\{[^{}]*\\})+\\}|\\(?:sqrt|cbrt)\{[^{}]+\}|[0-9a-zA-Z_\\^{}()]+)(?:\s*[-+*/]\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|\\(?:sqrt|cbrt)\{[^{}]+\}|[0-9a-zA-Z_\\^{}()]+))*)(?=\s*[,;.]|\s+(?:then|where|when|if|and)\b)/g,
+    (m, expr, offset) => {
+      if (isInsideLatexGroup(s, offset)) return m;
+      const stripped = expr.replace(/\\[a-zA-Z]+/g, ' ').trim();
+      if (/\b(?:the|a|an|equal|true|false|correct|given|defined|continuous)\b/i.test(stripped)) return m;
+      if (/[0-9\+\-\*\/\^_{}\(\)\\]/.test(expr)) {
+        return protect(expr);
+      }
+      return m;
+    }
+  );
+
+  // Single variable before "is equal to" / "equals": e.g. "then k is equal to" -> "then $k$ is equal to"
+  s = s.replace(
+    /\b(then\s+)([a-zA-Z])(\s+(?:is\s+equal\s+to|equals)\b)/gi,
+    (_, lead, v, tail) => `${lead}${protect(v)}${tail}`
+  );
 
   // 14c. Simple variable assignments after at/for/where/when/if: at x = 0, for x = 1
   s = s.replace(
@@ -749,6 +867,12 @@ export function normalizeMathString(raw: string): string {
   // 14i. Standalone finite sets after "is" or "in" or "to": e.g. "is {1, 2, 3, 4, 5}", "in {1, 2, 3}"
   s = s.replace(
     /(?<=\b(?:is|in|to)\s+)(\\?\{[-+0-9a-zA-Z_\s,;.\-\\/]+\\?\})(?=\s*[,;.]|\s+${proseStops}|$)/g,
+    (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m)
+  );
+
+  // Sets after set difference operator "-" or "\setminus": e.g. " - {1, 2}", " - \{\frac{\pi}{2}, ...\}"
+  s = s.replace(
+    /(?<=(?:[-−]|\\setminus)\s*)(\\?\{[-+0-9a-zA-Z_\\^{}()\s,;.\-\\/]+\\?\})(?=\s*[,;.]|\s+${proseStops}|$)/g,
     (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m)
   );
 
