@@ -3478,15 +3478,15 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                         background: '#eff6ff',
                         color: '#1d4ed8',
                         border: '1.5px solid #bfdbfe',
-                        borderRadius: '6px',
-                        padding: '6px 8px',
+                        borderRadius: '8px',
+                        padding: '7px 18px',
                         fontSize: '11.5px',
                         fontWeight: 700,
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '5px',
+                        gap: '6px',
                         gridColumn: '1 / -1'
                       }}
                       title="Paste question with options from Word or PDF"
@@ -3500,8 +3500,8 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                         background: '#ffffff',
                         color: '#2563eb',
                         border: '1.5px solid #bfdbfe',
-                        borderRadius: '6px',
-                        padding: '5px 8px',
+                        borderRadius: '8px',
+                        padding: '7px 16px',
                         fontSize: '11.5px',
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -3762,8 +3762,8 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                 {/* Problem Statement Textarea & MathInput */}
                 <div className={styles.statementEditorSection}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                    <label className={styles.sectionSmallLabel} style={{ margin: 0 }}>
-                      Problem Statement (KaTeX LaTeX formulas supported):
+                    <label className={styles.sectionSmallLabel} style={{ margin: 0, fontWeight: 700 }}>
+                      Problem Statement:
                     </label>
                     <button
                       type="button"
@@ -3771,13 +3771,13 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '5px',
+                        gap: '6px',
                         background: '#EFF6FF',
                         color: '#1D4ED8',
                         border: '1px solid #BFDBFE',
-                        borderRadius: '6px',
-                        padding: '4px 9px',
-                        fontSize: '11.5px',
+                        borderRadius: '8px',
+                        padding: '6px 18px',
+                        fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer'
                       }}
@@ -4040,7 +4040,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: '8px',
-                        padding: '8px 16px',
+                        padding: '9px 22px',
                         fontSize: '13px',
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -4060,7 +4060,7 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                         color: '#334155',
                         border: '1.5px solid #CBD5E1',
                         borderRadius: '8px',
-                        padding: '8px 16px',
+                        padding: '9px 22px',
                         fontSize: '13px',
                         fontWeight: 700,
                         cursor: 'pointer',

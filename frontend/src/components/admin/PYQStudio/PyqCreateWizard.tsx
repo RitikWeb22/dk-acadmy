@@ -1132,7 +1132,7 @@ export const PyqCreateWizard: React.FC<Props> = ({
                 {/* Section B: Question Statement (Rich LaTeX math) */}
                 <div className={styles.formGroup}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <label>Question Statement (LaTeX / KaTeX Math Supported) <span className={styles.required}>*</span></label>
+                    <label>Question Statement <span className={styles.required}>*</span></label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <button
                         type="button"

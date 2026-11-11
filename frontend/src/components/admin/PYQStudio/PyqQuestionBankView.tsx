@@ -396,7 +396,7 @@ export const PyqQuestionBankView: React.FC<Props> = ({
 
               <div className={styles.formGroup}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <label style={{ margin: 0 }}>Question Statement (LaTeX supported)</label>
+                  <label style={{ margin: 0 }}>Question Statement</label>
                   <button
                     type="button"
                     style={{

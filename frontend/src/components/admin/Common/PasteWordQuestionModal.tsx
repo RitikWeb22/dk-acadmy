@@ -242,13 +242,21 @@ Ans: B`;
 
         {/* Footer */}
         <div className={styles.modalFooter}>
-          <Button type="button" variant="outline" size="sm" className="h-9 px-4 font-medium" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 px-6 font-medium"
+            style={{ paddingLeft: '22px', paddingRight: '22px' }}
+            onClick={onClose}
+          >
             Cancel
           </Button>
           <Button
             type="button"
             size="sm"
-            className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            className="h-9 px-6 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            style={{ paddingLeft: '24px', paddingRight: '24px' }}
             onClick={handleAllFetchClick}
             disabled={parsedList.length === 0}
             title="Auto-fill question statement and options into question inputs"

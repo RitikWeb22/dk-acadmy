@@ -56,10 +56,11 @@ export const ValidationBadge: React.FC<ValidationBadgeProps> = ({
       variant="outline"
       size="sm"
       className={cn(
-        "h-8 px-4 rounded-lg text-xs font-semibold gap-2 shadow-xs border pointer-events-auto cursor-default disabled:opacity-100 shrink-0 whitespace-nowrap",
+        "h-9 px-6 rounded-lg text-xs font-semibold gap-2.5 shadow-xs border pointer-events-auto cursor-default disabled:opacity-100 shrink-0 whitespace-nowrap",
         config.variantClass,
         className
       )}
+      style={{ paddingLeft: '22px', paddingRight: '22px' }}
       title={tooltipText}
     >
       {config.icon}
