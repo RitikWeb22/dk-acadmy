@@ -4521,11 +4521,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     <Button
                       type="button"
                       size="sm"
-                      className="h-9.5 px-6 gap-2 font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                      className="h-9.5 px-8 gap-2 
+                      py-2 font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                       onClick={handleNextStep}
-                    >
-                      <span>Next: Section Rules</span>
+                    > &nbsp;
+                      <span> Next: Section Rules</span>
                       <ArrowRight className="size-4" />
+                      &nbsp;
                     </Button>
                   </div>
                 </div>
@@ -4550,13 +4552,14 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       <span>Active Paper Subjects:</span>
                       <span className={styles.subjectSelectHint}>Click to enable or disable subjects for this test</span>
                     </div>
-                    <div className={styles.subjectPillGroup}>
+                    <div className={styles.subjectPillGroup}  >
                       {(['Physics', 'Chemistry', 'Mathematics'] as const).map((subj) => (
                         <button
                           key={subj}
                           type="button"
                           className={`${styles.subjectPillToggle} ${selectedSubjects.includes(subj) ? styles.active : ''}`}
                           onClick={() => toggleSubjectSelection(subj)}
+                          style={{marginRight:"1rem"}}
                         >
                           {selectedSubjects.includes(subj) ? '✓ ' : '+ '}
                           {subj}
@@ -4777,8 +4780,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       className="h-9.5 px-6 gap-2 font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                       onClick={handleNextStep}
                     >
+                      &nbsp;
                       <span>Next: Question Authoring</span>
                       <ArrowRight className="size-4" />
+                      &nbsp;
                     </Button>
                   </div>
                 </div>
@@ -6155,6 +6160,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </>
                       ) : (
                         <>
+&nbsp;
                           <CheckCircle2 className="size-4" />
                           <span>
                             {builderStatus === 'Draft'
@@ -6164,6 +6170,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               : 'Publish CBT Mock Test Live'}
                           </span>
                           <ArrowRight className="size-4" />
+                          &nbsp;
+
                         </>
                       )}
                     </Button>
