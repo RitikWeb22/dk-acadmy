@@ -3273,7 +3273,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 onClick={() => fetchLiveTestSeries(true)}
                 disabled={isLoadingList}
                 title="Refresh test series live from database"
-                className="h-9 px-3.5 gap-2 font-medium bg-background text-foreground shadow-xs border-border/80 hover:bg-accent"
+                className="h-9 px-5 gap-2 font-medium bg-background text-foreground shadow-xs border-border/80 hover:bg-accent"
               >
                 <RefreshCw className={cn("size-3.5 text-muted-foreground", isLoadingList && "animate-spin")} />
                 <span>{isLoadingList ? 'Syncing...' : 'Sync Live'}</span>
@@ -3282,7 +3282,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 type="button"
                 size="sm"
                 onClick={handleOpenCreateModal}
-                className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                className="h-9 px-5 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
               >
                 <Plus className="size-4" />
                 <span>Create Test Series</span>
@@ -3932,7 +3932,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-7 px-2.5 gap-1.5 text-xs font-semibold text-blue-600 border-blue-200 bg-blue-50/60 hover:bg-blue-100 hover:text-blue-700 shadow-none"
+                                className="h-8 px-4 gap-2 text-xs font-semibold text-blue-600 border-blue-200 bg-blue-50/60 hover:bg-blue-100 hover:text-blue-700 shadow-none rounded-lg"
                                 onClick={() => handleEditSeries(item)}
                                 title="Open in 4-Step Question Builder"
                               >
@@ -4142,7 +4142,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 px-3 gap-1.5 font-medium text-xs text-muted-foreground hover:text-foreground bg-background shadow-xs border-border/80"
+              className="h-9 px-4.5 gap-2 font-medium text-xs text-muted-foreground hover:text-foreground bg-background shadow-xs border-border/80 rounded-lg"
               onClick={() => setViewMode('TABLE')}
             >
               <ChevronLeft className="size-4" />
@@ -4518,7 +4518,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     <Button
                       type="button"
                       size="sm"
-                      className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                      className="h-9.5 px-6 gap-2 font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                       onClick={handleNextStep}
                     >
                       <span>Next: Section Rules</span>
@@ -4762,7 +4762,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-9 px-3.5 gap-2 font-medium"
+                      className="h-9.5 px-5 gap-2 font-medium rounded-lg"
                       onClick={handlePrevStep}
                     >
                       <ChevronLeft className="size-4" />
@@ -4771,7 +4771,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     <Button
                       type="button"
                       size="sm"
-                      className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                      className="h-9.5 px-6 gap-2 font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                       onClick={handleNextStep}
                     >
                       <span>Next: Question Authoring</span>
@@ -4843,7 +4843,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={syncQuestionsWithSections}
-                        className="h-8.5 px-4 gap-2 text-xs font-medium rounded-lg bg-background shadow-xs border-border/80 shrink-0"
+                        className="h-8.5 px-5 gap-2 text-xs font-medium rounded-lg bg-background shadow-xs border-border/80 shrink-0"
                         title="Re-sync slots to match Section A and Section B counts configured in Step 2"
                       >
                         <RefreshCw className="size-3.5 text-muted-foreground" />
@@ -4855,7 +4855,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         variant="default"
                         size="sm"
                         onClick={handlePasteWordQuestionClick}
-                        className="h-8.5 px-4 gap-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs shrink-0"
+                        className="h-8.5 px-5 gap-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs shrink-0"
                         title="Paste question and options from Word or PDF"
                       >
                         <Sparkles className="size-3.5" />
@@ -4867,7 +4867,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={handleAddQuestion}
-                        className="h-8.5 px-3.5 gap-2 text-xs font-medium rounded-lg bg-background shadow-xs border-border/80 shrink-0"
+                        className="h-8.5 px-4.5 gap-2 text-xs font-medium rounded-lg bg-background shadow-xs border-border/80 shrink-0"
                       >
                         <Plus className="size-3.5" />
                         <span>Add Slot</span>
@@ -5021,7 +5021,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-8 px-3.5 gap-2 text-xs font-medium rounded-lg bg-background shadow-xs border-border/80"
+                            className="h-8.5 px-4.5 gap-2 text-xs font-medium rounded-lg bg-background shadow-xs border-border/80"
                             onClick={() => handleDuplicateQuestion(currentEditingQuestion)}
                             title="Duplicate question"
                           >
@@ -5033,7 +5033,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-8 px-3.5 gap-2 text-xs font-medium rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              className="h-8.5 px-4.5 gap-2 text-xs font-medium rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => handleDeleteQuestion(currentEditingQuestion.id)}
                               title="Delete question"
                             >
@@ -5090,8 +5090,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       <div className={styles.qBodySection}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '10px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                            <label className={styles.sectionLabel} style={{ marginBottom: 0, fontWeight: 700, fontSize: '13px' }}>
-                              Question Statement (LaTeX / KaTeX)
+                            <label className={styles.sectionLabel} style={{ marginBottom: 0, fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>
+                              Question Statement
                             </label>
                             <ValidationBadge
                               status={questionValidations[currentEditingQuestion.id]?.status || 'GREEN'}
@@ -5104,13 +5104,13 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               variant="outline"
                               size="sm"
                               onClick={handlePasteWordQuestionClick}
-                              className="h-8 px-4 gap-2 text-xs font-semibold rounded-lg text-blue-700 bg-blue-50/80 border-blue-200 hover:bg-blue-100 hover:text-blue-800 shadow-xs shrink-0 whitespace-nowrap"
+                              className="h-8.5 px-5 gap-2 text-xs font-semibold rounded-lg text-blue-700 bg-blue-50/80 border-blue-200 hover:bg-blue-100 hover:text-blue-800 shadow-xs shrink-0 whitespace-nowrap"
                               title="Paste full question with options from Word or PDF"
                             >
                               <Sparkles className="size-3.5 text-blue-600" />
                               <span>Paste Word Question</span>
                             </Button>
-                            <span className="inline-flex items-center h-8 px-3.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs shrink-0 whitespace-nowrap">
+                            <span className="inline-flex items-center h-8.5 px-4.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs shrink-0 whitespace-nowrap">
                               +{positiveMarks} / -{negativeMarks} Marks
                             </span>
                           </div>
@@ -6103,7 +6103,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-10 px-4 gap-2 font-medium"
+                      className="h-10 px-5 gap-2 font-medium rounded-lg"
                       onClick={handlePrevStep}
                     >
                       <ChevronLeft className="size-4" />
@@ -6113,7 +6113,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       type="button"
                       size="sm"
                       className={cn(
-                        "h-10 px-5 gap-2 font-semibold shadow-sm text-white",
+                        "h-10 px-6 gap-2 font-semibold rounded-lg shadow-sm text-white",
                         builderStatus === 'Draft' ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
                       )}
                       onClick={handleSaveAndPublishFromBuilder}
