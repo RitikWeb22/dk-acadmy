@@ -51,14 +51,14 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   },
   {
     id: 'notif_5',
-    title: 'Offline Doubt Counters Active at Janakpuri Center',
-    message: 'Dedicated one-on-one Mathematics and Physics doubt counters are operational Monday through Saturday (10:00 AM to 07:00 PM) at C4F/33 Janakpuri.',
+    title: 'Offline Doubt Counters Active at Dwarka Sector 12 Center',
+    message: 'Dedicated one-on-one Mathematics and Physics doubt counters are operational Monday through Saturday (10:00 AM to 07:00 PM) at Dwarka Sector 12 Center.',
     category: 'announcement',
     tag: 'Center Update',
     timestamp: Date.now() - 1000 * 60 * 60 * 28, // 28 hours ago
     read: true,
     urgency: 'normal',
-    linkText: 'Janakpuri Center Location',
+    linkText: 'Dwarka Center Location',
     linkUrl: '/about'
   },
   {

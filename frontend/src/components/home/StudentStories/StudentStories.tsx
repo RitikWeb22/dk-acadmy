@@ -65,7 +65,7 @@ const STORIES_LIST: StoryItem[] = [
     score: '99.4 %ile in JEE Main',
     collegeOrRank: 'IIT Roorkee',
     examTag: 'JEE Advanced',
-    quote: 'The small batch size at the Janakpuri center meant every single doubt was addressed directly by DK Sir. The daily DPP sets and error logs eliminated all silly calculation mistakes.',
+    quote: 'The small batch size at the Dwarka center meant every single doubt was addressed directly by DK Sir. The daily DPP sets and error logs eliminated all silly calculation mistakes.',
     highlightTopic: 'PYQs & Error Logs',
     avatarText: 'RV',
     avatarImage: '/images/students/rohan.jpg',

@@ -564,7 +564,7 @@ export const createAdminInvoice = async (req: AuthRequest, res: Response): Promi
       notes: {
         invoiceNo,
         rollNo,
-        centerType: centerType || 'Janakpuri HQ',
+        centerType: centerType || 'Dwarka Center',
         paymentChannel: paymentChannel || 'Cash Desk',
         installmentNote
       }

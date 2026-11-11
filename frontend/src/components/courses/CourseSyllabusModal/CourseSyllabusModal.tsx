@@ -378,10 +378,10 @@ Access: ${c.isDemo ? 'FREE DEMO UNLOCKED' : 'FULL BATCH ACCESS'}
 
 ============================================================
 DELIVERABLES SUMMARY:
-- 350+ Hours Live & Recorded Kota Pedagogy Masterclasses
+- 350+ Hours Live & Recorded Masterclasses
 - 120+ Daily Practice Problem (DPP) Sets with Video Solutions
 - 40 CBT Full Mock Tests with All-India NTA Percentile Analysis
-- Direct Doubt Clearing with DK Sir & Senior Kota IITian Mentors
+- Direct Doubt Clearing with DK Sir & Senior IITian Mentors
 ============================================================
 Website: https://dkacademy.in | Support: contact@dkacademy.in
 `;
@@ -431,7 +431,7 @@ Website: https://dkacademy.in | Support: contact@dkacademy.in
               {course.title}: Detailed Academic Syllabus
             </h2>
             <p className={styles.modalSubtitle}>
-              Week-by-week lecture milestones, Kota speed inspection algorithms, printed module coverage, and DPP problem sets.
+              Week-by-week lecture milestones, speed inspection algorithms, printed module coverage, and DPP problem sets.
             </p>
           </div>
         </header>
@@ -602,7 +602,7 @@ Website: https://dkacademy.in | Support: contact@dkacademy.in
                           <Zap size={14} />
                         </div>
                         <span className={styles.algorithmTitle}>
-                          DK Sir Kota Algorithm &amp; Speed Shortcut:
+                          DK Sir Speed Algorithm &amp; Inspection Shortcut:
                         </span>
                       </div>
                       <p className={styles.algorithmText}>
@@ -614,7 +614,7 @@ Website: https://dkacademy.in | Support: contact@dkacademy.in
                     <div className={styles.chapterDeliverablesRow}>
                       <div className={styles.deliverableTag}>
                         <CheckCircle2 size={13} className={styles.deliverableCheck} />
-                        <span>Kota Theory Module (Ex 1 &amp; 2)</span>
+                        <span>Printed Theory Module (Ex 1 &amp; 2)</span>
                       </div>
                       <div className={styles.deliverableTag}>
                         <CheckCircle2 size={13} className={styles.deliverableCheck} />

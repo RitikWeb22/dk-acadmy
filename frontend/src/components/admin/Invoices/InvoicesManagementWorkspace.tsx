@@ -1196,7 +1196,7 @@ export const InvoicesManagementWorkspace: React.FC = () => {
                       Premier IIT-JEE & Medical Entrance Pedagogy
                     </span>
                     <p className={styles.addressLine}>
-                      C4F/33, behind F Market, Janakpuri, New Delhi - 110058 • Contact: +91 97171 59062
+                      DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL &amp; BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 &amp; 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA) • Contact: +91 97171 59062
                     </p>
                   </div>
                 </div>

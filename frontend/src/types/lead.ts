@@ -1,7 +1,16 @@
 export type TimeSlot =
   | 'Morning (9:00 AM – 12:00 PM)'
   | 'Afternoon (12:00 PM – 4:00 PM)'
-  | 'Evening (4:00 PM – 8:00 PM)';
+  | 'Evening (4:00 PM – 8:00 PM)'
+  | 'Anytime (Immediate / Flexible)';
+
+export type AcademicClassStage =
+  | 'Class 8th'
+  | 'Class 9th'
+  | 'Class 10th'
+  | 'Class 11th'
+  | 'Class 12th'
+  | 'Dropper';
 
 export type LeadStatus =
   | 'New'
@@ -42,7 +51,7 @@ export interface ProspectiveLead {
   subject?: string;
   message?: string;
   relatedCourse?: string;
-  currentClass: 'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper';
+  currentClass: AcademicClassStage | string;
   targetBatch: string;
   preferredTime: TimeSlot;
   city?: string;
@@ -65,7 +74,7 @@ export interface CreateLeadInput {
   subject?: string;
   message?: string;
   relatedCourse?: string;
-  currentClass: 'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper';
+  currentClass: AcademicClassStage | string;
   targetBatch: string;
   preferredTime: TimeSlot;
   city?: string;
@@ -84,6 +93,7 @@ export interface LeadStats {
     morning: number;
     afternoon: number;
     evening: number;
+    anytime?: number;
   };
   conversionRate: number;
 }

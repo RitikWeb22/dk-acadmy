@@ -52,7 +52,7 @@ export const ProvenSuccessVideo: React.FC = () => {
     'Proven Success: Student Testimonials & Speed Shortcuts with DK Sir';
   const description =
     videoSec?.content ||
-    'From struggling with 15-minute calculus derivations to cracking JEE Advanced in 20-30 seconds. Experience the true Kota pedagogy advantage with DK Sir’s proprietary elimination tactics.';
+    'From struggling with 15-minute calculus derivations to cracking JEE Advanced in 20-30 seconds. Experience the true pedagogy advantage with DK Sir’s proprietary elimination tactics.';
   const thumbnail = videoSec?.videoThumbnail || '/img/founder.jpeg';
 
   const isYouTube =

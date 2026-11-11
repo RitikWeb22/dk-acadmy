@@ -30,7 +30,7 @@ const leadSchema = new Schema({
         default: 'Medium'
     },
     leadScore: { type: Number, default: 70 },
-    assignedCounselor: { type: String, default: 'Admissions Desk Janakpuri' },
+    assignedCounselor: { type: String, default: 'Admissions Desk Dwarka' },
     counselorNotes: [counselorNoteSchema],
     followUpDate: { type: String }
 }, {

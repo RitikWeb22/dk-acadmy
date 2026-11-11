@@ -935,7 +935,7 @@ export const MOCK_COURSES: CourseBatch[] = [
 export const WHY_US_FEATURES = [
   {
     title: 'Mentored by DK Sir (Dharmendra Kumar)',
-    desc: '15+ years of dedicated Kota pedagogy, demystifying tough JEE Advanced problems with unmatched clarity.',
+    desc: '10+ years of dedicated teaching excellence, demystifying tough JEE Advanced problems with unmatched clarity.',
     iconName: 'GraduationCap'
   },
   {
@@ -944,12 +944,12 @@ export const WHY_US_FEATURES = [
     iconName: 'Target'
   },
   {
-    title: 'Hybrid: Online + Janakpuri Center',
+    title: 'Hybrid: Online + Dwarka Center',
     desc: 'Attend live interactive virtual classes anywhere across India or in-person at our New Delhi center.',
     iconName: 'Laptop'
   },
   {
-    title: '1:1 Progress Audits & Kota DPPs',
+    title: '1:1 Progress Audits & Daily DPPs',
     desc: 'Daily practice problem sheets, continuous error-log tracking, and bi-weekly IITian mentor reviews.',
     iconName: 'ShieldCheck'
   }
@@ -1016,10 +1016,10 @@ export const FACULTY_MEMBERS = [
   {
     name: 'DK Sir (Dharmendra Kumar)',
     designation: 'Founder & Head of Mathematics',
-    experience: '15+ Years Mentoring • Kota Pedagogy',
+    experience: '10+ Years Mentoring • IIT-JEE Mathematics',
     specialty: 'Calculus, Algebra & 20-30s Inspection Tricks',
     avatar: '/img/dk-sir.jpg',
-    bio: 'Renowned IIT JEE Mathematics mentor who has trained over 12,000 students into top IITs and NITs. Pioneer of the 20-30s inspection shortcuts.'
+    bio: 'Renowned IIT JEE Mathematics mentor who has trained 500+ students into top IITs and NITs. Pioneer of the 20-30s inspection shortcuts.'
   },
   {
     name: 'Dr. Devendra Verma',

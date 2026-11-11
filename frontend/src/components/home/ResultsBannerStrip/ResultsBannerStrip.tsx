@@ -27,80 +27,91 @@ export interface Ranker {
 
 export const TOP_RANKERS_LIST: Ranker[] = [
   {
-    id: 'ranker-1',
-    name: 'Rishabh Anand',
-    score: '99.81',
-    scoreDenominator: '/100',
-    college: 'IIT Bombay - CSE',
+    id: 'ranker-rishabh',
+    name: 'RISHABH ANAND',
+    score: '99.814',
+    scoreDenominator: '%ile',
+    college: 'ADV RANK: 2146 • 2 Year Classroom (2023)',
     examCategory: 'IIT Advanced',
-    examIndicator: 'IIT Adv.',
-    image: '/img/IMG_5099.JPG.jpeg',
+    examIndicator: 'ADV: 2146',
+    image: '/img/RISHABH%20ANAND.png',
     badgeColor: '#0755D9'
   },
   {
-    id: 'ranker-2',
-    name: 'Swayam Singh',
+    id: 'ranker-shaurya',
+    name: 'SHAURYA SINGH',
     score: '99.50',
-    scoreDenominator: '/100',
-    college: 'BITS Pilani - CSE',
-    examCategory: 'BITSAT',
-    examIndicator: 'BITSAT',
-    image: '/img/achivers3.jpeg',
-    badgeColor: '#16A34A'
-  },
-  {
-    id: 'ranker-3',
-    name: 'Okhayan Sethi',
-    score: '99.50',
-    scoreDenominator: '/100',
-    college: 'IIT Roorkee - CSE',
+    scoreDenominator: '%ile',
+    college: 'JEE Mains • 2 Year Classroom (2026)',
     examCategory: 'IIT Main',
     examIndicator: 'JEE Main',
     image: '/img/shaurya-singh.jpg',
     badgeColor: '#0755D9'
   },
   {
-    id: 'ranker-4',
-    name: 'Rudraksh Shukla',
+    id: 'ranker-chirayu',
+    name: 'Chirayu Sethia',
+    score: '99.50',
+    scoreDenominator: '%ile',
+    college: 'ADV RANK: 6781 • BITSAT RANK: 292 (2022)',
+    examCategory: 'BITSAT',
+    examIndicator: 'BITSAT: 292',
+    image: '/img/Chirayu%20Sethia.jpeg',
+    badgeColor: '#16A34A'
+  },
+  {
+    id: 'ranker-ashutosh',
+    name: 'Ashutosh Shukla',
     score: '99.44',
-    scoreDenominator: '/100',
-    college: 'IIT Kanpur - Electrical',
+    scoreDenominator: '%ile',
+    college: 'JEE Mains • 2 Year Classroom (2023)',
     examCategory: 'IIT Main',
     examIndicator: 'JEE Main',
-    image: '/img/achivers2.jpeg',
+    image: '/img/Ashutosh%20Shukla.jpeg',
     badgeColor: '#0755D9'
   },
   {
-    id: 'ranker-5',
-    name: 'Dipesh Kumar',
+    id: 'ranker-tejas',
+    name: 'TEJAS ITANKAR',
     score: '98.99',
-    scoreDenominator: '/100',
-    college: 'IIT Delhi - CSE',
+    scoreDenominator: '%ile',
+    college: 'JEE Mains • 2 Year Classroom (2022)',
     examCategory: 'IIT Main',
     examIndicator: 'JEE Main',
-    image: '/img/achivers4.jpeg',
+    image: '/img/TEJAS%20ITANKAR.jpeg',
     badgeColor: '#0755D9'
   },
   {
-    id: 'ranker-6',
-    name: 'Harshit Kumar',
+    id: 'ranker-panache',
+    name: 'PANACHE THAKAR',
+    score: '97.80',
+    scoreDenominator: '%ile',
+    college: 'JEE Mains • 2 Year Classroom (2026)',
+    examCategory: 'IIT Main',
+    examIndicator: 'JEE Main',
+    image: '/img/PANACHE%20THAKAR.png',
+    badgeColor: '#0755D9'
+  },
+  {
+    id: 'ranker-tanishq',
+    name: 'Tanishq Gupta',
+    score: '97.75',
+    scoreDenominator: '%ile',
+    college: 'JEE Mains • 2 Year Classroom (2023)',
+    examCategory: 'IIT Main',
+    examIndicator: 'JEE Main',
+    image: '/img/Tanishq%20Gupta.jpeg',
+    badgeColor: '#0755D9'
+  },
+  {
+    id: 'ranker-harsh',
+    name: 'Harsh Kumar',
     score: '97.56',
-    scoreDenominator: '/100',
-    college: 'IIT Bombay - Mechanical',
+    scoreDenominator: '%ile',
+    college: 'ADV RANK: 10964 • 2 Year Classroom (2022)',
     examCategory: 'IIT Advanced',
-    examIndicator: 'IIT Adv.',
-    image: '/img/achivers5.jpeg',
-    badgeColor: '#0755D9'
-  },
-  {
-    id: 'ranker-7',
-    name: 'Tushar Gupta',
-    score: '97.73',
-    scoreDenominator: '/100',
-    college: 'IIT Delhi - ECE',
-    examCategory: 'IIT Main',
-    examIndicator: 'JEE Main',
-    image: '/img/achivers1.jpeg',
+    examIndicator: 'ADV: 10964',
+    image: '/img/Harsh%20Kumar.jpeg',
     badgeColor: '#0755D9'
   }
 ];
@@ -135,11 +146,11 @@ export const ResultsBannerStrip: React.FC<ResultsBannerStripProps> = ({ badge, t
     (s) => s.id === 'sec_home_results_banner' || s.title?.toUpperCase().includes('OFFICIAL RESULTS')
   );
 
-  const displayBadge = badge || bannerSec?.badge || '🏆 Our Results Speak';
+  const displayBadge = badge || bannerSec?.badge || 'OFFICIAL RESULTS & SOCIAL PROOF';
   const displaySubtitle =
     subtitle ||
     bannerSec?.subtitle ||
-    'Celebrating the success of our students who made it to the top institutes with their hard work and dedication.';
+    'ACADEMIC MILESTONES • OFFICIAL MERIT LIST — Authentic scorecards & All-India ranks from our 2 Year Classroom Program mentored under DK Sir.';
 
   const filteredRankers = useMemo(() => {
     if (selectedExam === 'All') return TOP_RANKERS_LIST;

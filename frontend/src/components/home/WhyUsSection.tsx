@@ -73,9 +73,9 @@ const ADVANTAGES: AdvantageItem[] = [
     number: '04',
     title: 'Complete CBT & DPP Bank',
     tag: 'NTA Exam Rigor',
-    description: '15+ years topic-classified JEE Main and Advanced previous year questions with step-by-step reasoning and timed computer-based mock tests.',
+    description: '10+ years topic-classified JEE Main and Advanced previous year questions with step-by-step reasoning and timed computer-based mock tests.',
     keyPoints: [
-      '15+ years PYQs chapter-wise with video solutions',
+      '10+ years PYQs chapter-wise with video solutions',
       'NTA-identical test engine simulation interface',
       'Personalized negative-marking risk analytics'
     ],
@@ -117,7 +117,7 @@ export const WhyUsSection: React.FC<WhyUsSectionProps> = ({ badge, title, subtit
 
           <p className={styles.subtitle}>
             {subtitle ||
-              "Transforming average mathematical problem-solvers into Top 1% IITian rankers through Kota-engineered inspection algorithms and high-touch individual mentoring."}
+              "Transforming average mathematical problem-solvers into Top 1% IITian rankers through proprietary inspection algorithms and high-touch individual mentoring."}
           </p>
         </div>
 

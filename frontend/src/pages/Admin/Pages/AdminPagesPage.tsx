@@ -20,14 +20,14 @@ export const AdminPagesPage: React.FC = () => {
   const [homeConfig, setHomeConfig] = useState({
     heroBadge: 'JEE MAIN & ADVANCED 2026-27 ADMISSIONS',
     heroHeading: 'Prepare Smarter. Aim Higher. Crack JEE with DK Sir.',
-    heroSubtext: 'Delhi’s premier coaching institute combining offline Janakpuri classroom rigor with high-speed 20s calculus techniques.',
+    heroSubtext: 'Delhi’s premier coaching institute combining offline Dwarka Sector 12 classroom rigor with high-speed 20s calculus techniques.',
     primaryCtaText: 'Explore Flagship Batches',
     secondaryCtaText: 'Request Callback'
   });
 
   const [seoConfig, setSeoConfig] = useState({
     metaTitle: 'DK Academy JEE — Prepare Smarter. Aim Higher. Crack JEE.',
-    metaDescription: 'DK Academy JEE: Top JEE Main and Advanced coaching in Janakpuri, New Delhi. Master 20s speed techniques with DK Sir.',
+    metaDescription: 'DK Academy JEE: Top JEE Main and Advanced coaching in Dwarka Sector 12, New Delhi. Master 20s speed techniques with DK Sir.',
     metaKeywords: 'JEE Main 2026, JEE Advanced 2027, IIT JEE coaching Delhi, DK Sir Math techniques'
   });
 

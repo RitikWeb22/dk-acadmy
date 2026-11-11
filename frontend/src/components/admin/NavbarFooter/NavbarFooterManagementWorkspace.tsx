@@ -773,11 +773,11 @@ export const NavbarFooterManagementWorkspace: React.FC = () => {
           <div className={styles.formSection}>
             <h3 className={styles.formSectionTitle}>
               <MapPin size={16} color="#dc2626" />
-              <span>Delhi Offline Centers &amp; Support</span>
+              <span>Delhi Offline Center &amp; Support</span>
             </h3>
 
             <div className={styles.formGroup}>
-              <label className={styles.label}>Janakpuri Center Address</label>
+              <label className={styles.label}>Dwarka Center Main Address</label>
               <textarea
                 className={styles.textarea}
                 style={{ minHeight: '60px' }}

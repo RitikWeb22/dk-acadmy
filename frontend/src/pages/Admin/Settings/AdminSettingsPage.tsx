@@ -22,7 +22,7 @@ export const AdminSettingsPage: React.FC = () => {
     helplinePhone: '+91 93259 87875',
     whatsappNumber: '919325987875',
     directorEmail: 'director@dkacademy.com',
-    janakpuriAddress: 'B-1/48, Main Najafgarh Road, Opposite Metro Pillar 542, Janakpuri, New Delhi - 110058',
+    janakpuriAddress: 'DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL & BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 & 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)',
     sessionTimeoutHours: 8,
     rateLimitThreshold: 5
   });
@@ -56,7 +56,7 @@ export const AdminSettingsPage: React.FC = () => {
         <div>
           <h1 className={styles.pageTitle}>Admin &amp; Platform Settings</h1>
           <p className={styles.pageSubtitle}>
-            Configure institute contact points, Janakpuri center parameters, security policies, and session timeout thresholds.
+            Configure institute contact points, Dwarka center parameters, security policies, and session timeout thresholds.
           </p>
         </div>
       </div>
@@ -102,7 +102,7 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
 
           <div className={styles.formGroup} style={{ marginTop: '16px' }}>
-            <label>Janakpuri Classroom Center Address</label>
+            <label>Dwarka Classroom Center Address</label>
             <textarea
               rows={2}
               value={settings.janakpuriAddress}

@@ -335,8 +335,8 @@ export const CourseDetailPage: React.FC = () => {
       a: 'DK Sir teaches students how to solve complex JEE Advanced and Main dilemmas by observing physical boundary conditions, asymptotic behaviors, and symmetry constraints. Instead of 2-3 pages of lengthy algebra, students quickly eliminate 2-3 incorrect options in 20-30 seconds.'
     },
     {
-      q: 'Are Kota classroom blackboard handwritten notes included?',
-      a: 'Yes, 100%. Every lecture comes with downloadable, high-resolution PDF notes transcribed directly from classroom blackboard discussions, containing full step-by-step proofs, formula summary boxes, and Kota shortcuts.'
+      q: 'Are classroom blackboard handwritten notes included?',
+      a: 'Yes, 100%. Every lecture comes with downloadable, high-resolution PDF notes transcribed directly from classroom blackboard discussions, containing full step-by-step proofs, formula summary boxes, and DK Sir shortcuts.'
     },
     {
       q: 'What is the schedule for Daily Practice Problems (DPPs)?',
@@ -360,10 +360,10 @@ export const CourseDetailPage: React.FC = () => {
   const coreBenefits = [
     {
       title: '20–30s Math Inspection Tactics',
-      desc: 'Eliminate distractors and trap answers in multi-correct and integer problems with Kota inspection rules.'
+      desc: 'Eliminate distractors and trap answers in multi-correct and integer problems with DK Sir inspection rules.'
     },
     {
-      title: 'Kota Classroom Blackboard DPPs',
+      title: 'Classroom Blackboard DPPs',
       desc: 'Daily 15-question graded problem sheets with comprehensive video solutions and answer keys.'
     },
     {
@@ -372,12 +372,12 @@ export const CourseDetailPage: React.FC = () => {
     },
     {
       title: '1-on-1 Academic Doubt Sessions',
-      desc: 'Weekly live AMA and continuous LMS forum access with senior Kota IITian faculty mentors.'
+      desc: 'Weekly live AMA and continuous LMS forum access with senior IITian faculty mentors.'
     }
   ];
 
   const facultyName = course.instructor || 'Dharmendra Kumar (DK Sir)';
-  const facultyTitle = 'Senior Kota Mathematics Faculty • 18+ Years Pedagogy';
+  const facultyTitle = 'Senior Mathematics Faculty • 10+ Years Pedagogy';
   const isDkFaculty = facultyName.toLowerCase().includes('dharmendra') || facultyName.toLowerCase().includes('dk');
   const facultyAvatar = isDkFaculty
     ? '/img/dk-sir.jpg'
@@ -432,7 +432,7 @@ export const CourseDetailPage: React.FC = () => {
               <h1 className={styles.heroTitle}>{course.title}</h1>
               <p className={styles.heroDescription}>
                 {course.description ||
-                  'Crack IIT-JEE with Kota’s premier problem-solving master batch. Complete syllabus coverage, 20-30s option inspection tactics, daily graded DPPs, and All India CBT test series.'}
+                  'Crack IIT-JEE with DK Sir’s premier problem-solving master batch. Complete syllabus coverage, 20-30s option inspection tactics, daily graded DPPs, and All India CBT test series.'}
               </p>
 
               {/* Genuine Ratings & Faculty Sub-line */}
@@ -508,7 +508,7 @@ export const CourseDetailPage: React.FC = () => {
                   <div>
                     <h2 className={styles.blockTitle}>Comprehensive Batch Highlights</h2>
                     <p className={styles.blockSubtitle}>
-                      Structured Kota classroom pedagogy designed to transform average rankers into top IITians.
+                      Structured classroom pedagogy designed to transform average rankers into top IITians.
                     </p>
                   </div>
                 </div>
@@ -529,8 +529,8 @@ export const CourseDetailPage: React.FC = () => {
                       <FileText size={18} />
                     </div>
                     <div className={styles.highlightText}>
-                      <h4>Kota Blackboard Graded DPPs</h4>
-                      <p>Daily 15-question problem sets with step-by-step video solutions, question difficulty markers, and Kota algorithm shortcuts.</p>
+                      <h4>Blackboard Graded DPPs</h4>
+                      <p>Daily 15-question problem sets with step-by-step video solutions, question difficulty markers, and speed algorithm shortcuts.</p>
                     </div>
                   </div>
 
@@ -560,7 +560,7 @@ export const CourseDetailPage: React.FC = () => {
                     </div>
                     <div className={styles.highlightText}>
                       <h4>1-on-1 Academic Mentorship</h4>
-                      <p>Continuous doubt resolution via student discussion portal and weekly live AMA sessions with top Kota faculty members.</p>
+                      <p>Continuous doubt resolution via student discussion portal and weekly live AMA sessions with top faculty members.</p>
                     </div>
                   </div>
 
@@ -742,7 +742,7 @@ export const CourseDetailPage: React.FC = () => {
                   </div>
                   <div className={styles.outcomeItem}>
                     <Check size={16} className={styles.outcomeCheck} />
-                    <span>Deconstruct organic chemistry reaction pathways and regioselectivity with Kota algorithm maps.</span>
+                    <span>Deconstruct organic chemistry reaction pathways and regioselectivity with structural algorithm maps.</span>
                   </div>
                   <div className={styles.outcomeItem}>
                     <Check size={16} className={styles.outcomeCheck} />
@@ -758,9 +758,9 @@ export const CourseDetailPage: React.FC = () => {
                     <Award size={20} aria-hidden="true" />
                   </div>
                   <div>
-                    <h2 className={styles.blockTitle}>Meet Your Senior Kota Master Faculty</h2>
+                    <h2 className={styles.blockTitle}>Meet Your Senior Master Faculty</h2>
                     <p className={styles.blockSubtitle}>
-                      Learn directly from Kota's most sought-after educator with verified selection track records.
+                      Learn directly from senior educators with verified selection track records.
                     </p>
                   </div>
                 </div>
@@ -786,26 +786,26 @@ export const CourseDetailPage: React.FC = () => {
                     <div className={styles.facultyRoleBadge}>{facultyTitle}</div>
 
                     <p className={styles.facultyDescription}>
-                      Dharmendra Kumar (DK Sir) has spent over 18 years training JEE Main &amp; Advanced aspirants at Kota's premier coaching institutes.
-                      His proprietary 20-30s inspection methodology has empowered thousands of students to tackle the toughest JEE Advanced problems with unmatched speed and composure.
+                      Dharmendra Kumar (DK Sir) has spent over 10 years training JEE Main &amp; Advanced aspirants.
+                      His proprietary 20-30s inspection methodology has empowered hundreds of students to tackle the toughest JEE Advanced problems with unmatched speed and composure.
                     </p>
 
                     <div className={styles.facultyStatsRow}>
                       <div className={styles.facultyStat}>
-                        <strong>50,000+</strong>
-                        <span>Aspirants Mentored</span>
+                        <strong>500+</strong>
+                        <span>Students Mentored</span>
                       </div>
                       <div className={styles.facultyStat}>
-                        <strong>AIR 1, 4, 12</strong>
-                        <span>Top 100 Ranks</span>
+                        <strong>Top Ranks</strong>
+                        <span>In JEE Advanced</span>
                       </div>
                       <div className={styles.facultyStat}>
-                        <strong>18+ Years</strong>
-                        <span>Kota Pedagogy</span>
+                        <strong>10+ Years</strong>
+                        <span>Pedagogy</span>
                       </div>
                       <div className={styles.facultyStat}>
-                        <strong>100+</strong>
-                        <span>IIT Bombay &amp; Delhi Selections</span>
+                        <strong>100%</strong>
+                        <span>Concept Rigor</span>
                       </div>
                     </div>
                   </div>
@@ -856,12 +856,12 @@ export const CourseDetailPage: React.FC = () => {
               <section className={styles.finalCtaBlock}>
                 <div className={styles.finalCtaContent}>
                   <div className={styles.finalCtaBadges}>
-                    <span className={styles.finalCtaBadge}>Kota Proven Methodology</span>
+                    <span className={styles.finalCtaBadge}>Proven Methodology</span>
                     <span className={styles.finalCtaBadge}>100% Risk-Free Guarantee</span>
                   </div>
                   <h3 className={styles.finalCtaTitle}>Ready to Maximize Your JEE Rank with DK Sir?</h3>
                   <p className={styles.finalCtaSubtitle}>
-                    Join serious aspirants mastering 20-30s option inspection shortcuts, daily Kota DPPs, and All India CBT test simulations today.
+                    Join serious aspirants mastering 20-30s option inspection shortcuts, daily DPPs, and All India CBT test simulations today.
                   </p>
 
                   <div className={styles.finalCtaButtons}>
@@ -1044,7 +1044,7 @@ export const CourseDetailPage: React.FC = () => {
                       </li>
                       <li>
                         <CheckCircle2 size={15} className={styles.inclusionCheck} />
-                        <span>Daily Kota Blackboard DPPs &amp; Solutions</span>
+                        <span>Daily Blackboard DPPs &amp; Solutions</span>
                       </li>
                       <li>
                         <CheckCircle2 size={15} className={styles.inclusionCheck} />

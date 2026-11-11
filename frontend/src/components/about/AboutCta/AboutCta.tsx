@@ -13,13 +13,13 @@ export const AboutCta: React.FC = () => {
             <div className={styles.badgeWrap}>
               <span className={styles.badge}>
                 <Sparkles size={13} className={styles.sparkleIcon} aria-hidden="true" />
-                <span>Small Batch Kota Mentorship</span>
+                <span>Small Batch Mentorship</span>
               </span>
             </div>
 
             <h2 className={styles.title}>Ready to Master IIT JEE Mathematics?</h2>
             <p className={styles.description}>
-              Join DK Sir&apos;s small batch mentorship at Dwarka / Janakpuri center or master trademarked 20s speed
+              Join DK Sir&apos;s small batch mentorship at Dwarka Sector 12 center or master trademarked 20s speed
               inspection algorithms through our structured video course modules.
             </p>
 

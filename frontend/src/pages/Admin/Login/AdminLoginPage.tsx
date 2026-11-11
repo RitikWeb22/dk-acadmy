@@ -353,7 +353,7 @@ export const AdminLoginPage: React.FC = () => {
             </div>
 
             <p className={styles.supportHelplineText}>
-              Facing access lockouts? Reach internal support at <a href="mailto:tech@dkacademy.com">tech@dkacademy.com</a> or call Janakpuri Support Desk.
+              Facing access lockouts? Reach internal support at <a href="mailto:tech@dkacademy.com">tech@dkacademy.com</a> or call Dwarka Support Desk.
             </p>
           </section>
         </main>
@@ -391,7 +391,7 @@ export const AdminLoginPage: React.FC = () => {
               </div>
               <div className={styles.contactItem}>
                 <PhoneCall size={15} />
-                <span>+91 93259 87875 (Janakpuri HQ Directorate Desk)</span>
+                <span>+91 93259 87875 (Dwarka Directorate Desk)</span>
               </div>
             </div>
 

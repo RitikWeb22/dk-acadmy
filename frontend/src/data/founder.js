@@ -18,7 +18,7 @@ export const founderData = {
 
   // 2–3 paragraphs of bio
   bio: [
-    'Dharmendra Kumar (DK Sir) is the founder and chief academic mentor at DK Academy JEE, bringing 15+ years of dedicated teaching experience in IIT-JEE Mathematics.',
+    'Dharmendra Kumar (DK Sir) is the founder and chief academic mentor at DK Academy JEE, bringing 10+ years of dedicated teaching experience in IIT-JEE Mathematics.',
     'Specializing in high-speed 20–30 second inspection shortcuts and conceptual symmetry, DK Sir mentors students to solve challenging Advanced calculus, algebra, and coordinate geometry problems without tedious trial-and-error.',
     'His pedagogical philosophy centers on building mathematical intuition from first principles—enabling students to master structural symmetries rather than relying on rote memorization.'
   ],
@@ -26,9 +26,9 @@ export const founderData = {
   // Credential Chips
   credentials: [
     'IIT-JEE Mathematics Specialist',
-    '15+ Years Teaching Experience',
-    'Dwarka & Janakpuri Centers',
-    '10,000+ Students Mentored'
+    '10+ Years Teaching Experience',
+    'Dwarka Sector 12 Center',
+    '500+ Students Mentored'
   ],
 
   // Short quote card in italics with a left accent border
@@ -38,15 +38,15 @@ export const founderData = {
   keyFacts: [
     {
       label: 'Teaching Experience',
-      value: '15+ Years'
+      value: '10+ Years'
     },
     {
       label: 'Students Mentored',
-      value: '10,000+'
+      value: '500+'
     },
     {
       label: 'Center Locations',
-      value: 'Dwarka & Janakpuri'
+      value: 'Dwarka Sector 12'
     }
   ],
 

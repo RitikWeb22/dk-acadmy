@@ -89,13 +89,13 @@ export const ContactSection: React.FC = () => {
                 </div>
               </a>
 
-              <a href="mailto:counseling@dkacademy.in" className={styles.channelItem} aria-label="Email Us: counseling@dkacademy.in">
+              <a href="mailto:info@dkacademyjee.com" className={styles.channelItem} aria-label="Email Us: info@dkacademyjee.com">
                 <div className={`${styles.channelIconWrap} ${styles.email}`}>
                   <Mail size={20} aria-hidden="true" />
                 </div>
                 <div className={styles.channelMeta}>
-                  <span className={styles.channelLabel}>Academic Queries</span>
-                  <span className={styles.channelValue}>counseling@dkacademy.in</span>
+                  <span className={styles.channelLabel}>Student Inquiries</span>
+                  <span className={styles.channelValue}>info@dkacademyjee.com</span>
                 </div>
               </a>
 
@@ -105,7 +105,9 @@ export const ContactSection: React.FC = () => {
                 </div>
                 <div className={styles.channelMeta}>
                   <span className={styles.channelLabel}>Primary Learning Center</span>
-                  <span className={styles.channelValue}>Rajeev Gandhi Nagar, Kota / Delhi NCR</span>
+                  <span className={styles.channelValue}>
+                    DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL &amp; BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 &amp; 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)
+                  </span>
                 </div>
               </div>
 
@@ -115,7 +117,7 @@ export const ContactSection: React.FC = () => {
                 </div>
                 <div className={styles.channelMeta}>
                   <span className={styles.channelLabel}>Counseling Hours</span>
-                  <span className={styles.channelValue}>Mon – Sat: 9:00 AM – 8:00 PM</span>
+                  <span className={styles.channelValue}>Monday – Sunday: 10:00 AM – 9:00 PM</span>
                 </div>
               </div>
             </div>

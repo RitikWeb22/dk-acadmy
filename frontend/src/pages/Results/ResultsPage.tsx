@@ -14,30 +14,31 @@ import {
   ShieldCheck,
   Quote,
   Star,
-  Calendar
+  Calendar,
+  BookOpen
 } from 'lucide-react';
 import { Container } from '../../components/ui/Container/Container';
 import { AchieverCard } from '../../components/home/AchieversSection/AchieverCard';
-import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
+import { achieverService, type AchieverData } from '../../services/achieverService';
 import { SUCCESS_STORIES } from '../../data/homepageRedesignData';
-import type { AchieverItem } from '../../types';
 import styles from './ResultsPage.module.scss';
 
-type FilterTab = 'All' | 'JEE Advanced' | 'JEE Main' | 'Top 1% Club' | 'Year 2024 - 2026';
+type FilterTab = 'All' | 'JEE Advanced' | 'JEE Main' | 'Top 1% Club' | '2 Year Classroom';
 
 export const ResultsPage: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<FilterTab>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [achieversList, setAchieversList] = useState<AchieverItem[]>(() => cmsService.getResults());
+  const [achieversList, setAchieversList] = useState<AchieverData[]>(() => achieverService.getAchievers());
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    document.title = "JEE Achievers & Hall of Fame | DK Academy Kota Mentorship";
+    document.title = "JEE Achievers & Hall of Fame | DK Academy Official Merit List";
     window.scrollTo(0, 0);
 
-    const handleUpdate = () => setAchieversList(cmsService.getResults());
-    window.addEventListener(CMS_EVENT_KEY, handleUpdate);
-    return () => window.removeEventListener(CMS_EVENT_KEY, handleUpdate);
+    const handleUpdate = () => setAchieversList(achieverService.getAchievers());
+    const unsubscribe = achieverService.subscribe(handleUpdate);
+
+    return () => unsubscribe();
   }, []);
 
   // Keyboard shortcut '/' to focus search
@@ -64,7 +65,7 @@ export const ResultsPage: React.FC = () => {
           (Boolean(a.rankOrCollege) && /AIR\s*([1-9][0-9]{0,3}|[1-2][0-9]{3})\b/i.test(a.rankOrCollege || '')) ||
           /AIR\s*([1-9][0-9]{0,3}|[1-2][0-9]{3})\b/i.test(a.score)
       ).length,
-      'Year 2024 - 2026': achieversList.filter((a) => a.year === '2024' || a.year === '2025' || a.year === '2026').length
+      '2 Year Classroom': achieversList.filter((a) => a.highlightTopic?.includes('Classroom') || a.highlightTopic?.includes('2 Year')).length
     };
   }, [achieversList]);
 
@@ -82,8 +83,8 @@ export const ResultsPage: React.FC = () => {
           item.score.includes('99.') ||
           (Boolean(item.rankOrCollege) && /AIR\s*([1-9][0-9]{0,3}|[1-2][0-9]{3})\b/i.test(item.rankOrCollege || '')) ||
           /AIR\s*([1-9][0-9]{0,3}|[1-2][0-9]{3})\b/i.test(item.score);
-      } else if (selectedFilter === 'Year 2024 - 2026') {
-        matchesTab = item.year === '2024' || item.year === '2025' || item.year === '2026';
+      } else if (selectedFilter === '2 Year Classroom') {
+        matchesTab = Boolean(item.highlightTopic?.includes('Classroom') || item.highlightTopic?.includes('2 Year'));
       }
 
       if (!matchesTab) return false;
@@ -128,7 +129,7 @@ export const ResultsPage: React.FC = () => {
             <div className={styles.badgePill}>
               <span className={styles.badgePulseDot} aria-hidden="true" />
               <Trophy size={13} className={styles.trophyIcon} aria-hidden="true" />
-              <span>OFFICIAL KOTA METHODOLOGY • 100% AUDITED JEE SELECTIONS</span>
+              <span>ACADEMIC MILESTONES • OFFICIAL MERIT LIST</span>
             </div>
 
             {/* Title & Subheadline */}
@@ -136,7 +137,7 @@ export const ResultsPage: React.FC = () => {
               JEE Achievers &amp; <span className={styles.titleGradient}>Hall of Fame</span>
             </h1>
             <p className={styles.pageDesc}>
-              A transparent, 100% verified showcase of students mentored under DK Sir&apos;s proprietary 20–30s
+              A transparent, 100% verified showcase of students from our 2 Year Classroom Program mentored under DK Sir&apos;s proprietary 20–30s
               speed inspection algorithms — mastering non-routine problems to secure top IIT, NIT &amp; BITS Pilani ranks.
             </p>
 
@@ -165,14 +166,14 @@ export const ResultsPage: React.FC = () => {
                   <div className={styles.statIconWrap}>
                     <Trophy size={22} aria-hidden="true" />
                   </div>
-                  <span className={styles.statTag}>TOP 0.1% KOTA</span>
+                  <span className={styles.statTag}>TOP 0.1% CLUB</span>
                 </div>
                 <div className={styles.statDetails}>
                   <div className={styles.statNumberRow}>
-                    <strong className={styles.statNumber}>99.8%ile</strong>
+                    <strong className={styles.statNumber}>99.814%ile</strong>
                   </div>
                   <span className={styles.statLabel}>Peak Score Achieved</span>
-                  <span className={styles.statSub}>In JEE Main Physics &amp; Mathematics</span>
+                  <span className={styles.statSub}>Rishabh Anand • ADV RANK: 2146</span>
                 </div>
               </div>
 
@@ -182,14 +183,14 @@ export const ResultsPage: React.FC = () => {
                   <div className={styles.statIconWrap}>
                     <Zap size={22} aria-hidden="true" />
                   </div>
-                  <span className={styles.statTag}>AIR TOP 1000</span>
+                  <span className={styles.statTag}>TOP PERCENTILE</span>
                 </div>
                 <div className={styles.statDetails}>
                   <div className={styles.statNumberRow}>
-                    <strong className={styles.statNumber}>35+</strong>
+                    <strong className={styles.statNumber}>99.5%ile</strong>
                   </div>
-                  <span className={styles.statLabel}>Under AIR 1000</span>
-                  <span className={styles.statSub}>JEE Advanced Top Rank Selections</span>
+                  <span className={styles.statLabel}>Shaurya Singh (2026)</span>
+                  <span className={styles.statSub}>2 Year Classroom Program</span>
                 </div>
               </div>
 
@@ -199,13 +200,13 @@ export const ResultsPage: React.FC = () => {
                   <div className={styles.statIconWrap}>
                     <ShieldCheck size={22} aria-hidden="true" />
                   </div>
-                  <span className={styles.statTag}>100% AUDITED</span>
+                  <span className={styles.statTag}>AUTHENTIC</span>
                 </div>
                 <div className={styles.statDetails}>
                   <div className={styles.statNumberRow}>
                     <strong className={styles.statNumber}>100%</strong>
                   </div>
-                  <span className={styles.statLabel}>Verified NTA Scores</span>
+                  <span className={styles.statLabel}>Verified Scores</span>
                   <span className={styles.statSub}>Official Scorecards On File</span>
                 </div>
               </div>
@@ -221,7 +222,7 @@ export const ResultsPage: React.FC = () => {
                     { id: 'JEE Advanced', label: 'JEE Advanced', icon: GraduationCap },
                     { id: 'JEE Main', label: 'JEE Main', icon: Trophy },
                     { id: 'Top 1% Club', label: 'Top 1% Club', icon: Zap },
-                    { id: 'Year 2024 - 2026', label: 'Year 2024 – 2026', icon: Calendar }
+                    { id: '2 Year Classroom', label: '2 Year Classroom', icon: BookOpen }
                   ] as const
                 ).map((tab) => {
                   const count = tabCounts[tab.id];
@@ -253,7 +254,7 @@ export const ResultsPage: React.FC = () => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by student name, college, score (e.g. Rishabh, IIT Delhi, 99.8)..."
+                    placeholder="Search by student name, score, batch (e.g. Shaurya, Rishabh, 99.5, 2 Year)..."
                     className={styles.searchInput}
                     aria-label="Search achievers by name, college, score, or batch"
                   />
@@ -277,11 +278,12 @@ export const ResultsPage: React.FC = () => {
                 <div className={styles.searchChipsRow}>
                   <span className={styles.chipsLabel}>Quick Search:</span>
                   {[
-                    'AIR 2146',
-                    'IIT Bombay',
-                    '99.8%ile',
-                    'Calculus',
-                    'Dwarka'
+                    'Shaurya Singh',
+                    'Rishabh Anand',
+                    'ADV: 2146',
+                    '99.5%ile',
+                    'Chirayu Sethia',
+                    'Ashutosh Shukla'
                   ].map((chip) => {
                     const isSelected = searchQuery.toLowerCase() === chip.toLowerCase();
                     return (
@@ -344,7 +346,7 @@ export const ResultsPage: React.FC = () => {
               <div className={styles.bannerTagRow}>
                 <span className={styles.bannerTag}>
                   <Sparkles size={13} />
-                  <span>KOTA SHORTCUT INSPECTION ARCHIVE</span>
+                  <span>SPEED SHORTCUT INSPECTION ARCHIVE</span>
                 </span>
                 <span className={styles.bannerSubtext}>
                   Felicitation of top-rank students trained at Dwarka Sector 12 Center &amp; Online Batches
@@ -496,7 +498,7 @@ export const ResultsPage: React.FC = () => {
               <span className={styles.ctaEyebrow}>JOIN THE NEXT BATCH OF ACHIEVERS</span>
               <h3 className={styles.ctaTitle}>Aiming for 99+ Percentile in JEE Mathematics?</h3>
               <p className={styles.ctaSubtitle}>
-                Join DK Sir&apos;s small batch mentorship at Dwarka / Janakpuri center and master 20-30s speed inspection algorithms.
+                Join DK Sir&apos;s small batch mentorship at Dwarka Sector 12 center and master 20-30s speed inspection algorithms.
               </p>
             </div>
             <div className={styles.ctaActions}>
@@ -511,7 +513,6 @@ export const ResultsPage: React.FC = () => {
           </div>
         </Container>
       </section>
-
     </main>
   );
 };

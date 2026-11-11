@@ -21,13 +21,13 @@ import { ACHIEVERS_LIST } from '../data/homepageRedesignData';
 import { apiClient } from './apiClient';
 
 const NAVBAR_STORAGE_KEY = 'dk_academy_cms_navbar_v1';
-const FOOTER_STORAGE_KEY = 'dk_academy_cms_footer_v1';
+const FOOTER_STORAGE_KEY = 'dk_academy_cms_footer_v2';
 const COURSES_STORAGE_KEY = 'dk_academy_cms_courses_v1';
-const PAGES_STORAGE_KEY = 'dk_academy_cms_pages_v1';
+const PAGES_STORAGE_KEY = 'dk_academy_cms_pages_v2';
 const TEST_SERIES_STORAGE_KEY = 'dk_academy_cms_test_series_v2';
 const PYQ_STORAGE_KEY = 'dk_academy_cms_pyq_v1';
 const DPP_STORAGE_KEY = 'dk_academy_cms_dpp_v1';
-const RESULTS_STORAGE_KEY = 'dk_academy_cms_results_v2';
+const RESULTS_STORAGE_KEY = 'dk_academy_cms_results_v4';
 const CLASSROOM_STORAGE_KEY = 'dk_academy_cms_classroom_v1';
 const LIVE_SESSIONS_STORAGE_KEY = 'dk_academy_cms_live_sessions_v1';
 const PAGES_LIST_STORAGE_KEY = 'dk_academy_cms_pages_list_v1';
@@ -226,15 +226,15 @@ export const DEFAULT_FOOTER_CONFIG: FooterConfig = {
   brandName: 'DK ACADEMY',
   brandTag: 'JEE',
   description:
-    'Premier offline & online coaching institute combining Janakpuri classroom rigor with high-speed 20s mathematical techniques taught exclusively by Dharmendra Kumar (DK Sir).',
+    'Premier offline & online coaching institute combining Dwarka Sector 12 classroom rigor with high-speed 20s mathematical techniques taught exclusively by Dharmendra Kumar (DK Sir).',
   logoUrl: '/img/logo.jpeg',
   phone1: '+91 93259 87875',
   phone2: '+91 97171 59062',
   whatsappNumber: '919325987875',
-  emailAdmissions: 'admissions@dkacademy.com',
-  emailDirector: 'director@dkacademy.com',
-  janakpuriAddress: 'C4F/33, behind F Market, Janakpuri, New Delhi, Delhi 110058',
-  dwarkaAddress: 'Dwarka Sector 12 Metro Station Campus, New Delhi 110078',
+  emailAdmissions: 'info@dkacademyjee.com',
+  emailDirector: 'info@dkacademyjee.com',
+  janakpuriAddress: 'DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL & BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 & 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)',
+  dwarkaAddress: 'DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL & BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 & 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)',
   learningLinks: [
     { id: 'll_1', label: 'JEE Courses for Class 11th', path: '/courses?category=JEE%20Main', isVisible: true },
     { id: 'll_2', label: 'Class 12th & Advanced Batches', path: '/courses?category=JEE%20Advanced', isVisible: true },
@@ -271,21 +271,21 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
     pageTitle: 'Home Page',
     metaTitle: "DK Academy JEE | Crack JEE with DK Sir's 20–30s Math Techniques",
     metaDescription:
-      'Join DK Academy JEE for concept-first IIT JEE Mathematics mentoring under DK Sir. Small batch size (max 25), 20–30s inspection shortcuts, Dwarka & Janakpuri centers. Admissions open 2026–27.',
-    metaKeywords: 'JEE Main 2026, JEE Advanced 2027, IIT JEE coaching Delhi, DK Sir Math techniques, Janakpuri IIT coaching',
+      'Join DK Academy JEE for concept-first IIT JEE Mathematics mentoring under DK Sir. Small batch size (max 25), 20–30s inspection shortcuts, Dwarka Sector 12 center. Admissions open 2026–27.',
+    metaKeywords: 'JEE Main 2026, JEE Advanced 2027, IIT JEE coaching Delhi, DK Sir Math techniques, Dwarka IIT coaching',
     heroBadge: 'JEE Main & Advanced 2026–27 Admissions Open',
     heroHeading: 'Prepare Smarter. Aim Higher. Crack JEE with DK Sir.',
     heroSubheading:
-      'Delhi’s premier coaching institute combining offline Janakpuri & Dwarka classroom rigor with DK Sir’s proprietary 20–30 second calculus shortcuts and small batches of 25 students.',
+      'Delhi’s premier coaching institute combining offline Dwarka Sector 12 classroom rigor with DK Sir’s proprietary 20–30 second calculus shortcuts and small batches of 25 students.',
     primaryCtaText: 'Explore Flagship Batches',
     primaryCtaUrl: '/courses',
     secondaryCtaText: 'Request Free Counseling Call',
     secondaryCtaUrl: '#callback-form',
     bannerNotice: '⚡ Early Bird Scholarship: Up to 90% fee waiver on merit test. Limited batch seats left!',
     stats: [
-      { id: 'stat_1', label: 'Students Mentored', value: '10,000+', subtext: 'JEE Aspirants' },
+      { id: 'stat_1', label: 'Students Mentored', value: '500+', subtext: 'JEE Aspirants' },
       { id: 'stat_2', label: 'Students per Batch', value: 'Max 25', subtext: 'Individual Mentorship' },
-      { id: 'stat_3', label: 'Dwarka & Janakpuri, Delhi', value: '2 Centers', subtext: 'Offline Smart Campuses' },
+      { id: 'stat_3', label: 'Dwarka Sector 12, Delhi', value: 'Offline Center', subtext: 'Smart Campus' },
       { id: 'stat_4', label: 'Student Rating (500+ Reviews)', value: '4.9 / 5.0', subtext: 'Verified Reviews' }
     ],
     customSections: [
@@ -293,8 +293,8 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
         id: 'sec_home_results_banner',
         type: 'banner',
         title: 'Official IIT JEE Merit List & Selection Records',
-        subtitle: 'Academic milestones • Official merit list',
-        content: 'Official IIT JEE Merit List & Selection Records. Audited & verified selections from Dwarka Sector 12 & Janakpuri centers. 450+ students in IITs and top engineering institutes.',
+        subtitle: 'ACADEMIC MILESTONES • OFFICIAL MERIT LIST',
+        content: 'Official IIT JEE Merit List & Selection Records. Authentic & verified selections from Dwarka Sector 12 center. Top students in IITs and prestigious engineering institutes.',
         badge: 'OFFICIAL RESULTS & SOCIAL PROOF',
         buttonText: 'View All Achievers',
         buttonUrl: '/results',
@@ -376,7 +376,7 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
         id: 'sec_home_founder',
         type: 'banner',
         title: 'Meet Our Founder — Dharmendra Kumar (DK Sir)',
-        subtitle: 'Senior IIT-JEE Mathematics Mentor • 18+ Years Kota Pedagogy',
+        subtitle: 'Senior IIT-JEE Mathematics Mentor • 10+ Years Pedagogy',
         badge: 'ABOUT THE FOUNDER',
         content: 'Mathematics isn’t about memorizing 50 formulas; it’s about recognizing the hidden symmetry of a curve in the first 20 seconds. We mentor students with pure mathematical intuition.',
         buttonText: 'Explore Math Pedagogy',
@@ -424,7 +424,7 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
       {
         id: 'faq_1',
         question: 'What is the batch size at DK Academy classroom centers?',
-        answer: 'Every classroom batch at Janakpuri and Dwarka is strictly capped at a maximum of 25 students to ensure that DK Sir and senior mentors personally review every student’s homework and test analysis.'
+        answer: 'Every classroom batch at our Dwarka Sector 12 center is strictly capped at a maximum of 25 students to ensure that DK Sir and senior mentors personally review every student’s homework and test analysis.'
       },
       {
         id: 'faq_2',
@@ -439,7 +439,7 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
     pageTitle: 'About DK Academy',
     metaTitle: 'About DK Academy JEE | Founded by Dharmendra Kumar (DK Sir)',
     metaDescription: 'Empowering JEE Aspirants with Conceptual Depth & 20s Speed Mastery. Mentored by Dharmendra Kumar (DK Sir).',
-    heroBadge: 'FOUNDED BY DK SIR • 15+ YEARS OF EXCELLENCE',
+    heroBadge: 'FOUNDED BY DK SIR • 10+ YEARS OF EXCELLENCE',
     heroHeading: 'Empowering JEE Aspirants with Conceptual Depth & 20s Speed Mastery',
     heroSubheading:
       'DK Academy JEE is a dedicated learning platform engineered to make IIT JEE Mathematics intuitive, structured, and scoring. Founded on the principle that true problem-solving mastery comes from crystal-clear fundamentals coupled with trademarked 20s speed algorithms.',
@@ -448,9 +448,9 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
     secondaryCtaText: 'Watch Free Masterclasses',
     secondaryCtaUrl: '/free-lectures',
     stats: [
-      { id: 'astat_1', label: 'Years of Teaching', value: '15+', subtext: 'Mentoring IITians' },
+      { id: 'astat_1', label: 'Years of Teaching', value: '10+', subtext: 'Mentoring IITians' },
       { id: 'astat_2', label: 'IITian Alumni Network', value: '1200+', subtext: 'Across Top IITs' },
-      { id: 'astat_3', label: 'Campuses in Delhi', value: '2 Centers', subtext: 'Janakpuri & Dwarka' },
+      { id: 'astat_3', label: 'Campus in Delhi', value: 'Dwarka Sector 12', subtext: 'Smart Campus' },
       { id: 'astat_4', label: 'Speed Advantage', value: '20s', subtext: 'Inspection Algorithm' }
     ],
     customSections: [
@@ -573,9 +573,9 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
         id: 'sec_about_cta',
         type: 'banner',
         title: 'Ready to Master IIT JEE Mathematics?',
-        subtitle: 'Join DK Sir\'s small batch mentorship at Dwarka / Janakpuri center or master trademarked 20s speed inspection algorithms through our structured video course modules.',
+        subtitle: 'Join DK Sir\'s small batch mentorship at Dwarka Sector 12 center or master trademarked 20s speed inspection algorithms through our structured video course modules.',
         content: 'Limited 25 seats per batch. Schedule a personal counseling call with DK Sir and secure your admissions early.',
-        badge: 'SMALL BATCH KOTA MENTORSHIP',
+        badge: 'SMALL BATCH MENTORSHIP',
         buttonText: 'Enroll in Classroom Batch',
         buttonUrl: '/#callback',
         order: 5,
@@ -587,9 +587,9 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
   classroom: {
     pageId: 'classroom',
     pageTitle: 'Classroom Programs & Centers',
-    metaTitle: 'Janakpuri & Dwarka Classroom Centers | DK Academy JEE',
-    metaDescription: 'Experience rigorous offline classroom coaching at Janakpuri and Dwarka. Air-conditioned smart classrooms, library, and daily doubt clinics.',
-    heroBadge: 'OFFLINE JANAKPURI & DWARKA CENTERS',
+    metaTitle: 'Dwarka Sector 12 Classroom Center | DK Academy JEE',
+    metaDescription: 'Experience rigorous offline classroom coaching at Dwarka Sector 12. Air-conditioned smart classrooms, library, and daily doubt clinics.',
+    heroBadge: 'OFFLINE DWARKA SECTOR 12 CENTER',
     heroHeading: 'Immersive Offline Coaching with Personalized Daily Mentoring.',
     heroSubheading:
       'Join our high-focus offline classrooms equipped with digital interactive boards, soundproof library cubicles, and face-to-face problem solving with DK Sir.',
@@ -599,9 +599,9 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
     secondaryCtaUrl: '/courses',
     customSections: [
       {
-        id: 'sec_janakpuri',
-        title: 'Janakpuri Center Campus',
-        subtitle: 'C4F/33, behind F Market, Janakpuri, New Delhi 110058',
+        id: 'sec_dwarka_main',
+        title: 'Dwarka Sector 12 Center Campus',
+        subtitle: 'DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL & BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 & 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)',
         content: 'Smart digital classrooms, individual study pods, 24x7 AC library, separate doubt counters for Physics, Chemistry, and Mathematics.',
         order: 1,
         isVisible: true
@@ -660,10 +660,10 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
     pageTitle: 'Courses Catalog & Batches',
     layoutTemplate: 'cards-grid',
     metaTitle: 'Courses & Batches Catalog | DK Academy JEE',
-    metaDescription: 'Explore comprehensive Kota-pedagogy courses for JEE Main, Advanced & BITSAT. Small batches of 25 students with DK Sir.',
+    metaDescription: 'Explore comprehensive pedagogy courses for JEE Main, Advanced & BITSAT. Small batches of 25 students with DK Sir.',
     heroBadge: 'FLAGSHIP IIT JEE & BITSAT BATCHES',
-    heroHeading: 'Comprehensive Kota-Pedagogy Batches for JEE Main, Advanced & BITSAT.',
-    heroSubheading: 'Live interactive lectures with DK Sir, 20–30s speed elimination drills, printed Kota study material, and daily doubt clearance clinics.',
+    heroHeading: 'Comprehensive Advanced Batches for JEE Main, Advanced & BITSAT.',
+    heroSubheading: 'Live interactive lectures with DK Sir, 20–30s speed elimination drills, printed study material, and daily doubt clearance clinics.',
     primaryCtaText: 'Enroll in Batch',
     primaryCtaUrl: '/courses',
     secondaryCtaText: 'Download Prospectus',
@@ -695,7 +695,7 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
           {
             id: 'cc_1',
             title: 'Class 11th — 2-Year Comprehensive Program',
-            description: 'Concept-first derivations, coordinate geometry, calculus foundations, and daily Kota DPP sheets.',
+            description: 'Concept-first derivations, coordinate geometry, calculus foundations, and daily DPP sheets.',
             badge: 'Most Popular',
             linkText: 'Explore Batch',
             linkUrl: '/courses?category=JEE%20Main'
@@ -868,7 +868,7 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
             id: 'pq_2',
             title: 'Coordinate Geometry & Vectors',
             description: 'Parabola, Ellipse, Hyperbola, and 3D Planes questions with geometric visual derivations.',
-            badge: 'Kota Rigor',
+            badge: 'Academic Rigor',
             linkText: 'View Questions',
             linkUrl: '/pyq'
           },
@@ -893,7 +893,7 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
         assets: [
           {
             id: 'pqa_1',
-            title: '15-Year Solved Calculus Archive with DK Sir 20s Shortcuts',
+            title: '10-Year Solved Calculus Archive with DK Sir 20s Shortcuts',
             fileType: 'pdf',
             fileUrl: '/docs/formula-handbook.pdf',
             fileSize: '6.4 MB',
@@ -909,9 +909,9 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
     pageTitle: 'Daily Practice Problem (DPP) Drills',
     layoutTemplate: 'academic-syllabus',
     metaTitle: 'Daily DPP Problem Drills & Answer Keys | DK Academy JEE',
-    metaDescription: 'Attempt daily concept and speed drills modeled after Kota pedagogy. Daily 10 questions with DK Sir video explanations.',
+    metaDescription: 'Attempt daily concept and speed drills modeled after advanced pedagogy. Daily 10 questions with DK Sir video explanations.',
     heroBadge: 'DAILY CONCEPT RIGOUR • 20S SHORTCUT DRILLS',
-    heroHeading: 'Transform Theory into Speed with Kota-Pattern Daily DPP Sets.',
+    heroHeading: 'Transform Theory into Speed with Daily DPP Sets.',
     heroSubheading: 'Curated problem sets designed to drill calculation speed, eliminate trap options, and reinforce fundamental derivations.',
     primaryCtaText: 'Start Today’s DPP',
     primaryCtaUrl: '/dpp',
@@ -980,10 +980,10 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
     pageId: 'contact',
     pageTitle: 'Contact Admissions & Helpdesk',
     layoutTemplate: 'standard',
-    metaTitle: 'Contact DK Academy JEE | Janakpuri & Dwarka Centers',
-    metaDescription: 'Get in touch with DK Academy JEE admissions helpdesk. Call 9325987875, visit Janakpuri or Dwarka center campuses in Delhi.',
-    heroBadge: 'DELHI JANAKPURI & DWARKA CAMPUSES',
-    heroHeading: 'Visit Our Delhi Centers or Request a Personalized Counseling Session.',
+    metaTitle: 'Contact DK Academy JEE | Dwarka Sector 12 Center',
+    metaDescription: 'Get in touch with DK Academy JEE admissions helpdesk. Call 9325987875, visit Dwarka Sector 12 center campus in Delhi.',
+    heroBadge: 'DELHI DWARKA SECTOR 12 CAMPUS',
+    heroHeading: 'Visit Our Delhi Center or Request a Personalized Counseling Session.',
     heroSubheading: 'Our academic mentors and Dharmendra Kumar (DK Sir) are available for 1-on-1 student counseling, diagnostic performance testing, and batch admissions.',
     primaryCtaText: 'Call Helpline: 9325987875',
     primaryCtaUrl: 'tel:9325987875',
@@ -993,7 +993,7 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
       {
         id: 'sec_contact_banner',
         type: 'banner',
-        title: 'Visit Delhi Janakpuri & Dwarka Offline Classrooms',
+        title: 'Visit Delhi Dwarka Sector 12 Offline Classroom',
         subtitle: 'Experience smart digital boards, 24x7 AC library, and direct doubt counters',
         content: 'Campus tours and diagnostic tests are conducted Monday to Saturday from 10:00 AM to 7:00 PM.',
         badge: 'CAMPUS TOURS OPEN',
@@ -1015,8 +1015,8 @@ export const DEFAULT_PAGE_CONFIGS: Record<string, PageContentConfig> = {
         cards: [
           {
             id: 'con_1',
-            title: 'Janakpuri Center Campus',
-            description: 'C4F/33, behind F Market, Janakpuri, New Delhi 110058. 5 min from Janakpuri West Metro Station.',
+            title: 'Dwarka Sector 12 Center Campus',
+            description: 'DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL & BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 & 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)',
             badge: 'Flagship Center',
             linkText: 'View Map',
             linkUrl: '/classroom'
@@ -1291,6 +1291,7 @@ export const cmsService = {
   // ================================================================
   getFooterConfig(): FooterConfig {
     try {
+      localStorage.removeItem('dk_academy_cms_footer_v1');
       const raw = localStorage.getItem(FOOTER_STORAGE_KEY);
       if (!raw) {
         localStorage.setItem(FOOTER_STORAGE_KEY, JSON.stringify(DEFAULT_FOOTER_CONFIG));
@@ -1651,6 +1652,7 @@ export const cmsService = {
   // ================================================================
   getAllPageConfigs(): Record<string, PageContentConfig> {
     try {
+      localStorage.removeItem('dk_academy_cms_pages_v1');
       const raw = localStorage.getItem(PAGES_STORAGE_KEY);
       const def = DEFAULT_PAGE_CONFIGS;
       if (!raw) {
@@ -2068,6 +2070,8 @@ export const cmsService = {
   getResults(): AchieverItem[] {
     try {
       localStorage.removeItem('dk_academy_cms_results_v1');
+      localStorage.removeItem('dk_academy_cms_results_v2');
+      localStorage.removeItem('dk_academy_cms_results_v3');
       const stored = localStorage.getItem(RESULTS_STORAGE_KEY);
       if (stored) return JSON.parse(stored);
     } catch {
@@ -2320,7 +2324,7 @@ export const cmsService = {
         type: 'video',
         title: 'Featured Video Masterclass',
         subtitle: 'Watch DK Sir explain 20s calculus inspection tactics',
-        content: 'Experience how Kota pedagogy simplifies complex rotational mechanics and definite integration.',
+        content: 'Experience how proprietary pedagogy simplifies complex rotational mechanics and definite integration.',
         videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
         videoThumbnail: '/img/dk-results-banner.jpeg',
         videoCaption: 'Masterclass: 20-30s Calculus Shortcuts with DK Sir',
@@ -2333,7 +2337,7 @@ export const cmsService = {
         type: 'assets',
         title: 'Academic Resources & Prospectus Downloads',
         subtitle: 'Download official syllabus guides, formula cheat sheets, and admission brochures',
-        content: 'Verified study material curated by Kota senior faculty for Class 11, 12 & Dropper aspirants.',
+        content: 'Verified study material curated by senior faculty for Class 11, 12 & Dropper aspirants.',
         order: 1,
         isVisible: true,
         assets: [
@@ -2363,7 +2367,7 @@ export const cmsService = {
           type: 'banner',
           title: 'Specialized JEE Mentorship Batch',
           subtitle: 'Limited to 25 aspirants per batch for personal guidance with DK Sir',
-          content: 'Daily doubt clearance, Kota pedagogy workbooks, and continuous parent-mentor feedback loops.',
+          content: 'Daily doubt clearance, structured pedagogy workbooks, and continuous parent-mentor feedback loops.',
           badge: 'ADMISSIONS OPEN',
           buttonText: 'Apply for Admission',
           buttonUrl: '/contact',
@@ -2392,7 +2396,7 @@ export const cmsService = {
             },
             {
               id: 'sc2',
-              title: 'Kota Pedagogy Modules',
+              title: 'Advanced Pedagogy Modules',
               description: 'Exhaustive daily practice sheets with video derivations for every single question.',
               badge: 'Comprehensive',
               icon: 'BookOpen',
@@ -2423,7 +2427,7 @@ export const cmsService = {
       metaKeywords: pageData.metaKeywords || 'DK Academy JEE, IIT JEE Coaching Delhi, DK Sir',
       heroBadge: 'SPECIAL PROGRAM • ADMISSIONS OPEN',
       heroHeading: pageData.heroHeading || pageData.name,
-      heroSubheading: pageData.heroSubheading || 'Mentored by Dharmendra Kumar (DK Sir) — 18+ Years Kota Pedagogy',
+      heroSubheading: pageData.heroSubheading || 'Mentored by Dharmendra Kumar (DK Sir) — 10+ Years Pedagogy',
       primaryCtaText: 'Enroll Now',
       primaryCtaUrl: '/courses',
       secondaryCtaText: 'Request Callback',
@@ -2526,7 +2530,7 @@ export const DEFAULT_CLASSROOM_BATCHES: ClassroomBatch[] = [
     features: [
       '600+ hours in-person concept derivations with DK Sir',
       'Daily 20–30s inspection shortcuts for Calculus & Algebra',
-      'Printed Kota-pedagogy theory workbooks and daily DPP sheets',
+      'Printed theory workbooks and daily DPP sheets',
       'Weekly offline OMR mock tests & monthly NTA CBT lab mocks',
       'Daily 1-on-1 personal doubt counter after every lecture'
     ]
@@ -2568,7 +2572,7 @@ export const DEFAULT_CLASSROOM_BATCHES: ClassroomBatch[] = [
     features: [
       'Daily 4.5 hours rigorous offline problem inspection with DK Sir',
       'Zero-rote method: convert 15-minute calculus traps into 30s checks',
-      '15+ years solved chapter-wise JEE Advanced question vault',
+      '10+ years solved chapter-wise JEE Advanced question vault',
       'Dedicated silent study library & computer lab for CBT testing',
       'Psychological exam temperament and negative marking reduction drills'
     ]
@@ -2598,7 +2602,7 @@ export const DEFAULT_CLASSROOM_BATCHES: ClassroomBatch[] = [
 export const DEFAULT_LIVE_SESSIONS: LiveClassSession[] = [
   {
     id: 'live_01',
-    title: 'Kota Mechanics Trap Problems & 30s Elimination Techniques',
+    title: 'Advanced Mechanics Trap Problems & 30s Elimination Techniques',
     courseId: 'jee-main-advanced-2yr-ultimate',
     courseTitle: 'Target JEE Advanced 2026 Batch',
     subject: 'Physics',

@@ -15,14 +15,23 @@ import {
 } from 'lucide-react';
 import { leadService } from '../../../services/leadService';
 import { getStudentWhatsAppUrl } from '../../../utils/whatsapp';
-import type { TimeSlot, ProspectiveLead } from '../../../types/lead';
+import type { TimeSlot, ProspectiveLead, AcademicClassStage } from '../../../types/lead';
 import styles from './CallbackModal.module.scss';
+
+const CLASS_STAGES: readonly AcademicClassStage[] = [
+  'Class 8th',
+  'Class 9th',
+  'Class 10th',
+  'Class 11th',
+  'Class 12th',
+  'Dropper'
+];
 
 interface CallbackModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultBatch?: string;
-  defaultClass?: 'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper';
+  defaultClass?: AcademicClassStage;
   source?: string;
 }
 
@@ -54,6 +63,11 @@ const TIME_SLOTS: {
     label: 'Evening (4:00 PM – 8:00 PM)',
     icon: Moon,
     sub: '4 PM – 8 PM'
+  },
+  {
+    label: 'Anytime (Immediate / Flexible)',
+    icon: Clock,
+    sub: 'Anytime'
   }
 ];
 
@@ -69,9 +83,9 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
   // Form State
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
-  const [currentClass, setCurrentClass] = useState<'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper'>(defaultClass);
+  const [currentClass, setCurrentClass] = useState<AcademicClassStage>(defaultClass);
   const [targetBatch, setTargetBatch] = useState(defaultBatch || BATCH_OPTIONS[0]);
-  const [preferredTime, setPreferredTime] = useState<TimeSlot>('Evening (4:00 PM – 8:00 PM)');
+  const [preferredTime, setPreferredTime] = useState<TimeSlot>('Anytime (Immediate / Flexible)');
   const [queryNotes, setQueryNotes] = useState('');
 
   // Errors & submission state
@@ -146,6 +160,23 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
 
       setIsSubmitting(false);
       setSubmittedLead(newLead);
+
+      // Auto-open WhatsApp chat with details including the student's mobile number
+      const waUrl = getStudentWhatsAppUrl({
+        studentName: fullName,
+        mobile: mobile,
+        targetBatch,
+        currentClass,
+        preferredTime,
+        question: queryNotes,
+        inquiryId: newLead.id
+      });
+
+      try {
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      } catch (err) {
+        console.warn('Could not auto-open WhatsApp tab:', err);
+      }
     }, 600);
   };
 
@@ -159,10 +190,12 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
   };
 
   const whatsappDirectUrl = getStudentWhatsAppUrl({
-    studentName: fullName,
-    targetBatch,
-    currentClass,
-    preferredTime,
+    studentName: submittedLead?.fullName || fullName,
+    mobile: submittedLead?.mobile || mobile,
+    targetBatch: submittedLead?.targetBatch || targetBatch,
+    currentClass: submittedLead?.currentClass || currentClass,
+    preferredTime: submittedLead?.preferredTime || preferredTime,
+    question: submittedLead?.queryNotes || queryNotes,
     inquiryId: submittedLead?.id
   });
 
@@ -186,7 +219,7 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
                 Academic Counseling &amp; Admissions
               </h2>
               <p className={styles.modalSubtitle}>
-                Official DK Academy JEE Guidance • Janakpuri Center &amp; Online Batches
+                Official DK Academy JEE Guidance • Dwarka Sector 12 Center &amp; Online Batches
               </p>
             </div>
           </div>
@@ -249,6 +282,9 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
                 <div>
                   <strong>Scheduled Callback Window:</strong>
                   <p>{submittedLead.preferredTime}</p>
+                  <p style={{ marginTop: '4px', fontSize: '0.8125rem', color: '#475569' }}>
+                    Registered Mobile: <strong>+91 {submittedLead.mobile}</strong>
+                  </p>
                 </div>
               </div>
 
@@ -262,7 +298,7 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
                   className={styles.instantWhatsAppBtn}
                 >
                   <MessageCircle size={18} />
-                  <span>Chat with Senior Counselor on WhatsApp</span>
+                  <span>Send Details to Counselor on WhatsApp (+91 93259 87875)</span>
                 </a>
               </div>
 
@@ -367,7 +403,7 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
                   Current Academic Class / Stage <span className={styles.required}>*</span>
                 </label>
                 <div className={styles.classChipsRow}>
-                  {(['Class 10th', 'Class 11th', 'Class 12th', 'Dropper'] as const).map((cls) => (
+                  {CLASS_STAGES.map((cls) => (
                     <button
                       key={cls}
                       type="button"
@@ -419,7 +455,7 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
                   id="cb-notes"
                   type="text"
                   className={styles.input}
-                  placeholder="e.g. Inquiring about Janakpuri offline seat or scholarship test"
+                  placeholder="e.g. Inquiring about Dwarka Sector 12 offline seat or scholarship test"
                   value={queryNotes}
                   onChange={(e) => setQueryNotes(e.target.value)}
                   disabled={isSubmitting}
@@ -467,7 +503,7 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
                 </div>
                 <h3 className={styles.waTitle}>Direct 1-Click WhatsApp Support</h3>
                 <p className={styles.waDesc}>
-                  Connect directly with Dharmendra Kumar Sir (DK Sir) and the official Janakpuri Admissions Desk. Fast responses for batch queries, fee scholarships, and study materials.
+                  Connect directly with Dharmendra Kumar Sir (DK Sir) and the official Dwarka Sector 12 Admissions Desk. Fast responses for batch queries, fee scholarships, and study materials.
                 </p>
 
                 <div className={styles.waBatchSelect}>
@@ -489,7 +525,7 @@ export const CallbackModal: React.FC<CallbackModalProps> = ({
                 </div>
 
                 <a
-                  href={getStudentWhatsAppUrl({ targetBatch })}
+                  href={getStudentWhatsAppUrl({ targetBatch, mobile, studentName: fullName, currentClass })}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.openWhatsAppBtn}

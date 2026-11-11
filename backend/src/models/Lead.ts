@@ -67,7 +67,7 @@ const leadSchema = new Schema<ILead>(
       default: 'Medium'
     },
     leadScore: { type: Number, default: 70 },
-    assignedCounselor: { type: String, default: 'Admissions Desk Janakpuri' },
+    assignedCounselor: { type: String, default: 'Admissions Desk Dwarka' },
     counselorNotes: [counselorNoteSchema],
     followUpDate: { type: String }
   },

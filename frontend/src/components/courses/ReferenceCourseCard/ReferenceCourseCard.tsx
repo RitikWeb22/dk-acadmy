@@ -177,7 +177,7 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
   // 6. Faculty Attribution
   const facultyName = useMemo(() => {
     if ((course as any).instructor) return (course as any).instructor;
-    if (course.taughtByIitians) return 'DK Sir & Kota Senior Faculty';
+    if (course.taughtByIitians) return 'DK Sir & Senior Faculty';
     return 'Dharmendra Kumar (DK Sir)';
   }, [course.taughtByIitians, (course as any).instructor]);
 
@@ -222,7 +222,7 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
     } else if (course.subjects && course.subjects.length > 0) {
       items.push({ icon: <CheckCircle2 size={12} aria-hidden="true" />, text: course.subjects.slice(0, 2).join(' + ') });
     } else {
-      items.push({ icon: <FileCheck size={12} aria-hidden="true" />, text: 'Kota DPPs' });
+      items.push({ icon: <FileCheck size={12} aria-hidden="true" />, text: 'Daily DPPs' });
     }
 
     return items.slice(0, 3);
@@ -392,7 +392,7 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
         {/* 3. Short description (approx 2 lines with ellipsis) */}
         <p className={styles.courseDescription}>
           {course.description ||
-            'Structured Kota-pedagogy batch with 20-30s math inspection shortcuts, daily DPPs, and All India CBT test series.'}
+            'Structured master batch with 20-30s math inspection shortcuts, daily DPPs, and All India CBT test series.'}
         </p>
 
         {/* 4. Faculty information */}

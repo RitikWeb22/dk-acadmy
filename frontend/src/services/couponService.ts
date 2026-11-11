@@ -23,10 +23,10 @@ const STORAGE_KEY = 'dk_academy_coupons_cache';
 
 const DEFAULT_COUPONS: CouponItem[] = [
   {
-    code: 'KOTA10',
+    code: 'DK10',
     discountType: 'percent',
     discountValue: 10,
-    label: '10% OFF Kota Welcome Discount',
+    label: '10% OFF Welcome Discount',
     description: 'Welcome discount for new admissions at DK Academy',
     usageLimit: 100,
     usedCount: 14,
@@ -218,7 +218,7 @@ class CouponService {
     const coupons = this.getLocalCoupons();
     const matched = coupons.find((c) => c.code === cleanCode);
     if (!matched) {
-      return { success: false, message: 'Invalid coupon code. Try KOTA10 or EARLYBIRD.' };
+      return { success: false, message: 'Invalid coupon code. Try DK10 or EARLYBIRD.' };
     }
 
     if (!matched.isActive) {

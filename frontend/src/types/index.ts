@@ -432,6 +432,9 @@ export interface AchieverItem {
   year: string;
   verified: boolean;
   storySnippet: string;
+  jeeMainsScore?: string;
+  advRank?: string;
+  bitsatRank?: string;
 }
 
 export interface SuccessStoryItem {

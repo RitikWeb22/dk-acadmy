@@ -76,7 +76,7 @@ export const Footer: React.FC = () => {
             {/* Real Delhi Center Address */}
             <div className={styles.officeAddress}>
               <MapPin size={16} className={styles.addressIcon} aria-hidden="true" />
-              <span>{footerConfig.janakpuriAddress}</span>
+              <span >{footerConfig.janakpuriAddress || footerConfig.dwarkaAddress || 'Dwarka Sector 12, New Delhi - 110078 | Near Bal Bharati International School & Bal Bhavan International School (Manish Chamber, Office 55 & 56, Plot No. 7, LSC, Sector 12, Dwarka'}</span>
             </div>
 
             {/* Real Contact Numbers & WhatsApp Callouts */}
@@ -173,8 +173,8 @@ export const Footer: React.FC = () => {
             </ul>
             <div className={styles.quickContactNote}>
               <span className={styles.contactNoteLabel}>Student Inquiries</span>
-              <a href={`mailto:${footerConfig.emailAdmissions || 'admissions@dkacademy.com'}`} className={styles.contactMailLink}>
-                <Mail size={14} aria-hidden="true" /> {footerConfig.emailAdmissions || 'admissions@dkacademy.com'}
+              <a href="mailto:info@dkacademyjee.com" className={styles.contactMailLink}>
+                <Mail size={14} aria-hidden="true" /> info@dkacademyjee.com
               </a>
             </div>
           </div>

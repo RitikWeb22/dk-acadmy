@@ -299,17 +299,22 @@
 // Class Chips Row
 .classChipsRow {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+
+  @include tablet {
+    grid-template-columns: repeat(3, 1fr);
+  }
 
   @include mobile {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
 }
 
 .classChip {
   height: 38px;
-  padding: 0 8px;
+  padding: 0 6px;
   border: 1px solid var(--color-border);
   background: var(--color-surface-muted);
   border-radius: 8px;
@@ -321,6 +326,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 
   &:hover {
     background: #e2e8f0;
@@ -338,11 +344,16 @@
 // Preferred Time Slot Cards
 .timeSlotGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   @include mobile {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 }
 

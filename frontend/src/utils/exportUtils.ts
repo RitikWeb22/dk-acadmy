@@ -194,7 +194,7 @@ export function exportToPDF({
       <div class="header">
         <div>
           <h1 class="brand-title">DK ACADEMY JEE &amp; BITSAT</h1>
-          <div class="brand-sub">Kota Pedagogy System • Premier IIT JEE &amp; BITSAT Training Portal</div>
+          <div class="brand-sub">Premier IIT JEE &amp; BITSAT Training Portal</div>
         </div>
         <div class="report-info">
           <div><strong>Generated on:</strong> ${currentDate}</div>

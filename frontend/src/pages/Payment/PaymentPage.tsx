@@ -29,7 +29,7 @@ import styles from './PaymentPage.module.scss';
 
 // ─── Configuration ───
 const BRAND_NAME = 'DK Academy JEE';
-const BUSINESS_STATE = 'Rajasthan'; // Kota Head Office for GST jurisdiction
+const BUSINESS_STATE = 'Delhi'; // Delhi Head Office for GST jurisdiction
 const COUNSELOR_WHATSAPP_LINK =
   'https://wa.me/918826444207?text=Hi%20DK%20Academy%2C%20I%20need%20help%20with%20Class%2011th%20Self-Study%20DLP%20Checkout';
 
@@ -80,7 +80,7 @@ interface CouponData {
 }
 
 const VERIFIED_COUPONS: Record<string, CouponData> = {
-  KOTA10: { type: 'percent', value: 10, label: '10% Kota Merit Scholarship' },
+  DK10: { type: 'percent', value: 10, label: '10% Merit Scholarship' },
   DKSIR20: { type: 'percent', value: 20, label: '20% Direct Faculty Waiver' },
   EARLYBIRD: { type: 'flat', value: 1000, label: '₹1,000 Early Bird Batch Discount' },
   WELCOME500: { type: 'flat', value: 500, label: '₹500 Welcome Discount' }
@@ -550,7 +550,7 @@ export const PaymentPage: React.FC = () => {
                   <div className={styles.pyqUnlockFeatureAlert}>
                     <Sparkles size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <span>
-                      <strong>Instant PYQ Unlock:</strong> All 500+ Chapter-wise Questions, DK Sir 20-30s Shortcuts Video Solutions &amp; Downloadable Kota PDF Solutions will be unlocked immediately upon payment.
+                      <strong>Instant PYQ Unlock:</strong> All 500+ Chapter-wise Questions, DK Sir 20-30s Shortcuts Video Solutions &amp; Downloadable PDF Solutions will be unlocked immediately upon payment.
                     </span>
                   </div>
                 )}
@@ -708,7 +708,7 @@ export const PaymentPage: React.FC = () => {
                     </div>
                     {couponError && <p className={styles.couponErrorText}>{couponError}</p>}
                     <p className={styles.popularCouponsHint}>
-                      Popular codes: <strong>KOTA10</strong>, <strong>EARLYBIRD</strong>
+                      Popular codes: <strong>DK10</strong>, <strong>EARLYBIRD</strong>
                     </p>
                   </div>
                 )}

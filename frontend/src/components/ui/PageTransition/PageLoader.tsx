@@ -10,7 +10,7 @@ interface PageLoaderProps {
 
 export const PageLoader: React.FC<PageLoaderProps> = ({
   message = 'DK ACADEMY',
-  subMessage = 'IIT JEE KOTA PEDAGOGY',
+  subMessage = 'IIT JEE ADVANCED PEDAGOGY',
   fullScreen = true,
   isFadingOut = false
 }) => {

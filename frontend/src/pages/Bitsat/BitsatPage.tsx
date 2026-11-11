@@ -1855,7 +1855,7 @@ export const BitsatPage: React.FC = () => {
               BITSAT Performance &amp; AIR Score Card
             </h3>
             <p style={{ margin: '0 0 20px', color: '#64748b', fontSize: '0.88rem' }}>
-              Calibrated against 1,50,000+ national BITSAT candidates and Kota benchmark speed metrics.
+              Calibrated against 1,50,000+ national BITSAT candidates and national benchmark speed metrics.
             </p>
 
             {/* 🏆 PREDICTED AIR HIGHLIGHT HERO BOX */}
@@ -2468,7 +2468,7 @@ export const BitsatPage: React.FC = () => {
                   </li>
                   <li>
                     <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
-                    <span><strong>1-on-1 Strategy Call</strong> with DK Sir or senior Kota academic mentor</span>
+                    <span><strong>1-on-1 Strategy Call</strong> with DK Sir or senior academic mentor</span>
                   </li>
                   <li>
                     <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>

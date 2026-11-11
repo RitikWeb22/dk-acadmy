@@ -64,7 +64,7 @@ export const submitLead = async (req: Request, res: Response): Promise<void> => 
       status: 'New',
       priority: priority || (leadScore >= 80 ? 'High' : 'Medium'),
       leadScore,
-      assignedCounselor: assignedCounselor || 'Admissions Desk Janakpuri',
+      assignedCounselor: assignedCounselor || 'Admissions Desk Dwarka',
       followUpDate: followUpDate || undefined,
       counselorNotes: [
         {

@@ -20,6 +20,7 @@ import {
   Target,
   Flame
 } from 'lucide-react';
+import { getStudentWhatsAppUrl } from '../../utils/whatsapp';
 
 // ─── Component Props ───
 export interface CounselingCallbackModalProps {
@@ -29,7 +30,7 @@ export interface CounselingCallbackModalProps {
   centerName?: string;
   coursesList?: string[];
   defaultCourse?: string;
-  defaultClass?: 'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper';
+  defaultClass?: 'Class 8th' | 'Class 9th' | 'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper';
   whatsappLink?: string;
   responseTimeText?: string;
   onSubmitSuccess?: (leadData: CounselingLeadData) => void;
@@ -39,27 +40,29 @@ export interface CounselingLeadData {
   name: string;
   mobile: string;
   course: string;
-  classStage: 'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper';
-  timeSlot: 'Morning' | 'Afternoon' | 'Evening';
+  classStage: 'Class 8th' | 'Class 9th' | 'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper';
+  timeSlot: 'Morning' | 'Afternoon' | 'Evening' | 'Anytime';
   message?: string;
 }
 
 // ─── Default Configuration ───
 const DEFAULT_INSTITUTE = 'DK Academy JEE';
-const DEFAULT_CENTER = 'Kota Center';
+const DEFAULT_CENTER = 'Dwarka Sector 12 Center';
 const DEFAULT_COURSES = [
   'JEE Main & Advanced (2-Year Comprehensive Batch)',
   'Class 11th Self-Study Distance Learning Package (DLP)',
   'Class 12th Fast-Track Rank Booster Batch',
   'Dropper & Repeater IIT-JEE Super 30 Batch',
   'All India CBT Mock Test Series & Chapter DPPs',
-  'Class 9th & 10th Foundation & Olympiad Concept Builder'
+  'Class 8th, 9th & 10th Foundation & Olympiad Concept Builder'
 ];
 const DEFAULT_WHATSAPP =
-  'https://wa.me/918826444207?text=Hi%20DK%20Academy%2C%20I%20would%20like%20to%20speak%20with%20an%20academic%20counselor%20regarding%20JEE%20batches.';
+  'https://wa.me/919325987875?text=Hi%20DK%20Academy%2C%20I%20would%20like%20to%20speak%20with%20an%20academic%20counselor%20regarding%20JEE%20batches.';
 const DEFAULT_RESPONSE_TIME = '15 minutes';
 
 const CLASS_OPTIONS = [
+  { id: 'Class 8th' as const, label: 'Class 8th', icon: Sparkles },
+  { id: 'Class 9th' as const, label: 'Class 9th', icon: Sparkles },
   { id: 'Class 10th' as const, label: 'Class 10th', icon: Sparkles },
   { id: 'Class 11th' as const, label: 'Class 11th', icon: BookOpen },
   { id: 'Class 12th' as const, label: 'Class 12th', icon: Target },
@@ -87,6 +90,13 @@ const TIME_SLOTS = [
     range: '4 PM – 8 PM',
     icon: Moon,
     tintClass: 'bg-indigo-50 text-indigo-600 border-indigo-200'
+  },
+  {
+    id: 'Anytime' as const,
+    title: 'Anytime',
+    range: 'Flexible / Immediate',
+    icon: Clock,
+    tintClass: 'bg-emerald-50 text-emerald-600 border-emerald-200'
   }
 ];
 
@@ -109,8 +119,8 @@ export const CounselingCallbackModal: React.FC<CounselingCallbackModalProps> = (
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [course, setCourse] = useState(defaultCourse || coursesList[0]);
-  const [classStage, setClassStage] = useState<'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper'>(defaultClass);
-  const [timeSlot, setTimeSlot] = useState<'Morning' | 'Afternoon' | 'Evening'>('Evening');
+  const [classStage, setClassStage] = useState<'Class 8th' | 'Class 9th' | 'Class 10th' | 'Class 11th' | 'Class 12th' | 'Dropper'>(defaultClass || 'Class 11th');
+  const [timeSlot, setTimeSlot] = useState<'Morning' | 'Afternoon' | 'Evening' | 'Anytime'>('Anytime');
   const [message, setMessage] = useState('');
 
   // ─── UI & Submission State ───
@@ -289,6 +299,21 @@ export const CounselingCallbackModal: React.FC<CounselingCallbackModalProps> = (
       if (onSubmitSuccess) {
         onSubmitSuccess(leadPayload);
       }
+
+      // Automatically open WhatsApp chat with counselor with full student details & mobile number
+      try {
+        const waUrl = getStudentWhatsAppUrl({
+          studentName: leadPayload.name,
+          mobile: leadPayload.mobile,
+          currentClass: leadPayload.classStage,
+          targetBatch: leadPayload.course,
+          preferredTime: leadPayload.timeSlot,
+          question: leadPayload.message
+        });
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      } catch (waErr) {
+        console.warn('Auto-opening WhatsApp prevented by popup blocker:', waErr);
+      }
     } catch (err) {
       console.error('Failed to submit callback request', err);
       setErrors((prev) => ({
@@ -403,6 +428,25 @@ export const CounselingCallbackModal: React.FC<CounselingCallbackModalProps> = (
                 </div>
               )}
 
+              {submittedData && (
+                <a
+                  href={getStudentWhatsAppUrl({
+                    studentName: submittedData.name,
+                    mobile: submittedData.mobile,
+                    currentClass: submittedData.classStage,
+                    targetBatch: submittedData.course,
+                    preferredTime: submittedData.timeSlot,
+                    question: submittedData.message
+                  })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full h-11 mb-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+                >
+                  <MessageCircle size={18} />
+                  <span>Send Details on WhatsApp (+91 93259 87875)</span>
+                </a>
+              )}
+
               <button
                 type="button"
                 onClick={handleClose}
@@ -459,7 +503,7 @@ export const CounselingCallbackModal: React.FC<CounselingCallbackModalProps> = (
                   </div>
                   <h3 className="text-base font-bold text-slate-900 mb-1.5">Direct Academic WhatsApp Helpline</h3>
                   <p className="text-xs text-slate-600 max-w-xs mx-auto mb-6">
-                    Connect directly with DK Sir’s Kota counseling team on WhatsApp for instant batch roadmaps and fee
+                    Connect directly with DK Sir’s academic counseling team on WhatsApp for instant batch roadmaps and fee
                     details.
                   </p>
 

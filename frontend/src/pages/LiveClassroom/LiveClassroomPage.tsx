@@ -159,7 +159,7 @@ export const LiveClassroomPage: React.FC = () => {
             DK Sir Live <span className={styles.headingGradient}>Interactive Classroom</span>
           </h1>
           <p className={styles.heroSubheading}>
-            Kota coaching rigor delivered straight to your study desk. Experience ultra-low latency live classes, real-time 2-way microphone doubts with DK Sir, and 20-30s speed inspection timer drills.
+            Advanced coaching rigor delivered straight to your study desk. Experience ultra-low latency live classes, real-time 2-way microphone doubts with DK Sir, and 20-30s speed inspection timer drills.
           </p>
 
           {/* 3. Live Countdown Timer */}
@@ -355,7 +355,7 @@ export const LiveClassroomPage: React.FC = () => {
               </div>
               <h3 className={styles.featureTitle}>20–30s Speed Inspection Polls</h3>
               <p className={styles.featureDesc}>
-                During live derivations, DK Sir launches rapid timed checks. Students solve problems without traditional multi-step algebra using proprietary Kota inspection heuristics.
+                During live derivations, DK Sir launches rapid timed checks. Students solve problems without traditional multi-step algebra using proprietary speed inspection heuristics.
               </p>
               <div className={styles.cardDivider} />
               <ul className={styles.cardPointsList}>
@@ -478,7 +478,7 @@ export const LiveClassroomPage: React.FC = () => {
                   <h4 className={styles.authorName}>Dharmendra Kumar (DK Sir)</h4>
                   <ShieldCheck size={16} className={styles.verifiedBadge} />
                 </div>
-                <span className={styles.authorTitle}>18+ Yrs Kota Faculty • Ex-Allen / Bansal Math HOD</span>
+                <span className={styles.authorTitle}>10+ Years Pedagogy • Senior Mathematics Mentor</span>
                 <span className={styles.authorSpecialization}>Specialist in 20–30s Speed Inspection Algorithms</span>
               </div>
             </div>
@@ -488,7 +488,7 @@ export const LiveClassroomPage: React.FC = () => {
             <div className={styles.quoteContent}>
               <Quote size={28} className={styles.quoteMarkIcon} aria-hidden="true" />
               <blockquote className={styles.quoteText}>
-                “In true Kota coaching, solving problems fast isn’t just about memorizing formulas—it is about the rhythm of thinking under timed inspection. Our upcoming Live Classroom brings that exact classroom tempo straight to your screen.”
+                “Solving problems fast isn’t just about memorizing formulas—it is about the rhythm of thinking under timed inspection. Our upcoming Live Classroom brings that exact classroom tempo straight to your screen.”
               </blockquote>
             </div>
           </div>

@@ -113,11 +113,11 @@ export const ContactPage: React.FC = () => {
   const faqs = [
     {
       q: 'How fast will an academic counselor call me back?',
-      a: 'During standard working hours (8:00 AM to 9:00 PM IST), inquiries are acknowledged within 15 to 30 minutes. A senior academic counselor or DK Sir’s team will review your class, target exam year, and recommend the best classroom or live batch.'
+      a: 'During standard working hours (10:00 AM to 9:00 PM IST), inquiries are acknowledged within 15 to 30 minutes. A senior academic counselor or DK Sir’s team will review your class, target exam year, and recommend the best classroom or live batch.'
     },
     {
-      q: 'Can I visit the Janakpuri center for a live demo and interaction with DK Sir?',
-      a: 'Yes! Walk-in counseling sessions are available 7 days a week at our Janakpuri Metro Pillar 542 campus. You can also request a free Kota Speed Algorithms demo masterclass before final enrollment.'
+      q: 'Can I visit the Dwarka center for a live demo and interaction with DK Sir?',
+      a: 'Yes! Walk-in counseling sessions are available 7 days a week at our Dwarka Sector 12 campus. You can also request a free Speed Algorithms demo masterclass before final enrollment.'
     },
     {
       q: 'Are fee installment plans and scholarship criteria available?',
@@ -125,12 +125,12 @@ export const ContactPage: React.FC = () => {
     },
     {
       q: 'How do students outside Delhi NCR attend lectures and doubt counters?',
-      a: 'Students across India join our Hybrid & Online Live batches. Lectures are streamed in low-latency 1080p with daily Kota DPPs, handwritten video PDF notes, and 6-days-a-week live audio-video doubt counters.'
+      a: 'Students across India join our Hybrid & Online Live batches. Lectures are streamed in low-latency 1080p with daily DPPs, handwritten video PDF notes, and 6-days-a-week live audio-video doubt counters.'
     }
   ];
 
   const whatsappMessage = encodeURIComponent(
-    `Hello DK Academy Admissions Desk, I want guidance regarding JEE Main & Advanced batches and DK Sir Kota techniques.`
+    `Hello DK Academy Admissions Desk, I want guidance regarding JEE Main & Advanced batches and DK Sir shortcut techniques.`
   );
 
   return (
@@ -149,7 +149,7 @@ export const ContactPage: React.FC = () => {
           <div className={styles.headerContent}>
             <div className={styles.badgePill}>
               <span className={styles.badgeDot} />
-              <span>Admissions Desk • Janakpuri Center • Kota Pedagogy</span>
+              <span>Admissions Desk • Dwarka Center • Advanced Pedagogy</span>
             </div>
 
             <h1 className={styles.pageTitle}>
@@ -172,7 +172,7 @@ export const ContactPage: React.FC = () => {
               </div>
               <div className={styles.statCard}>
                 <span className={styles.statNumber}>7 Days/Week</span>
-                <span className={styles.statLabel}>Janakpuri Center Support</span>
+                <span className={styles.statLabel}>Dwarka</span>
               </div>
             </div>
           </div>
@@ -213,28 +213,28 @@ export const ContactPage: React.FC = () => {
             </a>
           </div>
 
-          {/* Card 3: Admissions Email */}
+          {/* Card 3: Admissions & Student Inquiries Email */}
           <div className={styles.touchCard}>
             <div className={`${styles.cardIconBox} ${styles.amberIcon}`}>
               <Mail size={20} />
             </div>
-            <h3 className={styles.cardTitle}>Admissions Email</h3>
-            <p className={styles.cardDesc}>Send official scorecards, test queries, and documents.</p>
-            <a href="mailto:admissions@dkacademy.in" className={styles.cardAction}>
-              <span>admissions@dkacademy.in</span>
+            <h3 className={styles.cardTitle}>Student Inquiries</h3>
+            <p className={styles.cardDesc}>Send official scorecards, test queries, and admission documents.</p>
+            <a href="mailto:info@dkacademyjee.com" className={styles.cardAction}>
+              <span>info@dkacademyjee.com</span>
               <ArrowRight size={14} />
             </a>
           </div>
 
-          {/* Card 4: Janakpuri Classroom */}
+          {/* Card 4: Dwarka Classroom */}
           <div className={styles.touchCard}>
             <div className={`${styles.cardIconBox} ${styles.purpleIcon}`}>
               <Building2 size={20} />
             </div>
-            <h3 className={styles.cardTitle}>Janakpuri Center</h3>
+            <h3 className={styles.cardTitle}>Dwarka Center</h3>
             <p className={styles.cardDesc}>Walk-in counseling &amp; offline classroom simulations.</p>
             <a
-              href="https://maps.google.com/?q=Janakpuri+New+Delhi"
+              href="https://maps.google.com/?q=Dwarka+Sector+12+New+Delhi"
               target="_blank"
               rel="noopener noreferrer"
               className={styles.cardAction}
@@ -376,8 +376,8 @@ export const ContactPage: React.FC = () => {
                     <option value="Class 11th & 12th Math Special (DK Sir 20s Techniques)">
                       Class 11th &amp; 12th Math Special (DK Sir 20s Techniques)
                     </option>
-                    <option value="Offline Classroom Hybrid (Janakpuri Center)">
-                      Offline Classroom Hybrid (Janakpuri Center)
+                    <option value="Offline Classroom Hybrid (Dwarka Sector 12 Center)">
+                      Offline Classroom Hybrid (Dwarka Sector 12 Center)
                     </option>
                   </select>
                 </div>
@@ -478,16 +478,18 @@ export const ContactPage: React.FC = () => {
                   <MapPin size={22} />
                 </div>
                 <div>
-                  <h3>Main Janakpuri Classroom Center</h3>
+                  <h3>Dwarka</h3>
                 </div>
               </div>
 
               <p className={styles.addressText}>
                 <strong>DK Academy IIT JEE &amp; BITSAT Institute</strong>
                 <br />
-                Metro Pillar 542, Main Najafgarh Road, Block C-4, Janakpuri,
+                DWARKA SECTOR 12, NEW DELHI - 110078
                 <br />
-                New Delhi, Delhi – 110058 (Near Janakpuri West Metro Station)
+                NEAR BAL BHARATI INTERNATIONAL SCHOOL &amp; BAL BHAVAN INTERNATIONAL SCHOOL
+                <br />
+                (MANISH CHAMBER, OFFICE 55 &amp; 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)
               </p>
 
               <ul className={styles.facilityList}>
@@ -510,7 +512,7 @@ export const ContactPage: React.FC = () => {
               </ul>
 
               <a
-                href="https://maps.google.com/?q=Janakpuri+West+Metro+Station+New+Delhi"
+                href="https://maps.google.com/?q=Dwarka+Sector+12+New+Delhi"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.directionsBtn}
@@ -529,15 +531,15 @@ export const ContactPage: React.FC = () => {
 
               <div className={styles.timingRow}>
                 <span className={styles.day}>Monday – Friday</span>
-                <span className={styles.time}>8:00 AM – 9:00 PM</span>
+                <span className={styles.time}>10:00 AM – 9:00 PM</span>
               </div>
               <div className={styles.timingRow}>
                 <span className={styles.day}>Saturday</span>
-                <span className={styles.time}>8:00 AM – 9:00 PM</span>
+                <span className={styles.time}>10:00 AM – 9:00 PM</span>
               </div>
               <div className={styles.timingRow}>
                 <span className={styles.day}>Sunday (Demo &amp; Tests)</span>
-                <span className={styles.time}>9:00 AM – 8:00 PM</span>
+                <span className={styles.time}>10:00 AM – 9:00 PM</span>
               </div>
             </div>
           </div>

@@ -51,7 +51,7 @@ export const AboutHero: React.FC = () => {
               DK Academy JEE is a dedicated learning platform engineered to make IIT JEE Mathematics intuitive,
               structured, and scoring. Founded on the principle that true problem-solving mastery comes from
               crystal-clear fundamentals coupled with trademarked <strong>20s speed algorithms</strong>, we equip
-              aspirants with 760+ chapter-wise PYQ dissections and Kota classroom mentorship.
+              aspirants with 760+ chapter-wise PYQ dissections and structured classroom mentorship.
             </p>
 
             <div className={styles.trustStrip}>
@@ -122,7 +122,7 @@ export const AboutHero: React.FC = () => {
                   <div className={`${styles.iconWrap} ${styles.iconEmerald}`}>
                     <GraduationCap size={20} aria-hidden="true" />
                   </div>
-                  <span className={styles.miniTag}>Kota Legacy</span>
+                  <span className={styles.miniTag}>10+ Yrs Legacy</span>
                 </div>
                 <div className={styles.metricRow}>
                   <span className={styles.metricNumber}>450+</span>

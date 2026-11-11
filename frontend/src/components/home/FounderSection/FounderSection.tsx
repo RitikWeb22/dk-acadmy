@@ -54,10 +54,10 @@ export const FounderSection: React.FC<FounderSectionProps> = ({ badge, title }) 
               {/* Soft Ambient Backdrop Aura */}
               <div className={styles.ambientBackdrop} aria-hidden="true" />
 
-              {/* Floating Badge 1: 18+ Yrs Kota Pedagogy (Top Right) */}
+              {/* Floating Badge 1: 10+ Years Pedagogy (Top Right) */}
               <div className={styles.floatingExpBadge} aria-hidden="true">
                 <Sparkles size={13} className={styles.expSparkle} />
-                <span>18+ Yrs Kota Pedagogy</span>
+                <span>10+ Years Pedagogy</span>
               </div>
 
               {/* Floating Badge 2: 20-30s Shortcuts (Bottom Left) */}

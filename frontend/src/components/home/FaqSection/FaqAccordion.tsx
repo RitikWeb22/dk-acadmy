@@ -29,7 +29,7 @@ const FAQ_DATA: FaqItem[] = [
   {
     id: 'faq-doubt-support',
     question: 'How does doubt resolution work for online and classroom students?',
-    answer: 'Students can ask doubts live during interactive lectures, attend post-class 30-minute offline doubt clinics at our Dwarka and Janakpuri centers, and submit question screenshots directly to DK Sir and faculty mentors on our dedicated student Telegram channel with same-day step-by-step resolution.'
+    answer: 'Students can ask doubts live during interactive lectures, attend post-class 30-minute offline doubt clinics at our Dwarka Sector 12 center, and submit question screenshots directly to DK Sir and faculty mentors on our dedicated student Telegram channel with same-day step-by-step resolution.'
   },
   {
     id: 'faq-emi-options',

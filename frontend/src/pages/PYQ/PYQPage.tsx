@@ -597,7 +597,7 @@ export const PYQPage: React.FC = () => {
               Practice Previous Year <span className={styles.titleHighlight}>JEE Questions</span>
             </h1>
             <p className={styles.pageDescription}>
-              Solved past JEE Main &amp; Advanced papers authored by Kota faculty.
+              Solved past JEE Main &amp; Advanced papers authored by senior faculty.
               Master speed with DK Sir 20-30s inspection shortcuts, step-by-step solutions, and video explanations.
             </p>
 
@@ -613,7 +613,7 @@ export const PYQPage: React.FC = () => {
               </div>
               <div className={styles.pedagogyBadge}>
                 <FileText size={14} className={styles.badgeIconEmerald} aria-hidden="true" />
-                <span>Downloadable Kota PDF Solutions</span>
+                <span>Downloadable PDF Solutions</span>
               </div>
               <div className={styles.pedagogyBadge}>
                 <ShieldCheck size={14} className={styles.badgeIconPurple} aria-hidden="true" />
@@ -866,7 +866,7 @@ export const PYQPage: React.FC = () => {
                         <div className={styles.setCardFeatures}>
                           <div className={styles.featureItem}>
                             <Zap size={13} style={{ color: '#2563eb' }} />
-                            <span>DK Sir Kota Inspection Shortcuts</span>
+                            <span>DK Sir 20-30s Inspection Shortcuts</span>
                           </div>
                           <div className={styles.featureItem}>
                             <CheckCircle2 size={13} style={{ color: '#16a34a' }} />
@@ -1042,7 +1042,7 @@ export const PYQPage: React.FC = () => {
                     <div className={styles.lockedTextWrap}>
                       <strong>Premium PYQ Paper</strong>
                       <span>
-                        Question 1 is unlocked for preview. Unlock all {setQuestions.length} questions, DK Sir Kota shortcuts, and PDF solutions.
+                        Question 1 is unlocked for preview. Unlock all {setQuestions.length} questions, DK Sir shortcuts, and PDF solutions.
                       </span>
                     </div>
                   </div>

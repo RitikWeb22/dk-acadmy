@@ -128,7 +128,7 @@ export const ResultsBannerSection: React.FC = () => {
               </div>
               <div className={styles.statDivider} aria-hidden="true" />
               <div className={styles.statBox}>
-                <div className={styles.statVal}>15+ Years</div>
+                <div className={styles.statVal}>10+ Years</div>
                 <div className={styles.statLbl}>IIT-JEE Mentorship by DK Sir</div>
               </div>
             </div>
@@ -195,11 +195,11 @@ export const ResultsBannerSection: React.FC = () => {
             <div className={styles.bottomBar}>
               <div className={styles.bottomInfoItem}>
                 <CheckCircle2 size={16} className={styles.checkIcon} aria-hidden="true" />
-                <span>Mentored by Dharmendra Kumar (DK Sir) — 15+ Years IIT-JEE Experience</span>
+                <span>Mentored by Dharmendra Kumar (DK Sir) — 10+ Years IIT-JEE Experience</span>
               </div>
               <div className={styles.bottomLocationItem}>
                 <MapPin size={14} className={styles.mapIcon} aria-hidden="true" />
-                <span>Dwarka Sector 12 &amp; Janakpuri Centers, New Delhi</span>
+                <span>Dwarka Sector 12 Center, New Delhi</span>
               </div>
             </div>
           </div>

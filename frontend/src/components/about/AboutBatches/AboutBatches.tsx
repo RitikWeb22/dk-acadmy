@@ -28,7 +28,7 @@ export const AboutBatches: React.FC = () => {
       title: 'JEE Advanced & Mains 1-Year Flagship',
       subtitle: 'Class 12 & Dropper / Repeater aspirants targeting 99+ percentiles and top IITs.',
       highlights: [
-        'Comprehensive 11th & 12th revision with intensive Kota problem-solving tempo',
+        'Comprehensive 11th & 12th revision with intensive problem-solving tempo',
         'DK Sir’s proprietary 20s speed inspection algorithms for Definite Integrals and Calculus',
         'Exhaustive 15-year topic-wise PYQ bank with step-by-step examiner trap notes',
         'Dedicated 1:1 doubt-clearing sessions and CBT national percentile benchmark tests'

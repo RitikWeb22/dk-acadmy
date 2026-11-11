@@ -659,7 +659,7 @@ export const CoursesPage: React.FC = () => {
                 <span className={styles.eyebrowDivider}>•</span>
                 <span className={styles.eyebrowPedagogy}>
                   <Sparkles size={13} className={styles.eyebrowSparkle} aria-hidden="true" />
-                  Kota Pedagogy in Janakpuri, New Delhi
+                  Advanced Pedagogy in Dwarka Sector 12, New Delhi
                 </span>
               </div>
 
@@ -1165,7 +1165,7 @@ export const CoursesPage: React.FC = () => {
                     <div className={styles.perkCheckCircle}>
                       <CheckCircle2 size={16} />
                     </div>
-                    <span>Delhi Janakpuri offline center batch seat availability</span>
+                    <span>Delhi Dwarka Sector 12 offline center batch seat availability</span>
                   </div>
                 </div>
 
@@ -1175,7 +1175,7 @@ export const CoursesPage: React.FC = () => {
                     <Phone size={16} />
                   </div>
                   <div className={styles.helplineTextGroup}>
-                    <span className={styles.helplineLabel}>Direct Janakpuri Desk Hotline:</span>
+                    <span className={styles.helplineLabel}>Direct Dwarka Desk Hotline:</span>
                     <div className={styles.phoneNumbersList}>
                       <a href="tel:9325987875" className={styles.phoneLink}>9325987875</a>
                       <span className={styles.phoneDivider}>•</span>
@@ -1287,8 +1287,8 @@ export const CoursesPage: React.FC = () => {
                 theme: 'amber'
               },
               {
-                title: 'Online + Offline Janakpuri Center',
-                desc: 'Attend live online batches from anywhere or physical classroom sessions at our modern coaching center in Janakpuri, New Delhi.',
+                title: 'Online + Offline Dwarka Center',
+                desc: 'Attend live online batches from anywhere or physical classroom sessions at our modern coaching center in Dwarka Sector 12, New Delhi.',
                 icon: Building2,
                 pill: 'Hybrid Flexibility',
                 highlight: 'Delhi Center + Live App',
@@ -1299,7 +1299,7 @@ export const CoursesPage: React.FC = () => {
                 desc: 'Exhaustive chapter-by-chapter Previous Year Question (PYQ) video solutions, solved DPPs, and individual one-on-one progress tracking.',
                 icon: Target,
                 pill: 'Rank Engineering',
-                highlight: '15+ Years Solved Archives',
+                highlight: '10+ Years Solved Archives',
                 theme: 'emerald'
               }
             ].map((item, idx) => {
@@ -1363,7 +1363,7 @@ export const CoursesPage: React.FC = () => {
                     </div>
                     <div className={styles.planHeaderTitle}>Live Classroom Batch</div>
                     <div className={styles.planHeaderPrice}>From ₹48,000/yr</div>
-                    <p className={styles.planHeaderSub}>Online live classes + offline Janakpuri access</p>
+                    <p className={styles.planHeaderSub}>Online live classes + offline Dwarka access</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -1515,9 +1515,9 @@ export const CoursesPage: React.FC = () => {
         <Container size="wide">
           <div className={styles.sectionHeaderCenter}>
             <span className={styles.preTitle}>Master Mentors</span>
-            <h2 className={styles.sectionTitleCenter}>Learn Directly from Kota Veterans &amp; IITians</h2>
+            <h2 className={styles.sectionTitleCenter}>Learn Directly from Senior Veterans &amp; IITians</h2>
             <p className={styles.sectionDescCenter}>
-              Our faculty members bring 15+ years of Kota coaching pedagogy to give you an unfair advantage in JEE.
+              Our faculty members bring 10+ years of coaching excellence to give you an unfair advantage in JEE.
             </p>
           </div>
 

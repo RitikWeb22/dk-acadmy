@@ -104,7 +104,7 @@ export const PaymentsOrders: React.FC<PaymentsOrdersProps> = ({ student }) => {
     <div>
       <h1 class="brand-title">DK ACADEMY JEE</h1>
       <p class="brand-meta">Premier IIT-JEE Mathematics Coaching by DK Sir (Ex-IITian)<br>
-      C4F/33, Behind F Market, Janakpuri, New Delhi - 110058<br>
+      DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL &amp; BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 &amp; 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)<br>
       <strong>GSTIN:</strong> 07AABCU9603R1ZM | <strong>SAC Code:</strong> 999293 (Educational Coaching Services)</p>
     </div>
     <div style="text-align: right;">

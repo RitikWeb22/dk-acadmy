@@ -105,7 +105,7 @@ export const FREE_COURSES_CATALOG: Course[] = [
     features: [
       'Official Straight Lines PYQ Booklet (PDF Included)',
       'Parabola Conic Sections Latus Rectum Booklet (PDF Included)',
-      'HD Video Walkthrough by DK Sir (18+ Yrs Kota Experience)',
+      'HD Video Walkthrough by DK Sir (10+ Yrs Experience)',
       'Instant access in interactive LMS with 0.5x–2x speed controls'
     ],
     schedule: 'Self-Paced • Instant Streaming & PDF Download',
@@ -407,7 +407,7 @@ export const COURSES_CATALOG: Course[] = [
       'Exclusive 20-to-30-second problem-solving challenges & shortcut techniques',
       'Chapter-wise Previous Year Question (PYQ) video solutions (2010–2026)',
       '1:1 personal academic mentorship and weekly doubt-solving clinics',
-      'Hybrid access: Attend online or at Janakpuri, New Delhi center'
+      'Hybrid access: Attend online or at Dwarka Sector 12, New Delhi center'
     ],
     schedule: 'Mon, Wed, Fri • Evening Live Sessions + Weekend Sprints',
     subjects: ['Mathematics']
@@ -443,7 +443,7 @@ export const COURSES_CATALOG: Course[] = [
     features: [
       'Complete Class 11 & 12 structured video lecture archive (760+ HD videos)',
       '18 Printed theory & exercise modules delivered to your doorstep at no extra cost',
-      '15+ Years topic-wise solved PYQ bank with step-by-step reasoning',
+      '10+ Years topic-wise solved PYQ bank with step-by-step reasoning',
       'Up to 25 all-India online CBT mock tests with percentile prediction',
       'Telegram doubt assistance group with verified senior teaching assistants'
     ],
@@ -510,7 +510,7 @@ export const COURSES_CATALOG: Course[] = [
     isPopular: true,
     enrolledCount: 3950,
     facultyAvatars: ['/img/dk-sir.jpg'],
-    description: 'Master 15+ years of JEE Main and Advanced Mathematics questions deconstructed chapter-by-chapter with DK Sir’s proprietary 20-to-30-second shortcut techniques.',
+    description: 'Master 10+ years of JEE Main and Advanced Mathematics questions deconstructed chapter-by-chapter with DK Sir’s proprietary 20-to-30-second shortcut techniques.',
     features: [
       'Over 2,200+ Math PYQs solved with DK Sir’s concept clarity & shortcut methods',
       '20-to-30-second problem-solving challenge breakdowns',
@@ -663,7 +663,7 @@ export const COURSES_CATALOG: Course[] = [
       'Personally taught by DK Sir (Dharmendra Kumar) – Renowned IIT JEE Math Mentor',
       'Exclusive Calculus shortcut techniques & graphical transformation drills',
       'Class 12 Board Exam 100/100 revision modules included',
-      '15+ Years JEE Advanced chapter-wise PYQ masterclass'
+      '10+ Years JEE Advanced chapter-wise PYQ masterclass'
     ],
     schedule: 'Tue, Thu, Sat • Evening Live Sessions (6:00 PM – 9:00 PM)',
     subjects: ['Mathematics']
@@ -774,7 +774,7 @@ export const COURSES_CATALOG: Course[] = [
     features: [
       'Personally taught by DK Sir – High-speed concept clarity & graphical shortcut methods',
       'Daily 20-to-30-second problem-solving challenges in Calculus, Algebra, and Coordinate',
-      'Chapter-wise PYQ deconstruction of the past 15 years (2012–2026)',
+      'Chapter-wise PYQ deconstruction of the past 10 years (2016–2026)',
       '1:1 weekly mentor diagnosis to eradicate calculation slips and negative marks'
     ],
     schedule: 'Mon, Wed, Fri • Morning Live Mastery (10:00 AM – 1:00 PM)',
@@ -1040,8 +1040,8 @@ export const WHY_DK_ACADEMY = [
     iconName: 'Target'
   },
   {
-    title: 'Online + Offline Janakpuri Center',
-    desc: 'Attend live online batches from anywhere or physical classroom sessions at our modern coaching center in Janakpuri, New Delhi.',
+    title: 'Online + Offline Dwarka Center',
+    desc: 'Attend live online batches from anywhere or physical classroom sessions at our modern coaching center in Dwarka Sector 12, New Delhi.',
     iconName: 'Laptop'
   },
   {
@@ -1081,7 +1081,7 @@ export const FACULTY_HIGHLIGHTS = [
   {
     name: 'DK Sir (Dharmendra Kumar)',
     role: 'Founder & Chief Mathematics Mentor',
-    experience: '15+ Years Mentoring • IIT JEE Math Specialist',
+    experience: '10+ Years Mentoring • IIT JEE Math Specialist',
     avatar: '/img/founder-profile.jpeg',
     specialty: 'Concept Clarity, Shortcuts & 20-30s Techniques'
   },

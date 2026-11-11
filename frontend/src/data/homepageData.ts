@@ -121,7 +121,7 @@ export const PRACTICE_FEATURES: PracticeFeature[] = [
   {
     id: 'pyq-bank',
     title: 'PYQ Question Bank',
-    shortTag: '15+ Years Coverage',
+    shortTag: '10+ Years Coverage',
     description: 'Chapter-wise, topic-segregated previous year questions from JEE Main and JEE Advanced with step-by-step solution steps.',
     bulletPoints: [
       'Filtered by topic and difficulty level',
@@ -215,7 +215,7 @@ export const LEARNING_JOURNEY: LearningStep[] = [
   {
     stepNumber: 3,
     title: 'Daily Practice with DPP & PYQ',
-    description: 'Solve graded problem sets right after every lecture and tackle chapter-wise past 15 years of JEE Main & Advanced questions.',
+    description: 'Solve graded problem sets right after every lecture and tackle chapter-wise past 10 years of JEE Main & Advanced questions.',
     iconName: 'PenTool'
   },
   {

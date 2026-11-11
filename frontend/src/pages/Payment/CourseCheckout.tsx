@@ -19,7 +19,7 @@ import { useStudentAuth } from '../../context/AuthContext';
 
 // ─── Constants & Configuration ───
 const BRAND_NAME = 'DK Academy JEE';
-const BUSINESS_STATE = 'Rajasthan'; // Kota Head Office for GST jurisdiction
+const BUSINESS_STATE = 'Delhi'; // Delhi Head Office for GST jurisdiction
 const BASE_COURSE_MRP = 18500;
 const COUNSELOR_WHATSAPP_LINK = 'https://wa.me/918826444207?text=Hi%20DK%20Academy%2C%20I%20need%20help%20with%20Class%2011th%20Self-Study%20DLP%20Checkout';
 
@@ -69,7 +69,7 @@ interface CouponData {
 }
 
 const VERIFIED_COUPONS: Record<string, CouponData> = {
-  KOTA10: { type: 'percent', value: 10, label: '10% Kota Merit Scholarship' },
+  DK10: { type: 'percent', value: 10, label: '10% Merit Scholarship' },
   DKSIR20: { type: 'percent', value: 20, label: '20% Direct Faculty Waiver' },
   EARLYBIRD: { type: 'flat', value: 1000, label: '₹1,000 Early Bird Batch Discount' },
   WELCOME500: { type: 'flat', value: 500, label: '₹500 Welcome Discount' }
@@ -628,7 +628,7 @@ export const CourseCheckout: React.FC = () => {
                     <p className="text-xs text-rose-600 font-medium">{couponError}</p>
                   )}
                   <p className="text-[10.5px] text-slate-400">
-                    Popular codes: <span className="font-bold text-slate-600">KOTA10</span>, <span className="font-bold text-slate-600">EARLYBIRD</span>
+                    Popular codes: <span className="font-bold text-slate-600">DK10</span>, <span className="font-bold text-slate-600">EARLYBIRD</span>
                   </p>
                 </div>
               )}

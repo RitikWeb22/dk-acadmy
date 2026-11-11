@@ -119,7 +119,7 @@ export const TermsPage: React.FC = () => {
               <span>Jurisdiction &amp; Dispute Resolution</span>
             </h2>
             <p>
-              These terms shall be governed by and construed in accordance with the laws of the Republic of India. Any legal disputes arising out of enrollment or platform use shall be subject to the exclusive jurisdiction of the competent courts in <strong>Kota, Rajasthan, India</strong>.
+              These terms shall be governed by and construed in accordance with the laws of the Republic of India. Any legal disputes arising out of enrollment or platform use shall be subject to the exclusive jurisdiction of the competent courts in <strong>New Delhi, India</strong>.
             </p>
           </div>
         </div>

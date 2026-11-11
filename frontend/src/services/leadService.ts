@@ -13,7 +13,7 @@ import type {
 import { apiClient } from './apiClient';
 import { generateInquiryId } from '../utils/uuid';
 
-const STORAGE_KEY = 'dk_academy_leads_pipeline_v1';
+const STORAGE_KEY = 'dk_academy_leads_pipeline_v2';
 const EVENT_NAME = 'dk_leads_updated';
 
 // Realistic initial pre-seeded inquiries for counselor portal demonstration
@@ -27,7 +27,7 @@ const INITIAL_LEADS: ProspectiveLead[] = [
     targetBatch: 'Class 11th & 12th Math Special (DK Sir 20s Techniques)',
     preferredTime: 'Evening (4:00 PM – 8:00 PM)',
     city: 'New Delhi (Rohini)',
-    queryNotes: 'Interested in offline classroom + online live hybrid at Janakpuri. Wants demo session for calculus.',
+    queryNotes: 'Interested in offline classroom + online live hybrid at Dwarka. Wants demo session for calculus.',
     source: 'Home Callback Form',
     status: 'New',
     priority: 'High',
@@ -104,13 +104,13 @@ const INITIAL_LEADS: ProspectiveLead[] = [
     currentClass: 'Class 10th',
     targetBatch: 'Class 9th & 10th IIT Foundation Concept Builder',
     preferredTime: 'Morning (9:00 AM – 12:00 PM)',
-    city: 'New Delhi (Janakpuri)',
-    queryNotes: 'Walk-in parent inquiry at Janakpuri center. Looking for weekend mathematics foundation.',
-    source: 'Offline Walk-in (Janakpuri)',
+    city: 'New Delhi (Dwarka)',
+    queryNotes: 'Walk-in parent inquiry at Dwarka center. Looking for weekend mathematics foundation.',
+    source: 'Offline Walk-in (Dwarka)' as any,
     status: 'Enrolled',
     priority: 'Medium',
     leadScore: 90,
-    assignedCounselor: 'Admissions Desk Janakpuri',
+    assignedCounselor: 'Admissions Desk Dwarka',
     counselorNotes: [
       {
         id: 'note-4',
@@ -234,7 +234,7 @@ class LeadService {
           status: l.status,
           priority: l.priority,
           leadScore: l.leadScore ?? 70,
-          assignedCounselor: l.assignedCounselor || 'Admissions Desk Janakpuri',
+          assignedCounselor: l.assignedCounselor || 'Admissions Desk Dwarka',
           counselorNotes: l.counselorNotes || [],
           followUpDate: l.followUpDate,
           createdAt: l.createdAt || new Date().toISOString(),
@@ -280,7 +280,7 @@ class LeadService {
       status: 'New',
       priority,
       leadScore: calculateLeadScore(input),
-      assignedCounselor: 'Admissions Desk Janakpuri',
+      assignedCounselor: 'Admissions Desk Dwarka',
       counselorNotes: [
         {
           id: `note-${Date.now()}`,
@@ -333,9 +333,9 @@ class LeadService {
       currentClass: data.currentClass || 'Class 11th',
       targetBatch: data.targetBatch || 'JEE Main & Advanced Complete',
       preferredTime: data.preferredTime || 'Evening (4:00 PM – 8:00 PM)',
-      city: data.city || 'Janakpuri, New Delhi',
+      city: data.city || 'Dwarka Sector 12, New Delhi',
       queryNotes: data.queryNotes,
-      source: data.source || 'Offline Walk-in (Janakpuri)',
+      source: (data.source || 'Offline Walk-in (Dwarka)') as any,
       priority: data.priority || 'High'
     };
 
@@ -472,9 +472,10 @@ class LeadService {
     const demoScheduled = leads.filter((l) => l.status === 'Demo Scheduled').length;
     const enrolledLeads = leads.filter((l) => l.status === 'Enrolled').length;
 
-    const morning = leads.filter((l) => l.preferredTime.includes('Morning')).length;
-    const afternoon = leads.filter((l) => l.preferredTime.includes('Afternoon')).length;
-    const evening = leads.filter((l) => l.preferredTime.includes('Evening')).length;
+    const morning = leads.filter((l) => l.preferredTime?.includes('Morning')).length;
+    const afternoon = leads.filter((l) => l.preferredTime?.includes('Afternoon')).length;
+    const evening = leads.filter((l) => l.preferredTime?.includes('Evening')).length;
+    const anytime = leads.filter((l) => l.preferredTime?.includes('Anytime')).length;
 
     const conversionRate = totalLeads > 0 ? Math.round((enrolledLeads / totalLeads) * 100) : 0;
 
@@ -487,7 +488,8 @@ class LeadService {
       slotBreakdown: {
         morning,
         afternoon,
-        evening
+        evening,
+        anytime
       },
       conversionRate
     };

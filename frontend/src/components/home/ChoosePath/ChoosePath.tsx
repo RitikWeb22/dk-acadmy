@@ -50,7 +50,7 @@ const PATH_CARDS: PathCard[] = [
   {
     id: 'path-pyq-dpp',
     title: 'Free PYQ & DPP',
-    subtitle: 'Zero-paywall daily practice problems (DPP) and 15+ years topic-classified JEE Main and Advanced previous year questions.',
+    subtitle: 'Zero-paywall daily practice problems (DPP) and 10+ years topic-classified JEE Main and Advanced previous year questions.',
     badge: '100% Free Access',
     badgeType: 'success',
     icon: <FileCheck size={24} aria-hidden="true" />,

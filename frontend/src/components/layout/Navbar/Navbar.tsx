@@ -89,9 +89,9 @@ const getDropdownSubtitle = (sub: NavbarDropdownItem) => {
   if (l.includes('dropper')) return 'Complete curriculum & mock tests';
   if (l.includes('explore') || l.includes('all courses')) return 'Browse our full range of programs';
   if (l.includes('classroom') || l.includes('live')) return 'Audio doubt clearing & digital board sessions';
-  if (l.includes('pyq')) return '15+ Years chapter-wise solved PYQ bank';
+  if (l.includes('pyq')) return '10+ Years chapter-wise solved PYQ bank';
   if (l.includes('dpp')) return 'Daily practice problem sets with solution keys';
-  if (l.includes('about')) return 'Our Kota coaching pedagogy & mentor story';
+  if (l.includes('about')) return 'Our coaching pedagogy & mentor story';
   if (l.includes('contact')) return 'Helpline, center address & student support';
   if (l.includes('cbt')) return 'NTA pattern full mocks & analytics';
   return 'Comprehensive curriculum & practice';
@@ -759,9 +759,9 @@ export const Navbar: React.FC = () => {
                 <div className={styles.guestCardMentor}>
                   <img src="/img/dk-sir.jpg" alt="DK Sir" className={styles.guestMentorImg} />
                   <div className={styles.guestMentorMeta}>
-                    <span className={styles.guestBadge}>Kota Pedagogy</span>
+                    <span className={styles.guestBadge}>DK Pedagogy</span>
                     <strong className={styles.guestMentorName}>DK Sir (Dharmendra Kumar)</strong>
-                    <span className={styles.guestMentorRole}>Senior Kota IIT-JEE Mathematics Faculty</span>
+                    <span className={styles.guestMentorRole}>Senior IIT-JEE Mathematics Faculty</span>
                   </div>
                 </div>
                 <div className={styles.guestActionRow}>
@@ -887,14 +887,14 @@ export const Navbar: React.FC = () => {
               </ul>
             </nav>
 
-            {/* Helpline & Kota Center Location Card */}
+            {/* Helpline & Offline Center Location Card */}
             <div className={styles.mobileCenterInfo}>
               <div className={styles.centerInfoHeading}>
                 <MapPin size={15} className={styles.centerPinIcon} />
                 <span>DK Academy Offline Center</span>
               </div>
               <p className={styles.centerAddressText}>
-                C4F/33, behind F Market, Janakpuri, New Delhi – 110058
+                DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL &amp; BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 &amp; 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)
               </p>
               <div className={styles.mobileCallGrid}>
                 <a href="tel:9325987875" className={styles.mobileCallPill}>
@@ -974,7 +974,7 @@ export const Navbar: React.FC = () => {
                   <Phone size={16} />
                   <span>+91 97171 59062</span>
                 </a>
-                <span className={styles.numTag}>Janakpuri Center</span>
+                <span className={styles.numTag}>Dwarka Center</span>
               </div>
             </div>
 
@@ -983,7 +983,7 @@ export const Navbar: React.FC = () => {
                 <MapPin size={16} className={styles.locIcon} />
                 <div>
                   <strong>Physical Center Location:</strong>
-                  <p>C4F/33, behind F Market, Janakpuri, New Delhi – 110058</p>
+                  <p>DWARKA SECTOR 12, NEW DELHI - 110078 | NEAR BAL BHARATI INTERNATIONAL SCHOOL &amp; BAL BHAVAN INTERNATIONAL SCHOOL (MANISH CHAMBER, OFFICE 55 &amp; 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA)</p>
                 </div>
               </div>
             </div>

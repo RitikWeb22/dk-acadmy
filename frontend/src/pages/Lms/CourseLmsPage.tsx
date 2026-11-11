@@ -63,7 +63,7 @@ const generateDefaultCurriculum = (course: Course): CourseCurriculumSection[] =>
     return [
       {
         id: 'sec-1',
-        title: 'Chapter 1: Mechanics & Newton’s Laws Kota Foundations',
+        title: 'Chapter 1: Mechanics & Newton’s Laws Foundations',
         durationText: '4 Lectures • 3h 10m',
         lectures: [
           {
@@ -74,7 +74,7 @@ const generateDefaultCurriculum = (course: Course): CourseCurriculumSection[] =>
             videoUrl: '/videos/dk-sir-lecture-calculus.mp4',
             description: 'Deconstruct complex multi-body pulleys, inclined wedges, and elevators using non-inertial pseudo-force reference frames.',
             notesPdfUrl: '/downloads/physics-mechanics-notes-01.pdf',
-            notesTitle: 'Mechanics_FBD_Kota_CheatSheet.pdf',
+            notesTitle: 'Mechanics_FBD_CheatSheet.pdf',
             dppPdfUrl: '/downloads/dpp-physics-01.pdf',
             dppTitle: 'DPP_Set_01_Newton_Laws_With_Solutions.pdf'
           },
@@ -190,11 +190,11 @@ const generateDefaultCurriculum = (course: Course): CourseCurriculumSection[] =>
           },
           {
             id: 'lec-3-3',
-            title: 'Lesson 10: 15-Year JEE Advanced Mechanics PYQ Speed Marathon',
+            title: 'Lesson 10: 10-Year JEE Advanced Mechanics PYQ Speed Marathon',
             duration: '58:00',
             isPreview: false,
             videoUrl: '/videos/dk-sir-lecture-calculus.mp4',
-            description: 'Full live sprint solving 25 toughest multi-correct mechanics questions with Kota faculty shortcut comparisons.',
+            description: 'Full live sprint solving 25 toughest multi-correct mechanics questions with senior faculty shortcut comparisons.',
             notesPdfUrl: '/downloads/physics-marathon-handout.pdf',
             notesTitle: 'Grand_Mechanics_PYQ_Marathon.pdf',
             dppPdfUrl: '/downloads/dpp-physics-10.pdf',
@@ -365,7 +365,7 @@ const generateDefaultCurriculum = (course: Course): CourseCurriculumSection[] =>
           isPreview: true,
           videoUrl: '/videos/1.mp4',
           description:
-            'Fundamental Kota orientation by DK Sir: Deconstructing straight line family equations, intercepts, and perpendicular slope inspection in 20-30 seconds without multi-page algebra.',
+            'Fundamental concept orientation by DK Sir: Deconstructing straight line family equations, intercepts, and perpendicular slope inspection in 20-30 seconds without multi-page algebra.',
           notesPdfUrl: '/assets/downloads/st line-2.pdf',
           notesTitle: 'DK_Sir_Straight_Lines_JEE_Main_PYQ_Booklet.pdf',
           dppPdfUrl: '/assets/downloads/st line-2.pdf',
@@ -853,7 +853,7 @@ export const CourseLmsPage: React.FC = () => {
     ];
     const match = cues.find((c) => currentTime >= c.start && currentTime <= c.end);
     if (match) return match.text;
-    return currentTime > 0 ? "DK Academy Kota Method: Always inspect boundary conditions first." : null;
+    return currentTime > 0 ? "DK Academy Method: Always inspect boundary conditions first." : null;
   }, [isSubtitlesOn, currentTime]);
 
   // Accordion state: Open all sections by default so students see the complete syllabus
@@ -1705,17 +1705,17 @@ export const CourseLmsPage: React.FC = () => {
                 <div className={styles.lockBadgeIcon}>
                   <Lock size={28} />
                 </div>
-                <div className={styles.lockedEyebrow}>KOTA COMPLETE PEDAGOGY ACCESS REQUIRED</div>
+                <div className={styles.lockedEyebrow}>COMPLETE PEDAGOGY ACCESS REQUIRED</div>
                 <h2 className={styles.lockedTitle}>
                   "{activeLecture.title}" is Locked
                 </h2>
                 <p className={styles.lockedDesc}>
-                  Only the <strong>first 5 masterclasses</strong> are free unlocked demo lectures. To access Lecture 6 onwards, complete syllabus video solutions, downloadable Kota DPPs, and All India CBT test series, unlock the complete batch.
+                  Only the <strong>first 5 masterclasses</strong> are free unlocked demo lectures. To access Lecture 6 onwards, complete syllabus video solutions, downloadable DPPs, and All India CBT test series, unlock the complete batch.
                 </p>
                 <div className={styles.lockedPerks}>
                   <span className={styles.lockedPerkItem}>
                     <CheckCircle2 size={15} />
-                    <span>Complete Kota Batch Access</span>
+                    <span>Complete Batch Access</span>
                   </span>
                   <span className={styles.lockedPerkItem}>
                     <CheckCircle2 size={15} />
@@ -2053,7 +2053,7 @@ export const CourseLmsPage: React.FC = () => {
             <div className={styles.lectureSubtextRow}>
               <span>Dharmendra Kumar (DK Sir)</span>
               <span className={styles.subtextDot}>•</span>
-              <span>Kota Speed Inspection Method</span>
+              <span>Speed Inspection Method</span>
               {currentSection?.title && (
                 <>
                   <span className={styles.subtextDot}>•</span>
@@ -2241,7 +2241,7 @@ export const CourseLmsPage: React.FC = () => {
                       </li>
                       <li>
                         <Check size={14} />
-                        <span>Solve past 15-year Kota archive PYQs directly without prolonged multi-step integration</span>
+                        <span>Solve past 10-year archive PYQs directly without prolonged multi-step integration</span>
                       </li>
                     </ul>
                   </div>
@@ -2264,14 +2264,14 @@ export const CourseLmsPage: React.FC = () => {
                       <span className={styles.facultyTitleTag}>Chief Academic Mentor</span>
                     </div>
                     <p className={styles.facultyBio}>
-                      B.Tech IITian Mentor with 15+ years of dedicated teaching excellence in Kota &amp; Delhi training over 450+ aspirants into top IITs and NITs. Pioneer of the trademarked 20-30s speed inspection algorithms.
+                      B.Tech IITian Mentor with 10+ years of dedicated teaching excellence in Delhi training over 500+ aspirants into top IITs and NITs. Pioneer of the trademarked 20-30s speed inspection algorithms.
                     </p>
                     <div className={styles.credentialsGrid}>
                       <div className={styles.credentialItem}>
                         <Award size={16} className={styles.credIcon} />
                         <div>
-                          <strong>15+ Years</strong>
-                          <span>Kota Pedagogy</span>
+                          <strong>10+ Years</strong>
+                          <span>Teaching Excellence</span>
                         </div>
                       </div>
                       <div className={styles.credentialItem}>
@@ -2311,7 +2311,7 @@ export const CourseLmsPage: React.FC = () => {
                         </div>
                         <div className={styles.materialMeta}>
                           <strong>{activeLecture.notesTitle || 'Lecture Notes Handout.pdf'}</strong>
-                          <span>Handwritten Kota pedagogy notes with worked derivations &amp; shortcuts</span>
+                          <span>Handwritten pedagogy notes with worked derivations &amp; shortcuts</span>
                         </div>
                       </div>
                       <a
@@ -2796,14 +2796,14 @@ export const CourseLmsPage: React.FC = () => {
                   : 'Unlock Complete Syllabus & All Lectures'}
               </h3>
               <p className={styles.modalSubtitle}>
-                You have accessed the <strong>5 Free Masterclasses</strong> in this course. To unlock all lectures, complete syllabus archives, 40+ CBT tests, full Kota handwritten PDF notes, and 24/7 DK Sir faculty doubt resolution, enroll in the full course below.
+                You have accessed the <strong>5 Free Masterclasses</strong> in this course. To unlock all lectures, complete syllabus archives, 40+ CBT tests, full handwritten PDF notes, and 24/7 DK Sir faculty doubt resolution, enroll in the full course below.
               </p>
             </div>
 
             <div className={styles.modalPerksGrid}>
               <div className={styles.modalPerkItem}>
                 <Check size={16} className={styles.perkIcon} />
-                <span>All 10+ Complete Advanced Video Lectures &amp; Kota Shortcuts</span>
+                <span>All 10+ Complete Advanced Video Lectures &amp; DK Sir Shortcuts</span>
               </div>
               <div className={styles.modalPerkItem}>
                 <Check size={16} className={styles.perkIcon} />

@@ -30,7 +30,7 @@ export const HomePage: React.FC = () => {
     metaDesc.setAttribute(
       'content',
       homeConfig.metaDescription ||
-      'Join DK Academy JEE for concept-first IIT JEE Mathematics mentoring under DK Sir. Small batch size (max 25), 20–30s inspection shortcuts, Dwarka & Janakpuri centers. Admissions open 2026–27.'
+      'Join DK Academy JEE for concept-first IIT JEE Mathematics mentoring under DK Sir. Small batch size (max 25), 20–30s inspection shortcuts, Dwarka Sector 12 center. Admissions open 2026–27.'
     );
 
     // 2. Real-time CMS updates listener (same tab & cross tab)
@@ -72,13 +72,13 @@ export const HomePage: React.FC = () => {
           },
           "url": "https://dkacademyjee.com",
           "logo": "https://dkacademyjee.com/img/logo.jpeg",
-          "description": "Premier coaching institute for IIT-JEE Mathematics founded by DK Sir. Small batches for Class 8th–10th Foundation and Class 11th–12th & Droppers at Dwarka Sector 12 and Janakpuri, New Delhi.",
+          "description": "Premier coaching institute for IIT-JEE Mathematics founded by DK Sir. Small batches for Class 8th–10th Foundation and Class 11th–12th & Droppers at Dwarka Sector 12, New Delhi.",
           "telephone": ["+91-9325987875", "+91-9717159062"],
           "address": {
             "@type": "PostalAddress",
-            "streetAddress": "C4F/33, behind F Market, Janakpuri",
-            "addressLocality": "New Delhi",
-            "postalCode": "110058",
+            "streetAddress": "MANISH CHAMBER, OFFICE 55 & 56, PLOT NO. 7, LSC, SECTOR 12, DWARKA, NEAR BAL BHARATI INTERNATIONAL SCHOOL & BAL BHAVAN INTERNATIONAL SCHOOL",
+            "addressLocality": "Dwarka Sector 12, New Delhi",
+            "postalCode": "110078",
             "addressCountry": "IN"
           }
         },

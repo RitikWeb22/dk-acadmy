@@ -35,11 +35,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ student, activ
 
   // Dynamic Spotlight configuration
   const spotlightTitle = isNewStudent
-    ? 'Welcome to DK Academy! Begin Your Kota JEE Preparation Journey'
+    ? 'Welcome to DK Academy! Begin Your JEE Preparation Journey'
     : activeItem?.title || 'JEE Main Part Test: Mechanics & Physical Chemistry';
 
   const spotlightTag = isNewStudent
-    ? 'NEW ASPIRANT ONBOARDING • KOTA PEDAGOGY'
+    ? 'NEW ASPIRANT ONBOARDING • DK SIR PEDAGOGY'
     : 'IN PROGRESS • NTA PATTERN';
 
   const destinationRoute = isNewStudent ? '/courses' : activeItem?.route || '/test-series';

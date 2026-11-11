@@ -491,7 +491,7 @@ export const createAdminInvoice = async (req, res) => {
             notes: {
                 invoiceNo,
                 rollNo,
-                centerType: centerType || 'Janakpuri HQ',
+                centerType: centerType || 'Dwarka Center',
                 paymentChannel: paymentChannel || 'Cash Desk',
                 installmentNote
             }

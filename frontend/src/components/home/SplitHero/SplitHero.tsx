@@ -2,15 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users,
-  Award,
   ArrowRight,
   Sparkles,
   MapPin,
   Zap,
-  Star,
   ShieldCheck,
   Trophy,
-  TrendingUp,
   PhoneCall
 } from 'lucide-react';
 import { Container } from '../../ui/Container/Container';
@@ -46,7 +43,7 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
   }, []);
 
   const displayBadge = badgeText || homeConfig.heroBadge || "JEE Main & Advanced 2026–27 Admissions Open";
-  const displaySubtitle = subtitle || homeConfig.heroSubheading || "Delhi’s premier coaching institute combining offline Janakpuri & Dwarka classroom rigor with DK Sir’s proprietary 20–30 second calculus shortcuts and small batches of 25 students.";
+  const displaySubtitle = subtitle || homeConfig.heroSubheading || "Delhi’s premier coaching institute combining offline Dwarka Sector 12 classroom rigor with DK Sir’s proprietary 20–30 second calculus shortcuts and small batches of 25 students.";
 
   const scrollToCallback = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -62,14 +59,6 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
     }
   };
 
-  const defaultStats = [
-    { id: 'stat_1', label: 'Selections in JEE Advanced', value: '450+', subtext: 'Since 2018' },
-    { id: 'stat_2', label: 'Top AIR Achieved', value: 'AIR 47', subtext: 'In JEE Advanced' },
-    { id: 'stat_3', label: 'Max Batch Size', value: '25 Students', subtext: 'Individual Mentorship' },
-    { id: 'stat_4', label: 'Average Score Boost', value: '+42 Marks', subtext: 'In Mathematics' }
-  ];
-  const statsList = (homeConfig.stats && homeConfig.stats.length > 0) ? homeConfig.stats : defaultStats;
-
   return (
     <section className={styles.heroSection} aria-label="DK Academy JEE Admissions Hero">
       <div className={styles.heroBackgroundGlow} aria-hidden="true" />
@@ -77,7 +66,7 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
       <Container size="wide">
         {/* Main 2-Column Split Hero Layout */}
         <div className={styles.heroGrid}>
-          {/* Left Column: Bold Typography, Pitch, CTAs & Social Proof */}
+          {/* Left Column: Bold Typography, Pitch, CTAs */}
           <div className={styles.contentCol}>
             {/* Admissions Badge */}
             <div className={styles.badgeWrap}>
@@ -134,8 +123,8 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
                   <MapPin size={16} />
                 </div>
                 <div className={styles.benefitText}>
-                  <strong>Delhi Offline Campuses</strong>
-                  <span>Janakpuri &amp; Dwarka Sector 12</span>
+                  <strong>Delhi Offline Center</strong>
+                  <span>Dwarka Sector 12</span>
                 </div>
               </div>
             </div>
@@ -188,43 +177,6 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
                 </Link>
               )}
             </div>
-
-            {/* Micro reassurance line */}
-            <div className={styles.ctaMicroNote}>
-              <ShieldCheck size={14} className={styles.microShield} />
-              <span>Free 1-on-1 Academic Counseling &amp; Batch Diagnostic • Zero Fee Commitment</span>
-            </div>
-
-            {/* Trust & Social Proof Row */}
-            <div className={styles.socialProofRow}>
-              {/* Overlapping student avatar stack */}
-              <div className={styles.studentAvatarStack} aria-hidden="true">
-                <img src="/images/students/aarav.jpg" alt="Aarav Sharma - IIT Bombay" className={styles.avatarImg} width={36} height={36} loading="lazy" />
-                <img src="/images/students/priya.jpg" alt="Priya Singhania - IIT Delhi" className={styles.avatarImg} width={36} height={36} loading="lazy" />
-                <img src="/images/students/rohan.jpg" alt="Rohan Verma - IIT Roorkee" className={styles.avatarImg} width={36} height={36} loading="lazy" />
-                <span className={styles.avatarMore}>+10k</span>
-              </div>
-
-              <div className={styles.ratingBox}>
-                <div className={styles.starsGroup} aria-label="5 out of 5 stars">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={14} fill="#f59e0b" color="#f59e0b" />
-                  ))}
-                </div>
-                <div className={styles.ratingText}>
-                  <strong>4.9/5 Student Rating</strong>
-                  <span>10,000+ JEE Aspirants Mentored</span>
-                </div>
-              </div>
-
-              <div className={styles.proofDivider} aria-hidden="true" />
-
-              <div className={styles.centersPill}>
-                <span className={styles.centerDot} />
-                <MapPin size={13} className={styles.mapIcon} aria-hidden="true" />
-                <span>Dwarka &amp; Janakpuri Centers</span>
-              </div>
-            </div>
           </div>
 
           {/* Right Column: Modern Mentor Spotlight Showcase */}
@@ -240,7 +192,7 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
                 </div>
                 <div className={styles.pillContent}>
                   <span className={styles.pillHeading}>99.814 %ile</span>
-                  <span className={styles.pillSub}>AIR 2146 in JEE Advanced</span>
+                  <span className={styles.pillSub}>ADV Rank 2146</span>
                 </div>
               </div>
 
@@ -258,7 +210,7 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
               {/* Experience Pill at top right */}
               <div className={styles.pedagogyPill}>
                 <Sparkles size={12} className={styles.pedagogySparkle} />
-                <span>18+ Yrs Kota Pedagogy</span>
+                <span>10+ Years Teaching Excellence</span>
               </div>
 
               <div className={styles.mentorCard}>
@@ -293,50 +245,11 @@ export const SplitHero: React.FC<SplitHeroProps> = ({
                   <span className={styles.footerDot}>•</span>
                   <span className={styles.footerPill}>👥 Max 25 Batch</span>
                   <span className={styles.footerDot}>•</span>
-                  <span className={styles.footerPill}>📍 Offline Delhi</span>
+                  <span className={styles.footerPill}>📍 Dwarka Sector 12</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Clean Modern 4-Column Stats Ribbon (CMS Reactive) */}
-        <div className={styles.statsRibbon} role="region" aria-label="Verified Institute Milestones">
-          {statsList.map((stat, idx) => {
-            const isRank = stat.value?.includes('AIR') || stat.label?.toLowerCase().includes('air') || idx === 1;
-            const isBatch = stat.label?.toLowerCase().includes('batch') || idx === 2;
-            const isScore = stat.label?.toLowerCase().includes('score') || stat.label?.toLowerCase().includes('boost') || idx === 3;
-            const isRating = idx === 3 || stat.label?.toLowerCase().includes('rating');
-
-            const IconComp = isScore ? TrendingUp : isRank ? Award : isBatch ? Users : Trophy;
-            const themeClass = isScore
-              ? styles.statIconAmber
-              : isRank
-              ? styles.statIconPurple
-              : isBatch
-              ? styles.statIconEmerald
-              : styles.statIconBlue;
-
-            return (
-              <React.Fragment key={stat.id || idx}>
-                {idx > 0 && <div className={styles.statDivider} aria-hidden="true" />}
-                <div className={styles.statCard}>
-                  <div className={`${styles.statIconWrap} ${themeClass}`}>
-                    <IconComp
-                      size={20}
-                      {...(isRating ? { fill: '#f59e0b', color: '#f59e0b' } : {})}
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <div className={styles.statInfo}>
-                    <div className={styles.statValue}>{stat.value}</div>
-                    <div className={styles.statLabel}>{stat.label}</div>
-                    {stat.subtext && <div className={styles.statSubtext}>{stat.subtext}</div>}
-                  </div>
-                </div>
-              </React.Fragment>
-            );
-          })}
         </div>
       </Container>
     </section>
