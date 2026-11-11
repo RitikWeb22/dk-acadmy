@@ -37,7 +37,11 @@ import {
   Unlock,
   Video,
   BarChart2,
-  HelpCircle
+  HelpCircle,
+  FileCheck,
+  Rocket,
+  TrendingUp,
+  Headphones
 } from 'lucide-react';
 import { Container } from '../../components/ui/Container/Container';
 import { MathText } from '../../components/ui/MathText/MathText';
@@ -121,6 +125,36 @@ const BITSAT_FAQS: FAQItem[] = [
   {
     question: 'Are English Proficiency and Logical Reasoning taught from scratch?',
     answer: 'Yes. We dedicate 40+ hours exclusively to BITSAT English (Grammar rules, sentence completion, high-frequency vocabulary, idioms) and Logical Reasoning (analogy, deductive reasoning, pattern sequences, syllogisms), ensuring students secure 75+ out of 90 marks in Part 3.'
+  }
+];
+
+const VERIFIED_TESTIMONIALS = [
+  {
+    name: 'Rishabh Anand',
+    score: '99.814%ile',
+    badge: 'AIR 2146',
+    batch: 'DK Sir 2-Yr Classroom Batch',
+    avatar: '/img/RISHABH%20ANAND.png',
+    quote:
+      'DK Sir’s shortcut methods in Coordinate Geometry and Calculus turned math into my highest-scoring paper. His 20-second elimination techniques helped me attempt maximum questions with pinpoint precision in BITSAT & JEE.'
+  },
+  {
+    name: 'Panache Thakar',
+    score: '99.62%ile',
+    badge: 'AIR 4820',
+    batch: 'Target Batch 2024',
+    avatar: '/img/PANACHE%20THAKAR.png',
+    quote:
+      'The speed drills and continuous CBT test series gave me the real exam temperament. DK Sir’s personalized doubt clearance and strict question-wise timer conditioning gave me a 50+ mark boost.'
+  },
+  {
+    name: 'Shaurya Singh',
+    score: '99.70%ile',
+    badge: 'AIR 3410',
+    batch: 'Speed Master Classroom',
+    avatar: '/img/shaurya-singh.jpg',
+    quote:
+      'The mock test series and speed drills were exactly like the real CBT. The analysis report exposed my silly mistakes and taught me when to trigger the bonus round without negative marking.'
   }
 ];
 
@@ -919,92 +953,191 @@ export const BitsatPage: React.FC = () => {
         </Container>
       </nav>
 
-      {/* 2. Hero Header Section */}
+      {/* 2. Hero Header Section (2-Column Premium EdTech Design) */}
       <section className={styles.heroSection}>
-        <div className={styles.ambientGlow} aria-hidden="true" />
+        <div className={styles.heroBackgroundGlow} aria-hidden="true" />
         <Container size="wide">
-          <div className={styles.heroContent}>
-            {/* Urgency Eyebrow Badge */}
-            <div className={styles.heroBadge}>
-              <Flame size={14} className={styles.flameIcon} />
-              <span>BITSAT 2026 &amp; 2027 • CBT SPEED ENGINE &amp; DRILL BANK</span>
+          <div className={styles.heroGrid}>
+            {/* Left Column: Hero Content */}
+            <div className={styles.heroContentLeft}>
+              <div className={styles.heroEyebrowBadge}>
+                <Sparkles size={14} className={styles.flameIcon} />
+                <span>Your BITS Pilani Dream, Our Mission</span>
+              </div>
+
+              <h1 className={styles.heroHeading}>
+                Crack <span className={styles.heroGradientHighlight}>BITSAT</span> with Confidence
+              </h1>
+
+              <p className={styles.heroDescription}>
+                <strong>130 Questions in 180 Minutes</strong> gives you strictly 83 seconds per question. Solve live speed drills curated by DK Sir with <strong>strict 45s timers</strong>, 20–30s inspection shortcuts, and authentic 12-Bonus Questions CBT simulation.
+              </p>
+
+              <div className={styles.heroCtaGroup}>
+                <button
+                  type="button"
+                  className={styles.heroPrimaryBtn}
+                  onClick={() => {
+                    setViewMode('drills');
+                    setSelectedDrillId(null);
+                    const catalogEl = document.getElementById('drills-catalog');
+                    if (catalogEl) {
+                      catalogEl.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
+                  <span>Start Free Speed Drill</span>
+                  <ArrowRight size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.heroSecondaryBtn}
+                  onClick={() => {
+                    setViewMode('batches');
+                    const batchesEl = document.getElementById('batches');
+                    if (batchesEl) {
+                      batchesEl.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
+                  <Flame size={15} style={{ color: '#d97706' }} />
+                  <span>Explore Crash Batches</span>
+                </button>
+              </div>
             </div>
 
-            {/* Main Page Headline */}
-            <h1 className={styles.heroHeading}>
-              BITSAT 2026 Speed Practice &amp; <br />
-              <span className={styles.highlightText}>Rapid Option Elimination Drill Bank</span>
-            </h1>
-
-            {/* Subtitle */}
-            <p className={styles.heroSubtext}>
-              <strong>130 Questions in 180 Minutes</strong> gives you strictly 83 seconds per question. Solve live speed drills curated by DK Sir with <strong>strict 45s question timers</strong>, 20–30s inspection shortcuts, and authentic 12-Bonus Questions CBT simulation.
-            </p>
-
-            {/* Hub Switcher Tabs */}
-            <div className={styles.hubTabs}>
-              <button
-                type="button"
-                className={`${styles.hubTab} ${styles.hubTabActive}`}
-              >
-                <Zap size={15} />
-                <span>BITSAT Speed Drills (Active)</span>
-              </button>
-              <Link to="/pyq" className={styles.hubTab}>
-                <BookOpen size={15} />
-                <span>JEE Main &amp; Adv PYQ Bank</span>
-              </Link>
-              <Link to="/dpp" className={styles.hubTab}>
-                <CheckCircle2 size={15} />
-                <span>Daily Practice Problems (DPP)</span>
-              </Link>
-              <Link to="/test-series" className={styles.hubTab}>
-                <Target size={15} />
-                <span>Full CBT Test Series</span>
-              </Link>
-            </div>
-
-            {/* View Mode Switcher Pills */}
-            <div className={styles.viewModeSwitcher}>
-              <button
-                type="button"
-                className={`${styles.viewModePill} ${viewMode === 'drills' ? styles.viewModePillActive : ''}`}
-                onClick={() => {
-                  setViewMode('drills');
-                  setSelectedDrillId(null);
-                }}
-              >
-                <Zap size={14} />
-                <span>⚡ Live Speed Drills ({drills.length})</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.viewModePill} ${viewMode === 'batches' ? styles.viewModePillActive : ''}`}
-                onClick={() => setViewMode('batches')}
-              >
-                <Flame size={14} />
-                <span>🏆 Crash Programs &amp; Batches</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.viewModePill} ${viewMode === 'blueprint' ? styles.viewModePillActive : ''}`}
-                onClick={() => setViewMode('blueprint')}
-              >
-                <Brain size={14} />
-                <span>📊 Exam Architecture &amp; Cutoffs</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.viewModePill} ${viewMode === 'diagnostic' ? styles.viewModePillActive : ''}`}
-                onClick={() => setViewMode('diagnostic')}
-              >
-                <Award size={14} />
-                <span>📋 Free Diagnostic Test</span>
-              </button>
+            {/* Right Column: Hero Visual Card */}
+            <div className={styles.heroVisualRight}>
+              <div className={styles.heroVisualCard}>
+                <div className={styles.heroVisualCircleBackdrop} aria-hidden="true" />
+                <img
+                  src="/img/Chirayu%20Sethia.jpeg"
+                  alt="Chirayu Sethia - DK Academy Top Achiever"
+                  className={styles.heroStudentImage}
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    if (!img.src.includes('RISHABH')) {
+                      img.src = '/img/RISHABH%20ANAND.png';
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
         </Container>
       </section>
+
+      {/* ─── Below-Hero Horizontal Feature Strip (4 cards) ─── */}
+      <section className={styles.featureStripSection} aria-label="Key BITSAT Prep Features">
+        <Container size="wide">
+          <div className={styles.featureStripGrid}>
+            <div className={styles.featureStripCard}>
+              <div className={styles.featureIconBadge} style={{ background: '#fef3c7', color: '#d97706' }}>
+                <Award size={22} />
+              </div>
+              <div className={styles.featureStripText}>
+                <span className={styles.featureStripTitle}>Top Quality Speed Material</span>
+                <span className={styles.featureStripSubtitle}>DK Sir 20-30s inspection shortcuts &amp; formulas</span>
+              </div>
+            </div>
+
+            <div className={styles.featureStripCard}>
+              <div className={styles.featureIconBadge} style={{ background: '#eff6ff', color: '#2563eb' }}>
+                <Zap size={22} />
+              </div>
+              <div className={styles.featureStripText}>
+                <span className={styles.featureStripTitle}>Unlimited Mock Drills</span>
+                <span className={styles.featureStripSubtitle}>Strict 45s timer &amp; authentic CBT test interface</span>
+              </div>
+            </div>
+
+            <div className={styles.featureStripCard}>
+              <div className={styles.featureIconBadge} style={{ background: '#ecfdf5', color: '#059669' }}>
+                <BarChart2 size={22} />
+              </div>
+              <div className={styles.featureStripText}>
+                <span className={styles.featureStripTitle}>Detailed Analytics</span>
+                <span className={styles.featureStripSubtitle}>All India BITSAT Rank &amp; question speed breakdown</span>
+              </div>
+            </div>
+
+            <div className={styles.featureStripCard}>
+              <div className={styles.featureIconBadge} style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                <Brain size={22} />
+              </div>
+              <div className={styles.featureStripText}>
+                <span className={styles.featureStripTitle}>Dedicated LR &amp; English</span>
+                <span className={styles.featureStripSubtitle}>Part III: 90 Marks high-yield score booster</span>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* ─── Modern View Mode Switcher Pills & Hub Links ─── */}
+      <Container size="wide">
+        <div className={styles.viewModeSwitcher} role="tablist" aria-label="BITSAT Navigation Hub">
+          <button
+            type="button"
+            className={`${styles.viewModePill} ${viewMode === 'drills' ? styles.viewModePillActive : ''}`}
+            onClick={() => {
+              setViewMode('drills');
+              setSelectedDrillId(null);
+            }}
+          >
+            <Zap size={15} />
+            <span>⚡ Live Speed Drills ({drills.length})</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.viewModePill} ${viewMode === 'batches' ? styles.viewModePillActive : ''}`}
+            onClick={() => setViewMode('batches')}
+          >
+            <Flame size={15} />
+            <span>🏆 Crash Programs &amp; Batches</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.viewModePill} ${viewMode === 'blueprint' ? styles.viewModePillActive : ''}`}
+            onClick={() => setViewMode('blueprint')}
+          >
+            <Brain size={15} />
+            <span>📊 Exam Architecture &amp; Cutoffs</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.viewModePill} ${viewMode === 'diagnostic' ? styles.viewModePillActive : ''}`}
+            onClick={() => setViewMode('diagnostic')}
+          >
+            <Award size={15} />
+            <span>📋 Free Diagnostic Test &amp; FAQs</span>
+          </button>
+        </div>
+
+        {/* Hub Quick Links */}
+        <div className={styles.hubTabs}>
+          <button
+            type="button"
+            className={`${styles.hubTab} ${styles.hubTabActive}`}
+          >
+            <Zap size={14} />
+            <span>BITSAT Speed Hub</span>
+          </button>
+          <Link to="/courses" className={styles.hubTab}>
+            <BookOpen size={14} />
+            <span>JEE Main &amp; Advanced Courses</span>
+          </Link>
+          <Link to="/test-series" className={styles.hubTab}>
+            <Target size={14} />
+            <span>Full CBT Test Series</span>
+          </Link>
+          <Link to="/pyq" className={styles.hubTab}>
+            <CheckCircle2 size={14} />
+            <span>JEE PYQ Bank</span>
+          </Link>
+        </div>
+      </Container>
 
       {/* ─── MAIN WORKSPACE: CATALOG VIEW vs ACTIVE DRILL SOLVING ─── */}
       {viewMode === 'drills' && (
@@ -2030,8 +2163,125 @@ export const BitsatPage: React.FC = () => {
         document.body
       )}
 
+      {/* ─── MOCK TEST PROMOTIONAL SECTION ("Practice with Purpose") ─── */}
+      {!activeDrill && (
+        <section className={styles.mockTestSection} aria-labelledby="mock-test-heading">
+          <Container size="wide">
+            <div className={styles.mockTestGrid}>
+              {/* Left Column: Visual Mock Test Card */}
+              <div className={styles.mockTestBannerCard}>
+                <img
+                  src="/images/mock-test-banner-hd.png"
+                  alt="BITSAT CBT Mock Test Simulation"
+                  className={styles.mockTestBgImage}
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    if (!img.src.includes('mock-test-banner-crop')) {
+                      img.src = '/images/mock-test-banner-crop.png';
+                    }
+                  }}
+                />
+                <div className={styles.mockTestBannerContent}>
+                  <h3 className={styles.mockTestBannerTitle}>
+                    Take <span>Mock Tests</span>
+                  </h3>
+                  <p className={styles.mockTestBannerSubtitle}>Analyze. Improve. Excel.</p>
+                  <Link to="/test-series" className={styles.mockTestStartBtn}>
+                    <span>Start Test</span>
+                    <ArrowRight size={15} aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right Column: Features and CTA */}
+              <div className={styles.mockTestRightCol}>
+                <span className={styles.sectionEyebrow}>— Test Series</span>
+                <h2 id="mock-test-heading" className={styles.mockTestHeading}>
+                  Practice with Purpose
+                </h2>
+
+                <div className={styles.mockFeaturesList}>
+                  <div className={styles.mockFeatureItem}>
+                    <CheckCircle2 size={20} className={styles.mockCheckIcon} aria-hidden="true" />
+                    <div className={styles.mockFeatureTextGroup}>
+                      <span className={styles.mockFeatureItemTitle}>Real Exam Pattern</span>
+                      <span className={styles.mockFeatureItemDesc}>
+                        Simulate the authentic 130-question, 180-minute BITSAT CBT engine with strict negative marking (-1).
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.mockFeatureItem}>
+                    <CheckCircle2 size={20} className={styles.mockCheckIcon} aria-hidden="true" />
+                    <div className={styles.mockFeatureTextGroup}>
+                      <span className={styles.mockFeatureItemTitle}>Detailed Analysis</span>
+                      <span className={styles.mockFeatureItemDesc}>
+                        Instant question-by-question speed metrics, accuracy breakdown, and step-by-step DK Sir video solutions.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.mockFeatureItem}>
+                    <CheckCircle2 size={20} className={styles.mockCheckIcon} aria-hidden="true" />
+                    <div className={styles.mockFeatureTextGroup}>
+                      <span className={styles.mockFeatureItemTitle}>All India Ranking</span>
+                      <span className={styles.mockFeatureItemDesc}>
+                        Live nationwide percentile prediction and cut-off benchmarking for Pilani, Goa, and Hyderabad campuses.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Link to="/test-series" className={styles.mockExploreBtn}>
+                  <span>Explore All Tests</span>
+                  <ArrowRight size={16} aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─── STATISTICS SECTION ─── */}
+      {!activeDrill && (
+        <section className={styles.statsSection} aria-label="DK Academy BITSAT Statistics">
+          <Container size="wide">
+            <div className={styles.statsBannerCard}>
+              <div className={styles.statsLeftContent}>
+                <h3 className={styles.statsHeading}>Join 500+ Students on DK Academy JEE</h3>
+                <p className={styles.statsSubtitle}>Be a part of our growing community of achievers.</p>
+              </div>
+
+              <div className={styles.statsMetricsRow}>
+                {/* Stat 1: Students */}
+                <div className={styles.statMetricItem}>
+                  <div className={styles.statIconBox}>
+                    <Users size={24} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div className={styles.statNumberText}>500+</div>
+                    <div className={styles.statLabelText}>Students</div>
+                  </div>
+                </div>
+
+                {/* Stat 2: Tests Attempted */}
+                <div className={styles.statMetricItem}>
+                  <div className={styles.statIconBox}>
+                    <FileCheck size={24} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div className={styles.statNumberText}>100+</div>
+                    <div className={styles.statLabelText}>Tests Attempted</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Container>
+        </section>
+      )}
+
       {/* ─── 3. BITSAT Exam Pattern Blueprint ─── */}
-      {(viewMode === 'blueprint' || viewMode === 'batches') && (
+      {(viewMode === 'blueprint' || viewMode === 'batches' || viewMode === 'drills') && !activeDrill && (
         <section className={styles.section} id="pattern">
           <Container size="wide">
             <div className={styles.sectionHeader}>
@@ -2137,7 +2387,7 @@ export const BitsatPage: React.FC = () => {
       )}
 
       {/* ─── 4. Active BITSAT Batches & Plans ─── */}
-      {(viewMode === 'batches' || viewMode === 'drills') && (
+      {(viewMode === 'batches' || viewMode === 'drills') && !activeDrill && (
         <section className={styles.section} id="batches">
           <Container size="wide">
             <div className={styles.sectionHeader}>
@@ -2349,7 +2599,7 @@ export const BitsatPage: React.FC = () => {
       )}
 
       {/* ─── 5. Campus Cutoffs Benchmark Table ─── */}
-      {(viewMode === 'blueprint' || viewMode === 'batches') && (
+      {(viewMode === 'blueprint' || viewMode === 'batches' || viewMode === 'drills') && !activeDrill && (
         <section className={`${styles.section} ${styles.sectionAlt}`} id="cutoffs">
           <Container size="wide">
             <div className={styles.sectionHeader}>
@@ -2445,188 +2695,301 @@ export const BitsatPage: React.FC = () => {
         </section>
       )}
 
-      {/* ─── 6. Free Diagnostic Form ─── */}
-      <section className={styles.section} id="diagnostic-form">
-        <Container size="wide">
-          <div className={styles.bookingWrapper}>
-            <div className={styles.bookingRow}>
-              <div className={styles.bookingLeft}>
-                <span className={styles.bookingBadge}>
-                  <ShieldCheck size={13} /> ZERO COST SPEED DIAGNOSTIC
-                </span>
-                <h2 className={styles.bookingTitle}>
-                  Book Free BITSAT Speed Diagnostic &amp; <span className={styles.titleGradient}>Strategy Consultation</span>
-                </h2>
-                <p className={styles.bookingDesc}>
-                  Take our 45-minute mini BITSAT Diagnostic Speed Test. DK Sir and senior mentors will evaluate your question inspection speed, option elimination accuracy, and recommend your personalized preparation schedule.
-                </p>
+      {/* ─── STUDENT TESTIMONIALS SECTION ("Real Stories. Real Results.") ─── */}
+      {!activeDrill && (
+        <section className={styles.testimonialsSection} aria-labelledby="testimonials-heading">
+          <Container size="wide">
+            <div className={styles.sectionHeaderCenter}>
+              <span className={styles.sectionEyebrow}>— What Our Students Say</span>
+              <h2 id="testimonials-heading" className={styles.sectionTitle}>
+                Real Stories. Real Results.
+              </h2>
+              <p className={styles.sectionSubtitle}>
+                Hear from DK Academy aspirants who mastered speed-solving and scored 99+ percentiles in JEE and BITSAT.
+              </p>
+            </div>
 
-                <ul className={styles.bookingPerks}>
-                  <li>
-                    <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
-                    <span><strong>Full Speed &amp; Accuracy Diagnostic Report</strong> with percentile benchmarking</span>
-                  </li>
-                  <li>
-                    <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
-                    <span><strong>1-on-1 Strategy Call</strong> with DK Sir or senior academic mentor</span>
-                  </li>
-                  <li>
-                    <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
-                    <span><strong>Free BITSAT Speed Math Formula Sheet PDF</strong> &amp; English vocab bank</span>
-                  </li>
-                  <li>
-                    <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
-                    <span><strong>Direct WhatsApp Guidance</strong> for batch allotment &amp; diagnostic test slot</span>
-                  </li>
-                </ul>
+            <div className={styles.testimonialsGrid}>
+              {VERIFIED_TESTIMONIALS.map((t, idx) => (
+                <div key={idx} className={styles.testimonialCard}>
+                  <div className={styles.testimonialAvatarWrap}>
+                    <img
+                      src={t.avatar}
+                      alt={t.name}
+                      className={styles.testimonialAvatar}
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        if (!img.src.includes('RISHABH')) {
+                          img.src = '/img/RISHABH%20ANAND.png';
+                        }
+                      }}
+                    />
+                  </div>
+                  <p className={styles.testimonialQuote}>&ldquo;{t.quote}&rdquo;</p>
+                  <div className={styles.testimonialAuthorGroup}>
+                    <div className={styles.testimonialAuthorName}>{t.name}</div>
+                    <div className={styles.testimonialMetaRow}>
+                      <span className={styles.testimonialRankBadge}>{t.score}</span>
+                      <span className={styles.testimonialClubBadge}>{t.badge}</span>
+                    </div>
+                    <div className={styles.testimonialBatchName}>{t.batch}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─── WHY CHOOSE DK ACADEMY? SECTION ("Your Perfect Study Partner") ─── */}
+      {!activeDrill && (
+        <section className={styles.whySection} aria-labelledby="why-heading">
+          <Container size="wide">
+            <div className={styles.sectionHeaderCenter}>
+              <span className={styles.sectionEyebrow}>Why Choose DK Academy?</span>
+              <h2 id="why-heading" className={styles.sectionTitle}>
+                Your Perfect Study Partner
+              </h2>
+              <p className={styles.sectionSubtitle}>
+                Rigorous Kota pedagogy, trademark shortcut methods, and personalized tracking for every student.
+              </p>
+            </div>
+
+            <div className={styles.whyCardsGrid}>
+              {/* Card 1: Expert Faculty */}
+              <div className={styles.whyCard}>
+                <div className={styles.whyIconBox} style={{ background: '#eff6ff', color: '#2563eb' }}>
+                  <Rocket size={24} aria-hidden="true" />
+                </div>
+                <h3 className={styles.whyCardTitle}>Expert Faculty &amp; Quality Content</h3>
+                <p className={styles.whyCardDesc}>
+                  Kota pedagogy led directly by Dharmendra Kumar (DK Sir) with 10+ years of proven coaching excellence.
+                </p>
               </div>
 
-              <div className={styles.bookingRight}>
-                <div className={styles.bookingFormCard}>
-                  <div className={styles.formHeader}>
-                    <h3 className={styles.formTitle}>Reserve Your Diagnostic Slot</h3>
-                    <p className={styles.formSubtitle}>Limited to 25 students per week for individualized attention.</p>
-                  </div>
+              {/* Card 2: Smart Test Series */}
+              <div className={styles.whyCard}>
+                <div className={styles.whyIconBox} style={{ background: '#ecfdf5', color: '#059669' }}>
+                  <Target size={24} aria-hidden="true" />
+                </div>
+                <h3 className={styles.whyCardTitle}>Smart Test Series &amp; Analysis</h3>
+                <p className={styles.whyCardDesc}>
+                  Authentic BITSAT CBT test series with instant percentile, accuracy analysis, and question insights.
+                </p>
+              </div>
 
-                  {isSubmitted ? (
-                    <div className={styles.formSuccessState}>
-                      <div className={styles.successIconWrap}>
-                        <CheckCircle2 size={38} className={styles.successIcon} />
-                      </div>
-                      <h4 className={styles.successTitle}>Diagnostic Session Requested!</h4>
-                      <p className={styles.successText}>
-                        Thank you, <strong>{formData.name}</strong>. Our senior counselor will connect with you via WhatsApp/call on <strong>{formData.phone}</strong> within 2 hours.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setIsSubmitted(false)}
-                        className={styles.resetFormBtn}
-                      >
-                        Submit Another Request
-                      </button>
+              {/* Card 3: Track Your Progress */}
+              <div className={styles.whyCard}>
+                <div className={styles.whyIconBox} style={{ background: '#fffbeb', color: '#d97706' }}>
+                  <TrendingUp size={24} aria-hidden="true" />
+                </div>
+                <h3 className={styles.whyCardTitle}>Track Your Progress in Real-Time</h3>
+                <p className={styles.whyCardDesc}>
+                  Real-time analytics monitor chapter completion, problem-solving speed, and areas needing revision.
+                </p>
+              </div>
+
+              {/* Card 4: Dedicated Support */}
+              <div className={styles.whyCard}>
+                <div className={styles.whyIconBox} style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                  <Headphones size={24} aria-hidden="true" />
+                </div>
+                <h3 className={styles.whyCardTitle}>Dedicated Student Support</h3>
+                <p className={styles.whyCardDesc}>
+                  1-on-1 mentorship, continuous doubt clearing, and customized test strategies for BITS Pilani admissions.
+                </p>
+              </div>
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─── 6. Free Diagnostic Form ─── */}
+      {!activeDrill && (
+        <section className={styles.section} id="diagnostic-form">
+          <Container size="wide">
+            <div className={styles.bookingWrapper}>
+              <div className={styles.bookingRow}>
+                <div className={styles.bookingLeft}>
+                  <span className={styles.bookingBadge}>
+                    <ShieldCheck size={13} /> ZERO COST SPEED DIAGNOSTIC
+                  </span>
+                  <h2 className={styles.bookingTitle}>
+                    Book Free BITSAT Speed Diagnostic &amp; <span className={styles.titleGradient}>Strategy Consultation</span>
+                  </h2>
+                  <p className={styles.bookingDesc}>
+                    Take our 45-minute mini BITSAT Diagnostic Speed Test. DK Sir and senior mentors will evaluate your question inspection speed, option elimination accuracy, and recommend your personalized preparation schedule.
+                  </p>
+
+                  <ul className={styles.bookingPerks}>
+                    <li>
+                      <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
+                      <span><strong>Full Speed &amp; Accuracy Diagnostic Report</strong> with percentile benchmarking</span>
+                    </li>
+                    <li>
+                      <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
+                      <span><strong>1-on-1 Strategy Call</strong> with DK Sir or senior academic mentor</span>
+                    </li>
+                    <li>
+                      <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
+                      <span><strong>Free BITSAT Speed Math Formula Sheet PDF</strong> &amp; English vocab bank</span>
+                    </li>
+                    <li>
+                      <div className={styles.perkCheckWrap}><Check size={14} className={styles.perkCheck} /></div>
+                      <span><strong>Direct WhatsApp Guidance</strong> for batch allotment &amp; diagnostic test slot</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className={styles.bookingRight}>
+                  <div className={styles.bookingFormCard}>
+                    <div className={styles.formHeader}>
+                      <h3 className={styles.formTitle}>Reserve Your Diagnostic Slot</h3>
+                      <p className={styles.formSubtitle}>Limited to 25 students per week for individualized attention.</p>
                     </div>
-                  ) : (
-                    <form onSubmit={handleDiagnosticSubmit} className={styles.bookingForm}>
-                      <div className={styles.inputGroup}>
-                        <label htmlFor="student-name" className={styles.inputLabel}>
-                          Student Full Name <span className={styles.requiredStar}>*</span>
-                        </label>
-                        <input
-                          id="student-name"
-                          type="text"
-                          required
-                          placeholder="e.g. Aryan Sharma"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          className={styles.formInput}
-                        />
-                      </div>
 
-                      <div className={styles.inputGroup}>
-                        <label htmlFor="student-phone" className={styles.inputLabel}>
-                          WhatsApp / Mobile Number <span className={styles.requiredStar}>*</span>
-                        </label>
-                        <input
-                          id="student-phone"
-                          type="tel"
-                          required
-                          placeholder="10-digit mobile number"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className={styles.formInput}
-                        />
-                      </div>
-
-                      <div className={styles.inputGroup}>
-                        <label htmlFor="target-class" className={styles.inputLabel}>Current Academic Class</label>
-                        <select
-                          id="target-class"
-                          value={formData.targetClass}
-                          onChange={(e) => setFormData({ ...formData, targetClass: e.target.value })}
-                          className={styles.formSelect}
+                    {isSubmitted ? (
+                      <div className={styles.formSuccessState}>
+                        <div className={styles.successIconWrap}>
+                          <CheckCircle2 size={38} className={styles.successIcon} />
+                        </div>
+                        <h4 className={styles.successTitle}>Diagnostic Session Requested!</h4>
+                        <p className={styles.successText}>
+                          Thank you, <strong>{formData.name}</strong>. Our senior counselor will connect with you via WhatsApp/call on <strong>{formData.phone}</strong> within 2 hours.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsSubmitted(false)}
+                          className={styles.resetFormBtn}
                         >
-                          <option value="Class 12th">Class 12th (Appearing 2026)</option>
-                          <option value="Class 12th Dropper / Repeater">Class 12th Passed / Repeater</option>
-                          <option value="Class 11th">Class 11th (Targeting 2027)</option>
-                        </select>
+                          Submit Another Request
+                        </button>
                       </div>
+                    ) : (
+                      <form onSubmit={handleDiagnosticSubmit} className={styles.bookingForm}>
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="student-name" className={styles.inputLabel}>
+                            Student Full Name <span className={styles.requiredStar}>*</span>
+                          </label>
+                          <input
+                            id="student-name"
+                            type="text"
+                            required
+                            placeholder="e.g. Aryan Sharma"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            className={styles.formInput}
+                          />
+                        </div>
 
-                      <div className={styles.inputGroup}>
-                        <label htmlFor="target-campus" className={styles.inputLabel}>Primary Dream Campus</label>
-                        <select
-                          id="target-campus"
-                          value={formData.targetCampus}
-                          onChange={(e) => setFormData({ ...formData, targetCampus: e.target.value })}
-                          className={styles.formSelect}
-                        >
-                          <option value="BITS Pilani (Main Campus)">BITS Pilani (Main Campus)</option>
-                          <option value="BITS K.K. Birla Goa Campus">BITS K.K. Birla Goa Campus</option>
-                          <option value="BITS Hyderabad Campus">BITS Hyderabad Campus</option>
-                          <option value="All 3 Campuses (Open)">Open to All 3 Campuses</option>
-                        </select>
-                      </div>
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="student-phone" className={styles.inputLabel}>
+                            WhatsApp / Mobile Number <span className={styles.requiredStar}>*</span>
+                          </label>
+                          <input
+                            id="student-phone"
+                            type="tel"
+                            required
+                            placeholder="10-digit mobile number"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            className={styles.formInput}
+                          />
+                        </div>
 
-                      <button type="submit" className={styles.formSubmitBtn}>
-                        <Send size={15} />
-                        <span>Confirm Diagnostic Slot</span>
-                      </button>
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="target-class" className={styles.inputLabel}>Current Academic Class</label>
+                          <select
+                            id="target-class"
+                            value={formData.targetClass}
+                            onChange={(e) => setFormData({ ...formData, targetClass: e.target.value })}
+                            className={styles.formSelect}
+                          >
+                            <option value="Class 12th">Class 12th (Appearing 2026)</option>
+                            <option value="Class 12th Dropper / Repeater">Class 12th Passed / Repeater</option>
+                            <option value="Class 11th">Class 11th (Targeting 2027)</option>
+                          </select>
+                        </div>
 
-                      <div className={styles.formPrivacyNote}>
-                        <ShieldCheck size={12} />
-                        <span>We respect your privacy. No spam guarantee.</span>
-                      </div>
-                    </form>
-                  )}
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="target-campus" className={styles.inputLabel}>Primary Dream Campus</label>
+                          <select
+                            id="target-campus"
+                            value={formData.targetCampus}
+                            onChange={(e) => setFormData({ ...formData, targetCampus: e.target.value })}
+                            className={styles.formSelect}
+                          >
+                            <option value="BITS Pilani (Main Campus)">BITS Pilani (Main Campus)</option>
+                            <option value="BITS K.K. Birla Goa Campus">BITS K.K. Birla Goa Campus</option>
+                            <option value="BITS Hyderabad Campus">BITS Hyderabad Campus</option>
+                            <option value="All 3 Campuses (Open)">Open to All 3 Campuses</option>
+                          </select>
+                        </div>
+
+                        <button type="submit" className={styles.formSubmitBtn}>
+                          <Send size={15} />
+                          <span>Confirm Diagnostic Slot</span>
+                        </button>
+
+                        <div className={styles.formPrivacyNote}>
+                          <ShieldCheck size={12} />
+                          <span>We respect your privacy. No spam guarantee.</span>
+                        </div>
+                      </form>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </Container>
-      </section>
+          </Container>
+        </section>
+      )}
 
       {/* ─── 7. FAQs Accordion ─── */}
-      <section className={`${styles.section} ${styles.sectionAlt}`} id="faq">
-        <Container size="wide">
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionBadge}>
-              <MessageSquare size={12} />
-              <span>FREQUENTLY ASKED QUESTIONS</span>
+      {!activeDrill && (
+        <section className={`${styles.section} ${styles.sectionAlt}`} id="faq">
+          <Container size="wide">
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionBadge}>
+                <MessageSquare size={12} />
+                <span>FREQUENTLY ASKED QUESTIONS</span>
+              </div>
+              <h2 className={styles.sectionTitle}>
+                Everything You Need to Know About <span className={styles.titleGradient}>BITSAT Prep</span>
+              </h2>
+              <p className={styles.sectionDescription}>
+                Answers to the most common queries asked by JEE aspirants targeting BITS Pilani.
+              </p>
             </div>
-            <h2 className={styles.sectionTitle}>
-              Everything You Need to Know About <span className={styles.titleGradient}>BITSAT Prep</span>
-            </h2>
-            <p className={styles.sectionDescription}>
-              Answers to the most common queries asked by JEE aspirants targeting BITS Pilani.
-            </p>
-          </div>
 
-          <div className={styles.faqList}>
-            {BITSAT_FAQS.map((faq, index) => {
-              const isOpen = openFaqIndex === index;
-              return (
-                <div key={index} className={`${styles.faqItem} ${isOpen ? styles.faqOpen : ''}`}>
-                  <button
-                    type="button"
-                    className={styles.faqButton}
-                    onClick={() => toggleFaq(index)}
-                    aria-expanded={isOpen}
-                  >
-                    <span>{faq.question}</span>
-                    <span className={styles.faqChevronWrap}>
-                      {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </span>
-                  </button>
-                  {isOpen && (
-                    <div className={styles.faqAnswer}>
-                      <p>{faq.answer}</p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </Container>
-      </section>
+            <div className={styles.faqList}>
+              {BITSAT_FAQS.map((faq, index) => {
+                const isOpen = openFaqIndex === index;
+                return (
+                  <div key={index} className={`${styles.faqItem} ${isOpen ? styles.faqOpen : ''}`}>
+                    <button
+                      type="button"
+                      className={styles.faqButton}
+                      onClick={() => toggleFaq(index)}
+                      aria-expanded={isOpen}
+                    >
+                      <span>{faq.question}</span>
+                      <span className={styles.faqChevronWrap}>
+                        {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className={styles.faqAnswer}>
+                        <p>{faq.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Container>
+        </section>
+      )}
 
       {/* Unlock Complete BITSAT Drill Modal */}
       <PYQCourseUnlockModal

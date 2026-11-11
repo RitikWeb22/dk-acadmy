@@ -464,6 +464,27 @@ class LeadService {
     }
   }
 
+  public async bulkDeleteLeads(ids: string[]): Promise<boolean> {
+    if (!ids || ids.length === 0) return true;
+    const idsSet = new Set(ids);
+    const leads = this.getStorage();
+    const filtered = leads.filter((l) => !idsSet.has(l.id));
+    this.setStorage(filtered);
+
+    try {
+      await apiClient.post('/leads/bulk-delete', { ids });
+      return true;
+    } catch (e) {
+      console.warn('Bulk delete API call failed, falling back to individual deletes', e);
+      try {
+        await Promise.allSettled(ids.map((id) => apiClient.delete(`/leads/${id}`)));
+      } catch (err) {
+        console.warn('Fallback individual delete error', err);
+      }
+      return true;
+    }
+  }
+
   public getLeadStats(): LeadStats {
     const leads = this.getStorage();
     const totalLeads = leads.length;

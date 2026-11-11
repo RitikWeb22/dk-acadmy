@@ -267,3 +267,35 @@ export const deleteLead = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+// Bulk delete leads
+export const bulkDeleteLeads = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ success: false, message: 'Invalid or empty IDs array' });
+      return;
+    }
+
+    const objectIds = ids.filter((id: any) => typeof id === 'string' && id.match(/^[0-9a-fA-F]{24}$/));
+    const leadIds = ids.filter((id: any) => typeof id === 'string');
+
+    const result = await Lead.deleteMany({
+      $or: [
+        { _id: { $in: objectIds } },
+        { leadId: { $in: leadIds } }
+      ]
+    });
+
+    leadIds.forEach((id: string) => broadcastLeadDeleted(id));
+
+    res.status(200).json({
+      success: true,
+      message: `${result.deletedCount || leadIds.length} inquiries deleted successfully`,
+      deletedCount: result.deletedCount || leadIds.length
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+

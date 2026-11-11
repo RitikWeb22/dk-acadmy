@@ -19,30 +19,28 @@ import {
   ShieldCheck,
   ArrowRight,
   Star,
-  GraduationCap,
   Zap,
-  Building2,
   Target,
-  Minus,
-  MessageCircle,
   Sparkles,
   Users,
   Trophy,
   TrendingUp,
-  Flame
+  BarChart3,
+  Headphones,
+  Rocket,
+  Atom,
+  FlaskConical,
+  Calculator,
+  ClipboardCheck,
+  Cloud,
+  FileCheck
 } from 'lucide-react';
 import { Container } from '../../components/ui/Container/Container';
 import { ReferenceCourseCard } from '../../components/courses/ReferenceCourseCard/ReferenceCourseCard';
 import { CourseDemoModal } from '../../components/courses/CourseDemoModal/CourseDemoModal';
 import { CourseSyllabusModal } from '../../components/courses/CourseSyllabusModal/CourseSyllabusModal';
 import { cmsService, CMS_EVENT_KEY } from '../../services/cmsService';
-import {
-  getTargetYearLabel,
-  STUDENT_TESTIMONIALS,
-  FACULTY_HIGHLIGHTS,
-  COURSES_FAQS,
-  COURSE_COMPARISON_MATRIX
-} from '../../data/coursesData';
+import { getTargetYearLabel } from '../../data/coursesData';
 import type { Course } from '../../types';
 import styles from './CoursesPage.module.scss';
 
@@ -50,6 +48,125 @@ type ClassType = 'Class 11th' | 'Class 12th' | 'Dropper' | 'Class 10th Foundatio
 type ModeFilterType = 'All' | 'live' | 'recorded' | 'test-series' | 'dlp';
 type SessionType = 'Session: 2026-27' | 'Session: 2027-28' | 'All Sessions';
 type SortOption = 'popularity' | 'rating-desc' | 'price-asc' | 'price-desc' | 'start-date';
+type ExamStructureTab = 'jee-main' | 'jee-advanced' | 'bitsat';
+
+// ─── Course Structure Data Matrix ───
+const COURSE_STRUCTURE_DATA: Record<
+  ExamStructureTab,
+  Array<{
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    name: string;
+    details: string;
+    desc: string;
+  }>
+> = {
+  'jee-main': [
+    {
+      icon: Atom,
+      name: 'Physics',
+      details: 'Concepts + Practice',
+      desc: 'Mechanics, Electrodynamics, Modern Physics & 10-Year PYQ Bank with NTA Pattern Drills'
+    },
+    {
+      icon: FlaskConical,
+      name: 'Chemistry',
+      details: 'NCERT Focus + MCQs',
+      desc: 'Physical Formulas, Inorganic NCERT Line-by-Line & Organic Reaction Mechanisms'
+    },
+    {
+      icon: Calculator,
+      name: 'Mathematics',
+      details: 'Advanced Problem Solving',
+      desc: 'DK Sir 20-30s Shortcuts, Calculus Mastery, Vectors-3D & High-Speed Accuracy Practice'
+    },
+    {
+      icon: ClipboardCheck,
+      name: 'Mock Tests',
+      details: 'Full Syllabus Tests',
+      desc: '30+ NTA-Pattern Computer-Based Tests with All-India Percentile Prediction & Analysis'
+    }
+  ],
+  'jee-advanced': [
+    {
+      icon: Atom,
+      name: 'Physics',
+      details: 'Multi-Concept Rigor',
+      desc: 'Rotational Dynamics, Variable Mass Systems, Wave Optics & Advanced Calculus Applications'
+    },
+    {
+      icon: FlaskConical,
+      name: 'Chemistry',
+      details: 'Deep Mechanism Mastery',
+      desc: 'Multi-Step Organic Syntheses, Qualitative Analysis, Coordination Chemistry & Thermodynamics'
+    },
+    {
+      icon: Calculator,
+      name: 'Mathematics',
+      details: 'Olympiad & Advanced Problems',
+      desc: 'Multi-Correct, Matrix Match, Comprehensive Paragraphs & DK Sir Advanced Shortcut Techniques'
+    },
+    {
+      icon: ClipboardCheck,
+      name: 'Mock Tests',
+      details: 'Paper 1 & Paper 2 Simulation',
+      desc: '25 Exhaustive 3-Hour Paper 1 + Paper 2 CBT Mocks with Negative Marking & Live Rank Analysis'
+    }
+  ],
+  'bitsat': [
+    {
+      icon: Atom,
+      name: 'Physics',
+      details: 'Speed & Formula Drills',
+      desc: 'High-Speed Formula Accuracy, Direct Concept MCQs & Negative-Marking Avoidance Strategy'
+    },
+    {
+      icon: FlaskConical,
+      name: 'Chemistry',
+      details: 'Rapid NCERT Recall',
+      desc: 'Fast-Paced Inorganic & Direct Organic Reactions with Instant Recall Techniques'
+    },
+    {
+      icon: Calculator,
+      name: 'Mathematics & Logic',
+      details: '130-Question Speed Sprint',
+      desc: 'Algebra, Trigonometry, Calculus plus English Proficiency & Logical Reasoning Drills'
+    },
+    {
+      icon: ClipboardCheck,
+      name: 'Mock Tests',
+      details: 'Speed CBT Drills',
+      desc: '20 Full BITSAT 130-Question Timed Simulations with Bonus Question Strategy'
+    }
+  ]
+};
+
+// ─── Verified Student Testimonials (Authentic DK Academy Records) ───
+const VERIFIED_TESTIMONIALS = [
+  {
+    name: 'SHAURYA SINGH',
+    score: 'JEE Mains: 99.5%ile',
+    badge: 'TOP 0.1% CLUB',
+    batch: '2 Year Classroom Program',
+    quote: 'DK Sir’s conceptual shortcut inspection techniques and rigorous advanced problem sets helped me secure 99.5%ile in JEE Mains.',
+    avatar: '/img/shaurya-singh.jpg'
+  },
+  {
+    name: 'PANACHE THAKAR',
+    score: 'JEE Mains: 97.8%ile',
+    badge: 'TOP 2% MERIT',
+    batch: '2 Year Classroom Program',
+    quote: 'The small batch size and direct mentorship under DK Sir ensured every conceptual doubt was cleared from first principles.',
+    avatar: '/img/PANACHE%20THAKAR.png'
+  },
+  {
+    name: 'RISHABH ANAND',
+    score: 'JEE Mains: 99.814%ile',
+    badge: 'AIR 2146 (Advanced)',
+    batch: '2 Year Classroom Program',
+    quote: 'DK Sir’s non-standard calculus drills and 20–30s speed inspection methods made tackling multi-concept Advanced questions second nature.',
+    avatar: '/img/RISHABH%20ANAND.png'
+  }
+];
 
 export const CoursesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -57,22 +174,27 @@ export const CoursesPage: React.FC = () => {
   const { student, isAuthenticated, enrollCourse } = useStudentAuth();
   const { showToast } = useToast();
 
-  // 2-Column Demo Video Modal & Detailed Syllabus Modal State
+  // Modals state
   const [demoModalCourse, setDemoModalCourse] = useState<Course | null>(null);
   const [syllabusModalCourse, setSyllabusModalCourse] = useState<Course | null>(null);
+  const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
 
-  // 1. Initial sync with CMS / MongoDB backend
+  // Active exam structure tab
+  const [structureTab, setStructureTab] = useState<ExamStructureTab>('jee-main');
+
+  // Backend live courses sync
   const [coursesCatalog, setCoursesCatalog] = useState<Course[]>(() => cmsService.getCourses());
 
   useEffect(() => {
-    // 1. Fetch live courses from MongoDB backend via API
-    cmsService.fetchCoursesFromAPI().then((liveCourses) => {
-      if (liveCourses && liveCourses.length > 0) {
-        setCoursesCatalog(liveCourses);
-      }
-    }).catch(() => {});
+    cmsService
+      .fetchCoursesFromAPI()
+      .then((liveCourses) => {
+        if (liveCourses && liveCourses.length > 0) {
+          setCoursesCatalog(liveCourses);
+        }
+      })
+      .catch(() => {});
 
-    // 2. Real-time WebSocket / storage event listeners
     const handleCmsUpdate = () => {
       setCoursesCatalog(cmsService.getCourses());
     };
@@ -92,7 +214,7 @@ export const CoursesPage: React.FC = () => {
     };
   }, []);
 
-  // Filter state derived directly from searchParams (single source of truth for URL sharing & Navbar navigation)
+  // Filter state derived from searchParams
   const urlCategory = searchParams.get('category')?.toLowerCase();
   const urlSubject = searchParams.get('subject')?.toLowerCase();
   const urlMode = searchParams.get('mode')?.toLowerCase();
@@ -106,16 +228,14 @@ export const CoursesPage: React.FC = () => {
   }, [urlSubject]);
 
   const selectedClass: ClassType = useMemo((): ClassType => {
-    // 1. Prioritize explicit ?class= parameter from Level dropdown/modal
     if (urlClass) {
-      if (urlClass.includes('foundation') || urlClass.includes('8-10') || urlClass.includes('8–10') || urlClass.includes('10')) return 'Class 10th Foundation';
+      if (urlClass.includes('foundation') || urlClass.includes('8-10') || urlClass.includes('10')) return 'Class 10th Foundation';
       if (urlClass.includes('dropper') || urlClass.includes('repeater')) return 'Dropper';
       if (urlClass.includes('12')) return 'Class 12th';
       if (urlClass.includes('11')) return 'Class 11th';
     }
-    // 2. Secondary check for ?category= parameter
     if (urlCategory) {
-      if (urlCategory.includes('foundation') || urlCategory.includes('8-10') || urlCategory.includes('8–10') || urlCategory.includes('10')) return 'Class 10th Foundation';
+      if (urlCategory.includes('foundation') || urlCategory.includes('8-10') || urlCategory.includes('10')) return 'Class 10th Foundation';
       if (urlCategory.includes('dropper') || urlCategory.includes('repeater')) return 'Dropper';
       if (urlCategory.includes('12')) return 'Class 12th';
       if (urlCategory.includes('11')) return 'Class 11th';
@@ -141,15 +261,13 @@ export const CoursesPage: React.FC = () => {
   };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSession, setSelectedSession] = useState<SessionType>('Session: 2026-27');
+  const [selectedSession] = useState<SessionType>('Session: 2026-27');
   const [sortBy, setSortBy] = useState<SortOption>('popularity');
   const [selectedLanguage, setSelectedLanguage] = useState<'All' | 'Hinglish' | 'English'>('All');
   const [selectedRating, setSelectedRating] = useState<'All' | 4.8 | 4.5 | 4.0>('All');
-
-  const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
   const [selectedTier, setSelectedTier] = useState<'All' | 'Free' | 'Paid'>('All');
 
-  // Active Dropdown Portal state (rendered outside scrollable and overflow-clipping containers with elevated z-index)
+  // Active Dropdown Portal state
   const [activeDropdown, setActiveDropdown] = useState<{
     id: 'lang' | 'rating' | 'class' | 'subject' | 'sort';
     top: number;
@@ -167,7 +285,6 @@ export const CoursesPage: React.FC = () => {
       setActiveDropdown(null);
       return;
     }
-
     const rect = e.currentTarget.getBoundingClientRect();
     const dropdownEstimatedWidth = 200;
     const willOverflowRight = rect.left + dropdownEstimatedWidth > window.innerWidth - 12;
@@ -177,28 +294,20 @@ export const CoursesPage: React.FC = () => {
       top: rect.bottom + 6,
       left: willOverflowRight ? undefined : Math.max(12, rect.left),
       right: willOverflowRight ? Math.max(12, window.innerWidth - rect.right) : undefined,
-      minWidth: Math.max(rect.width, 185),
+      minWidth: Math.max(rect.width, 185)
     });
   };
 
-  const closeDropdown = () => {
-    setActiveDropdown(null);
-  };
+  const closeDropdown = () => setActiveDropdown(null);
 
-  // Close dropdown on scroll, resize or outside click
   useEffect(() => {
     if (!activeDropdown) return;
-
-    const handleScrollOrResize = () => {
-      setActiveDropdown(null);
-    };
-
+    const handleScrollOrResize = () => setActiveDropdown(null);
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (
         !target.closest(`.${styles.floatingDropdownPortal}`) &&
-        !target.closest(`.${styles.dropdownPill}`) &&
-        !target.closest(`.${styles.sortBtn}`)
+        !target.closest(`.${styles.dropdownPill}`)
       ) {
         setActiveDropdown(null);
       }
@@ -215,181 +324,176 @@ export const CoursesPage: React.FC = () => {
     };
   }, [activeDropdown]);
 
-  // Target Year for the active class & session
   const dynamicTargetYear = useMemo(() => {
     return getTargetYearLabel(selectedClass, selectedSession);
   }, [selectedClass, selectedSession]);
 
-  // FAQ Accordion active index
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
-
-  // Form states
+  // Lead counselor form state
   const [counsellorPhone, setCounsellorPhone] = useState('');
   const [counsellorSubmitted, setCounsellorSubmitted] = useState(false);
 
-  const sortRef = useRef<HTMLDivElement>(null);
-  const langRef = useRef<HTMLDivElement>(null);
-  const ratingRef = useRef<HTMLDivElement>(null);
-  const classRef = useRef<HTMLDivElement>(null);
-  const subjectRef = useRef<HTMLDivElement>(null);
-
-  // Filter & Sort Courses based on ALL dropdowns and URL params
+  // Filter & Sort Courses
   const filteredCourses = useMemo(() => {
     const catParam = (searchParams.get('category') || searchParams.get('class'))?.toLowerCase();
     const hasExplicitClass = Boolean(searchParams.get('class'));
 
-    return coursesCatalog.filter((course) => {
-      // 1. Subject Filter (DK Sir Math Special or explicit subject filter)
-      if (selectedSubject !== 'All') {
-        const subjLower = selectedSubject.toLowerCase();
-        const hasExplicitSubject = course.subjects?.some((s) => s.toLowerCase() === subjLower);
-        const inTitle = course.title?.toLowerCase().includes(subjLower);
-        const inDesc = course.description?.toLowerCase().includes(subjLower);
-        // Comprehensive JEE courses cover Physics, Chemistry, AND Mathematics
-        const isComprehensiveJee =
-          (course.targetExam?.includes('JEE') || course.category?.includes('JEE')) &&
-          !course.title?.toLowerCase().includes('math only') &&
-          !course.title?.toLowerCase().includes('physics only') &&
-          !course.title?.toLowerCase().includes('chemistry only') &&
-          (!course.subjects || course.subjects.length > 1 || course.subjects.includes(selectedSubject));
+    return coursesCatalog
+      .filter((course) => {
+        // 1. Subject Filter
+        if (selectedSubject !== 'All') {
+          const subjLower = selectedSubject.toLowerCase();
+          const hasExplicitSubject = course.subjects?.some((s) => s.toLowerCase() === subjLower);
+          const inTitle = course.title?.toLowerCase().includes(subjLower);
+          const inDesc = course.description?.toLowerCase().includes(subjLower);
+          const isComprehensiveJee =
+            (course.targetExam?.includes('JEE') || course.category?.includes('JEE')) &&
+            !course.title?.toLowerCase().includes('math only') &&
+            !course.title?.toLowerCase().includes('physics only') &&
+            !course.title?.toLowerCase().includes('chemistry only') &&
+            (!course.subjects || course.subjects.length > 1 || course.subjects.includes(selectedSubject));
 
-        if (!hasExplicitSubject && !inTitle && !inDesc && !isComprehensiveJee) {
-          return false;
+          if (!hasExplicitSubject && !inTitle && !inDesc && !isComprehensiveJee) {
+            return false;
+          }
         }
-      }
 
-      // 2. Category Filter from URL / Sub-nav (only if not overridden by explicit class param)
-      if (catParam && !hasExplicitClass) {
-        if (catParam.includes('foundation') || catParam.includes('8-10') || catParam.includes('8–10')) {
-          const isFound = course.category === 'Foundation' || course.targetClass === 'Class 10th Foundation' || course.title.toLowerCase().includes('foundation');
-          if (!isFound) return false;
-        } else if (catParam.includes('dropper') || catParam.includes('repeater')) {
-          const isDrop = course.targetClass === 'Dropper' || course.title.toLowerCase().includes('dropper');
-          if (!isDrop) return false;
-        } else if (catParam.includes('crash')) {
-          const isCrash = course.category === 'Crash Course' || course.targetExam === 'Crash Course' || course.title.toLowerCase().includes('crash') || course.badge?.toLowerCase().includes('crash');
-          if (!isCrash) return false;
-        } else if (catParam.includes('12')) {
-          const isC12 = course.targetClass === 'Class 12th' || course.title.toLowerCase().includes('12');
-          if (!isC12) return false;
-        } else if (catParam.includes('11')) {
-          const isC11 = course.targetClass === 'Class 11th' || course.title.toLowerCase().includes('11');
-          if (!isC11) return false;
-        } else if (catParam.includes('main')) {
-          const isJeeMain = course.category === 'JEE Main' || course.category === 'JEE Advanced' || course.targetExam?.includes('JEE Main') || course.targetExam?.includes('JEE Advanced');
-          if (!isJeeMain) return false;
+        // 2. Category Filter from URL / Sub-nav
+        if (catParam && !hasExplicitClass) {
+          if (catParam.includes('foundation') || catParam.includes('8-10') || catParam.includes('8–10')) {
+            const isFound = course.category === 'Foundation' || course.targetClass === 'Class 10th Foundation' || course.title.toLowerCase().includes('foundation');
+            if (!isFound) return false;
+          } else if (catParam.includes('dropper') || catParam.includes('repeater')) {
+            const isDrop = course.targetClass === 'Dropper' || course.title.toLowerCase().includes('dropper');
+            if (!isDrop) return false;
+          } else if (catParam.includes('crash')) {
+            const isCrash = course.category === 'Crash Course' || course.targetExam === 'Crash Course' || course.title.toLowerCase().includes('crash') || course.badge?.toLowerCase().includes('crash');
+            if (!isCrash) return false;
+          } else if (catParam.includes('12')) {
+            const isC12 = course.targetClass === 'Class 12th' || course.title.toLowerCase().includes('12');
+            if (!isC12) return false;
+          } else if (catParam.includes('11')) {
+            const isC11 = course.targetClass === 'Class 11th' || course.title.toLowerCase().includes('11');
+            if (!isC11) return false;
+          } else if (catParam.includes('main')) {
+            const isJeeMain = course.category === 'JEE Main' || course.category === 'JEE Advanced' || course.targetExam?.includes('JEE Main') || course.targetExam?.includes('JEE Advanced');
+            if (!isJeeMain) return false;
+          }
         }
-      }
 
-      // 3. Class / Level Filter if selected via tab/chip or Level dropdown
-      if (selectedClass !== 'All') {
-        const tClass = (course.targetClass || '').toLowerCase();
-        const cLevel = ((course as any).level || '').toLowerCase();
-        const combined = `${tClass} ${cLevel}`;
-        if (selectedClass === 'Class 11th' && !combined.includes('11')) return false;
-        if (selectedClass === 'Class 12th' && !combined.includes('12')) return false;
-        if (selectedClass === 'Dropper' && !combined.includes('drop') && !combined.includes('repeat')) return false;
-        if (selectedClass === 'Class 10th Foundation' && !combined.includes('10') && !combined.includes('found') && !combined.includes('9') && !combined.includes('8')) return false;
-      }
-
-      // 4. Delivery Mode Filter (Live / DLP / Test Series)
-      if (selectedMode !== 'All') {
-        if (selectedMode === 'dlp') {
-          if (course.courseType !== 'dlp' && course.mode !== 'Self-Paced' && course.courseType !== 'recorded') return false;
-        } else if (selectedMode === 'test-series') {
-          if (course.courseType !== 'test-series' && course.mode !== 'Online Test Series') return false;
-        } else if (selectedMode === 'live') {
-          if (course.courseType !== 'live' && course.mode !== 'Live' && course.mode !== 'Live + Recorded') return false;
+        // 3. Class Filter
+        if (selectedClass !== 'All') {
+          const tClass = (course.targetClass || '').toLowerCase();
+          const cLevel = ((course as any).level || '').toLowerCase();
+          const combined = `${tClass} ${cLevel}`;
+          if (selectedClass === 'Class 11th' && !combined.includes('11')) return false;
+          if (selectedClass === 'Class 12th' && !combined.includes('12')) return false;
+          if (selectedClass === 'Dropper' && !combined.includes('drop') && !combined.includes('repeat')) return false;
+          if (selectedClass === 'Class 10th Foundation' && !combined.includes('10') && !combined.includes('found') && !combined.includes('9') && !combined.includes('8')) return false;
         }
-      }
 
-      // 5. Tier Filter (Free vs Paid)
-      if (selectedTier !== 'All') {
-        if (selectedTier === 'Free' && course.tier !== 'Free' && (course.numericPrice || 0) > 0) return false;
-        if (selectedTier === 'Paid' && (course.tier === 'Free' || (course.numericPrice || 0) === 0)) return false;
-      }
-
-      // 6. Language Filter
-      if (selectedLanguage !== 'All') {
-        const langStr = (course.language || 'Hinglish (Hindi + Eng)').toLowerCase();
-        if (selectedLanguage === 'Hinglish') {
-          if (!langStr.includes('hinglish') && !langStr.includes('hindi')) return false;
-        } else if (selectedLanguage === 'English') {
-          if (!langStr.includes('eng')) return false;
+        // 4. Mode Filter
+        if (selectedMode !== 'All') {
+          if (selectedMode === 'dlp') {
+            if (course.courseType !== 'dlp' && course.mode !== 'Self-Paced' && course.courseType !== 'recorded') return false;
+          } else if (selectedMode === 'test-series') {
+            if (course.courseType !== 'test-series' && course.mode !== 'Online Test Series') return false;
+          } else if (selectedMode === 'live') {
+            if (course.courseType !== 'live' && course.mode !== 'Live' && course.mode !== 'Live + Recorded') return false;
+          }
         }
-      }
 
-      // 7. Rating Filter
-      if (selectedRating !== 'All') {
-        const courseRating = course.rating || (course.isPopular ? 4.9 : 4.7);
-        if (courseRating < selectedRating) return false;
-      }
+        // 5. Tier Filter
+        if (selectedTier !== 'All') {
+          if (selectedTier === 'Free' && course.tier !== 'Free' && (course.numericPrice || 0) > 0) return false;
+          if (selectedTier === 'Paid' && (course.tier === 'Free' || (course.numericPrice || 0) === 0)) return false;
+        }
 
-      // 8. Search Query Filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const inTitle = course.title?.toLowerCase().includes(query);
-        const inDesc = course.description?.toLowerCase().includes(query);
-        const inFeatures = course.features?.some((f) => f.toLowerCase().includes(query));
-        const inClass = course.targetClass?.toLowerCase().includes(query);
-        const inSubjects = course.subjects?.some((s) => s.toLowerCase().includes(query));
-        if (!inTitle && !inDesc && !inFeatures && !inClass && !inSubjects) return false;
-      }
+        // 6. Language Filter
+        if (selectedLanguage !== 'All') {
+          const langStr = (course.language || 'Hinglish (Hindi + Eng)').toLowerCase();
+          if (selectedLanguage === 'Hinglish') {
+            if (!langStr.includes('hinglish') && !langStr.includes('hindi')) return false;
+          } else if (selectedLanguage === 'English') {
+            if (!langStr.includes('eng')) return false;
+          }
+        }
 
-      return true;
-    }).map((c) => ({
-      ...c,
-      targetYear: c.targetYear || dynamicTargetYear
-    })).sort((a, b) => {
-      if (sortBy === 'rating-desc') {
-        const rA = (a as any).rating || 4.8;
-        const rB = (b as any).rating || 4.8;
-        return rB - rA;
-      }
-      if (sortBy === 'price-asc') {
-        return (a.numericPrice || 0) - (b.numericPrice || 0);
-      }
-      if (sortBy === 'price-desc') {
-        return (b.numericPrice || 0) - (a.numericPrice || 0);
-      }
-      if (sortBy === 'start-date') {
-        return (a.batchStartDate || '9999').localeCompare(b.batchStartDate || '9999');
-      }
-      // Default: Popularity
-      if (a.isPopular && !b.isPopular) return -1;
-      if (!a.isPopular && b.isPopular) return 1;
-      return (b.enrolledCount || 0) - (a.enrolledCount || 0);
-    });
-  }, [coursesCatalog, selectedClass, selectedMode, selectedSubject, selectedTier, selectedLanguage, selectedRating, sortBy, dynamicTargetYear, searchParams, searchQuery]);
+        // 7. Rating Filter
+        if (selectedRating !== 'All') {
+          const courseRating = course.rating || (course.isPopular ? 4.9 : 4.7);
+          if (courseRating < selectedRating) return false;
+        }
 
-  // ─── Responsive Pagination: Exactly 3 Rows per page ───
-  // Large Desktop (>1240px: 4 cols) = 12 items (3 rows)
-  // Standard/Laptop (901px-1240px: 3 cols) = 9 items (3 rows)
-  // Tablet (601px-900px: 2 cols) = 6 items (3 rows)
-  // Mobile (<=600px: 1 col) = 6 items
+        // 8. Search Query
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const inTitle = course.title?.toLowerCase().includes(q);
+          const inDesc = course.description?.toLowerCase().includes(q);
+          const inFeatures = course.features?.some((f) => f.toLowerCase().includes(q));
+          const inClass = course.targetClass?.toLowerCase().includes(q);
+          const inSubjects = course.subjects?.some((s) => s.toLowerCase().includes(q));
+          if (!inTitle && !inDesc && !inFeatures && !inClass && !inSubjects) return false;
+        }
+
+        return true;
+      })
+      .map((c) => ({
+        ...c,
+        targetYear: c.targetYear || dynamicTargetYear
+      }))
+      .sort((a, b) => {
+        if (sortBy === 'rating-desc') {
+          return ((b as any).rating || 4.8) - ((a as any).rating || 4.8);
+        }
+        if (sortBy === 'price-asc') {
+          return (a.numericPrice || 0) - (b.numericPrice || 0);
+        }
+        if (sortBy === 'price-desc') {
+          return (b.numericPrice || 0) - (a.numericPrice || 0);
+        }
+        if (sortBy === 'start-date') {
+          return (a.batchStartDate || '9999').localeCompare(b.batchStartDate || '9999');
+        }
+        if (a.isPopular && !b.isPopular) return -1;
+        if (!a.isPopular && b.isPopular) return 1;
+        return (b.enrolledCount || 0) - (a.enrolledCount || 0);
+      });
+  }, [
+    coursesCatalog,
+    selectedClass,
+    selectedMode,
+    selectedSubject,
+    selectedTier,
+    selectedLanguage,
+    selectedRating,
+    sortBy,
+    dynamicTargetYear,
+    searchParams,
+    searchQuery
+  ]);
+
+  // Responsive Pagination
   const [itemsPerPage, setItemsPerPage] = useState<number>(() => {
     if (typeof window === 'undefined') return 12;
     if (window.innerWidth > 1240) return 12;
-    if (window.innerWidth > 900) return 9;
+    if (window.innerWidth > 900) return 8;
     return 6;
   });
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const handleResize = () => {
-      const width = window.innerWidth;
-      const targetItems = width > 1240 ? 12 : width > 900 ? 9 : 6;
-      setItemsPerPage((prev) => (prev !== targetItems ? targetItems : prev));
+      const w = window.innerWidth;
+      const target = w > 1240 ? 12 : w > 900 ? 8 : 6;
+      setItemsPerPage((prev) => (prev !== target ? target : prev));
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Total pages & safe current page calculation
   const totalPages = Math.max(1, Math.ceil(filteredCourses.length / itemsPerPage));
   const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
 
-  // Reset to page 1 whenever any filter or search changes
   const filterKey = `${selectedClass}|${selectedMode}|${selectedSubject}|${selectedTier}|${selectedLanguage}|${selectedRating}|${sortBy}|${searchQuery}|${searchParams.toString()}`;
   const prevFilterKey = useRef(filterKey);
 
@@ -400,21 +504,19 @@ export const CoursesPage: React.FC = () => {
     }
   }, [filterKey]);
 
-  // Paginated course slice
   const paginatedCourses = useMemo(() => {
-    const startIndex = (safeCurrentPage - 1) * itemsPerPage;
-    return filteredCourses.slice(startIndex, startIndex + itemsPerPage);
+    const start = (safeCurrentPage - 1) * itemsPerPage;
+    return filteredCourses.slice(start, start + itemsPerPage);
   }, [filteredCourses, safeCurrentPage, itemsPerPage]);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    const headingEl = document.getElementById('courses-grid-heading');
+    const headingEl = document.getElementById('choose-your-course');
     if (headingEl) {
       headingEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
-  // Generate page numbers with ellipsis
   const pageNumbers = useMemo(() => {
     if (totalPages <= 5) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -430,7 +532,6 @@ export const CoursesPage: React.FC = () => {
     return pages;
   }, [totalPages, safeCurrentPage]);
 
-  // Applied filter count for badge
   const activeFiltersCount =
     (selectedMode === 'All' ? 0 : 1) +
     (selectedSubject === 'All' ? 0 : 1) +
@@ -441,7 +542,6 @@ export const CoursesPage: React.FC = () => {
     (searchQuery.trim() ? 1 : 0);
 
   const resetAllFilters = () => {
-    setSelectedSession('Session: 2026-27');
     setSelectedTier('All');
     setSelectedLanguage('All');
     setSelectedRating('All');
@@ -466,106 +566,30 @@ export const CoursesPage: React.FC = () => {
     }
   };
 
-  // Dynamic Page H1 Heading based on selection
-  const getDynamicHeading = () => {
-    if (selectedSubject === 'Mathematics') return 'DK Sir IIT JEE Mathematics Special Batches';
-    const cat = urlCategory;
-    if (cat?.includes('crash')) return 'JEE Rapid Crash Courses & Rank Booster Batches';
-    if (cat?.includes('foundation')) return 'Class 8–10 Foundation & Olympiad Batches';
-    if (cat?.includes('dropper')) return 'JEE Dropper & Repeater Batches: Target JEE 2027';
-    if (cat?.includes('11') || selectedClass === 'Class 11th') return 'JEE Main & Advanced Courses for Class 11th';
-    if (cat?.includes('12') || selectedClass === 'Class 12th') return 'JEE Main & Advanced Courses for Class 12th';
-    if (cat?.includes('main')) return 'JEE Main & Advanced Comprehensive Batches';
-    if (selectedClass === 'Class 10th Foundation') return 'Foundation & Early Olympiad Courses';
-    return 'All Online JEE & Foundation Courses';
-  };
-
-  // Dynamic Subtitle based on selection
-  const getDynamicSubtitle = () => {
-    if (selectedSubject === 'Mathematics') {
-      return 'Mentored directly by DK Sir (Dharmendra Kumar). Master concept clarity, time-saving graphical tricks, 20-to-30-second shortcut techniques, and chapter-wise PYQ solutions for Class 11th, 12th & Droppers.';
-    }
-    const cat = urlCategory;
-    if (cat?.includes('crash')) {
-      return 'Intensive high-yield problem solving, full syllabus revisions, and exam-simulation CBT tests designed to jumpstart your percentile in the final weeks.';
-    }
-    if (cat?.includes('foundation') || selectedClass === 'Class 10th Foundation') {
-      return 'Build solid mathematical aptitude, science concepts, and Olympiad problem-solving skills (IOQM, PRMO, NSEJS) early under DK Sir and Kota faculty.';
-    }
-    if (cat?.includes('dropper') || selectedClass === 'Dropper') {
-      return 'High-tempo 10-month intensive rank improvement programs covering Class 11 & 12 syllabus with DK Sir’s 20-30s shortcuts and weekly all-India CBT mock test simulations.';
-    }
-    if (cat?.includes('11') || selectedClass === 'Class 11th') {
-      return 'Complete 2-year JEE foundation and Advanced mastery program for Class 11th aspirants targeting IIT JEE 2028 with Kota-pedagogy curriculum.';
-    }
-    if (cat?.includes('12') || selectedClass === 'Class 12th') {
-      return 'Class 12th board + JEE Advanced rank accelerator curriculum with complete Class 11 revision, daily DPPs, and all-India test series.';
-    }
-    if (cat?.includes('main')) {
-      return 'Targeting top IIT ranks with Kota-pedagogy curriculum, daily problem sets (DPP), live doubt counters, and all-India CBT mock test simulations.';
-    }
-    return `Targeting ${dynamicTargetYear} with Kota-pedagogy curriculum, daily problem sets (DPP), and all-India CBT mock test simulations.`;
-  };
-
-  // Breadcrumb label
-  const getBreadcrumbLabel = () => {
-    if (selectedSubject === 'Mathematics') return 'DK Sir Math Special';
-    const cat = urlCategory;
-    if (cat?.includes('crash')) return 'Crash Courses';
-    if (cat?.includes('foundation') || selectedClass === 'Class 10th Foundation') return 'Class 8–10 Foundation';
-    if (cat?.includes('dropper') || selectedClass === 'Dropper') return 'Droppers & Repeaters (Target JEE 2027)';
-    if (cat?.includes('11') || selectedClass === 'Class 11th') return 'Class 11th JEE';
-    if (cat?.includes('12') || selectedClass === 'Class 12th') return 'Class 12th JEE';
-    if (cat?.includes('main')) return selectedClass === 'All' ? `JEE Main & Advanced (${dynamicTargetYear})` : `${selectedClass} JEE Main & Advanced`;
-    return selectedClass === 'All' ? 'All Batches' : `${selectedClass} (${dynamicTargetYear})`;
-  };
-
-  // Quick category tabs list
   const categoryChips = [
-    { id: 'all', label: 'All Batches', isMath: false, isCrash: false, classVal: 'All' },
-    { id: 'c11', label: 'Class 11', isMath: false, isCrash: false, classVal: 'Class 11th' },
-    { id: 'c12', label: 'Class 12', isMath: false, isCrash: false, classVal: 'Class 12th' },
-    { id: 'dropper', label: 'Droppers', isMath: false, isCrash: false, classVal: 'Dropper' },
-    { id: 'crash', label: 'Crash Courses', isMath: false, isCrash: true, classVal: 'All' },
-    { id: 'foundation', label: 'Foundation (8–10)', isMath: false, isCrash: false, classVal: 'Class 10th Foundation' },
-    { id: 'math-special', label: 'DK Sir Math Special', isMath: true, isCrash: false, classVal: 'All' }
+    { id: 'all', label: 'All Batches', isMath: false, isCrash: false, isMain: false, classVal: 'All' },
+    { id: 'jee-main', label: 'JEE Main', isMath: false, isCrash: false, isMain: true, classVal: 'All' },
+    { id: 'c11', label: 'Class 11', isMath: false, isCrash: false, isMain: false, classVal: 'Class 11th' },
+    { id: 'c12', label: 'Class 12', isMath: false, isCrash: false, isMain: false, classVal: 'Class 12th' },
+    { id: 'dropper', label: 'Droppers', isMath: false, isCrash: false, isMain: false, classVal: 'Dropper' },
+    { id: 'crash', label: 'Crash Courses', isMath: false, isCrash: true, isMain: false, classVal: 'All' },
+    { id: 'foundation', label: 'Foundation (8–10)', isMath: false, isCrash: false, isMain: false, classVal: 'Class 10th Foundation' },
+    { id: 'math-special', label: 'DK Sir Math Special', isMath: true, isCrash: false, isMain: false, classVal: 'All' }
   ];
 
-  // Quick Trending Search Pills for instant discovery
-  const trendingSearchTags = [
-    { label: 'Calculus by DK Sir', type: 'subject', value: 'Mathematics' },
-    { label: 'Class 11th Batches', type: 'category', value: 'Class 11th' },
-    { label: 'Droppers 2027', type: 'category', value: 'Dropper' },
-    { label: 'Kota DLP Modules', type: 'mode', value: 'dlp' },
-    { label: 'All-India CBT Test Series', type: 'mode', value: 'test-series' },
-    { label: 'Class 12th JEE', type: 'category', value: 'Class 12th' }
-  ];
-
-  const handleTrendingTagClick = (tag: typeof trendingSearchTags[0]) => {
-    const nextParams = new URLSearchParams();
-    if (tag.type === 'subject') {
-      nextParams.set('subject', tag.value);
-    } else if (tag.type === 'category') {
-      nextParams.set('category', tag.value);
-    } else if (tag.type === 'mode') {
-      nextParams.set('mode', tag.value);
-    }
-    setSearchParams(nextParams);
-    setSearchQuery('');
-  };
-
-  const handleChipClick = (chip: typeof categoryChips[0]) => {
+  const handleChipClick = (chip: (typeof categoryChips)[0]) => {
     const nextParams = new URLSearchParams();
     if (chip.isMath) {
       nextParams.set('subject', 'Mathematics');
     } else if (chip.isCrash) {
       nextParams.set('category', 'Crash Course');
+    } else if (chip.isMain) {
+      nextParams.set('category', 'JEE Main');
     } else if (chip.classVal !== 'All') {
       if (chip.classVal === 'Class 10th Foundation') nextParams.set('category', 'Foundation');
       else if (chip.classVal === 'Dropper') nextParams.set('category', 'Dropper');
       else if (chip.classVal === 'Class 12th') nextParams.set('category', 'Class 12th');
       else if (chip.classVal === 'Class 11th') nextParams.set('category', 'Class 11th');
-      else nextParams.set('category', 'JEE Main');
     }
     if (urlMode) nextParams.set('mode', urlMode);
     setSearchParams(nextParams);
@@ -585,42 +609,16 @@ export const CoursesPage: React.FC = () => {
     }, 3000);
   };
 
-  // Structured Data Schema for Course Listing
-  const jsonLdSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: `${getDynamicHeading()} • DK Academy JEE`,
-    description: `Comprehensive IIT JEE Main and Advanced batches for ${selectedClass} (${dynamicTargetYear}). Live classes, Kota DLP modules, and CBT test series.`,
-    itemListElement: filteredCourses.map((c, idx) => ({
-      '@type': 'ListItem',
-      position: idx + 1,
-      item: {
-        '@type': 'Course',
-        name: c.title,
-        description: c.description,
-        provider: {
-          '@type': 'EducationalOrganization',
-          name: 'DK Academy JEE',
-          sameAs: 'https://dkacademyjee.com'
-        },
-        offers: {
-          '@type': 'Offer',
-          price: c.numericPrice,
-          priceCurrency: 'INR',
-          category: c.targetClass,
-          availability: 'https://schema.org/InStock'
-        }
-      }
-    }))
+  const scrollToCourses = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    const el = document.getElementById('choose-your-course');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   return (
     <main className={styles.page}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSchema) }}
-      />
-
       {/* Breadcrumb Navigation */}
       <nav className={styles.breadcrumbNav} aria-label="Breadcrumb">
         <Container size="wide">
@@ -631,411 +629,260 @@ export const CoursesPage: React.FC = () => {
             <li>
               <ChevronRight size={13} className={styles.breadcrumbDivider} aria-hidden="true" />
             </li>
-            <li>
-              <Link to="/courses">Courses</Link>
-            </li>
-            <li>
-              <ChevronRight size={13} className={styles.breadcrumbDivider} aria-hidden="true" />
-            </li>
             <li aria-current="page" className={styles.activeBreadcrumb}>
-              {getBreadcrumbLabel()}
+              Courses
             </li>
           </ol>
         </Container>
       </nav>
 
-      {/* Header Hero Section */}
-      <section className={styles.headerSection}>
+      {/* ─── 1. HERO SECTION ─── */}
+      <section className={styles.heroSection} aria-label="DK Academy Hero">
+        <div className={styles.heroBackgroundGlow} aria-hidden="true" />
         <Container size="wide">
-          <div className={styles.heroMainGrid}>
-            <div className={styles.pageHeadingLeft}>
-              {/* Admissions & Pedagogy Status Badge */}
-              <div className={styles.eyebrowBadge}>
-                <span className={styles.livePulseDot} aria-hidden="true">
-                  <span className={styles.pulseRing} />
-                  <span className={styles.pulseCore} />
-                </span>
-                <span className={styles.eyebrowHighlight}>Admissions Open 2026–27</span>
-                <span className={styles.eyebrowDivider}>•</span>
-                <span className={styles.eyebrowPedagogy}>
-                  <Sparkles size={13} className={styles.eyebrowSparkle} aria-hidden="true" />
-                  Advanced Pedagogy in Dwarka Sector 12, New Delhi
-                </span>
+          <div className={styles.heroGrid}>
+            {/* Left Content */}
+            <div className={styles.heroContentLeft}>
+              <div className={styles.heroEyebrowBadge}>
+                <Sparkles size={14} className={styles.sparkleIcon} aria-hidden="true" />
+                <span>Your Success, Our Mission</span>
               </div>
 
-              {/* Title & Subtitle */}
-              <h1 className={styles.pageTitle}>{getDynamicHeading()}</h1>
-              <p className={styles.pageSubtitle}>{getDynamicSubtitle()}</p>
+              <h1 className={styles.heroHeading}>
+                Crack <span className={styles.heroGradientHighlight}>JEE</span> with Confidence
+              </h1>
 
-              {/* Enhanced Interactive Search Console */}
-              <div className={styles.searchHeroContainer}>
-                <div className={styles.heroSearchWrap}>
-                  <div className={styles.searchIconBox}>
-                    <Search size={18} className={styles.searchIcon} aria-hidden="true" />
-                  </div>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by topic (Calculus, Mechanics, Organic), batch name, or faculty..."
-                    className={styles.heroSearchInput}
-                    aria-label="Search courses by keyword"
-                  />
-                  {searchQuery ? (
+              <p className={styles.heroDescription}>
+                Expert-led courses, unlimited practice and smart performance analysis – all in one place.
+              </p>
+
+              <div className={styles.heroCtaGroup}>
+                <Link to="/test-series" className={styles.heroPrimaryBtn}>
+                  <span>Start Free Test</span>
+                  <ArrowRight size={17} aria-hidden="true" />
+                </Link>
+                <a href="#choose-your-course" onClick={scrollToCourses} className={styles.heroSecondaryBtn}>
+                  Explore Courses
+                </a>
+              </div>
+            </div>
+
+            {/* Right Educational Visual */}
+            <div className={styles.heroVisualRight}>
+              <div className={styles.heroVisualCard}>
+                <div className={styles.heroVisualCircleBackdrop} aria-hidden="true" />
+                <img
+                  src="/img/RISHABH%20ANAND.png"
+                  alt="Rishabh Anand - JEE Advanced AIR 2146 (99.814%ile)"
+                  className={styles.heroStudentImage}
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    if (!img.src.includes('IMG_5099')) {
+                      img.src = '/img/IMG_5099.JPG.jpeg';
+                    }
+                  }}
+                />
+                <div className={styles.dreamIitBadge}>
+                  <Cloud size={16} className={styles.cloudIcon} aria-hidden="true" />
+                  <span>Dream IIT</span>
+                </div>
+                <div className={styles.heroAchieverPill}>
+                  <Trophy size={14} className={styles.trophyIcon} aria-hidden="true" />
+                  <span>Rishabh Anand • AIR 2146 (99.814%ile)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* ─── Horizontal Feature Strip Below Hero ─── */}
+      <section className={styles.featureStripSection} aria-label="Platform Highlights">
+        <Container size="wide">
+          <div className={styles.featureStripGrid}>
+            {/* 1. Top Quality Study Material */}
+            <div className={styles.featureStripCard}>
+              <div className={styles.featureIconBadge} style={{ background: '#fef3c7', color: '#d97706' }}>
+                <Trophy size={20} aria-hidden="true" />
+              </div>
+              <div className={styles.featureStripText}>
+                <span className={styles.featureStripTitle}>Top Quality Study Material</span>
+                <span className={styles.featureStripSubtitle}>Kota curriculum &amp; modules</span>
+              </div>
+            </div>
+
+            {/* 2. Unlimited Mock Tests */}
+            <div className={styles.featureStripCard}>
+              <div className={styles.featureIconBadge} style={{ background: '#eff6ff', color: '#2563eb' }}>
+                <Zap size={20} aria-hidden="true" />
+              </div>
+              <div className={styles.featureStripText}>
+                <span className={styles.featureStripTitle}>Unlimited Mock Tests</span>
+                <span className={styles.featureStripSubtitle}>NTA CBT pattern simulations</span>
+              </div>
+            </div>
+
+            {/* 3. Detailed Performance Analytics */}
+            <div className={styles.featureStripCard}>
+              <div className={styles.featureIconBadge} style={{ background: '#ecfdf5', color: '#059669' }}>
+                <BarChart3 size={20} aria-hidden="true" />
+              </div>
+              <div className={styles.featureStripText}>
+                <span className={styles.featureStripTitle}>Detailed Performance Analytics</span>
+                <span className={styles.featureStripSubtitle}>Speed, accuracy &amp; percentile</span>
+              </div>
+            </div>
+
+            {/* 4. 24/7 Doubt Support */}
+            <div className={styles.featureStripCard}>
+              <div className={styles.featureIconBadge} style={{ background: '#eef2ff', color: '#4f46e5' }}>
+                <Headphones size={20} aria-hidden="true" />
+              </div>
+              <div className={styles.featureStripText}>
+                <span className={styles.featureStripTitle}>24/7 Doubt Support</span>
+                <span className={styles.featureStripSubtitle}>Faculty clinics &amp; instant app</span>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* ─── 2. COURSES SECTION ("Choose Your Course") ─── */}
+      <section className={styles.coursesSection} id="choose-your-course" aria-labelledby="courses-heading">
+        <Container size="wide">
+          <div className={styles.sectionHeaderCenter}>
+            <span className={styles.sectionEyebrow}>— Our Courses</span>
+            <h2 id="courses-heading" className={styles.sectionTitle}>
+              Choose Your Course
+            </h2>
+            <p className={styles.sectionSubtitle}>
+              Tailored classroom programs, full syllabus DLP modules, and all-India test series led by DK Sir.
+            </p>
+          </div>
+
+          {/* Filter & Search Toolbar */}
+          <div className={styles.filterToolbarWrap}>
+            {/* Top row: Category Pills */}
+            <div className={styles.filterTopRow}>
+              <div className={styles.categoryPillsScroll} role="tablist" aria-label="Course categories">
+                <button
+                  type="button"
+                  className={`${styles.allFiltersTriggerBtn} ${activeFiltersCount > 0 ? styles.allFiltersActive : ''}`}
+                  onClick={() => setIsFiltersModalOpen(true)}
+                  aria-label={`Open all filters (${activeFiltersCount} active)`}
+                >
+                  <SlidersHorizontal size={14} aria-hidden="true" />
+                  <span>Filters</span>
+                  {activeFiltersCount > 0 && <span className={styles.filterCountBadge}>{activeFiltersCount}</span>}
+                </button>
+
+                {categoryChips.map((chip) => {
+                  const isSelected = chip.isMath
+                    ? selectedSubject === 'Mathematics'
+                    : chip.isCrash
+                    ? Boolean(urlCategory?.includes('crash'))
+                    : chip.isMain
+                    ? Boolean(urlCategory?.includes('main'))
+                    : selectedSubject !== 'Mathematics' &&
+                      !urlCategory?.includes('crash') &&
+                      !urlCategory?.includes('main') &&
+                      selectedClass === chip.classVal;
+
+                  return (
                     <button
+                      key={chip.id}
                       type="button"
-                      className={styles.clearSearchBtn}
-                      onClick={() => setSearchQuery('')}
-                      aria-label="Clear search query"
+                      className={`${styles.categoryPill} ${isSelected ? styles.categoryPillActive : ''}`}
+                      onClick={() => handleChipClick(chip)}
+                      role="tab"
+                      aria-selected={isSelected}
                     >
-                      <X size={15} />
+                      {chip.label}
                     </button>
-                  ) : (
-                    <span className={styles.searchBadgeHint}>Search</span>
-                  )}
-                </div>
-
-                {/* Popular Trending Search Chips */}
-                <div className={styles.trendingTagsRow}>
-                  <span className={styles.trendingLabel}>
-                    <Flame size={13} className={styles.flameIcon} aria-hidden="true" />
-                    <span>Popular:</span>
-                  </span>
-                  <div className={styles.trendingList}>
-                    {trendingSearchTags.map((tag) => (
-                      <button
-                        key={tag.label}
-                        type="button"
-                        className={styles.trendingTagChip}
-                        onClick={() => handleTrendingTagClick(tag)}
-                        title={`Filter by ${tag.label}`}
-                      >
-                        {tag.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Redesigned 4-Metric Trust & Social Proof Cards Grid */}
-          <div className={styles.socialProofGrid} aria-label="DK Academy Trust Statistics">
-            {/* 1. Students Enrolled */}
-            <div className={styles.statCard}>
-              <div className={`${styles.statIconBadge} ${styles.iconBadgeBlue}`}>
-                <Users size={22} aria-hidden="true" />
-              </div>
-              <div className={styles.statContent}>
-                <div className={styles.statNumberRow}>
-                  <span className={styles.statNumber}>12,400+</span>
-                </div>
-                <span className={styles.statLabel}>Students Enrolled</span>
-                <span className={styles.statSubText}>Active Pan-India & Offline</span>
+                  );
+                })}
               </div>
             </div>
 
-            {/* 2. IITian Selections */}
-            <div className={styles.statCard}>
-              <div className={`${styles.statIconBadge} ${styles.iconBadgeAmber}`}>
-                <Trophy size={22} aria-hidden="true" />
-              </div>
-              <div className={styles.statContent}>
-                <div className={styles.statNumberRow}>
-                  <span className={styles.statNumber}>1,420+</span>
-                </div>
-                <span className={styles.statLabel}>IITian Selections</span>
-                <span className={styles.statSubText}>Top 500 AIRs in Advanced</span>
-              </div>
-            </div>
-
-            {/* 3. Student Rating */}
-            <div className={styles.statCard}>
-              <div className={`${styles.statIconBadge} ${styles.iconBadgeGold}`}>
-                <Star size={22} fill="#f59e0b" color="#f59e0b" aria-hidden="true" />
-              </div>
-              <div className={styles.statContent}>
-                <div className={styles.statNumberRow}>
-                  <span className={styles.statNumber}>4.9</span>
-                  <span className={styles.statMax}>/ 5.0</span>
-                </div>
-                <span className={styles.statLabel}>Avg. Student Rating</span>
-                <span className={styles.statSubText}>3,850+ Verified Reviews</span>
-              </div>
-            </div>
-
-            {/* 4. Recommendation Rate */}
-            <div className={styles.statCard}>
-              <div className={`${styles.statIconBadge} ${styles.iconBadgeEmerald}`}>
-                <TrendingUp size={22} aria-hidden="true" />
-              </div>
-              <div className={styles.statContent}>
-                <div className={styles.statNumberRow}>
-                  <span className={styles.statNumber}>94%</span>
-                </div>
-                <span className={styles.statLabel}>Recommendation Rate</span>
-                <span className={styles.statSubText}>Alumni & Parent Endorsed</span>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* Sticky Filter Bar (Matching Reference Screenshot) */}
-      <section className={styles.stickyFilterSection} aria-label="Course Filters Bar">
-        <Container size="wide">
-          <div className={styles.filterToolbar}>
-            {/* Scrollable Pills & Dropdowns Row */}
-            <div className={styles.filterPillsScroll} role="toolbar" aria-label="Course Filters">
-              {/* 1. "All filters" Button with Sliders Icon */}
-              <button
-                type="button"
-                className={`${styles.allFiltersBtn} ${activeFiltersCount > 0 ? styles.allFiltersActive : ''}`}
-                onClick={() => setIsFiltersModalOpen(true)}
-                aria-label={`Open all filters (${activeFiltersCount} active)`}
-              >
-                <SlidersHorizontal size={14} aria-hidden="true" />
-                <span>All filters</span>
-                {activeFiltersCount > 0 && (
-                  <span className={styles.filterCountBadge}>{activeFiltersCount}</span>
-                )}
-              </button>
-
-              {/* 2. Fast Category Pills */}
-              {categoryChips.map((chip) => {
-                const isSelected = chip.isMath
-                  ? selectedSubject === 'Mathematics'
-                  : chip.isCrash
-                  ? Boolean(urlCategory?.includes('crash'))
-                  : selectedSubject !== 'Mathematics' && !urlCategory?.includes('crash') && selectedClass === chip.classVal;
-
-                return (
+            {/* Bottom row: Search & Secondary Filters */}
+            <div className={styles.filterBottomRow}>
+              <div className={styles.searchBoxWrap}>
+                <Search size={16} className={styles.searchIcon} aria-hidden="true" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search batches by keyword, topic or class..."
+                  className={styles.searchInput}
+                  aria-label="Search courses"
+                />
+                {searchQuery && (
                   <button
-                    key={chip.id}
                     type="button"
-                    className={`${styles.filterPill} ${isSelected ? styles.filterPillActive : ''}`}
-                    onClick={() => handleChipClick(chip)}
+                    className={styles.clearSearchBtn}
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear search"
                   >
-                    {chip.label}
+                    <X size={14} />
                   </button>
-                );
-              })}
-
-              {/* 3. Fast Mode Pills */}
-              <button
-                type="button"
-                className={`${styles.filterPill} ${selectedMode === 'test-series' ? styles.filterPillActive : ''}`}
-                onClick={() => handleModeChange(selectedMode === 'test-series' ? 'All' : 'test-series')}
-              >
-                <Award size={13} aria-hidden="true" />
-                <span>Practice Tests</span>
-              </button>
-
-              <button
-                type="button"
-                className={`${styles.filterPill} ${selectedMode === 'live' ? styles.filterPillActive : ''}`}
-                onClick={() => handleModeChange(selectedMode === 'live' ? 'All' : 'live')}
-              >
-                <Video size={13} aria-hidden="true" />
-                <span>Live Batches</span>
-              </button>
-
-              <button
-                type="button"
-                className={`${styles.filterPill} ${selectedMode === 'dlp' ? styles.filterPillActive : ''}`}
-                onClick={() => handleModeChange(selectedMode === 'dlp' ? 'All' : 'dlp')}
-              >
-                <BookOpen size={13} aria-hidden="true" />
-                <span>Self-Paced / DLP</span>
-              </button>
-
-              {/* 4. Dropdown Filter: Language */}
-              <div className={styles.dropdownWrapper} ref={langRef}>
-                <button
-                  type="button"
-                  className={`${styles.dropdownPill} ${selectedLanguage !== 'All' ? styles.dropdownPillActive : ''}`}
-                  onClick={(e) => toggleDropdown('lang', e)}
-                  aria-expanded={activeDropdown?.id === 'lang'}
-                >
-                  <span>{selectedLanguage === 'All' ? 'Language' : selectedLanguage}</span>
-                  <ChevronDown size={13} aria-hidden="true" />
-                </button>
+                )}
               </div>
 
-              {/* 5. Dropdown Filter: Ratings */}
-              <div className={styles.dropdownWrapper} ref={ratingRef}>
+              <div className={styles.dropdownFiltersGroup}>
+                {/* Mode Filter: Live */}
                 <button
                   type="button"
-                  className={`${styles.dropdownPill} ${selectedRating !== 'All' ? styles.dropdownPillActive : ''}`}
-                  onClick={(e) => toggleDropdown('rating', e)}
-                  aria-expanded={activeDropdown?.id === 'rating'}
+                  className={`${styles.dropdownPill} ${selectedMode === 'live' ? styles.dropdownPillActive : ''}`}
+                  onClick={() => handleModeChange(selectedMode === 'live' ? 'All' : 'live')}
                 >
-                  <span>{selectedRating === 'All' ? 'Ratings' : `${selectedRating} ★ & up`}</span>
-                  <ChevronDown size={13} aria-hidden="true" />
+                  <Video size={13} aria-hidden="true" />
+                  <span>Live Batches</span>
                 </button>
-              </div>
 
-              {/* 6. Dropdown Filter: Level / Class */}
-              <div className={styles.dropdownWrapper} ref={classRef}>
+                {/* Mode Filter: Practice Tests */}
                 <button
                   type="button"
-                  className={`${styles.dropdownPill} ${selectedClass !== 'All' ? styles.dropdownPillActive : ''}`}
-                  onClick={(e) => toggleDropdown('class', e)}
-                  aria-expanded={activeDropdown?.id === 'class'}
+                  className={`${styles.dropdownPill} ${selectedMode === 'test-series' ? styles.dropdownPillActive : ''}`}
+                  onClick={() => handleModeChange(selectedMode === 'test-series' ? 'All' : 'test-series')}
                 >
-                  <span>{selectedClass === 'All' ? 'Level' : selectedClass}</span>
-                  <ChevronDown size={13} aria-hidden="true" />
+                  <Award size={13} aria-hidden="true" />
+                  <span>Test Series</span>
                 </button>
-              </div>
 
-              {/* 7. Dropdown Filter: Subject */}
-              <div className={styles.dropdownWrapper} ref={subjectRef}>
+                {/* Mode Filter: DLP */}
                 <button
                   type="button"
-                  className={`${styles.dropdownPill} ${selectedSubject !== 'All' ? styles.dropdownPillActive : ''}`}
-                  onClick={(e) => toggleDropdown('subject', e)}
-                  aria-expanded={activeDropdown?.id === 'subject'}
+                  className={`${styles.dropdownPill} ${selectedMode === 'dlp' ? styles.dropdownPillActive : ''}`}
+                  onClick={() => handleModeChange(selectedMode === 'dlp' ? 'All' : 'dlp')}
                 >
-                  <span>{selectedSubject === 'All' ? 'Subject' : selectedSubject}</span>
+                  <BookOpen size={13} aria-hidden="true" />
+                  <span>Self-Paced / DLP</span>
+                </button>
+
+                {/* Dropdown: Sort */}
+                <button
+                  type="button"
+                  className={styles.dropdownPill}
+                  onClick={(e) => toggleDropdown('sort', e)}
+                  aria-expanded={activeDropdown?.id === 'sort'}
+                >
+                  <span>
+                    Sort:{' '}
+                    {sortBy === 'popularity'
+                      ? 'Popular'
+                      : sortBy === 'rating-desc'
+                      ? 'Highest Rated'
+                      : sortBy === 'price-asc'
+                      ? 'Price: Low'
+                      : 'Price: High'}
+                  </span>
                   <ChevronDown size={13} aria-hidden="true" />
                 </button>
               </div>
             </div>
           </div>
-        </Container>
-      </section>
 
-      {/* Results Count & Detached Sort Bar */}
-      <section className={styles.resultsInfoSection}>
-        <Container size="wide">
-          <div className={styles.resultsInfoRow}>
-            <div className={styles.resultsLeftCol}>
-              <span className={styles.resultsCount}>
-                Showing{' '}
-                <strong>
-                  {filteredCourses.length === 0
-                    ? 0
-                    : totalPages > 1
-                    ? `${(safeCurrentPage - 1) * itemsPerPage + 1}–${Math.min(
-                        safeCurrentPage * itemsPerPage,
-                        filteredCourses.length
-                      )}`
-                    : filteredCourses.length}
-                </strong>{' '}
-                of <strong>{filteredCourses.length}</strong>{' '}
-                {filteredCourses.length === 1 ? 'course' : 'courses'}
-              </span>
-
-              {activeFiltersCount > 0 && (
-                <div className={styles.activeTagsWrap}>
-                  {searchQuery && (
-                    <span className={styles.activeTag}>
-                      Search: "{searchQuery}"
-                      <button type="button" onClick={() => setSearchQuery('')} aria-label="Remove search filter">
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
-                  {selectedSubject !== 'All' && (
-                    <span className={styles.activeTag}>
-                      Subject: {selectedSubject}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = new URLSearchParams(searchParams);
-                          next.delete('subject');
-                          setSearchParams(next);
-                        }}
-                        aria-label="Remove subject filter"
-                      >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
-                  {selectedClass !== 'All' && (
-                    <span className={styles.activeTag}>
-                      Class: {selectedClass}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = new URLSearchParams(searchParams);
-                          next.delete('class');
-                          next.delete('category');
-                          setSearchParams(next);
-                        }}
-                        aria-label="Remove class filter"
-                      >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
-                  {selectedMode !== 'All' && (
-                    <span className={styles.activeTag}>
-                      Mode: {selectedMode === 'live' ? 'Live Online' : selectedMode === 'test-series' ? 'Practice Tests' : 'DLP'}
-                      <button type="button" onClick={() => handleModeChange('All')} aria-label="Remove mode filter">
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
-                  {selectedRating !== 'All' && (
-                    <span className={styles.activeTag}>
-                      Rating: {selectedRating}★+
-                      <button type="button" onClick={() => setSelectedRating('All')} aria-label="Remove rating filter">
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
-                  {selectedLanguage !== 'All' && (
-                    <span className={styles.activeTag}>
-                      Language: {selectedLanguage}
-                      <button type="button" onClick={() => setSelectedLanguage('All')} aria-label="Remove language filter">
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
-                  <button type="button" className={styles.resetAllBtn} onClick={resetAllFilters}>
-                    Clear all
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Detached Sort Dropdown: positioned cleanly on the right above course grid */}
-            <div className={styles.sortWrapper} ref={sortRef}>
-              <span className={styles.sortLabel}>Sort by:</span>
-              <button
-                type="button"
-                className={styles.sortBtn}
-                onClick={(e) => toggleDropdown('sort', e)}
-                aria-expanded={activeDropdown?.id === 'sort'}
-                aria-haspopup="listbox"
-                aria-label={`Sort courses, currently: ${sortBy}`}
-              >
-                <span className={styles.sortCurrent}>
-                  {sortBy === 'popularity'
-                    ? 'Most Relevant'
-                    : sortBy === 'rating-desc'
-                    ? 'Highest Rated'
-                    : sortBy === 'price-asc'
-                    ? 'Price: Low to High'
-                    : sortBy === 'price-desc'
-                    ? 'Price: High to Low'
-                    : 'Starting Soonest'}
-                </span>
-                <ChevronDown size={13} aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* Main Course Listing 3-Column Grid */}
-      <section className={styles.courseSection} aria-labelledby="courses-grid-heading">
-        <Container size="wide">
-          {/* Section H2 Heading preserving heading outline */}
-          <h2 id="courses-grid-heading" className={styles.courseSectionHeading}>
-            {selectedClass === 'All' ? 'All Batches & Available Programs' : `${selectedClass} Batches & Programs`}
-          </h2>
+          {/* Course Cards Grid */}
           {filteredCourses.length > 0 ? (
             <>
               <div className={styles.fourColGrid}>
@@ -1050,15 +897,13 @@ export const CoursesPage: React.FC = () => {
                 ))}
               </div>
 
-              {/* 3-Row Pagination Bar */}
+              {/* Pagination */}
               {totalPages > 1 && (
                 <nav className={styles.paginationCard} aria-label="Course list pagination">
                   <div className={styles.paginationInfo}>
-                    <span>
-                      Showing <strong>{(safeCurrentPage - 1) * itemsPerPage + 1}</strong>–
-                      <strong>{Math.min(safeCurrentPage * itemsPerPage, filteredCourses.length)}</strong> of{' '}
-                      <strong>{filteredCourses.length}</strong> courses
-                    </span>
+                    Showing <strong>{(safeCurrentPage - 1) * itemsPerPage + 1}</strong>–
+                    <strong>{Math.min(safeCurrentPage * itemsPerPage, filteredCourses.length)}</strong> of{' '}
+                    <strong>{filteredCourses.length}</strong> courses
                   </div>
 
                   <div className={styles.paginationControls}>
@@ -1079,9 +924,7 @@ export const CoursesPage: React.FC = () => {
                           <button
                             key={page}
                             type="button"
-                            className={`${styles.pageNumberBtn} ${
-                              safeCurrentPage === page ? styles.activePage : ''
-                            }`}
+                            className={`${styles.pageNumberBtn} ${safeCurrentPage === page ? styles.activePage : ''}`}
                             onClick={() => handlePageChange(page)}
                             aria-label={`Page ${page}`}
                             aria-current={safeCurrentPage === page ? 'page' : undefined}
@@ -1117,7 +960,7 @@ export const CoursesPage: React.FC = () => {
               </div>
               <h3 className={styles.emptyTitle}>No courses match your active filters</h3>
               <p className={styles.emptySubtitle}>
-                Try selecting a different category, clearing search terms, or resetting all filters to see available batches.
+                Try clearing your search query or selecting a different category to explore available batches.
               </p>
               <button type="button" className={styles.emptyResetBtn} onClick={resetAllFilters}>
                 Reset all filters
@@ -1127,126 +970,112 @@ export const CoursesPage: React.FC = () => {
         </Container>
       </section>
 
-      {/* ─── 1. Academic Counsellor Lead Capture Section ─── */}
-      <section className={styles.counsellorSection} id="counsellor-section-anchor">
+      {/* ─── 3. MOCK TEST PROMOTIONAL SECTION ("Practice with Purpose") ─── */}
+      <section className={styles.mockTestSection} aria-labelledby="mock-test-heading">
         <Container size="wide">
-          <div className={styles.counsellorCard}>
-            <div className={styles.counsellorGrid}>
-              {/* Left Column: Value Prop & Mentors */}
-              <div className={styles.counsellorLeft}>
-                <div className={styles.liveCounselorPill}>
-                  <span className={styles.pulsingGreenDot} />
-                  <span>Senior Academic Mentors Available Now</span>
+          <div className={styles.mockTestGrid}>
+            {/* Left Column: Visual Mock Test Card */}
+            <div className={styles.mockTestBannerCard}>
+              <img
+                src="/images/mock-test-banner-hd.png"
+                alt="JEE CBT Mock Test Paper"
+                className={styles.mockTestBgImage}
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  if (!img.src.includes('mock-test-banner-crop')) {
+                    img.src = '/images/mock-test-banner-crop.png';
+                  }
+                }}
+              />
+              <div className={styles.mockTestBannerContent}>
+                <h3 className={styles.mockTestBannerTitle}>
+                  Take <span>Mock Tests</span>
+                </h3>
+                <p className={styles.mockTestBannerSubtitle}>Analyze. Improve. Excel.</p>
+                <Link to="/test-series" className={styles.mockTestStartBtn}>
+                  <span>Start Test</span>
+                  <ArrowRight size={15} aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column: Features and CTA */}
+            <div className={styles.mockTestRightCol}>
+              <span className={styles.sectionEyebrow}>— Test Series</span>
+              <h2 id="mock-test-heading" className={styles.mockTestHeading}>
+                Practice with Purpose
+              </h2>
+
+              <div className={styles.mockFeaturesList}>
+                <div className={styles.mockFeatureItem}>
+                  <CheckCircle2 size={20} className={styles.mockCheckIcon} aria-hidden="true" />
+                  <div className={styles.mockFeatureTextGroup}>
+                    <span className={styles.mockFeatureItemTitle}>Real Exam Pattern</span>
+                    <span className={styles.mockFeatureItemDesc}>
+                      Simulate actual NTA CBT interface with negative marking and sectional timer.
+                    </span>
+                  </div>
                 </div>
 
-                <h2 className={styles.counsellorHeading}>
-                  Confused about which batch fits your JEE preparation?
-                </h2>
-
-                <p className={styles.counsellorSubtext}>
-                  Get a personalized 1-on-1 study roadmap, syllabus pacing strategy, and fee scholarship assessment directly from DK Sir’s senior Kota mentoring team.
-                </p>
-
-                {/* Key Benefits List */}
-                <div className={styles.counsellorPerks}>
-                  <div className={styles.perkItem}>
-                    <div className={styles.perkCheckCircle}>
-                      <CheckCircle2 size={16} />
-                    </div>
-                    <span>Personalized 1-on-1 study roadmap &amp; target year timeline</span>
-                  </div>
-                  <div className={styles.perkItem}>
-                    <div className={styles.perkCheckCircle}>
-                      <CheckCircle2 size={16} />
-                    </div>
-                    <span>DK Sir scholarship waiver &amp; merit score evaluation</span>
-                  </div>
-                  <div className={styles.perkItem}>
-                    <div className={styles.perkCheckCircle}>
-                      <CheckCircle2 size={16} />
-                    </div>
-                    <span>Delhi Dwarka Sector 12 offline center batch seat availability</span>
+                <div className={styles.mockFeatureItem}>
+                  <CheckCircle2 size={20} className={styles.mockCheckIcon} aria-hidden="true" />
+                  <div className={styles.mockFeatureTextGroup}>
+                    <span className={styles.mockFeatureItemTitle}>Detailed Analysis</span>
+                    <span className={styles.mockFeatureItemDesc}>
+                      Instant subject-wise accuracy, speed breakdown, and step-by-step video solutions.
+                    </span>
                   </div>
                 </div>
 
-                {/* Direct Hotline Strip */}
-                <div className={styles.directHelplineStrip}>
-                  <div className={styles.phoneIconBox}>
-                    <Phone size={16} />
-                  </div>
-                  <div className={styles.helplineTextGroup}>
-                    <span className={styles.helplineLabel}>Direct Dwarka Desk Hotline:</span>
-                    <div className={styles.phoneNumbersList}>
-                      <a href="tel:9325987875" className={styles.phoneLink}>9325987875</a>
-                      <span className={styles.phoneDivider}>•</span>
-                      <a href="tel:9717159062" className={styles.phoneLink}>9717159062</a>
-                    </div>
+                <div className={styles.mockFeatureItem}>
+                  <CheckCircle2 size={20} className={styles.mockCheckIcon} aria-hidden="true" />
+                  <div className={styles.mockFeatureTextGroup}>
+                    <span className={styles.mockFeatureItemTitle}>All India Ranking</span>
+                    <span className={styles.mockFeatureItemDesc}>
+                      Live nationwide percentile prediction and benchmarking against top aspirants.
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: High-Conversion Instant Callback Card */}
-              <div className={styles.counsellorRight}>
-                <div className={styles.callbackBox}>
-                  <div className={styles.callbackBoxHeader}>
-                    <h3 className={styles.callbackBoxTitle}>Request Free Counselor Callback</h3>
-                    <p className={styles.callbackBoxSubtitle}>
-                      Enter your mobile number. A senior mentor will call back within 15 minutes.
-                    </p>
-                  </div>
+              <Link to="/test-series" className={styles.mockExploreBtn}>
+                <span>Explore All Tests</span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </Container>
+      </section>
 
-                  <form onSubmit={handleCounsellorSubmit} className={styles.callbackForm}>
-                    <div className={styles.callbackInputGroup}>
-                      <label htmlFor="counsellor-mobile-input" className={styles.callbackInputLabel}>
-                        Mobile Number
-                      </label>
-                      <div className={styles.callbackPhoneRow}>
-                        <div className={styles.countryCodeBadge}>+91</div>
-                        <input
-                          id="counsellor-mobile-input"
-                          type="tel"
-                          value={counsellorPhone}
-                          onChange={(e) => setCounsellorPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                          placeholder="10-digit mobile number"
-                          className={styles.callbackTextInput}
-                          aria-label="Enter 10-digit mobile number for callback"
-                          maxLength={10}
-                        />
-                      </div>
-                    </div>
+      {/* ─── 4. STATISTICS SECTION ─── */}
+      <section className={styles.statsSection} aria-label="DK Academy Platform Statistics">
+        <Container size="wide">
+          <div className={styles.statsBannerCard}>
+            <div className={styles.statsLeftContent}>
+              <h3 className={styles.statsHeading}>Join 500+ Students on DK Academy JEE</h3>
+              <p className={styles.statsSubtitle}>Be a part of our growing community of achievers.</p>
+            </div>
 
-                    <button type="submit" className={styles.callbackSubmitBtn}>
-                      <PhoneCall size={16} />
-                      <span>Request Instant Callback</span>
-                      <ArrowRight size={16} />
-                    </button>
-                  </form>
+            <div className={styles.statsMetricsRow}>
+              {/* Stat 1: Students */}
+              <div className={styles.statMetricItem}>
+                <div className={styles.statIconBox}>
+                  <Users size={24} aria-hidden="true" />
+                </div>
+                <div>
+                  <div className={styles.statNumberText}>500+</div>
+                  <div className={styles.statLabelText}>Students</div>
+                </div>
+              </div>
 
-                  {counsellorSubmitted && (
-                    <div className={styles.counsellorSuccessNotice} role="alert">
-                      <CheckCircle2 size={18} />
-                      <span>Callback requested! Our admissions counsellor will call you within 15 minutes.</span>
-                    </div>
-                  )}
-
-                  <div className={styles.callbackOrDivider}>
-                    <span>OR CHAT INSTANTLY</span>
-                  </div>
-
-                  <a
-                    href="https://wa.me/918826444207?text=Hi%20DK%20Academy%2C%20I%20need%20academic%20counseling%20for%20JEE%20batches"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.whatsappCallbackBtn}
-                  >
-                    <MessageCircle size={17} />
-                    <span>Chat with Academic Counselor on WhatsApp</span>
-                  </a>
-
-                  <div className={styles.privacyGuaranteeStrip}>
-                    <ShieldCheck size={14} />
-                    <span>100% Confidential · Zero Spam · Direct Mentorship</span>
-                  </div>
+              {/* Stat 2: Tests Attempted */}
+              <div className={styles.statMetricItem}>
+                <div className={styles.statIconBox}>
+                  <FileCheck size={24} aria-hidden="true" />
+                </div>
+                <div>
+                  <div className={styles.statNumberText}>100+</div>
+                  <div className={styles.statLabelText}>Tests Attempted</div>
                 </div>
               </div>
             </div>
@@ -1254,75 +1083,70 @@ export const CoursesPage: React.FC = () => {
         </Container>
       </section>
 
-      {/* ─── 2. Why Choose DK Academy Feature Strip ─── */}
-      <section className={styles.whyDkAcademySection}>
+      {/* ─── 5. COURSE STRUCTURE SECTION ("As per Latest Exam Pattern") ─── */}
+      <section className={styles.structureSection} aria-labelledby="structure-heading">
         <Container size="wide">
           <div className={styles.sectionHeaderCenter}>
-            <div className={styles.eyebrowBadge}>
-              <Sparkles size={13} />
-              <span>KOTA PEDAGOGY IN DELHI</span>
-            </div>
-            <h2 className={styles.sectionTitleCenter}>Why 12,400+ Aspirants Choose DK Academy</h2>
-            <p className={styles.sectionDescCenter}>
-              Founded by Dharmendra Kumar (DK Sir), renowned across Kota and Delhi for trademark 20–30 second mathematical shortcuts, rigorous Kota problem sets, and individual concept engineering.
+            <span className={styles.sectionEyebrow}>— Course Structure</span>
+            <h2 id="structure-heading" className={styles.sectionTitle}>
+              As per Latest Exam Pattern
+            </h2>
+            <p className={styles.sectionSubtitle}>
+              Curriculum aligned strictly with the updated NTA syllabus, NCERT framework, and IIT Bombay/Madras guidelines.
             </p>
           </div>
 
-          <div className={styles.whyCardsGrid}>
-            {[
-              {
-                title: 'Mentored by DK Sir (Dharmendra Kumar)',
-                desc: 'Led directly by renowned IIT JEE Mathematics mentor DK Sir, specializing in conceptual engineering and 20-to-30-second problem-solving techniques.',
-                icon: GraduationCap,
-                pill: 'Founder & Kota Pedagogy',
-                highlight: '20+ Yrs Track Record',
-                theme: 'blue'
-              },
-              {
-                title: 'Short Tricks & Speed Challenges',
-                desc: 'Master time-saving methods and shortcut techniques designed to solve complex multi-concept JEE Advanced problems with maximum precision.',
-                icon: Zap,
-                pill: 'Math Speed Multiplier',
-                highlight: '20–30s Solving Method',
-                theme: 'amber'
-              },
-              {
-                title: 'Online + Offline Dwarka Center',
-                desc: 'Attend live online batches from anywhere or physical classroom sessions at our modern coaching center in Dwarka Sector 12, New Delhi.',
-                icon: Building2,
-                pill: 'Hybrid Flexibility',
-                highlight: 'Delhi Center + Live App',
-                theme: 'violet'
-              },
-              {
-                title: 'Chapter-wise PYQs & 1:1 Mentorship',
-                desc: 'Exhaustive chapter-by-chapter Previous Year Question (PYQ) video solutions, solved DPPs, and individual one-on-one progress tracking.',
-                icon: Target,
-                pill: 'Rank Engineering',
-                highlight: '10+ Years Solved Archives',
-                theme: 'emerald'
-              }
-            ].map((item, idx) => {
-              const IconComp = item.icon;
+          {/* Interactive Exam Tabs */}
+          <div className={styles.structureTabsRow} role="tablist" aria-label="Exam structure selection">
+            <button
+              type="button"
+              className={`${styles.structureTabBtn} ${structureTab === 'jee-main' ? styles.structureTabActive : ''}`}
+              onClick={() => setStructureTab('jee-main')}
+              role="tab"
+              aria-selected={structureTab === 'jee-main'}
+            >
+              JEE Main
+            </button>
+            <button
+              type="button"
+              className={`${styles.structureTabBtn} ${structureTab === 'jee-advanced' ? styles.structureTabActive : ''}`}
+              onClick={() => setStructureTab('jee-advanced')}
+              role="tab"
+              aria-selected={structureTab === 'jee-advanced'}
+            >
+              JEE Advanced
+            </button>
+            <button
+              type="button"
+              className={`${styles.structureTabBtn} ${structureTab === 'bitsat' ? styles.structureTabActive : ''}`}
+              onClick={() => setStructureTab('bitsat')}
+              role="tab"
+              aria-selected={structureTab === 'bitsat'}
+            >
+              BITSAT
+            </button>
+          </div>
+
+          {/* Structure Comparison Card */}
+          <div className={styles.structureCard}>
+            {COURSE_STRUCTURE_DATA[structureTab].map((row, idx) => {
+              const IconComp = row.icon;
               return (
-                <div key={idx} className={`${styles.whyCard} ${styles[`whyCard_${item.theme}`]}`}>
-                  <div className={styles.whyCardHeader}>
-                    <div className={`${styles.whyIconContainer} ${styles[`iconContainer_${item.theme}`]}`}>
-                      <IconComp size={22} strokeWidth={1.8} />
+                <div key={idx} className={styles.structureRow}>
+                  <div className={styles.structureSubjectCol}>
+                    <div className={styles.structureSubjectIcon}>
+                      <IconComp size={20} aria-hidden="true" />
                     </div>
-                    <span className={`${styles.whyPillBadge} ${styles[`pillBadge_${item.theme}`]}`}>
-                      {item.pill}
-                    </span>
+                    <span className={styles.structureSubjectName}>{row.name}</span>
                   </div>
 
-                  <h3 className={styles.whyCardTitle}>{item.title}</h3>
-                  <p className={styles.whyCardDesc}>{item.desc}</p>
+                  <div className={styles.structureDetailsCol}>
+                    <span className={styles.structureDetailsBold}>{row.details}</span>
+                    <span className={styles.structureDetailsDesc}>{row.desc}</span>
+                  </div>
 
-                  <div className={styles.whyCardFooter}>
-                    <span className={styles.whyHighlightText}>
-                      <CheckCircle2 size={14} className={styles.whyHighlightCheck} />
-                      {item.highlight}
-                    </span>
+                  <div className={styles.structureStatusCol}>
+                    <CheckCircle2 size={20} aria-label="Included in curriculum" />
                   </div>
                 </div>
               );
@@ -1331,429 +1155,293 @@ export const CoursesPage: React.FC = () => {
         </Container>
       </section>
 
-      {/* ─── 3. Course Format Comparison Table ─── */}
-      <section className={styles.compareSection}>
+      {/* ─── 6. STUDENT TESTIMONIALS SECTION ("Real Stories. Real Results.") ─── */}
+      <section className={styles.testimonialsSection} aria-labelledby="testimonials-heading">
         <Container size="wide">
           <div className={styles.sectionHeaderCenter}>
-            <div className={styles.eyebrowBadge}>
-              <SlidersHorizontal size={13} />
-              <span>CHOOSE YOUR LEARNING PATH</span>
-            </div>
-            <h2 className={styles.sectionTitleCenter}>Comparison: Live vs Self-Study vs Test Series</h2>
-            <p className={styles.sectionDescCenter}>
-              Compare pedagogy features, material formats, doubt-solving support, and pricing across our 3 delivery modes.
-            </p>
-          </div>
-
-          {/* Desktop Comparison Table */}
-          <div className={styles.tableResponsiveWrapper}>
-            <table className={styles.comparisonTable}>
-              <thead>
-                <tr>
-                  <th className={styles.featureColHeader}>
-                    <span className={styles.featureHeaderLabel}>Features &amp; Deliverables</span>
-                    <span className={styles.featureHeaderSub}>Complete breakdown</span>
-                  </th>
-
-                  {/* Column 1: Live Classroom (Featured) */}
-                  <th className={`${styles.planColHeader} ${styles.featuredColHeader}`}>
-                    <div className={styles.popularBadge}>
-                      <Sparkles size={11} />
-                      <span>MOST POPULAR · RECOMMENDED</span>
-                    </div>
-                    <div className={styles.planHeaderTitle}>Live Classroom Batch</div>
-                    <div className={styles.planHeaderPrice}>From ₹48,000/yr</div>
-                    <p className={styles.planHeaderSub}>Online live classes + offline Dwarka access</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleModeChange('live');
-                        document.getElementById('courses-grid-heading')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className={styles.planHeaderCtaBtnPrimary}
-                    >
-                      <span>Explore Live Batches</span>
-                      <ArrowRight size={14} />
-                    </button>
-                  </th>
-
-                  {/* Column 2: Self-Study DLP */}
-                  <th className={styles.planColHeader}>
-                    <div className={styles.standardBadge}>FULL SYLLABUS DLP</div>
-                    <div className={styles.planHeaderTitle}>Self-Study DLP Pack</div>
-                    <div className={styles.planHeaderPrice}>From ₹18,000</div>
-                    <p className={styles.planHeaderSub}>Recorded video archive + 18 printed books</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleModeChange('dlp');
-                        document.getElementById('courses-grid-heading')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className={styles.planHeaderCtaBtnSecondary}
-                    >
-                      <span>View DLP Pack</span>
-                      <ArrowRight size={14} />
-                    </button>
-                  </th>
-
-                  {/* Column 3: Online CBT Test Series */}
-                  <th className={styles.planColHeader}>
-                    <div className={styles.standardBadge}>ALL INDIA CBT</div>
-                    <div className={styles.planHeaderTitle}>Online CBT Test Series</div>
-                    <div className={styles.planHeaderPrice}>From ₹2,999</div>
-                    <p className={styles.planHeaderSub}>NTA-level CBT mock tests + video solutions</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleModeChange('test-series');
-                        document.getElementById('courses-grid-heading')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className={styles.planHeaderCtaBtnSecondary}
-                    >
-                      <span>Explore Test Series</span>
-                      <ArrowRight size={14} />
-                    </button>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(COURSE_COMPARISON_MATRIX.rows || []).map((row, idx) => {
-                  const isLast = idx === (COURSE_COMPARISON_MATRIX.rows || []).length - 1;
-                  return (
-                    <tr key={idx} className={`${styles.tableRow} ${isLast ? styles.feeHighlightRow : ''}`}>
-                      <td className={styles.featureCell}>
-                        <div className={styles.featureTitleWrap}>
-                          <span className={styles.featureNameText}>{row.feature}</span>
-                        </div>
-                      </td>
-
-                      {/* Live Column Cell */}
-                      <td className={`${styles.planCell} ${styles.featuredCell}`}>
-                        {row.live === '—' ? (
-                          <span className={styles.dashMuted}>
-                            <Minus size={14} />
-                          </span>
-                        ) : (
-                          <div className={styles.cellContentWrap}>
-                            <CheckCircle2 size={16} className={styles.cellCheckIcon} />
-                            <span className={styles.cellBoldText}>{row.live}</span>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* DLP Column Cell */}
-                      <td className={styles.planCell}>
-                        {row.dlp === '—' ? (
-                          <span className={styles.dashMuted}>
-                            <Minus size={14} />
-                          </span>
-                        ) : (
-                          <div className={styles.cellContentWrap}>
-                            <span className={styles.cellRegularText}>{row.dlp}</span>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Test Column Cell */}
-                      <td className={styles.planCell}>
-                        {row.test === '—' ? (
-                          <span className={styles.dashMuted}>
-                            <Minus size={14} />
-                          </span>
-                        ) : (
-                          <div className={styles.cellContentWrap}>
-                            <span className={styles.cellRegularText}>{row.test}</span>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Container>
-      </section>
-
-      {/* Verified Student Testimonials */}
-      <section className={styles.studentTestimonialsSection}>
-        <Container size="wide">
-          <div className={styles.sectionHeaderCenter}>
-            <span className={styles.preTitle}>Proven Track Record</span>
-            <h2 className={styles.sectionTitleCenter}>Success Stories from DK Academy IITians</h2>
-            <p className={styles.sectionDescCenter}>
-              Hear from our top rankers who mastered speed solving and secured admission to top IITs and NITs.
+            <span className={styles.sectionEyebrow}>— What Our Students Say</span>
+            <h2 id="testimonials-heading" className={styles.sectionTitle}>
+              Real Stories. Real Results.
+            </h2>
+            <p className={styles.sectionSubtitle}>
+              Hear from DK Academy aspirants who mastered speed-solving and scored 99+ percentiles in JEE.
             </p>
           </div>
 
           <div className={styles.testimonialsGrid}>
-            {STUDENT_TESTIMONIALS.map((t, idx) => (
+            {VERIFIED_TESTIMONIALS.map((t, idx) => (
               <div key={idx} className={styles.testimonialCard}>
-                <div className={styles.testimonialHeader}>
-                  <img src={t.avatar} alt={t.name} className={styles.studentPhoto} />
-                  <div className={styles.studentInfo}>
-                    <div className={styles.nameRow}>
-                      <span className={styles.studentName}>{t.name}</span>
-                      <span className={styles.verifiedBadge}>
-                        <ShieldCheck size={12} aria-hidden="true" />
-                        <span>Verified</span>
-                      </span>
-                    </div>
-                    <span className={styles.studentRank}>{t.rank}</span>
-                    <span className={styles.studentBatch}>{t.batch}</span>
+                <div className={styles.testimonialAvatarWrap}>
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    className={styles.testimonialAvatar}
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      if (!img.src.includes('RISHABH')) {
+                        img.src = '/img/RISHABH%20ANAND.png';
+                      }
+                    }}
+                  />
+                </div>
+                <p className={styles.testimonialQuote}>&ldquo;{t.quote}&rdquo;</p>
+                <div className={styles.testimonialAuthorGroup}>
+                  <div className={styles.testimonialAuthorName}>{t.name}</div>
+                  <div className={styles.testimonialMetaRow}>
+                    <span className={styles.testimonialRankBadge}>{t.score}</span>
+                    <span className={styles.testimonialClubBadge}>{t.badge}</span>
+                  </div>
+                  <div className={styles.testimonialBatchName}>{t.batch}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* ─── 7. WHY CHOOSE DK ACADEMY? SECTION ("Your Perfect Study Partner") ─── */}
+      <section className={styles.whySection} aria-labelledby="why-heading">
+        <Container size="wide">
+          <div className={styles.sectionHeaderCenter}>
+            <span className={styles.sectionEyebrow}>Why Choose DK Academy?</span>
+            <h2 id="why-heading" className={styles.sectionTitle}>
+              Your Perfect Study Partner
+            </h2>
+            <p className={styles.sectionSubtitle}>
+              Rigorous Kota pedagogy, trademark shortcut methods, and personalized tracking for every student.
+            </p>
+          </div>
+
+          <div className={styles.whyCardsGrid}>
+            {/* Card 1: Expert Faculty */}
+            <div className={styles.whyCard}>
+              <div className={styles.whyIconBox} style={{ background: '#eff6ff', color: '#2563eb' }}>
+                <Rocket size={24} aria-hidden="true" />
+              </div>
+              <h3 className={styles.whyCardTitle}>Expert Faculty &amp; Quality Content</h3>
+              <p className={styles.whyCardDesc}>
+                Kota pedagogy led directly by Dharmendra Kumar (DK Sir) with 10+ years of proven coaching excellence.
+              </p>
+            </div>
+
+            {/* Card 2: Smart Test Series */}
+            <div className={styles.whyCard}>
+              <div className={styles.whyIconBox} style={{ background: '#ecfdf5', color: '#059669' }}>
+                <Target size={24} aria-hidden="true" />
+              </div>
+              <h3 className={styles.whyCardTitle}>Smart Test Series &amp; Analysis</h3>
+              <p className={styles.whyCardDesc}>
+                Authentic NTA-standard CBT test series with instant percentile, accuracy analysis, and question insights.
+              </p>
+            </div>
+
+            {/* Card 3: Track Your Progress */}
+            <div className={styles.whyCard}>
+              <div className={styles.whyIconBox} style={{ background: '#fffbeb', color: '#d97706' }}>
+                <TrendingUp size={24} aria-hidden="true" />
+              </div>
+              <h3 className={styles.whyCardTitle}>Track Your Progress in Real-Time</h3>
+              <p className={styles.whyCardDesc}>
+                Real-time analytics monitor chapter completion, problem-solving speed, and areas needing revision.
+              </p>
+            </div>
+
+            {/* Card 4: Dedicated Support */}
+            <div className={styles.whyCard}>
+              <div className={styles.whyIconBox} style={{ background: '#eef2ff', color: '#4f46e5' }}>
+                <Headphones size={24} aria-hidden="true" />
+              </div>
+              <h3 className={styles.whyCardTitle}>Dedicated Support Always</h3>
+              <p className={styles.whyCardDesc}>
+                24/7 doubts clearing through live faculty clinics, student portal resolution, and academic mentor guidance.
+              </p>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* ─── 8. COUNSELOR CALLBACK & SUPPORT STRIP ─── */}
+      <section className={styles.counsellorSection} aria-label="Academic Counseling">
+        <Container size="wide">
+          <div className={styles.counsellorCard}>
+            <div className={styles.counsellorGrid}>
+              <div>
+                <h3 className={styles.counsellorHeading}>Need Help Choosing the Right Batch?</h3>
+                <p className={styles.counsellorSubtext}>
+                  Speak directly with DK Sir’s senior academic mentors for a personalized study roadmap and batch guidance.
+                </p>
+                <div className={styles.helplineList}>
+                  <span>Direct Desk Helpline:</span>
+                  <a href="tel:9325987875">9325987875</a>
+                  <span>•</span>
+                  <a href="tel:9717159062">9717159062</a>
+                </div>
+              </div>
+
+              <div>
+                <form onSubmit={handleCounsellorSubmit} className={styles.callbackForm}>
+                  <input
+                    type="tel"
+                    value={counsellorPhone}
+                    onChange={(e) => setCounsellorPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="Enter 10-digit mobile number"
+                    className={styles.callbackInput}
+                    maxLength={10}
+                    aria-label="Enter mobile number for callback"
+                  />
+                  <button type="submit" className={styles.callbackBtn}>
+                    <PhoneCall size={15} style={{ marginRight: '6px' }} />
+                    <span>Get Callback</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* Advanced Filters Modal (Portal to body to prevent any overflow/transform traps) */}
+      {isFiltersModalOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className={styles.modalOverlay}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="filters-modal-title"
+            onClick={() => setIsFiltersModalOpen(false)}
+          >
+            <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3 id="filters-modal-title" className={styles.modalTitle}>
+                  Filter Batches
+                </h3>
+                <button
+                  type="button"
+                  className={styles.modalCloseBtn}
+                  onClick={() => setIsFiltersModalOpen(false)}
+                  aria-label="Close filters modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className={styles.modalBody}>
+                {/* Target Class */}
+                <div className={styles.filterGroup}>
+                  <span className={styles.filterGroupTitle}>Target Class / Aspirant</span>
+                  <div className={styles.filterChipGrid}>
+                    {(['All', 'Class 11th', 'Class 12th', 'Dropper', 'Class 10th Foundation'] as ClassType[]).map((cVal) => (
+                      <button
+                        key={cVal}
+                        type="button"
+                        className={`${styles.filterSelectChip} ${selectedClass === cVal ? styles.activeSelectChip : ''}`}
+                        onClick={() => {
+                          const nextParams = new URLSearchParams(searchParams);
+                          if (cVal === 'All') {
+                            nextParams.delete('class');
+                            nextParams.delete('category');
+                          } else {
+                            nextParams.set('class', cVal);
+                            nextParams.delete('category');
+                          }
+                          setSearchParams(nextParams);
+                        }}
+                      >
+                        {cVal}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <p className={styles.quoteText}>&ldquo;{t.quote}&rdquo;</p>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
 
-      {/* Expert Faculty Highlights */}
-      <section className={styles.facultySection}>
-        <Container size="wide">
-          <div className={styles.sectionHeaderCenter}>
-            <span className={styles.preTitle}>Master Mentors</span>
-            <h2 className={styles.sectionTitleCenter}>Learn Directly from Senior Veterans &amp; IITians</h2>
-            <p className={styles.sectionDescCenter}>
-              Our faculty members bring 10+ years of coaching excellence to give you an unfair advantage in JEE.
-            </p>
-          </div>
-
-          <div className={styles.facultyGrid}>
-            {FACULTY_HIGHLIGHTS.map((f, idx) => (
-              <div key={idx} className={styles.facultyCard}>
-                <img src={f.avatar} alt={f.name} className={styles.facultyPhoto} />
-                <h3 className={styles.facultyName}>{f.name}</h3>
-                <span className={styles.facultyRole}>{f.role}</span>
-                <span className={styles.facultyExp}>{f.experience}</span>
-                <span className={styles.facultySpecPill}>{f.specialty}</span>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      {/* FAQ Accordion Section */}
-      <section className={styles.faqSection}>
-        <Container size="wide">
-          <div className={styles.sectionHeaderCenter}>
-            <span className={styles.preTitle}>Got Questions?</span>
-            <h2 className={styles.sectionTitleCenter}>Frequently Asked Questions</h2>
-            <p className={styles.sectionDescCenter}>
-              Everything you need to know about batch admissions, payment options, study materials, and demo lectures.
-            </p>
-          </div>
-
-          <div className={styles.faqList}>
-            {COURSES_FAQS.map((faq, idx) => {
-              const isOpen = openFaqIndex === idx;
-              return (
-                <div key={idx} className={styles.faqItem}>
-                  <button
-                    type="button"
-                    className={styles.faqQuestionBtn}
-                    onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                    aria-expanded={isOpen}
-                  >
-                    <span>{faq.question}</span>
-                    <ChevronDown
-                      size={18}
-                      className={`${styles.faqChevron} ${isOpen ? styles.faqChevronOpen : ''}`}
-                      aria-hidden="true"
-                    />
-                  </button>
-                  {isOpen && (
-                    <div className={styles.faqAnswerBody}>
-                      <p>{faq.answer}</p>
-                    </div>
-                  )}
+                {/* Delivery Mode */}
+                <div className={styles.filterGroup}>
+                  <span className={styles.filterGroupTitle}>Delivery Mode</span>
+                  <div className={styles.filterChipGrid}>
+                    {(['All', 'live', 'dlp', 'test-series'] as ModeFilterType[]).map((mVal) => (
+                      <button
+                        key={mVal}
+                        type="button"
+                        className={`${styles.filterSelectChip} ${selectedMode === mVal ? styles.activeSelectChip : ''}`}
+                        onClick={() => handleModeChange(mVal)}
+                      >
+                        {mVal === 'All'
+                          ? 'All Modes'
+                          : mVal === 'live'
+                          ? 'Live Batches'
+                          : mVal === 'dlp'
+                          ? 'Self-Paced / DLP'
+                          : 'CBT Test Series'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </Container>
-      </section>
 
-      {/* Advanced Filters Modal */}
-      {isFiltersModalOpen && (
-        <div
-          className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="filters-modal-title"
-          onClick={() => setIsFiltersModalOpen(false)}
-        >
-          <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3 id="filters-modal-title" className={styles.modalTitle}>
-                Filter JEE Batches
-              </h3>
-              <button
-                type="button"
-                className={styles.modalCloseBtn}
-                onClick={() => setIsFiltersModalOpen(false)}
-                aria-label="Close filters modal"
-              >
-                <X size={18} />
-              </button>
-            </div>
+                {/* Fee Tier */}
+                <div className={styles.filterGroup}>
+                  <span className={styles.filterGroupTitle}>Fee Tier</span>
+                  <div className={styles.filterChipGrid}>
+                    {(['All', 'Free', 'Paid'] as const).map((tierVal) => (
+                      <button
+                        key={tierVal}
+                        type="button"
+                        className={`${styles.filterSelectChip} ${selectedTier === tierVal ? styles.activeSelectChip : ''}`}
+                        onClick={() => setSelectedTier(tierVal)}
+                      >
+                        {tierVal === 'All' ? 'All Batches' : tierVal === 'Free' ? 'Free Access' : 'Comprehensive Paid'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            <div className={styles.modalBody}>
-              {/* Filter Group: Target Class */}
-              <div className={styles.filterGroup}>
-                <span className={styles.filterGroupTitle}>Target Class / Aspirant Type</span>
-                <div className={styles.filterChipGrid}>
-                  {(['All', 'Class 11th', 'Class 12th', 'Dropper', 'Class 10th Foundation'] as ClassType[]).map((cVal) => (
-                    <button
-                      key={cVal}
-                      type="button"
-                      className={`${styles.filterSelectChip} ${selectedClass === cVal ? styles.activeSelectChip : ''}`}
-                      onClick={() => {
-                        const nextParams = new URLSearchParams(searchParams);
-                        if (cVal === 'All') {
-                          nextParams.delete('class');
-                          nextParams.delete('category');
-                        } else {
-                          nextParams.set('class', cVal);
-                          nextParams.delete('category');
-                        }
-                        setSearchParams(nextParams);
-                      }}
-                    >
-                      {cVal}
-                    </button>
-                  ))}
+                {/* Subject */}
+                <div className={styles.filterGroup}>
+                  <span className={styles.filterGroupTitle}>Subject Focus</span>
+                  <div className={styles.filterChipGrid}>
+                    {['All', 'Mathematics', 'Physics', 'Chemistry'].map((subj) => (
+                      <button
+                        key={subj}
+                        type="button"
+                        className={`${styles.filterSelectChip} ${selectedSubject === subj ? styles.activeSelectChip : ''}`}
+                        onClick={() => {
+                          const nextParams = new URLSearchParams(searchParams);
+                          if (subj === 'All') nextParams.delete('subject');
+                          else nextParams.set('subject', subj.toLowerCase());
+                          setSearchParams(nextParams);
+                        }}
+                      >
+                        {subj}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Filter Group: Delivery Mode */}
-              <div className={styles.filterGroup}>
-                <span className={styles.filterGroupTitle}>Delivery Mode</span>
-                <div className={styles.filterChipGrid}>
-                  {(['All', 'live', 'dlp', 'test-series'] as ModeFilterType[]).map((mVal) => (
-                    <button
-                      key={mVal}
-                      type="button"
-                      className={`${styles.filterSelectChip} ${selectedMode === mVal ? styles.activeSelectChip : ''}`}
-                      onClick={() => handleModeChange(mVal)}
-                    >
-                      {mVal === 'All'
-                        ? 'All Modes'
-                        : mVal === 'live'
-                        ? 'Live Classroom'
-                        : mVal === 'dlp'
-                        ? 'Self-Study DLP'
-                        : 'CBT Test Series'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Filter Group: Fee Tier */}
-              <div className={styles.filterGroup}>
-                <span className={styles.filterGroupTitle}>Course Fee Tier</span>
-                <div className={styles.filterChipGrid}>
-                  {(['All', 'Free', 'Paid'] as const).map((tierVal) => (
-                    <button
-                      key={tierVal}
-                      type="button"
-                      className={`${styles.filterSelectChip} ${selectedTier === tierVal ? styles.activeSelectChip : ''}`}
-                      onClick={() => setSelectedTier(tierVal)}
-                    >
-                      {tierVal === 'All' ? 'All Batches' : tierVal === 'Free' ? 'Free Masterclasses' : 'Comprehensive Paid'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Filter Group: Subject */}
-              <div className={styles.filterGroup}>
-                <span className={styles.filterGroupTitle}>Subject Focus</span>
-                <div className={styles.filterChipGrid}>
-                  {['All', 'Mathematics', 'Physics', 'Chemistry'].map((subj) => (
-                    <button
-                      key={subj}
-                      type="button"
-                      className={`${styles.filterSelectChip} ${selectedSubject === subj ? styles.activeSelectChip : ''}`}
-                      onClick={() => {
-                        const nextParams = new URLSearchParams(searchParams);
-                        if (subj === 'All') nextParams.delete('subject');
-                        else nextParams.set('subject', subj.toLowerCase());
-                        setSearchParams(nextParams);
-                      }}
-                    >
-                      {subj === 'All' ? 'All Subjects' : subj}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Filter Group: Ratings */}
-              <div className={styles.filterGroup}>
-                <span className={styles.filterGroupTitle}>Minimum Student Rating</span>
-                <div className={styles.filterChipGrid}>
-                  {[
-                    { label: 'All Ratings', val: 'All' as const },
-                    { label: '★ 4.8 & up (Top Rated)', val: 4.8 as const },
-                    { label: '★ 4.5 & up', val: 4.5 as const },
-                    { label: '★ 4.0 & up', val: 4.0 as const }
-                  ].map((rItem) => (
-                    <button
-                      key={String(rItem.val)}
-                      type="button"
-                      className={`${styles.filterSelectChip} ${selectedRating === rItem.val ? styles.activeSelectChip : ''}`}
-                      onClick={() => setSelectedRating(rItem.val)}
-                    >
-                      {rItem.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Filter Group: Language */}
-              <div className={styles.filterGroup}>
-                <span className={styles.filterGroupTitle}>Instruction Language</span>
-                <div className={styles.filterChipGrid}>
-                  {(['All', 'Hinglish', 'English'] as const).map((lVal) => (
-                    <button
-                      key={lVal}
-                      type="button"
-                      className={`${styles.filterSelectChip} ${selectedLanguage === lVal ? styles.activeSelectChip : ''}`}
-                      onClick={() => setSelectedLanguage(lVal)}
-                    >
-                      {lVal === 'All' ? 'All Languages' : lVal}
-                    </button>
-                  ))}
-                </div>
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className={styles.modalResetBtn}
+                  onClick={() => {
+                    resetAllFilters();
+                    setIsFiltersModalOpen(false);
+                  }}
+                >
+                  Reset All
+                </button>
+                <button
+                  type="button"
+                  className={styles.modalApplyBtn}
+                  onClick={() => setIsFiltersModalOpen(false)}
+                >
+                  Apply Filters ({filteredCourses.length} Batches)
+                </button>
               </div>
             </div>
+          </div>,
+          document.body
+        )}
 
-            <div className={styles.modalActions}>
-              <button
-                type="button"
-                className={styles.modalResetBtn}
-                onClick={() => {
-                  resetAllFilters();
-                  setIsFiltersModalOpen(false);
-                }}
-              >
-                Reset All
-              </button>
-              <button
-                type="button"
-                className={styles.modalApplyBtn}
-                onClick={() => setIsFiltersModalOpen(false)}
-              >
-                Apply Filters ({filteredCourses.length} Batches)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2-Column Demo Video Modal */}
+      {/* Demo Video Modal */}
       {demoModalCourse && (
         <CourseDemoModal
           course={demoModalCourse}
@@ -1766,7 +1454,7 @@ export const CoursesPage: React.FC = () => {
         />
       )}
 
-      {/* Detailed Syllabus Curriculum Modal */}
+      {/* Syllabus Modal */}
       {syllabusModalCourse && (
         <CourseSyllabusModal
           course={syllabusModalCourse}
@@ -1779,153 +1467,48 @@ export const CoursesPage: React.FC = () => {
         />
       )}
 
-      {/* Portal Dropdown Menu attached directly to document.body: fully immune to parent overflow clipping and z-index traps */}
-      {activeDropdown && typeof document !== 'undefined' && createPortal(
-        <div
-          className={styles.floatingDropdownPortal}
-          style={{
-            position: 'fixed',
-            top: `${activeDropdown.top}px`,
-            ...(activeDropdown.left !== undefined ? { left: `${activeDropdown.left}px` } : {}),
-            ...(activeDropdown.right !== undefined ? { right: `${activeDropdown.right}px` } : {}),
-            minWidth: `${activeDropdown.minWidth || 185}px`,
-            zIndex: 99999,
-          }}
-          role="listbox"
-        >
-          {activeDropdown.id === 'lang' && (
-            ['All', 'Hinglish', 'English'].map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                className={`${styles.dropdownItem} ${selectedLanguage === lang ? styles.activeDropdownItem : ''}`}
-                onClick={() => {
-                  setSelectedLanguage(lang as any);
-                  closeDropdown();
-                }}
-              >
-                {lang === 'All' ? 'All Languages' : lang}
-              </button>
-            ))
-          )}
-
-          {activeDropdown.id === 'rating' && (
-            <>
-              <button
-                type="button"
-                className={`${styles.dropdownItem} ${selectedRating === 'All' ? styles.activeDropdownItem : ''}`}
-                onClick={() => {
-                  setSelectedRating('All');
-                  closeDropdown();
-                }}
-              >
-                All Ratings
-              </button>
-              <button
-                type="button"
-                className={`${styles.dropdownItem} ${selectedRating === 4.8 ? styles.activeDropdownItem : ''}`}
-                onClick={() => {
-                  setSelectedRating(4.8);
-                  closeDropdown();
-                }}
-              >
-                ★ 4.8 &amp; up (Top Rated)
-              </button>
-              <button
-                type="button"
-                className={`${styles.dropdownItem} ${selectedRating === 4.5 ? styles.activeDropdownItem : ''}`}
-                onClick={() => {
-                  setSelectedRating(4.5);
-                  closeDropdown();
-                }}
-              >
-                ★ 4.5 &amp; up
-              </button>
-              <button
-                type="button"
-                className={`${styles.dropdownItem} ${selectedRating === 4.0 ? styles.activeDropdownItem : ''}`}
-                onClick={() => {
-                  setSelectedRating(4.0);
-                  closeDropdown();
-                }}
-              >
-                ★ 4.0 &amp; up
-              </button>
-            </>
-          )}
-
-          {activeDropdown.id === 'class' && (
-            (['All', 'Class 11th', 'Class 12th', 'Dropper', 'Class 10th Foundation'] as ClassType[]).map((cls) => (
-              <button
-                key={cls}
-                type="button"
-                className={`${styles.dropdownItem} ${selectedClass === cls ? styles.activeDropdownItem : ''}`}
-                onClick={() => {
-                  const nextParams = new URLSearchParams(searchParams);
-                  if (cls === 'All') {
-                    nextParams.delete('category');
-                    nextParams.delete('class');
-                  } else {
-                    nextParams.set('class', cls);
-                    nextParams.delete('category');
-                  }
-                  setSearchParams(nextParams);
-                  closeDropdown();
-                }}
-              >
-                {cls === 'All' ? 'All Levels' : cls}
-              </button>
-            ))
-          )}
-
-          {activeDropdown.id === 'subject' && (
-            ['All', 'Mathematics', 'Physics', 'Chemistry'].map((subj) => (
-              <button
-                key={subj}
-                type="button"
-                className={`${styles.dropdownItem} ${selectedSubject === subj ? styles.activeDropdownItem : ''}`}
-                onClick={() => {
-                  const nextParams = new URLSearchParams(searchParams);
-                  if (subj === 'All') {
-                    nextParams.delete('subject');
-                  } else {
-                    nextParams.set('subject', subj.toLowerCase());
-                  }
-                  setSearchParams(nextParams);
-                  closeDropdown();
-                }}
-              >
-                {subj === 'All' ? 'All Subjects' : subj}
-              </button>
-            ))
-          )}
-
-          {activeDropdown.id === 'sort' && (
-            <>
-              {[
-                { val: 'popularity', label: 'Most Relevant' },
-                { val: 'rating-desc', label: 'Highest Rated' },
-                { val: 'price-asc', label: 'Price: Low to High' },
-                { val: 'price-desc', label: 'Price: High to Low' },
-                { val: 'start-date', label: 'Starting Soonest' },
-              ].map((sOption) => (
-                <button
-                  key={sOption.val}
-                  type="button"
-                  className={`${styles.dropdownItem} ${sortBy === sOption.val ? styles.activeDropdownItem : ''}`}
-                  onClick={() => {
-                    setSortBy(sOption.val as any);
-                    closeDropdown();
-                  }}
-                >
-                  {sOption.label}
-                </button>
-              ))}
-            </>
-          )}
-        </div>,
-        document.body
-      )}
+      {/* Floating Portal Dropdowns */}
+      {activeDropdown &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className={styles.floatingDropdownPortal}
+            style={{
+              position: 'fixed',
+              top: `${activeDropdown.top}px`,
+              ...(activeDropdown.left !== undefined ? { left: `${activeDropdown.left}px` } : {}),
+              ...(activeDropdown.right !== undefined ? { right: `${activeDropdown.right}px` } : {}),
+              minWidth: `${activeDropdown.minWidth || 185}px`,
+              zIndex: 99999
+            }}
+            role="listbox"
+          >
+            {activeDropdown.id === 'sort' && (
+              <>
+                {[
+                  { val: 'popularity', label: 'Most Relevant' },
+                  { val: 'rating-desc', label: 'Highest Rated' },
+                  { val: 'price-asc', label: 'Price: Low to High' },
+                  { val: 'price-desc', label: 'Price: High to Low' },
+                  { val: 'start-date', label: 'Starting Soonest' }
+                ].map((sOption) => (
+                  <button
+                    key={sOption.val}
+                    type="button"
+                    className={`${styles.dropdownItem} ${sortBy === sOption.val ? styles.activeDropdownItem : ''}`}
+                    onClick={() => {
+                      setSortBy(sOption.val as any);
+                      closeDropdown();
+                    }}
+                  >
+                    {sOption.label}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>,
+          document.body
+        )}
     </main>
   );
 };

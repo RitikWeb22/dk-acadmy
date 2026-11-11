@@ -253,3 +253,30 @@ export const deleteLead = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+// Bulk delete leads
+export const bulkDeleteLeads = async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!Array.isArray(ids) || ids.length === 0) {
+            res.status(400).json({ success: false, message: 'Invalid or empty IDs array' });
+            return;
+        }
+        const objectIds = ids.filter((id) => typeof id === 'string' && id.match(/^[0-9a-fA-F]{24}$/));
+        const leadIds = ids.filter((id) => typeof id === 'string');
+        const result = await Lead.deleteMany({
+            $or: [
+                { _id: { $in: objectIds } },
+                { leadId: { $in: leadIds } }
+            ]
+        });
+        leadIds.forEach((id) => broadcastLeadDeleted(id));
+        res.status(200).json({
+            success: true,
+            message: `${result.deletedCount || leadIds.length} inquiries deleted successfully`,
+            deletedCount: result.deletedCount || leadIds.length
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

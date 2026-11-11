@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { submitLead, getAllLeads, getLeadById, updateLead, deleteLead } from '../controllers/leadController.js';
+import { submitLead, getAllLeads, getLeadById, updateLead, deleteLead, bulkDeleteLeads } from '../controllers/leadController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
@@ -47,6 +47,8 @@ router.post('/', leadSubmissionLimiter, validate({ body: submitLeadSchema }), su
 router.get('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR', 'LEAD_MANAGER'), getAllLeads);
 router.get('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR', 'LEAD_MANAGER'), validate({ params: idOrSlugParamSchema }), getLeadById);
 router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR', 'LEAD_MANAGER'), validate({ params: idOrSlugParamSchema }), updateLead);
+router.post('/bulk-delete', protect, authorize('SUPER_ADMIN', 'ADMIN'), bulkDeleteLeads);
+router.delete('/bulk', protect, authorize('SUPER_ADMIN', 'ADMIN'), bulkDeleteLeads);
 router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), deleteLead);
 
 export default router;

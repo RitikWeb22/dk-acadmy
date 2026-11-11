@@ -419,6 +419,281 @@
     &:hover {
       background: #f8fafc;
     }
+
+    &.selectedRow {
+      background: #eff6ff !important;
+    }
+  }
+}
+
+/* Bulk Action Bar */
+.bulkActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+  flex-wrap: wrap;
+  animation: slideDown 0.2s ease-out;
+
+  .bulkLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .bulkBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+  }
+
+  .bulkSelectAllBtn,
+  .bulkDeselectBtn {
+    background: none;
+    border: none;
+    font-size: 0.8125rem;
+    color: #2563eb;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0.2rem 0.4rem;
+
+    &:hover {
+      color: #1d4ed8;
+    }
+  }
+
+  .bulkRight {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .bulkDeleteBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #dc2626;
+    color: #ffffff;
+    border: 1px solid #b91c1c;
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #b91c1c;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35);
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Checkbox Column Styling */
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .customCheckbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    transition: color 0.15s ease, transform 0.15s ease;
+
+    &:hover {
+      color: #2563eb;
+      transform: scale(1.1);
+    }
+
+    .checkedIcon {
+      color: #2563eb;
+    }
+
+    .uncheckedIcon {
+      color: #94a3b8;
+    }
+  }
+}
+
+/* Pagination Bar */
+.paginationContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1.25rem;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+}
+
+.paginationInfo {
+  font-size: 0.8125rem;
+  color: #64748b;
+
+  strong {
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  .perPageNotice {
+    margin-left: 0.45rem;
+    color: #94a3b8;
+    font-size: 0.75rem;
+  }
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  @media (max-width: 640px) {
+    justify-content: center;
+  }
+}
+
+.pageArrowBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.pageNumberList {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pageNumberBtn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 0.45rem;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+
+  &:hover:not(.activePageBtn) {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+  }
+
+  &.activePageBtn {
+    background: #2563eb;
+    border-color: #1d4ed8;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  }
+}
+
+.pageEllipsis {
+  padding: 0 0.35rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+/* Bulk Preview in Modal */
+.bulkSelectedPreview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+
+  .previewLeadTag {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .previewMoreTag {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 600;
   }
 }
 
@@ -1425,6 +1700,76 @@
     .confirmFooter {
       background: #0F172A;
       border-color: #334155;
+    }
+  }
+
+  .bulkActionBar {
+    background: #1e293b;
+    border-bottom-color: #334155;
+
+    .bulkBadge {
+      background: #0f172a;
+      color: #60a5fa;
+    }
+
+    .bulkSelectAllBtn,
+    .bulkDeselectBtn {
+      color: #60a5fa;
+
+      &:hover {
+        color: #93c5fd;
+      }
+    }
+  }
+
+  .selectedRow {
+    background: #1e293b !important;
+  }
+
+  .paginationContainer {
+    background: #090d16;
+    border-top-color: #334155;
+  }
+
+  .paginationInfo {
+    color: #94a3b8;
+
+    strong {
+      color: #f8fafc;
+    }
+  }
+
+  .pageArrowBtn,
+  .pageNumberBtn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #cbd5e1;
+
+    &:hover:not(:disabled):not(.activePageBtn) {
+      background: #334155;
+      color: #f8fafc;
+    }
+
+    &.activePageBtn {
+      background: #2563eb;
+      border-color: #1d4ed8;
+      color: #ffffff;
+    }
+  }
+
+  .bulkSelectedPreview {
+    background: #090d16;
+    border-color: #334155;
+
+    .previewLeadTag {
+      background: #1e293b;
+      border-color: #334155;
+      color: #60a5fa;
+    }
+
+    .previewMoreTag {
+      background: #1e293b;
+      color: #94a3b8;
     }
   }
 }

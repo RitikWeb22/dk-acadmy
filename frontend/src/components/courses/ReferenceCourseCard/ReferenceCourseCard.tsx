@@ -307,7 +307,15 @@ export const ReferenceCourseCard: React.FC<ReferenceCourseCardProps> = ({
     navigate(targetCourseUrl);
   };
 
-  const buttonText = actionLabel || (isPurchased ? 'Classroom →' : isFree ? 'Start Free' : 'Know More');
+  const buttonText =
+    actionLabel ||
+    (isPurchased
+      ? 'Classroom →'
+      : isFree
+      ? 'Start Free →'
+      : course.courseType === 'test-series'
+      ? 'View Tests →'
+      : 'View Course →');
 
   return (
     <article

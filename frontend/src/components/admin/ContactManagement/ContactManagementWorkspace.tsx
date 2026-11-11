@@ -23,7 +23,12 @@ import {
   Send,
   Building2,
   Flame,
-  ArrowUpRight
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  CheckSquare,
+  Square,
+  MinusSquare
 } from 'lucide-react';
 import { leadService } from '../../../services/leadService';
 import type { ProspectiveLead, LeadStatus, LeadPriority, LeadStats } from '../../../types/lead';
@@ -44,6 +49,13 @@ export const ContactManagementWorkspace: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>('All');
   const [sourceFilter, setSourceFilter] = useState<string>('All');
   const [counselorFilter, setCounselorFilter] = useState<string>('All');
+
+  // Pagination & Bulk Actions State (10 items per page)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const ITEMS_PER_PAGE = 10;
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState<boolean>(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState<boolean>(false);
 
   // Modals & Drawer State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -153,6 +165,106 @@ export const ContactManagementWorkspace: React.FC = () => {
     return leadService.getLeadStats();
   }, [stats, leads]);
 
+  // Reset page to 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStatusTab, priorityFilter, sourceFilter, counselorFilter]);
+
+  // Pagination calculations (10 queries per page)
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredLeads.length);
+
+  const paginatedLeads = useMemo(() => {
+    return filteredLeads.slice(startIndex, endIndex);
+  }, [filteredLeads, startIndex, endIndex]);
+
+  // Selection states on current page
+  const isAllOnPageSelected =
+    paginatedLeads.length > 0 && paginatedLeads.every((lead) => selectedLeadIds.includes(lead.id));
+  const isSomeOnPageSelected =
+    paginatedLeads.some((lead) => selectedLeadIds.includes(lead.id)) && !isAllOnPageSelected;
+
+  const handleSelectAllOnPage = () => {
+    if (isAllOnPageSelected) {
+      const pageIds = new Set(paginatedLeads.map((l) => l.id));
+      setSelectedLeadIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const newSelected = new Set(selectedLeadIds);
+      paginatedLeads.forEach((l) => newSelected.add(l.id));
+      setSelectedLeadIds(Array.from(newSelected));
+    }
+  };
+
+  const handleSelectAllFiltered = () => {
+    const allFilteredIds = filteredLeads.map((l) => l.id);
+    setSelectedLeadIds(allFilteredIds);
+    showToast(`Selected all ${allFilteredIds.length} inquiries`, 'info');
+  };
+
+  const handleClearSelection = () => {
+    setSelectedLeadIds([]);
+  };
+
+  const handleToggleLeadSelect = (id: string, e: React.MouseEvent | React.ChangeEvent) => {
+    e.stopPropagation();
+    setSelectedLeadIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  // Bulk Delete Handler
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedLeadIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const count = selectedLeadIds.length;
+      await leadService.bulkDeleteLeads(selectedLeadIds);
+      showToast(`✓ ${count} inquiries deleted permanently`, 'info');
+      setSelectedLeadIds([]);
+      setIsBulkDeleteModalOpen(false);
+      loadLeadsData();
+    } catch {
+      showToast('Failed to delete selected inquiries', 'error');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Pagination page buttons helper
+  const getPaginationPages = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
   // Copy Lead ID to clipboard
   const handleCopyId = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -204,6 +316,7 @@ export const ContactManagementWorkspace: React.FC = () => {
     try {
       await leadService.deleteLead(deletingLeadId);
       showToast(`Inquiry #${deletingLeadId} permanently deleted`, 'info');
+      setSelectedLeadIds((prev) => prev.filter((id) => id !== deletingLeadId));
       setDeletingLeadId(null);
       if (viewingLead?.id === deletingLeadId) setViewingLead(null);
       loadLeadsData();
@@ -542,10 +655,75 @@ export const ContactManagementWorkspace: React.FC = () => {
 
       {/* ─── 4. DATA TABLE / ROSTER ─── */}
       <div className={styles.tableContainer}>
+        {/* Bulk Action Bar */}
+        {selectedLeadIds.length > 0 && (
+          <div className={styles.bulkActionBar}>
+            <div className={styles.bulkLeft}>
+              <span className={styles.bulkBadge}>
+                <CheckSquare size={15} />
+                <span>
+                  <strong>{selectedLeadIds.length}</strong> inquiries selected
+                </span>
+              </span>
+              {selectedLeadIds.length < filteredLeads.length && (
+                <button
+                  type="button"
+                  className={styles.bulkSelectAllBtn}
+                  onClick={handleSelectAllFiltered}
+                >
+                  Select all {filteredLeads.length} inquiries
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.bulkDeselectBtn}
+                onClick={handleClearSelection}
+              >
+                Clear selection
+              </button>
+            </div>
+
+            <div className={styles.bulkRight}>
+              <button
+                type="button"
+                className={styles.bulkDeleteBtn}
+                onClick={() => setIsBulkDeleteModalOpen(true)}
+              >
+                <Trash2 size={15} />
+                <span>Delete Selected ({selectedLeadIds.length})</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className={styles.tableWrapper}>
           <table className={styles.rosterTable}>
             <thead>
               <tr>
+                <th style={{ width: '48px', textAlign: 'center' }}>
+                  <label
+                    className={styles.checkboxLabel}
+                    title={isAllOnPageSelected ? 'Deselect all on this page' : 'Select all on this page'}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isAllOnPageSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = isSomeOnPageSelected;
+                      }}
+                      onChange={handleSelectAllOnPage}
+                    />
+                    <span className={styles.customCheckbox}>
+                      {isAllOnPageSelected ? (
+                        <CheckSquare size={16} className={styles.checkedIcon} />
+                      ) : isSomeOnPageSelected ? (
+                        <MinusSquare size={16} className={styles.checkedIcon} />
+                      ) : (
+                        <Square size={16} className={styles.uncheckedIcon} />
+                      )}
+                    </span>
+                  </label>
+                </th>
                 <th>Inquiry ID &amp; Time</th>
                 <th>Student / Contact Details</th>
                 <th>Subject &amp; Query</th>
@@ -559,7 +737,7 @@ export const ContactManagementWorkspace: React.FC = () => {
             <tbody>
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className={styles.emptyState}>
                       <div className={styles.emptyIcon}>
                         <Search size={28} />
@@ -570,7 +748,8 @@ export const ContactManagementWorkspace: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map((lead) => {
+                paginatedLeads.map((lead) => {
+                  const isSelected = selectedLeadIds.includes(lead.id);
                   const statusClass =
                     lead.status === 'New'
                       ? styles.statusNew
@@ -587,7 +766,28 @@ export const ContactManagementWorkspace: React.FC = () => {
                       : styles.statusDropped;
 
                   return (
-                    <tr key={lead.id}>
+                    <tr key={lead.id} className={isSelected ? styles.selectedRow : ''}>
+                      {/* Checkbox */}
+                      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                        <label
+                          className={styles.checkboxLabel}
+                          title={isSelected ? 'Deselect inquiry' : 'Select inquiry'}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => handleToggleLeadSelect(lead.id, e)}
+                          />
+                          <span className={styles.customCheckbox}>
+                            {isSelected ? (
+                              <CheckSquare size={16} className={styles.checkedIcon} />
+                            ) : (
+                              <Square size={16} className={styles.uncheckedIcon} />
+                            )}
+                          </span>
+                        </label>
+                      </td>
+
                       {/* 1. Inquiry ID */}
                       <td>
                         <div className={styles.leadIdBadge}>
@@ -743,6 +943,66 @@ export const ContactManagementWorkspace: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* ─── PAGINATION (10 QUERIES PER PAGE) ─── */}
+        <div className={styles.paginationContainer}>
+          <div className={styles.paginationInfo}>
+            {filteredLeads.length > 0 ? (
+              <>
+                Showing <strong>{startIndex + 1}</strong> – <strong>{endIndex}</strong> of{' '}
+                <strong>{filteredLeads.length}</strong> inquiries
+                <span className={styles.perPageNotice}>(10 per page)</span>
+              </>
+            ) : (
+              <span>0 inquiries</span>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className={styles.paginationControls}>
+              <button
+                type="button"
+                className={styles.pageArrowBtn}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                title="Previous Page"
+              >
+                <ChevronLeft size={16} />
+                <span>Prev</span>
+              </button>
+
+              <div className={styles.pageNumberList}>
+                {getPaginationPages().map((p, idx) =>
+                  typeof p === 'number' ? (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`${styles.pageNumberBtn} ${currentPage === p ? styles.activePageBtn : ''}`}
+                      onClick={() => setCurrentPage(p)}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={idx} className={styles.pageEllipsis}>
+                      …
+                    </span>
+                  )
+                )}
+              </div>
+
+              <button
+                type="button"
+                className={styles.pageArrowBtn}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                title="Next Page"
+              >
+                <span>Next</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1219,6 +1479,67 @@ export const ContactManagementWorkspace: React.FC = () => {
                 onClick={handleDeleteConfirm}
               >
                 Yes, Delete Record
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 8. BULK DELETE CONFIRMATION DIALOG ─── */}
+      {isBulkDeleteModalOpen && (
+        <div
+          className={styles.modalBackdrop}
+          onClick={() => !isBulkDeleting && setIsBulkDeleteModalOpen(false)}
+        >
+          <div className={styles.deleteDialog} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.deleteIconBox}>
+              <Trash2 size={24} />
+            </div>
+            <h3>Permanently Delete {selectedLeadIds.length} Inquiries?</h3>
+            <p>
+              Are you sure you want to permanently delete these{' '}
+              <strong>{selectedLeadIds.length}</strong> inquiries from the database? This action cannot be undone.
+            </p>
+
+            <div className={styles.bulkSelectedPreview}>
+              {leads
+                .filter((l) => selectedLeadIds.includes(l.id))
+                .slice(0, 6)
+                .map((l) => (
+                  <span key={l.id} className={styles.previewLeadTag}>
+                    #{l.id} • {l.fullName}
+                  </span>
+                ))}
+              {selectedLeadIds.length > 6 && (
+                <span className={styles.previewMoreTag}>
+                  +{selectedLeadIds.length - 6} more
+                </span>
+              )}
+            </div>
+
+            <div className={styles.dialogActions}>
+              <button
+                type="button"
+                className={styles.cancelDialogBtn}
+                disabled={isBulkDeleting}
+                onClick={() => setIsBulkDeleteModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.confirmDeleteBtn}
+                disabled={isBulkDeleting}
+                onClick={handleBulkDeleteConfirm}
+              >
+                {isBulkDeleting ? (
+                  <>
+                    <RefreshCw size={15} className={styles.spinIcon} />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  `Yes, Delete ${selectedLeadIds.length} Records`
+                )}
               </button>
             </div>
           </div>
