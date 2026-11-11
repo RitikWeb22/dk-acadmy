@@ -4687,7 +4687,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   {/* Access Mode & Paid Monetization Lock */}
                   <div style={{ background: 'var(--color-surface-alt, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '16px' }}>🔒</span>
                         <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--color-text-strong, #0f172a)' }}>Test Access &amp; Monetization Mode</h4>
                       </div>
@@ -4835,7 +4835,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                       
 
                       <Button
@@ -4843,10 +4843,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={syncQuestionsWithSections}
-                        className="h-8 px-3 gap-1.5 text-xs font-medium bg-background shadow-xs border-border/80"
+                        className="h-8.5 px-4 gap-2 text-xs font-medium rounded-lg bg-background shadow-xs border-border/80 shrink-0"
                         title="Re-sync slots to match Section A and Section B counts configured in Step 2"
                       >
-                        <RefreshCw className="size-3 text-muted-foreground" />
+                        <RefreshCw className="size-3.5 text-muted-foreground" />
                         <span>Sync Blueprint ({selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} Qs)</span>
                       </Button>
 
@@ -4855,7 +4855,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         variant="default"
                         size="sm"
                         onClick={handlePasteWordQuestionClick}
-                        className="h-8 px-3 gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+                        className="h-8.5 px-4 gap-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs shrink-0"
                         title="Paste question and options from Word or PDF"
                       >
                         <Sparkles className="size-3.5" />
@@ -4867,7 +4867,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={handleAddQuestion}
-                        className="h-8 px-3 gap-1.5 text-xs font-medium bg-background shadow-xs border-border/80"
+                        className="h-8.5 px-3.5 gap-2 text-xs font-medium rounded-lg bg-background shadow-xs border-border/80 shrink-0"
                       >
                         <Plus className="size-3.5" />
                         <span>Add Slot</span>
@@ -5016,16 +5016,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </div>
 
                         {/* Question Actions Toolbar */}
-                        <div className={styles.qEditorActionsRow}>
+                        <div className={styles.qEditorActionsRow} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 px-2.5 gap-1.5 text-xs font-medium bg-background shadow-xs border-border/80"
+                            className="h-8 px-3.5 gap-2 text-xs font-medium rounded-lg bg-background shadow-xs border-border/80"
                             onClick={() => handleDuplicateQuestion(currentEditingQuestion)}
                             title="Duplicate question"
                           >
-                            <Copy className="size-3 text-muted-foreground" />
+                            <Copy className="size-3.5 text-muted-foreground" />
                             <span>Duplicate</span>
                           </Button>
                           {questions.length > 1 && (
@@ -5033,11 +5033,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-7 px-2.5 gap-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              className="h-8 px-3.5 gap-2 text-xs font-medium rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => handleDeleteQuestion(currentEditingQuestion.id)}
                               title="Delete question"
                             >
-                              <Trash2 className="size-3" />
+                              <Trash2 className="size-3.5" />
                               <span>Delete</span>
                             </Button>
                           )}
@@ -5088,30 +5088,29 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       </div>
 
                       <div className={styles.qBodySection}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <label className={styles.sectionLabel} style={{ marginBottom: 0 }}>
-                              Question Statement (LaTeX / KaTeX Syntax Supported)
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <label className={styles.sectionLabel} style={{ marginBottom: 0, fontWeight: 700, fontSize: '13px' }}>
+                              Question Statement (LaTeX / KaTeX)
                             </label>
                             <ValidationBadge
                               status={questionValidations[currentEditingQuestion.id]?.status || 'GREEN'}
                               issues={questionValidations[currentEditingQuestion.id]?.issues}
-                              compact
                             />
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                               onClick={handlePasteWordQuestionClick}
-                              className="h-7 px-2.5 gap-1.5 text-xs font-semibold text-blue-700 bg-blue-50/70 border-blue-200 hover:bg-blue-100 hover:text-blue-800 shadow-none"
+                              className="h-8 px-4 gap-2 text-xs font-semibold rounded-lg text-blue-700 bg-blue-50/80 border-blue-200 hover:bg-blue-100 hover:text-blue-800 shadow-xs shrink-0 whitespace-nowrap"
                               title="Paste full question with options from Word or PDF"
                             >
-                              <Sparkles className="size-3 text-blue-600" />
+                              <Sparkles className="size-3.5 text-blue-600" />
                               <span>Paste Word Question</span>
                             </Button>
-                            <span className="inline-flex items-center h-7 px-2.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center h-8 px-3.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs shrink-0 whitespace-nowrap">
                               +{positiveMarks} / -{negativeMarks} Marks
                             </span>
                           </div>
@@ -5283,7 +5282,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                         <Video size={16} color="#2563EB" />
                         <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-strong, #1E293B)' }}>
                           Question Solution &amp; Video Walkthrough (Scheduled Release Protected)
@@ -5384,7 +5383,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   {/* Access Mode & Paid Monetization Lock */}
                   <div style={{ background: 'var(--color-surface-alt, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '16px' }}>🔒</span>
                         <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--color-text-strong, #0f172a)' }}>Test Access &amp; Monetization Mode</h4>
                       </div>
@@ -5751,7 +5750,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   {/* 3. Automated Proctoring & Anti-Cheating Safeguards */}
                   <div style={{ marginTop: '18px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                         <ShieldAlert size={18} color="#2563EB" />
                         <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                           Automated Proctoring &amp; Anti-Cheating Safeguards
@@ -5900,7 +5899,7 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: solutionReleaseEnabled ? '#059669' : '#64748B' }}>
                           <input
                             type="checkbox"

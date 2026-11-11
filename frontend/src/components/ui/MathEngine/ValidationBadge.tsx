@@ -22,21 +22,21 @@ export const ValidationBadge: React.FC<ValidationBadgeProps> = ({
     switch (status) {
       case 'GREEN':
         return {
-          variantClass: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400',
-          icon: <CheckCircle2 className={compact ? "size-3 text-emerald-600" : "size-3.5 text-emerald-600"} />,
+          variantClass: 'bg-emerald-50/90 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400',
+          icon: <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />,
           label: 'Valid KaTeX'
         };
       case 'YELLOW':
         return {
-          variantClass: 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-400',
-          icon: <Sparkles className={compact ? "size-3 text-amber-600" : "size-3.5 text-amber-600"} />,
+          variantClass: 'bg-amber-50/90 border-amber-200 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-400',
+          icon: <Sparkles className="size-3.5 text-amber-600 shrink-0" />,
           label: 'AI / OCR Repaired'
         };
       case 'RED':
       default:
         return {
-          variantClass: 'bg-red-50 border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-800 dark:text-red-400',
-          icon: <XCircle className={compact ? "size-3 text-red-600" : "size-3.5 text-red-600"} />,
+          variantClass: 'bg-red-50/90 border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-800 dark:text-red-400',
+          icon: <XCircle className="size-3.5 text-red-600 shrink-0" />,
           label: 'KaTeX Error'
         };
     }
@@ -56,7 +56,7 @@ export const ValidationBadge: React.FC<ValidationBadgeProps> = ({
       variant="outline"
       size="sm"
       className={cn(
-        "h-7 px-2.5 rounded-md text-xs font-semibold gap-1.5 shadow-none border pointer-events-auto cursor-default disabled:opacity-100",
+        "h-8 px-3.5 rounded-lg text-xs font-semibold gap-2 shadow-xs border pointer-events-auto cursor-default disabled:opacity-100 shrink-0 whitespace-nowrap",
         config.variantClass,
         className
       )}
