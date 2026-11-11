@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Sparkles, X } from 'lucide-react';
 import { MathText } from '../../ui/MathText/MathText';
+import { Button } from '../../ui/button';
 import { parseWordQuestions, cleanWordMathArtifacts, type ParsedWordQuestion } from '../../../utils/wordPasteParser';
 import { extractMathFromHtml, normalizeMathString } from '../../../utils/mathImportRenderSystem/pasteHandler';
 import { htmlResultLosesContent } from '../../../utils/pasteContentGuard';
@@ -241,21 +242,22 @@ Ans: B`;
 
         {/* Footer */}
         <div className={styles.modalFooter}>
-          <button type="button" className={styles.cancelBtn} onClick={onClose}>
+          <Button type="button" variant="outline" size="sm" className="h-9 px-4 font-medium" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className={styles.allFetchBtn}
+            size="sm"
+            className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
             onClick={handleAllFetchClick}
             disabled={parsedList.length === 0}
             title="Auto-fill question statement and options into question inputs"
           >
-            <Sparkles size={16} />
+            <Sparkles className="size-4" />
             <span>
-              ⚡ All Fetch ({parsedList.length > 0 ? `${parsedList.length} Qs` : '0 Qs'}) &amp; Auto-Fill Inputs
+              All Fetch ({parsedList.length > 0 ? `${parsedList.length} Qs` : '0 Qs'}) &amp; Auto-Fill Inputs
             </span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

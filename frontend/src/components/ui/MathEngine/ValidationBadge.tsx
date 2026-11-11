@@ -1,5 +1,7 @@
 import React from 'react';
 import { CheckCircle2, AlertTriangle, Sparkles, XCircle } from 'lucide-react';
+import { Button } from '../button';
+import { cn } from '@/lib/utils';
 
 export type ValidationStatusType = 'GREEN' | 'YELLOW' | 'RED';
 
@@ -20,27 +22,21 @@ export const ValidationBadge: React.FC<ValidationBadgeProps> = ({
     switch (status) {
       case 'GREEN':
         return {
-          bg: '#ecfdf5',
-          border: '#a7f3d0',
-          color: '#059669',
-          icon: <CheckCircle2 size={compact ? 12 : 14} color="#059669" />,
+          variantClass: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400',
+          icon: <CheckCircle2 className={compact ? "size-3 text-emerald-600" : "size-3.5 text-emerald-600"} />,
           label: 'Valid KaTeX'
         };
       case 'YELLOW':
         return {
-          bg: '#fffbeb',
-          border: '#fde68a',
-          color: '#d97706',
-          icon: <Sparkles size={compact ? 12 : 14} color="#d97706" />,
+          variantClass: 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-400',
+          icon: <Sparkles className={compact ? "size-3 text-amber-600" : "size-3.5 text-amber-600"} />,
           label: 'AI / OCR Repaired'
         };
       case 'RED':
       default:
         return {
-          bg: '#fef2f2',
-          border: '#fecaca',
-          color: '#dc2626',
-          icon: <XCircle size={compact ? 12 : 14} color="#dc2626" />,
+          variantClass: 'bg-red-50 border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-800 dark:text-red-400',
+          icon: <XCircle className={compact ? "size-3 text-red-600" : "size-3.5 text-red-600"} />,
           label: 'KaTeX Error'
         };
     }
@@ -54,27 +50,22 @@ export const ValidationBadge: React.FC<ValidationBadgeProps> = ({
     : (issues.length > 0 ? issues.map((i) => i.message).join('\n') : config.label);
 
   return (
-    <span
-      className={className}
+    <Button
+      type="button"
+      disabled
+      variant="outline"
+      size="sm"
+      className={cn(
+        "h-7 px-2.5 rounded-md text-xs font-semibold gap-1.5 shadow-none border pointer-events-auto cursor-default disabled:opacity-100",
+        config.variantClass,
+        className
+      )}
       title={tooltipText}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: compact ? '3px' : '5px',
-        padding: compact ? '2px 6px' : '3px 8px',
-        backgroundColor: config.bg,
-        border: `1px solid ${config.border}`,
-        color: config.color,
-        borderRadius: '9999px',
-        fontSize: compact ? '11px' : '12px',
-        fontWeight: 600,
-        userSelect: 'none',
-        lineHeight: 1
-      }}
     >
       {config.icon}
       <span>{config.label}</span>
-    </span>
+    </Button>
   );
 };
+
 

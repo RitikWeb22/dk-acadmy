@@ -2907,39 +2907,14 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                   </div>
                 </div>
 
-                {/* Bulk Document / PDF / Word Upload Action Button */}
-                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenBulkModal(true)}
-                    style={{
-                      background: createdCustomQuestions ? '#f0fdf4' : '#eff6ff',
-                      border: createdCustomQuestions ? '1.5px solid #86efac' : '1.5px solid #bfdbfe',
-                      color: createdCustomQuestions ? '#15803d' : '#1d4ed8',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: '0 1px 3px rgba(37,99,235,0.08)'
-                    }}
-                  >
-                    <Upload size={14} />
-                    <span>
-                      {createdCustomQuestions
-                        ? `✓ ${createdCustomQuestions.length} Questions Imported (Click to change/re-upload)`
-                        : '📄 Upload Word (.docx) / PDF (.pdf) / CSV Questions'}
-                    </span>
-                  </button>
-                  {createdCustomQuestions && (
+                {/* Attached Questions Indicator */}
+                {createdCustomQuestions && createdCustomQuestions.length > 0 && (
+                  <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>
                       ✓ {createdCustomQuestions.length} questions attached to this problem set
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Step 4: Access & Monetization Control */}
@@ -3538,26 +3513,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     >
                       <Plus size={13} /> Add Q
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenBulkModal(false)}
-                      style={{
-                        background: '#2563eb',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '5px 8px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Upload size={13} /> Bulk Upload
-                    </button>
                   </div>
                 </div>
 
@@ -4116,26 +4071,6 @@ export const DppPyqManagementWorkspace: React.FC<DppPyqManagementWorkspaceProps>
                     >
                       <Plus size={14} />
                       <span>Add Question Slot</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenBulkModal(false)}
-                      style={{
-                        background: '#F1F5F9',
-                        color: '#475569',
-                        border: '1px solid #CBD5E1',
-                        borderRadius: '8px',
-                        padding: '8px 16px',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <Upload size={14} />
-                      <span>Bulk Upload File</span>
                     </button>
                   </div>
                 </div>

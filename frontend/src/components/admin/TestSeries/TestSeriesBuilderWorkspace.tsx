@@ -70,6 +70,8 @@ import { notificationService } from '../../../services/notificationService';
 import { GeminiApiKeyModal } from '../../common/GeminiApiKeyModal/GeminiApiKeyModal';
 import { broadcastRealtimeEvent, subscribeRealtimeEvents } from '../../../utils/broadcastSync';
 
+import { Button } from '../../ui/button';
+import { cn } from '@/lib/utils';
 import { PART_TESTS_DATA } from '../../../data/partTestsData';
 import { MathText } from '../../ui/MathText/MathText';
 import { MathInput, parseContentToBlocks, ValidationDashboard, ValidationBadge, getFriendlyMathExplanation, autoRepairQuestionFormula } from '../../ui/MathEngine';
@@ -3264,24 +3266,27 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
             </div>
 
             <div className={styles.headerRightAction}>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => fetchLiveTestSeries(true)}
                 disabled={isLoadingList}
                 title="Refresh test series live from database"
-                className={styles.syncLiveBtn}
+                className="h-9 px-3.5 gap-2 font-medium bg-background text-foreground shadow-xs border-border/80 hover:bg-accent"
               >
-                <RefreshCw size={14} className={isLoadingList ? `${styles.spinIcon || ''} animate-spin` : ''} />
+                <RefreshCw className={cn("size-3.5 text-muted-foreground", isLoadingList && "animate-spin")} />
                 <span>{isLoadingList ? 'Syncing...' : 'Sync Live'}</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className={styles.createTestSeriesBtn}
+                size="sm"
                 onClick={handleOpenCreateModal}
+                className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
               >
-                <Plus size={16} />
-                <span>+ Create Test Series</span>
-              </button>
+                <Plus className="size-4" />
+                <span>Create Test Series</span>
+              </Button>
             </div>
           </div>
 
@@ -3665,21 +3670,26 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 <span className={styles.bulkLabel}>Test series selected for batch management</span>
               </div>
               <div className={styles.bulkActionsWrap}>
-                <button
+                <Button
                   type="button"
-                  className={styles.bulkDeleteBtn}
+                  variant="destructive"
+                  size="sm"
+                  className="h-8 px-3 gap-1.5 font-medium text-xs shadow-xs"
                   onClick={() => setIsBulkDeleteModalOpen(true)}
                 >
-                  <Trash2 size={15} />
+                  <Trash2 className="size-3.5" />
                   <span>Bulk Delete ({selectedTestIds.length})</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className={styles.bulkClearBtn}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2.5 gap-1.5 font-medium text-xs text-muted-foreground hover:text-foreground"
                   onClick={() => setSelectedTestIds([])}
                 >
-                  Clear Selection
-                </button>
+                  <X className="size-3.5" />
+                  <span>Clear Selection</span>
+                </Button>
               </div>
             </div>
           )}
@@ -3917,31 +3927,35 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                           {/* 7. Actions (Quick Builder + 3-Dots Context Trigger) */}
                           <td className={styles.alignRight}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                              <button
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <Button
                                 type="button"
-                                className={styles.rowQuickBuilderBtn}
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2.5 gap-1.5 text-xs font-semibold text-blue-600 border-blue-200 bg-blue-50/60 hover:bg-blue-100 hover:text-blue-700 shadow-none"
                                 onClick={() => handleEditSeries(item)}
                                 title="Open in 4-Step Question Builder"
                               >
-                                <FileEdit size={12} />
+                                <FileEdit className="size-3" />
                                 <span>Builder</span>
-                              </button>
+                              </Button>
 
                               <div
                                 className={styles.moreActionWrapper}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <button
+                                <Button
                                   type="button"
-                                  className={styles.threeDotsBtn}
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-md"
                                   onClick={() =>
                                     setOpenActionRowId(isMenuOpen ? null : item.id)
                                   }
                                   title="Actions menu"
                                 >
-                                  <MoreVertical size={16} />
-                                </button>
+                                  <MoreVertical className="size-4" />
+                                </Button>
 
                               {/* ─── 6. ACTIONS CONTEXT DROPDOWN MENU ─── */}
                               {isMenuOpen && (
@@ -4124,14 +4138,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         <div className={styles.builderModeLayout}>
           {/* Top Wizard Bar */}
           <div className={styles.wizardTopNavRow}>
-            <button
+            <Button
               type="button"
-              className={styles.backToDirectoryBtn}
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 gap-1.5 font-medium text-xs text-muted-foreground hover:text-foreground bg-background shadow-xs border-border/80"
               onClick={() => setViewMode('TABLE')}
             >
-              <ChevronLeft size={16} />
-              <span>← Back to Test Series Table</span>
-            </button>
+              <ChevronLeft className="size-4" />
+              <span>Back to Test Series Table</span>
+            </Button>
             <div className={styles.wizardTitleWrap}>
               <h1 className={styles.wizardMainH1}>Test Series Builder &amp; Examination Engine</h1>
               <span className={styles.wizardSubtitle}>Editing: {editingSeriesTitle}</span>
@@ -4499,13 +4515,15 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   </div>
 
                   <div className={styles.stepActionBarRight}>
-                    <button
+                    <Button
                       type="button"
-                      className={styles.nextStepBtn}
+                      size="sm"
+                      className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                       onClick={handleNextStep}
                     >
-                      <span>Next: Section Rules →</span>
-                    </button>
+                      <span>Next: Section Rules</span>
+                      <ArrowRight className="size-4" />
+                    </Button>
                   </div>
                 </div>
               )}
@@ -4740,12 +4758,25 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                   </div>
 
                   <div className={styles.stepActionBarBetween}>
-                    <button type="button" className={styles.prevStepBtn} onClick={handlePrevStep}>
-                      <span>← Prev: Configuration</span>
-                    </button>
-                    <button type="button" className={styles.nextStepBtn} onClick={handleNextStep}>
-                      <span>Next: Question Authoring →</span>
-                    </button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-3.5 gap-2 font-medium"
+                      onClick={handlePrevStep}
+                    >
+                      <ChevronLeft className="size-4" />
+                      <span>Prev: Configuration</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                      onClick={handleNextStep}
+                    >
+                      <span>Next: Question Authoring</span>
+                      <ArrowRight className="size-4" />
+                    </Button>
                   </div>
                 </div>
               )}
@@ -4807,34 +4838,40 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       
 
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={syncQuestionsWithSections}
-                        className={styles.syncBlueprintBtn}
+                        className="h-8 px-3 gap-1.5 text-xs font-medium bg-background shadow-xs border-border/80"
                         title="Re-sync slots to match Section A and Section B counts configured in Step 2"
                       >
-                        <span>🔄 Sync Blueprint ({selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} Qs)</span>
-                      </button>
+                        <RefreshCw className="size-3 text-muted-foreground" />
+                        <span>Sync Blueprint ({selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} Qs)</span>
+                      </Button>
 
-                      <button
+                      <Button
                         type="button"
+                        variant="default"
+                        size="sm"
                         onClick={handlePasteWordQuestionClick}
-                        className={styles.addNewQuestionBtn}
-                        style={{ background: '#2563EB', color: '#FFFFFF', border: '1px solid #1D4ED8' }}
+                        className="h-8 px-3 gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
                         title="Paste question and options from Word or PDF"
                       >
-                        <Sparkles size={14} />
+                        <Sparkles className="size-3.5" />
                         <span>Paste Word Question</span>
-                      </button>
+                      </Button>
 
-                      <button
+                      <Button
                         type="button"
-                        className={styles.addNewQuestionBtn}
+                        variant="outline"
+                        size="sm"
                         onClick={handleAddQuestion}
+                        className="h-8 px-3 gap-1.5 text-xs font-medium bg-background shadow-xs border-border/80"
                       >
-                        <Plus size={14} />
+                        <Plus className="size-3.5" />
                         <span>Add Slot</span>
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
@@ -4980,25 +5017,29 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                         {/* Question Actions Toolbar */}
                         <div className={styles.qEditorActionsRow}>
-                          <button
+                          <Button
                             type="button"
-                            className={styles.secondaryActionBtn}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2.5 gap-1.5 text-xs font-medium bg-background shadow-xs border-border/80"
                             onClick={() => handleDuplicateQuestion(currentEditingQuestion)}
                             title="Duplicate question"
                           >
-                            <Copy size={13} />
+                            <Copy className="size-3 text-muted-foreground" />
                             <span>Duplicate</span>
-                          </button>
+                          </Button>
                           {questions.length > 1 && (
-                            <button
+                            <Button
                               type="button"
-                              className={styles.dangerActionBtn}
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2.5 gap-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => handleDeleteQuestion(currentEditingQuestion.id)}
                               title="Delete question"
                             >
-                              <Trash2 size={13} />
+                              <Trash2 className="size-3" />
                               <span>Delete</span>
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -5059,29 +5100,18 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                             />
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <button
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={handlePasteWordQuestionClick}
-                              className={styles.smartPasteActionBtn}
+                              className="h-7 px-2.5 gap-1.5 text-xs font-semibold text-blue-700 bg-blue-50/70 border-blue-200 hover:bg-blue-100 hover:text-blue-800 shadow-none"
                               title="Paste full question with options from Word or PDF"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                background: '#EFF6FF',
-                                color: '#1D4ED8',
-                                border: '1px solid #BFDBFE',
-                                borderRadius: '6px',
-                                padding: '4px 9px',
-                                fontSize: '11.5px',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
                             >
-                              <Sparkles size={13} color="#2563EB" />
+                              <Sparkles className="size-3 text-blue-600" />
                               <span>Paste Word Question</span>
-                            </button>
-                            <span className={styles.cbtMarksPill}>
+                            </Button>
+                            <span className="inline-flex items-center h-7 px-2.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               +{positiveMarks} / -{negativeMarks} Marks
                             </span>
                           </div>
@@ -5122,8 +5152,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                   </div>
                                 </div>
 
-                                <button
+                                <Button
                                   type="button"
+                                  size="sm"
+                                  className="h-8 px-3 gap-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white shadow-xs"
                                   onClick={() => {
                                     const raw = currentEditingQuestion.questionText || '';
                                     const { repairedText, repairedIssues } = autoRepairQuestionFormula(raw);
@@ -5139,28 +5171,10 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                                         : '⚡ Formula Automatically Repair Ho Gaya!'
                                     );
                                   }}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    background: '#DC2626',
-                                    color: '#FFFFFF',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    padding: '7px 14px',
-                                    fontSize: '12px',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    boxShadow: '0 2px 4px rgba(220, 38, 38, 0.25)',
-                                    transition: 'all 0.15s ease',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = '#B91C1C')}
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = '#DC2626')}
                                 >
-                                  <Wrench size={14} />
-                                  <span>⚡ 1-Click Auto-Fix (Theek Karein)</span>
-                                </button>
+                                  <Wrench className="size-3.5" />
+                                  <span>1-Click Auto-Fix</span>
+                                </Button>
                               </div>
                             </div>
                           );
@@ -5334,32 +5348,35 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     Click <strong>"Sync Blueprint"</strong> to generate all {selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} question slots, or use <strong>"Paste Word Question"</strong> to auto-import from Word/PDF.
                   </p>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={syncQuestionsWithSections}
-                      className={styles.syncBlueprintBtn}
-                      style={{ padding: '8px 16px', fontSize: '13px' }}
+                      className="h-9 px-4 gap-2 font-medium"
                     >
-                      <span>🔄 Sync Blueprint ({selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} Qs)</span>
-                    </button>
-                    <button
+                      <RefreshCw className="size-4" />
+                      <span>Sync Blueprint ({selectedSubjects.reduce((acc, s) => acc + (subjectRules[s]?.secATotal || 20) + (subjectRules[s]?.secBTotal || 10), 0)} Qs)</span>
+                    </Button>
+                    <Button
                       type="button"
+                      size="sm"
                       onClick={handlePasteWordQuestionClick}
-                      className={styles.addNewQuestionBtn}
-                      style={{ padding: '8px 16px', fontSize: '13px', background: '#2563EB', color: '#FFFFFF' }}
+                      className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                     >
-                      <Sparkles size={14} />
+                      <Sparkles className="size-4" />
                       <span>Paste Word Question</span>
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={handleAddQuestion}
-                      className={styles.addNewQuestionBtn}
-                      style={{ padding: '8px 16px', fontSize: '13px' }}
+                      className="h-9 px-4 gap-2 font-medium"
                     >
-                      <Plus size={14} />
+                      <Plus className="size-4" />
                       <span>Add Question Slot</span>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -6083,37 +6100,46 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                   {/* 5. Sticky Step Action Bar */}
                   <div className={styles.stepActionBarSticky}>
-                    <button type="button" className={styles.prevStepBtn} onClick={handlePrevStep}>
-                      <span>← Prev: Question Authoring</span>
-                    </button>
-                    <button
+                    <Button
                       type="button"
-                      className={styles.publishExamBtn}
+                      variant="outline"
+                      size="sm"
+                      className="h-10 px-4 gap-2 font-medium"
+                      onClick={handlePrevStep}
+                    >
+                      <ChevronLeft className="size-4" />
+                      <span>Prev: Question Authoring</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className={cn(
+                        "h-10 px-5 gap-2 font-semibold shadow-sm text-white",
+                        builderStatus === 'Draft' ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
+                      )}
                       onClick={handleSaveAndPublishFromBuilder}
                       disabled={isPublishing}
                       id="schedule-publish-cbt-btn"
                     >
                       {isPublishing ? (
                         <>
-                          <Loader2 size={16} className={styles.spinIcon} />
+                          <Loader2 className="size-4 animate-spin" />
                           <span>Publishing CBT Mock Test to Platform...</span>
                         </>
                       ) : (
                         <>
-                          <div className={styles.publishBtnIconCircle}>
-                            <CheckCircle2 size={15} />
-                          </div>
-                          <span className={styles.publishBtnText}>
+                          <CheckCircle2 className="size-4" />
+                          <span>
                             {builderStatus === 'Draft'
                               ? 'Save Examination as Draft'
                               : builderStatus === 'Scheduled'
                               ? 'Schedule CBT Mock Test'
                               : 'Publish CBT Mock Test Live'}
                           </span>
-                          <ArrowRight size={15} className={styles.publishBtnArrow} />
+                          <ArrowRight className="size-4" />
                         </>
                       )}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -7373,30 +7399,34 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
             </p>
 
             <div className={styles.modalFooterActions}>
-              <button
+              <Button
                 type="button"
-                className={styles.cancelBtn}
+                variant="outline"
+                size="sm"
+                className="h-9 px-4 font-medium"
                 disabled={isBulkDeleting}
                 onClick={() => setIsBulkDeleteModalOpen(false)}
               >
                 Cancel
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
-                className={styles.btnPermanentlyDeleteActive}
+                variant="destructive"
+                size="sm"
+                className="h-9 px-4 gap-2 font-semibold"
                 disabled={isBulkDeleting}
                 onClick={handleBulkDeleteConfirm}
               >
                 {isBulkDeleting ? (
                   <>
-                    <Loader2 size={14} className={styles.spinIcon} />
+                    <Loader2 className="size-4 animate-spin" />
                     <span>Deleting {selectedTestIds.length} Series...</span>
                   </>
                 ) : (
                   `Permanently Delete (${selectedTestIds.length})`
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -7581,22 +7611,25 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
             </div>
 
             <div className={styles.smartPasteFooter}>
-              <button
+              <Button
                 type="button"
-                className={styles.smartPasteCancelBtn}
+                variant="outline"
+                size="sm"
+                className="h-9 px-4 font-medium"
                 onClick={() => setIsSmartPasteModalOpen(false)}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className={styles.smartPasteApplyBtn}
+                size="sm"
+                className="h-9 px-4 gap-2 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                 disabled={!smartPasteText.trim()}
                 onClick={handleApplySmartPaste}
               >
-                <CheckCircle2 size={16} />
+                <CheckCircle2 className="size-4" />
                 <span>Apply &amp; Auto-Fill Question</span>
-              </button>
+              </Button>
             </div>
           </div>
         </div>
