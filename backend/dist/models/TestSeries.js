@@ -59,7 +59,7 @@ const testSeriesSchema = new Schema({
     badgeCode: { type: String, default: 'JEE MAIN' },
     examType: {
         type: String,
-        enum: ['JEE Main', 'JEE Advanced', 'BITSAT', 'PartTest', 'MathSpeed'],
+        enum: ['JEE Main', 'JEE Advanced', 'BITSAT', 'PartTest', 'MathSpeed', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Dropper'],
         default: 'JEE Main'
     },
     format: {
