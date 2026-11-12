@@ -77,7 +77,7 @@ export const AiRepairModal: React.FC<AiRepairModalProps> = ({
         setRepairedText(localRepaired);
         setDiffNotes('AI service timed out (504). Automatically repaired via high-precision local KaTeX rules (zero delay).');
       } catch (localErr: any) {
-        setErrorMsg(err.message || 'Failed to repair equation with Gemini.');
+        setErrorMsg(localErr?.message || err.message || 'Failed to repair equation with Gemini.');
       }
     } finally {
       setIsLoading(false);

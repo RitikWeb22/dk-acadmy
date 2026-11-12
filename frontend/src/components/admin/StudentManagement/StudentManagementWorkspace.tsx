@@ -9,7 +9,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   X,
   AlertCircle,
   CheckCircle2,
@@ -19,7 +18,6 @@ import {
   Pencil,
   UserX,
   UserCheck,
-  ShieldAlert,
   AlertTriangle
 } from 'lucide-react';
 import styles from './StudentManagementWorkspace.module.scss';

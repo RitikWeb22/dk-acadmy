@@ -48,3 +48,4 @@ export function useSharedClock(enabled: boolean = true): number {
 
   return now;
 }
+

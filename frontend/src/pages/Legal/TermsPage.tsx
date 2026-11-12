@@ -1,12 +1,5 @@
 import React, { useEffect } from 'react';
-import {
-  FileText,
-  AlertTriangle,
-  Scale,
-  ShieldAlert,
-  GraduationCap,
-  MonitorPlay
-} from 'lucide-react';
+import { Scale, ShieldAlert } from 'lucide-react';
 import { Container } from '../../components/ui/Container/Container';
 import styles from './TermsPage.module.scss';
 

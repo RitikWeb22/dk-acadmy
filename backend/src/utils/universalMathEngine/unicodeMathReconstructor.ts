@@ -101,6 +101,7 @@ export const OPERATOR_LATEX_MAP: Record<string, string> = {
   // dots
   '⋯': '\\cdots', '…': '\\dots', '⋮': '\\vdots', '⋱': '\\ddots',
   // calculus / big operators (no trailing space so ∑ᵢ₌₁ⁿ can attach scripts)
+  '√': '\\sqrt',
   '∑': '\\sum', '∏': '\\prod', '∐': '\\coprod',
   '∫': '\\int', '∬': '\\iint', '∭': '\\iiint', '∮': '\\oint',
   '∂': '\\partial', '∇': '\\nabla', '∞': '\\infty',
@@ -344,7 +345,8 @@ function reconstructRadicals(text: string): string {
     const idx = RADICAL_INDEX.get(ch);
     if (idx === undefined) { out += ch; i++; continue; }
 
-    const j = i + 1;
+    let j = i + 1;
+    while (j < text.length && /[\s\u200B-\u200D\uFEFF]/.test(text[j])) j++;
     if (text[j] === '(') {
       let depth = 0;
       let k = j;
@@ -364,7 +366,7 @@ function reconstructRadicals(text: string): string {
       out += `\\sqrt${idx}{${m[0]}}`;
       i = j + m[0].length;
     } else {
-      out += `\\sqrt${idx}`;
+      out += `\\sqrt${idx}{}`;
       i = j;
     }
   }

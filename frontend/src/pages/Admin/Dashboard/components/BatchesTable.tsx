@@ -9,8 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  ArrowRight,
-  ExternalLink
+  ArrowRight
 } from 'lucide-react';
 import type { BatchItem, ModeType } from '../types';
 import { Badge } from './Badge';

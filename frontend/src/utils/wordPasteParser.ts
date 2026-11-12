@@ -26,11 +26,11 @@ export function extractExamTagSafely(text: string): { text: string; examTag: str
   let s = text;
   let examTag = '';
 
-  const examRegex = /(?:\[|\b|\s{2,})(JEE\s*(?:Main|Advanced)?\s*(?:-\s*\d{4}|\d{4})?\s*(?:\([^\)]+\)|Online|Offline)?\s*[\d\w\s\-–]*(?:Morning\s*Shift|Evening\s*Shift|Morning\s*Slot|Evening\s*Slot|Morning\s*Session|Evening\s*Session|Shift\s*\d|Slot\s*\d|Paper\s*\d|Shift|Slot|Offline|Online)\s*(?:I{1,3})?|AIEEE\s*\d{4}|BITSAT\s*\d{4})/i;
+  const examRegex = /(?:\[\s*|\b|\s{2,})((?:JEE\s*(?:Main|Advanced)?\s*(?:-\s*\d{4}|\d{4})?\s*(?:\([^\)]+\)|Online|Offline)?\s*[\d\w\s\-–]*(?:Morning\s*Shift|Evening\s*Shift|Morning\s*Slot|Evening\s*Slot|Morning\s*Session|Evening\s*Session|Shift\s*\d|Slot\s*\d|Paper\s*\d|Shift|Slot|Offline|Online)\s*(?:I{1,3})?|AIEEE\s*\d{4}|BITSAT\s*\d{4}))(?:\s*\])?/i;
 
   const m = s.match(examRegex);
   if (m) {
-    examTag = m[0].trim().replace(/^\[|\]$/g, '');
+    examTag = (m[1] || m[0]).trim().replace(/^\s*\[|\s*\]$/g, '');
     s = s.replace(m[0], ' ');
   }
   return { text: s, examTag };
@@ -110,7 +110,14 @@ export function normalizeDocxMath(raw: string): string {
   s = s.replace(/(?<![a-zA-Z])(tan|sin|cos|sec|cot|cosec|csc)-1\b/gi, '\\$1^{-1}');
   s = s.replace(/\\(cosec)\^\{-1\}/gi, '\\csc^{-1}');
 
-  // 7. Logarithms: loge x, logex, log2 x, log10 x
+  // 7. Logarithms: loge x, logex, log2 x, log10 x, log_e x, log_e 2, 2log_e 2
+  s = s.replace(/(\d+)[^\S\r\n]*(?=\\?log)/gi, '$1 ');
+  s = s.replace(/(?<![a-zA-Z\\])log_e\s*(\d+)/gi, '\\log_e $1');
+  s = s.replace(/(?<![a-zA-Z\\])log_e\s*([a-zA-Z])\b/gi, '\\log_e $1');
+  s = s.replace(/(?<![a-zA-Z\\])log_e(?![a-zA-Z])/gi, '\\log_e');
+  s = s.replace(/(?<![a-zA-Z\\])log_([0-9a-zA-Z]+)\s*(\d+)/gi, '\\log_{$1} $2');
+  s = s.replace(/(?<![a-zA-Z\\])log_([0-9a-zA-Z]+)\s*([a-zA-Z])\b/gi, '\\log_{$1} $2');
+  s = s.replace(/(?<![a-zA-Z\\])log_([0-9a-zA-Z]+)(?![a-zA-Z])/gi, '\\log_{$1}');
   s = s.replace(/\bloge\s*([a-zA-Z0-9\(])/gi, '\\log_e $1');
   s = s.replace(/\bloge\b/gi, '\\log_e');
   s = s.replace(/\blog2\s*([a-zA-Z0-9\(])/gi, '\\log_2 $1');
@@ -166,8 +173,9 @@ export function normalizeDocxMath(raw: string): string {
   s = s.replace(/e\\pi\s*\/\s*([0-9]+)/gi, 'e^{\\dfrac{\\pi}{$1}}');
   s = s.replace(/(?<=\s|[+\-=]|^)e\s*([a-zA-Z])(?=\s*[+\-=]|$)/g, 'e^{$1}');
 
-  // 12. Algebraic powers: x2 -> x^2, y2 -> y^2, x3 -> x^3, x4 -> x^4, etc.
-  s = s.replace(/([a-zA-Z])([2-9])(?=[+\-*/=,)>\]\s\\]|$)/g, '$1^{$2}');
+  // 12. Algebraic powers: x2 -> x^2, y2 -> y^2, x3 -> x^3, x4 -> x^4, etc. (protect log_ base subscript)
+  s = s.replace(/(?<!\\?log_)([a-zA-Z])([2-9])(?=[+\-*/=,)>\]\s\\]|$)/g, '$1^{$2}');
+  s = s.replace(/\(\s*([a-zA-Z0-9_+\-*/^]+)\s+\)/g, '($1)');
 
   // 13. Plain text fraction options:
   s = s.replace(/\b12\s*(?=1\s*[-+])/g, '\\dfrac{1}{2}(');
@@ -246,11 +254,45 @@ export function fixNestedExponents(text: string): string {
 }
 
 /**
+ * Normalizes definite and indefinite integrals copied from Word (UnicodeMath linear format)
+ * e.g. ∫_(-1)^1▒ , ∫_(-4)^4▒ , ∫_0^1, ∫_-1^1, ∫_a^b into standard KaTeX \int_{-1}^{1}
+ */
+export function normalizeWordIntegrals(text: string): string {
+  if (!text) return '';
+  let s = text;
+  const intWithLimitsRegex = /(?:[∫\u222B]|\\int)\s*(?:_\s*(?:\(([^()]+)\)|\{([^{}]+)\}|(-?\d+|[a-zA-Z\\]+))\s*\^\s*(?:\(([^()]+)\)|\{([^{}]+)\}|(-?\d+|[a-zA-Z\\]+))|\^\s*(?:\(([^()]+)\)|\{([^{}]+)\}|(-?\d+|[a-zA-Z\\]+))\s*_\s*(?:\(([^()]+)\)|\{([^{}]+)\}|(-?\d+|[a-zA-Z\\]+))|_\s*(?:\(([^()]+)\)|\{([^{}]+)\}|(-?\d+|[a-zA-Z\\]+))|\^\s*(?:\(([^()]+)\)|\{([^{}]+)\}|(-?\d+|[a-zA-Z\\]+)))\s*[▒□]?\s*[\u200A\s]*/g;
+
+  s = s.replace(intWithLimitsRegex, (_match, l1, l2, l3, u1, u2, u3, u4, u5, u6, l4, l5, l6, l7, l8, l9, u7, u8, u9) => {
+    const lower = (l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || '').trim();
+    const upper = (u1 || u2 || u3 || u4 || u5 || u6 || u7 || u8 || u9 || '').trim();
+
+    let res = '\\int';
+    if (lower) {
+      const cleanLower = lower.replace(/^[−–]/, '-');
+      res += `_{${cleanLower}}`;
+    }
+    if (upper) {
+      const cleanUpper = upper.replace(/^[−–]/, '-');
+      res += `^{${cleanUpper}}`;
+    }
+    return `${res} `;
+  });
+
+  s = s.replace(/[∫\u222B]\s*[▒□]?\s*[\u200A\s]*/g, '\\int ');
+  return s;
+}
+
+/**
  * Strips Word equation placeholders, invisible zero-width markers, and OCR artifacts.
  */
 export function cleanWordMathArtifacts(text: string): string {
   if (!text) return '';
-  let s = normalizeDocxMath(text);
+  let s = normalizeWordIntegrals(normalizeDocxMath(text));
+  // Strip Word equation literal text quotes: e.g. " and ", " is", " where ", " for ", " then "
+  s = s.replace(/"\s*(and|or|is|where|when|for|then|if|with|such\s+that)\s*"/gi, ' $1 ');
+  s = s.replace(/"\s*(is|and)\b/gi, ' $1');
+  s = s.replace(/\b(is|and)\s*"/gi, '$1 ');
+  s = s.replace(/([a-zA-Z0-9_)\]])"\s*(is|and|where|when|for|then|if|with)/gi, '$1 $2');
   s = parseWordMatricesAndCases(s);
   s = normalizePrimes(s);
 
@@ -270,8 +312,8 @@ export function cleanWordMathArtifacts(text: string): string {
   s = s.replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*(\([^\)]+\)\^(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[0-9a-zA-Z^/]+))/g, '\\dfrac{$1}{$2}');
   s = s.replace(/\\(?:d?frac)\{([^}]+)\}\{\s*\)\s*\}\s*([A-Za-z0-9_^{}()]+)/g, '\\dfrac{$1}{$2}');
 
-  // Separate glued math functions: 2xexp -> 2x exp, xexp -> x exp, 2xsin -> 2x sin
-  s = s.replace(/([0-9a-zA-Z])\s*(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b/gi, '$1 $2');
+  // Separate glued math functions horizontally (never bridge across newlines): 2xexp -> 2x exp, xexp -> x exp, 2xsin -> 2x sin
+  s = s.replace(/([0-9a-zA-Z])[^\S\r\n]*(sin|cos|tan|cot|sec|csc|log_e|ln|log|exp)\b/gi, '$1 $2');
 
   // Double parens on radicals: √((1+x^6)) or \sqrt((1+x^6)) or 4√2
   s = normalizeAllRadicals(s);
@@ -1455,6 +1497,20 @@ export function splitIntoQuestionSegments(rawText: string): string[] {
   if (doubleNewlineBlocks.length > 1) {
     const questionNumberedBlocks = doubleNewlineBlocks.filter((b) => /^(?:Q\d+|\d+[\.\:\)])/i.test(b));
     if (questionNumberedBlocks.length >= 2) {
+      return doubleNewlineBlocks;
+    }
+
+    // Check 2b: Multiple blocks separated by double newlines where each block is a self-contained question
+    // (has its own exam tag, or starts with question prose and ends with a query prompt)
+    const isQuestionBlock = (b: string) => {
+      if (/^\s*(?:\([A-D1-4]\)|\[[A-D1-4]\]|[A-D1-4][\.:\)])\s+[^\n]{1,60}$/i.test(b.trim())) return false;
+      const hasExamTag = /(?:\[|\b)(?:JEE\s*(?:Main|Advanced)?|AIEEE|BITSAT|NEET)/i.test(b);
+      const hasPrompt = /(?:is\s+equal\s+to|equals|find|evaluate|calculate|determine|\?|__+)/i.test(b);
+      const startsWithQuestionProse = /^(?:[•\u2022\u25E6\u25AA\u25CF.\-—\s]*)(?:Let\b|If\b|The\s+(?:value|integral|number|area|function|equation|set|sum|slope|minimum|maximum|limit|differential)|Consider\b|Find\b|Evaluate\b|For\b|Given\b|Suppose\b|A\s+(?:curve|function|matrix|line|circle|triangle)\b)/i.test(b);
+      return hasExamTag || (startsWithQuestionProse && hasPrompt);
+    };
+    const qBlocks = doubleNewlineBlocks.filter(isQuestionBlock);
+    if (qBlocks.length >= 2 && qBlocks.length === doubleNewlineBlocks.length) {
       return doubleNewlineBlocks;
     }
   }

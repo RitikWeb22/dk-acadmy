@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, Sparkles, X, ChevronRight } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle2, AlertCircle, Sparkles, X } from 'lucide-react';
 import { ValidationBadge } from '../../ui/MathEngine/ValidationBadge';
 import { apiClient } from '../../../services/apiClient';
 

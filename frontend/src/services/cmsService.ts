@@ -14,7 +14,6 @@ import type {
   PageSectionItem
 } from '../types/admin';
 import { COURSES_CATALOG } from '../data/coursesData';
-import { TEST_SERIES_DATA } from '../data/testSeriesData';
 import { PYQ_QUESTIONS } from '../data/pyqData';
 import { DPP_SETS } from '../data/dppData';
 import { ACHIEVERS_LIST } from '../data/homepageRedesignData';

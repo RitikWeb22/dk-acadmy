@@ -335,16 +335,6 @@ export const TestSeriesPage: React.FC = () => {
     return Math.max(1, formats.size);
   }, [visibleStudentTests]);
 
-  // Paid Test Unlock & Monetization State
-  const [unlockedMockTestIds, setUnlockedMockTestIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('unlocked_mock_test_ids');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
   const [modalTargetTest, setModalTargetTest] = useState<TestSeriesItem | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -402,16 +392,12 @@ export const TestSeriesPage: React.FC = () => {
         onSuccess: (paymentId) => {
           setIsProcessingPayment(false);
           setIsUnlockModalOpen(false);
-          // Unlock test locally and notify backend
-          setUnlockedMockTestIds((prev) => {
-            const next = Array.from(new Set([...prev, testId]));
-            try {
-              localStorage.setItem('unlocked_mock_test_ids', JSON.stringify(next));
-            } catch {}
-            return next;
-          });
-          apiClient.post(`/test-series/${testId}/unlock`, { paymentId }).catch(() => {});
-          handleOpenInstructions(testId);
+          // Notify backend of payment completion and proceed
+          apiClient.post(`/test-series/${testId}/unlock`, { paymentId })
+            .catch((err) => console.warn('[Test Series Unlock Warning]:', err))
+            .finally(() => {
+              handleOpenInstructions(testId);
+            });
         },
         onError: (err) => {
           setIsProcessingPayment(false);
@@ -697,16 +683,14 @@ export const TestSeriesPage: React.FC = () => {
 
     // Cloud autosave with monotonic timestamp and student identity
     try {
-      const res = await apiClient.post<any>(`/test-series/${activeTestId}/autosave`, {
+      return await apiClient.post<any>(`/test-series/${activeTestId}/autosave`, {
         responses,
         timeSpentSeconds: elapsed,
         clientTimestamp: Date.now(),
         studentId: student?.id || (student as any)?._id
       });
-      return res;
     } catch (cloudErr) {
-      // Re-throw so TestTakingView exponential backoff can track failure and schedule jittered retry
-      throw cloudErr;
+      console.warn('Cloud autosave sync warning:', cloudErr);
     }
   };
 
@@ -876,7 +860,7 @@ export const TestSeriesPage: React.FC = () => {
           .catch(() => {});
       }
     }
-  }, [viewState, activeTest, student]);
+  }, [viewState, activeTest, student, attempts]);
 
   // When active exam is taking place, render completely isolated fullscreen interface
   // (No public header, no website navbar, no footer, no padding)

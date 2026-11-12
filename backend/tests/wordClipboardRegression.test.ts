@@ -2,7 +2,6 @@ import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  convertHtmlWithMath,
   preprocessRawHtmlMath,
   preprocessRawHtmlMathDetailed
 } from '../src/utils/universalMathEngine/ommlMathMLConverter.js';

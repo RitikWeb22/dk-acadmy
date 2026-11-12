@@ -45,13 +45,9 @@ Thumbs.db
 backend/public/uploads/*
 !backend/public/uploads/.gitkeep
 
-# Ignore all markdown documentation files except README
-*.md
-**/*.md
-!README.md
-!**/README.md
-!readme.md
-!**/readme.md
+# Documentation & Reports are tracked
+!*.md
+!**/*.md
 
 
 

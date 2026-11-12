@@ -11,7 +11,7 @@
  */
 
 import { ommlNodeToLatex, mathMLNodeToLatex } from '../universalMathEngine';
-import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents, normalizePrimes, convertFractionsBalanced, convertExpBraces, convertLiteralCurlyBraces, normalizeAllRadicals } from '../wordPasteParser';
+import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents, normalizePrimes, convertFractionsBalanced, convertExpBraces, convertLiteralCurlyBraces, normalizeAllRadicals, normalizeWordIntegrals } from '../wordPasteParser';
 
 export interface ParsedOption {
   key: 'A' | 'B' | 'C' | 'D';
@@ -155,16 +155,23 @@ export function extractMathFromHtml(html: string): string {
 export function normalizeMathString(raw: string): string {
   if (!raw) return '';
   let s = parseWordMatricesAndCases(raw);
+  s = normalizeWordIntegrals(s);
 
   // Clean leading bullet, number, or dot: ". If a curve..." -> "If a curve..."
   s = s.replace(/Word HTML dropped part of the question\.\s*The plain-text version was kept and needs review\.\s*/gi, '');
   s = s.replace(/^[\s\u2022\u25E6\u25AA\u25CF.\-—]+\s*/g, '');
   s = s.replace(/^Q(?:uestion)?\s*\.?\s*\d+\s*[:.)\-—]\s*/gi, '');
 
+  // Strip Word equation literal text quotes: e.g. " and ", " is", " where ", " for ", " then "
+  s = s.replace(/"\s*(and|or|is|where|when|for|then|if|with|such\s+that)\s*"/gi, ' $1 ');
+  s = s.replace(/"\s*(is|and)\b/gi, ' $1');
+  s = s.replace(/\b(is|and)\s*"/gi, '$1 ');
+  s = s.replace(/([a-zA-Z0-9_)\]])"\s*(is|and|where|when|for|then|if|with)/gi, '$1 $2');
+
   // Clean zero-width chars and smart quotes
   s = s.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
   s = s.replace(/\u00A0/g, ' ');
-  s = s.replace(/[\u200B-\u200D\uFEFF\u2060\u2061\u2062\u2063\u2064]/g, '');
+  s = s.replace(/[\u200B-\u200D\uFEFF\u2060\u2061\u2062\u2063\u2064▒□〖〗]/g, '');
   s = s.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
   s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
@@ -294,8 +301,9 @@ export function normalizeMathString(raw: string): string {
   // Greek letter fractions with powers: \pi^2/32 -> \dfrac{\pi^2}{32}, \pi/2 -> \dfrac{\pi}{2}
   s = s.replace(/(\\[a-zA-Z]+)\s*\^/g, '$1^');
   // Greek letter fractions with leading coefficient or variable: 3\pi/4 -> \dfrac{3\pi}{4}, k\pi/12 -> \dfrac{k\pi}{12}, 7\pi/4 -> \dfrac{7\pi}{4}
-  s = s.replace(/(?<![0-9a-zA-Z_\\])([-+]?(?:[0-9a-zA-Z_]+(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?\s*)?\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, (match, num, den) => {
-    return `\\dfrac{${num.trim()}}{${den.trim()}}`;
+  s = s.replace(/(?<![0-9a-zA-Z_\\])([-+])?\s*((?:[0-9a-zA-Z_]+(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?\s*)?\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, (_match, sign, num, den) => {
+    const sPrefix = sign ? `${sign} ` : '';
+    return `${sPrefix}\\dfrac{${num.trim()}}{${den.trim()}}`;
   });
   s = s.replace(/(\\(?:pi|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|rho|sigma|tau|phi|chi|psi|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([0-9a-zA-Z]+)/g, '\\dfrac{$1}{$2}');
 
@@ -669,12 +677,24 @@ export function normalizeMathString(raw: string): string {
     }
   );
 
-  // 8b. Functional equations: f(x+y) = f(x) \cdot f(y) or f(xy) = f(x) + f(y)
+  // 8b. Functional equations: f(x+y) = f(x) \cdot f(y), f(x^2)+g(4-x)=4x^3, g(4-x)+g(x)=0
   s = s.replace(
-    new RegExp(`(?<![$\\w])([a-zA-Z]\\s*\\([^()\\n]+\\)\\s*=\\s*[-+*/a-zA-Z0-9_\\\\^{}()'|\\[\\]\\s.]*?[a-zA-Z0-9_^{}()'|\\[\\]\\\\)])(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'),
+    new RegExp(
+      `(?<![$\\w])(` +
+      `(?:[a-zA-Z]\\s*\\([^()\\n]+\\)|[-+*/0-9a-zA-Z_\\\\^{}]+)` +
+      `(?:\\s*[-+*/]\\s*(?:[a-zA-Z]\\s*\\([^()\\n]+\\)|[-+*/0-9a-zA-Z_\\\\^{}]+))*` +
+      `\\s*=\\s*` +
+      `[-+*/0-9a-zA-Z_\\\\^{}()'|.\\s]+?` +
+      `)(?=\\s+${proseStops}|\\s*[,;.]|$)`,
+      'gi'
+    ),
     (fullMatch, eq) => {
+      // Must contain at least one function call: e.g. f(...) or g(...)
+      if (!/[a-zA-Z]\s*\([^()\n]+\)/.test(eq)) {
+        return fullMatch;
+      }
       const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
-      if (/\b(?:let|the|and|for|with|where|when|if|then|is|are|find)\b/i.test(nonLatex)) {
+      if (/\b(?:let|the|and|for|with|where|when|if|then|is|are|find|curve|line|plane)\b/i.test(nonLatex)) {
         return fullMatch;
       }
       return protect(eq);
@@ -739,6 +759,12 @@ export function normalizeMathString(raw: string): string {
     /\b(then\s+(?:the\s+)?value\s+of|the\s+value\s+of|value\s+of|then|and|if|where|find|evaluate)\s+((?:[^,;.\n]|\.(?=\d))+?)\s+(is\s+equal\s+to|equals\b)(?:\s*[:=_\-]+)?/gi,
     (fullMatch, lead, expr, tail) => {
       let trimmed = expr.trim();
+      // Keep English prose like "integral" / "the integral" out of math delimiters
+      const intMatch = trimmed.match(/^((?:(?:the\s+)?(?:definite\s+)?integral)\s+)([\s\S]+)$/i);
+      if (intMatch) {
+        lead = `${lead} ${intMatch[1]}`.trim();
+        trimmed = intMatch[2].trim();
+      }
       trimmed = trimmed.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
       if (/[0-9\+\-\*\/\^_{}\(\)\[\]\\]/.test(trimmed) && !/\b(?:is|are|the|number|points|statement|curves?)\b/i.test(trimmed)) {
         return `${lead} ${protect(trimmed)} ${tail}`;
@@ -765,6 +791,7 @@ export function normalizeMathString(raw: string): string {
     /(?<=\bis\s+)([-+]?\s*(?:\\(?:d?frac)\{(?:[^{}]|\\{[^{}]*\\})+\\}\{(?:[^{}]|\\{[^{}]*\\})+\\}|\\(?:sqrt|cbrt)\{[^{}]+\}|[0-9a-zA-Z_\\^{}()]+)(?:\s*[-+*/]\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|\\(?:sqrt|cbrt)\{[^{}]+\}|[0-9a-zA-Z_\\^{}()]+))*)(?=\s*[,;.]|\s+(?:then|where|when|if|and)\b)/g,
     (m, expr, offset) => {
       if (isInsideLatexGroup(s, offset)) return m;
+      if (/^[_.\s]+$/.test(expr)) return m;
       const stripped = expr.replace(/\\[a-zA-Z]+/g, ' ').trim();
       if (/\b(?:the|a|an|equal|true|false|correct|given|defined|continuous)\b/i.test(stripped)) return m;
       if (/[0-9\+\-\*\/\^_{}\(\)\\]/.test(expr)) {
@@ -942,6 +969,21 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/\s*\.$/, '');
   s = s.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
+  // Strip Word invisible formatting characters, unicode math symbols and quotes early
+  s = s.replace(/[\u2061\u2062\u2063\u2064]/g, ' ')
+       .replace(/[\u200B-\u200F\uFEFF\u00AD\u034F\u180E\uFFF9-\uFFFC]/g, '')
+       .replace(/[−–]/g, '-')
+       .replace(/°/g, '^\\circ')
+       .replace(/×/g, '\\times')
+       .replace(/÷/g, '\\div')
+       .replace(/π/g, '\\pi ')
+       .replace(/α/g, '\\alpha ')
+       .replace(/β/g, '\\beta ')
+       .replace(/γ/g, '\\gamma ')
+       .replace(/θ/g, '\\theta ')
+       .replace(/λ/g, '\\lambda ')
+       .replace(/μ/g, '\\mu ');
+
   if (
     (s.startsWith('$') && s.endsWith('$') && !s.slice(1, -1).includes('$')) ||
     (s.startsWith('\\(') && s.endsWith('\\)')) ||
@@ -970,11 +1012,23 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/[-−]\s*3\s+e\b/gi, '-\\dfrac{3}{e}');
   s = s.replace(/[-−]\s*2\s+e\b/gi, '-\\dfrac{2}{e}');
 
+  // Greek letter fractions with leading signs or coefficients:
+  // e.g. +\pi/4 -> + \dfrac{\pi}{4}, -\pi/2 -> - \dfrac{\pi}{2}, \pi/4 -> \dfrac{\pi}{4}
+  s = s.replace(/(?<![0-9a-zA-Z_\\])([-+])?\s*\\pi\s*\/\s*([0-9]+)/gi, (_m, sign, den) => {
+    const sPrefix = sign ? `${sign} ` : '';
+    return `${sPrefix}\\dfrac{\\pi}{${den}}`;
+  });
   s = s.replace(/\\pi\s*([2-9]|12|16|32)\b/g, '\\dfrac{\\pi}{$1}');
   s = s.replace(/e\s*\\pi\s*\/\s*([0-9]+)/gi, 'e^{\\dfrac{\\pi}{$1}}');
 
-  // 1b. Logarithm conversions: log_e 2 -> \log_e 2, ln x -> \ln x
-  s = s.replace(/\blog_([a-zA-Z0-9]+|\{[^{}]+\})/g, '\\log_{$1}');
+  // 1b. Logarithm conversions: log_e 2 -> \log_e 2, 2log_e 2 -> 2 \log_e 2, ln x -> \ln x
+  s = s.replace(/(\d+)[^\S\r\n]*(?=\\?log)/gi, '$1 ');
+  s = s.replace(/(?<![a-zA-Z\\])log_e\s*(\d+)/gi, '\\log_e $1');
+  s = s.replace(/(?<![a-zA-Z\\])log_e\s*([a-zA-Z])\b/gi, '\\log_e $1');
+  s = s.replace(/(?<![a-zA-Z\\])log_e(?![a-zA-Z])/gi, '\\log_e');
+  s = s.replace(/(?<![a-zA-Z\\])log_([0-9a-zA-Z]+)\s*(\d+)/gi, '\\log_{$1} $2');
+  s = s.replace(/(?<![a-zA-Z\\])log_([0-9a-zA-Z]+)\s*([a-zA-Z])\b/gi, '\\log_{$1} $2');
+  s = s.replace(/(?<![a-zA-Z\\])log_([0-9a-zA-Z]+)(?![a-zA-Z])/gi, '\\log_{$1}');
   s = s.replace(/(?<!\\)\b(log|ln)\b/g, '\\$1');
 
   // Exponents with nested parens e.g. (8)^(1/4) -> (8)^{1/4} and prime derivatives
@@ -986,7 +1040,8 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/(?<![a-zA-Z0-9_\\])(-?[0-9a-zA-Z_\\^{}]+)\s*\/\s*\(([^\(\)\n]+)\)/g, '\\dfrac{$1}{$2}');
   s = s.replace(/\(([^\(\)\n]+)\)\s*\/\s*(-?[0-9a-zA-Z_\\^{}]+)(?![a-zA-Z0-9_\\])/g, '\\dfrac{$1}{$2}');
   s = s.replace(/\(([^\(\)\n]+)\)\s*\/\s*\(([^\(\)\n]+)\)/g, '\\dfrac{$1}{$2}');
-  s = s.replace(/(?<![a-zA-Z0-9_\/])(-?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/(?<![a-zA-Z0-9_\/])([-+])\s*(\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '$1 \\dfrac{$2}{$3}');
+  s = s.replace(/(?<![a-zA-Z0-9_\/])(\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_\/])/g, '\\dfrac{$1}{$2}');
 
   // 3. Unicode math in options
   s = s.replace(/[\u200B-\u200F\u2060-\u2064\uFEFF\u00AD\u034F\u180E\uFFF9-\uFFFC]/g, '')

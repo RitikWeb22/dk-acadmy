@@ -119,10 +119,10 @@ function escapeLatexDelimiter(value, side) {
     const map = {
         '(': side === 'left' ? '\\left(' : '\\right)',
         ')': side === 'left' ? '\\left)' : '\\right)',
-        '[': side === 'left' ? '\\left[' : '\\right[',
-        ']': side === 'left' ? '\\left]' : '\\right]',
-        '{': side === 'left' ? '\\left\\{' : '\\right\\{',
-        '}': side === 'left' ? '\\left\\}' : '\\right\\}',
+        '[': side === 'left' ? '\\left[' : '\\right]',
+        ']': side === 'left' ? '\\left[' : '\\right]',
+        '{': side === 'left' ? '\\left\\{' : '\\right\\}',
+        '}': side === 'left' ? '\\left\\{' : '\\right\\}',
         '|': side === 'left' ? '\\left|' : '\\right|',
         '‖': side === 'left' ? '\\left\\|' : '\\right\\|',
         '⌈': side === 'left' ? '\\left\\lceil' : '\\right\\lceil',
@@ -362,7 +362,12 @@ export function ommlNodeToLatex(node) {
                 return argument;
             const command = functionName.startsWith('\\') ? functionName : `\\${functionName}`;
             const noParentheses = new Set(['\\lim', '\\max', '\\min', '\\sup', '\\inf', '\\limsup', '\\liminf']);
-            return noParentheses.has(command) ? `${command}${argument ? ` ${argument}` : ''}` : `${command}${argument ? `\\left(${argument}\\right)` : ''}`;
+            if (!argument)
+                return command;
+            if (noParentheses.has(command) || argument.startsWith('\\left') || argument.startsWith('{') || argument.startsWith('(') || argument.startsWith('[')) {
+                return `${command} ${argument}`;
+            }
+            return `${command}\\left(${argument}\\right)`;
         }
         case 'acc': {
             const properties = childByTag(node, 'accpr');

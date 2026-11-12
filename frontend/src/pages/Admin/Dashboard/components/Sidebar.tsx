@@ -17,8 +17,7 @@ import {
   MoreVertical,
   UserCog,
   Video,
-  Tag,
-  Layers
+  Tag
 } from 'lucide-react';
 import { useAdminAuth } from '../../../../context/AdminAuthContext';
 import { AdminProfileModal } from '../../../../components/admin/AdminProfileModal/AdminProfileModal';
