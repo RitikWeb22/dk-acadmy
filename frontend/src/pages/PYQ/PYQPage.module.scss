@@ -722,13 +722,36 @@
 }
 
 .contentLayout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 
   @include desktop {
+    display: grid;
     grid-template-columns: 8fr 4fr;
     align-items: flex-start;
+    gap: 28px;
+  }
+
+  @include tablet-down {
+    .sidebarColumn {
+      display: contents;
+    }
+
+    .paletteWrapper {
+      order: 1;
+      width: 100%;
+    }
+
+    .mainColumn {
+      order: 2;
+      width: 100%;
+    }
+
+    .progressWrapper {
+      order: 3;
+      width: 100%;
+    }
   }
 }
 

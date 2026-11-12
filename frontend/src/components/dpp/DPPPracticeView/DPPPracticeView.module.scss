@@ -234,7 +234,33 @@
   align-items: start;
 
   @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: $space-5;
+
+    .sidebar {
+      display: contents;
+    }
+
+    .paletteWrapper {
+      order: 1;
+      width: 100%;
+    }
+
+    .questionCanvas {
+      order: 2;
+      width: 100%;
+    }
+
+    .progressSummaryCard {
+      order: 3;
+      width: 100%;
+    }
+
+    .sidebarSubmitBtn {
+      order: 4;
+      width: 100%;
+    }
   }
 }
 

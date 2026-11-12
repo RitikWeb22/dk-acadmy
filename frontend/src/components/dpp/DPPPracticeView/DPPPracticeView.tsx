@@ -575,18 +575,20 @@ export const DPPPracticeView: React.FC<DPPPracticeViewProps> = ({
           </div>
 
           {/* Modernized Question Palette */}
-          <QuestionNavigator
-            questions={set.questions}
-            currentIndex={currentIndex}
-            onSelectIndex={(idx) => setCurrentIndex(idx)}
-            responses={responses}
-            isReviewMode={isReviewMode}
-            isQuestionAccessible={isQuestionAccessible}
-            onLockedClick={(q, idx) => {
-              setCurrentIndex(idx);
-              if (onUnlock) onUnlock();
-            }}
-          />
+          <div className={styles.paletteWrapper}>
+            <QuestionNavigator
+              questions={set.questions}
+              currentIndex={currentIndex}
+              onSelectIndex={(idx) => setCurrentIndex(idx)}
+              responses={responses}
+              isReviewMode={isReviewMode}
+              isQuestionAccessible={isQuestionAccessible}
+              onLockedClick={(q, idx) => {
+                setCurrentIndex(idx);
+                if (onUnlock) onUnlock();
+              }}
+            />
+          </div>
 
           {/* Submit Session Button */}
           {!isReviewMode && (

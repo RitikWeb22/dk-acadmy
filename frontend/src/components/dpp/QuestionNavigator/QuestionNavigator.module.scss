@@ -36,12 +36,12 @@
 
 .paletteGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
   gap: $space-2;
   margin-bottom: $space-4;
 
-  @media (min-width: 640px) and (max-width: 991px) {
-    grid-template-columns: repeat(8, 1fr);
+  @media (min-width: 1025px) {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

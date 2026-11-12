@@ -1216,24 +1216,28 @@ export const PYQPage: React.FC = () => {
 
                   {/* Right Column: Question Palette & Progress */}
                   <aside className={styles.sidebarColumn}>
-                    <QuestionNavigator
-                      totalCount={setQuestions.length}
-                      currentIndex={activeQuestionIndex ?? 0}
-                      onSelectIndex={(idx) => setActiveQuestionIndex(idx)}
-                      responses={responses}
-                      questionIds={questionIds}
-                      isEnrolled={activeSet.isFree !== false || isEnrolled}
-                      freeCount={activeSet.isFree !== false ? setQuestions.length : setQuestions.filter((q, i) => isQuestionAccessible(q, i)).length}
-                      isAccessible={(idx) => isQuestionAccessible(setQuestions[idx], idx)}
-                      onToggleMarkForReview={handleToggleMarkForReview}
-                    />
+                    <div className={styles.paletteWrapper}>
+                      <QuestionNavigator
+                        totalCount={setQuestions.length}
+                        currentIndex={activeQuestionIndex ?? 0}
+                        onSelectIndex={(idx) => setActiveQuestionIndex(idx)}
+                        responses={responses}
+                        questionIds={questionIds}
+                        isEnrolled={activeSet.isFree !== false || isEnrolled}
+                        freeCount={activeSet.isFree !== false ? setQuestions.length : setQuestions.filter((q, i) => isQuestionAccessible(q, i)).length}
+                        isAccessible={(idx) => isQuestionAccessible(setQuestions[idx], idx)}
+                        onToggleMarkForReview={handleToggleMarkForReview}
+                      />
+                    </div>
 
-                    <PracticeProgress
-                      totalQuestions={setQuestions.length}
-                      answeredCount={stats.answered}
-                      correctCount={stats.correct}
-                      evaluatedCount={stats.evaluated}
-                    />
+                    <div className={styles.progressWrapper}>
+                      <PracticeProgress
+                        totalQuestions={setQuestions.length}
+                        answeredCount={stats.answered}
+                        correctCount={stats.correct}
+                        evaluatedCount={stats.evaluated}
+                      />
+                    </div>
                   </aside>
                 </div>
               ) : (
