@@ -41,7 +41,10 @@ Thumbs.db
 .vite-temp/
 **/node_modules/.tmp/
 
-# Uploads directory (preserve folder, ignore user uploads)
+# Backend generated static distribution (compiled automatically by build-unified from frontend/dist)
+backend/public/*
+backend/public/**/*
+!backend/public/uploads/
 backend/public/uploads/*
 !backend/public/uploads/.gitkeep
 
