@@ -69,7 +69,7 @@ export interface AllOffersPayload {
 }
 
 export const OFFERS_EVENT_KEY = 'dk_offers_updated';
-const STORAGE_KEY = 'dk_academy_offers_v2';
+const STORAGE_KEY = 'dk_academy_offers_v3';
 
 const DEFAULT_OFFERS: AllOffersPayload = {
   all: [
@@ -81,7 +81,7 @@ const DEFAULT_OFFERS: AllOffersPayload = {
       message: 'JEE Main & Advanced 2026-27 Batches Open! Avail up to 90% Merit Scholarship + Study Material.',
       linkText: 'Explore Batches',
       linkUrl: '/courses',
-      isActive: true,
+      isActive: false,
       priority: 1
     },
     {
@@ -95,7 +95,7 @@ const DEFAULT_OFFERS: AllOffersPayload = {
       linkUrl: '/courses',
       audience: 'all',
       frequency: 'once_per_session',
-      isActive: true,
+      isActive: false,
       priority: 1
     },
     {
@@ -108,7 +108,7 @@ const DEFAULT_OFFERS: AllOffersPayload = {
       targetScope: 'all',
       applicableItemIds: [],
       message: 'Instant 25% discount applied across all premium flagship courses and CBT mock series.',
-      isActive: true,
+      isActive: false,
       priority: 1
     }
   ],
@@ -120,7 +120,7 @@ const DEFAULT_OFFERS: AllOffersPayload = {
     message: 'JEE Main & Advanced 2026-27 Batches Open! Avail up to 90% Merit Scholarship + Study Material.',
     linkText: 'Explore Batches',
     linkUrl: '/courses',
-    isActive: true,
+    isActive: false,
     priority: 1
   },
   popupOffer: {
@@ -134,24 +134,10 @@ const DEFAULT_OFFERS: AllOffersPayload = {
     linkUrl: '/courses',
     audience: 'all',
     frequency: 'once_per_session',
-    isActive: true,
+    isActive: false,
     priority: 1
   },
-  itemOffers: [
-    {
-      id: 'off_item_default',
-      offerType: 'item_discount',
-      title: 'IIT-JEE Merit Flash Sale',
-      badgeText: '🔥 SPECIAL 25% OFF',
-      discountType: 'percent',
-      discountValue: 25,
-      targetScope: 'all',
-      applicableItemIds: [],
-      message: 'Instant 25% discount applied across all premium flagship courses and CBT mock series.',
-      isActive: true,
-      priority: 1
-    }
-  ]
+  itemOffers: []
 };
 
 class OfferService {
@@ -202,19 +188,22 @@ class OfferService {
 
   public getBannerOfferSync(): BannerOfferData | null {
     const data = this.getLocalData();
-    const banner = data.bannerOffer || (data.all.find((o) => o.offerType === 'banner' && o.isActive) as BannerOfferData);
-    return banner && banner.isActive ? banner : null;
+    const banner = data.bannerOffer || (data.all.find((o) => o.offerType === 'banner') as BannerOfferData);
+    return banner && banner.isActive === true ? banner : null;
   }
 
   public getPopupOfferSync(): PopupOfferData | null {
     const data = this.getLocalData();
-    const popup = data.popupOffer || (data.all.find((o) => o.offerType === 'popup' && o.isActive) as PopupOfferData);
-    return popup && popup.isActive ? popup : null;
+    const popup = data.popupOffer || (data.all.find((o) => o.offerType === 'popup') as PopupOfferData);
+    return popup && popup.isActive === true ? popup : null;
   }
 
   public getItemOffersSync(): ItemOfferData[] {
     const data = this.getLocalData();
-    return data.itemOffers || (data.all.filter((o) => o.offerType === 'item_discount') as ItemOfferData[]);
+    const list = data.itemOffers && data.itemOffers.length > 0
+      ? data.itemOffers
+      : (data.all.filter((o) => o.offerType === 'item_discount') as ItemOfferData[]);
+    return list.filter((o) => o.isActive === true);
   }
 
   /**
@@ -247,10 +236,8 @@ class OfferService {
       updatedAll = [payload, ...current.all];
     }
 
-    const bannerOffer = (updatedAll.find((o) => o.offerType === 'banner' && o.isActive) ||
-      updatedAll.find((o) => o.offerType === 'banner') || null) as BannerOfferData | null;
-    const popupOffer = (updatedAll.find((o) => o.offerType === 'popup' && o.isActive) ||
-      updatedAll.find((o) => o.offerType === 'popup') || null) as PopupOfferData | null;
+    const bannerOffer = (updatedAll.find((o) => o.offerType === 'banner') || null) as BannerOfferData | null;
+    const popupOffer = (updatedAll.find((o) => o.offerType === 'popup') || null) as PopupOfferData | null;
     const itemOffers = updatedAll.filter((o) => o.offerType === 'item_discount') as ItemOfferData[];
 
     const newPayload: AllOffersPayload = {
@@ -283,10 +270,14 @@ class OfferService {
       console.warn('[OfferService] Toggling locally:', err.message);
     }
 
-    const bannerOffer = (current.all.find((o) => o.offerType === 'banner' && o.isActive) ||
-      current.all.find((o) => o.offerType === 'banner') || null) as BannerOfferData | null;
-    const popupOffer = (current.all.find((o) => o.offerType === 'popup' && o.isActive) ||
-      current.all.find((o) => o.offerType === 'popup') || null) as PopupOfferData | null;
+    current.all.forEach((o) => {
+      if (o.id === target.id || o._id === target._id || o.offerType === target.offerType) {
+        o.isActive = nextState;
+      }
+    });
+
+    const bannerOffer = (current.all.find((o) => o.offerType === 'banner') || null) as BannerOfferData | null;
+    const popupOffer = (current.all.find((o) => o.offerType === 'popup') || null) as PopupOfferData | null;
     const itemOffers = current.all.filter((o) => o.offerType === 'item_discount') as ItemOfferData[];
 
     this.saveLocalData({
@@ -312,10 +303,8 @@ class OfferService {
     const current = this.getLocalData();
     const filteredAll = current.all.filter((o) => o.id !== id && o._id !== id);
 
-    const bannerOffer = (filteredAll.find((o) => o.offerType === 'banner' && o.isActive) ||
-      filteredAll.find((o) => o.offerType === 'banner') || null) as BannerOfferData | null;
-    const popupOffer = (filteredAll.find((o) => o.offerType === 'popup' && o.isActive) ||
-      filteredAll.find((o) => o.offerType === 'popup') || null) as PopupOfferData | null;
+    const bannerOffer = (filteredAll.find((o) => o.offerType === 'banner') || null) as BannerOfferData | null;
+    const popupOffer = (filteredAll.find((o) => o.offerType === 'popup') || null) as PopupOfferData | null;
     const itemOffers = filteredAll.filter((o) => o.offerType === 'item_discount') as ItemOfferData[];
 
     this.saveLocalData({

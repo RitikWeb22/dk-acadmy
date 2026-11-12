@@ -10,7 +10,7 @@ const SEED_OFFERS: Array<Partial<IOffer>> = [
     message: 'JEE Main & Advanced 2026-27 Batches Open! Avail up to 90% Merit Scholarship + Kota Study Material.',
     linkText: 'Explore Batches',
     linkUrl: '/courses',
-    isActive: true,
+    isActive: false,
     priority: 1
   },
   {
@@ -23,7 +23,7 @@ const SEED_OFFERS: Array<Partial<IOffer>> = [
     linkUrl: '/courses',
     audience: 'all',
     frequency: 'once_per_session',
-    isActive: true,
+    isActive: false,
     priority: 1
   },
   {
@@ -42,7 +42,7 @@ const SEED_OFFERS: Array<Partial<IOffer>> = [
 
 let cachedOffersData: any = null;
 let lastOffersCacheTime = 0;
-const OFFERS_CACHE_TTL = 30000; // 30s
+const OFFERS_CACHE_TTL = 3000; // 3s cache to ensure instant reactivity
 
 const invalidateOffersCache = () => {
   cachedOffersData = null;
@@ -80,9 +80,9 @@ export const getAllOffers = async (_req: Request, res: Response): Promise<void> 
 
     const resultData = {
       all: offers.length > 0 ? offers : SEED_OFFERS,
-      bannerOffer: bannerOffer || SEED_OFFERS.find((o) => o.offerType === 'banner') || null,
-      popupOffer: popupOffer || SEED_OFFERS.find((o) => o.offerType === 'popup') || null,
-      itemOffers: itemOffers.length > 0 ? itemOffers : SEED_OFFERS.filter((o) => o.offerType === 'item_discount')
+      bannerOffer: bannerOffer ? bannerOffer : (offers.length > 0 ? null : (SEED_OFFERS.find((o) => o.offerType === 'banner') || null)),
+      popupOffer: popupOffer ? popupOffer : (offers.length > 0 ? null : (SEED_OFFERS.find((o) => o.offerType === 'popup') || null)),
+      itemOffers: itemOffers.length > 0 ? itemOffers : (offers.length > 0 ? [] : SEED_OFFERS.filter((o) => o.offerType === 'item_discount'))
     };
 
     cachedOffersData = resultData;
@@ -126,12 +126,18 @@ export const createOrUpdateOffer = async (req: Request, res: Response): Promise<
       Object.assign(existingOffer, offerData);
       existingOffer.updatedAt = new Date();
       await existingOffer.save();
+      if (offerData.offerType) {
+        await Offer.deleteMany({ offerType: offerData.offerType as any, _id: { $ne: existingOffer._id } });
+      }
       invalidateOffersCache();
       res.status(200).json({ success: true, message: 'Offer updated successfully', data: existingOffer });
       return;
     }
 
     const newOffer = await Offer.create(offerData);
+    if (offerData.offerType) {
+      await Offer.deleteMany({ offerType: offerData.offerType as any, _id: { $ne: newOffer._id } });
+    }
     invalidateOffersCache();
     res.status(201).json({ success: true, message: 'Offer created successfully', data: newOffer });
   } catch (error: any) {

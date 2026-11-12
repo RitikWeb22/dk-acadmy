@@ -68,13 +68,6 @@ interface CouponData {
   label: string;
 }
 
-const VERIFIED_COUPONS: Record<string, CouponData> = {
-  DK10: { type: 'percent', value: 10, label: '10% Merit Scholarship' },
-  DKSIR20: { type: 'percent', value: 20, label: '20% Direct Faculty Waiver' },
-  EARLYBIRD: { type: 'flat', value: 1000, label: '₹1,000 Early Bird Batch Discount' },
-  WELCOME500: { type: 'flat', value: 500, label: '₹500 Welcome Discount' }
-};
-
 export const CourseCheckout: React.FC = () => {
   const navigate = useNavigate();
   const { courseId } = useParams<{ courseId?: string }>();
@@ -123,6 +116,14 @@ export const CourseCheckout: React.FC = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; data: CouponData } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
+  const [activeCoupons, setActiveCoupons] = useState<string[]>([]);
+
+  useEffect(() => {
+    couponService.getAllCoupons().then((list) => {
+      const activeList = list.filter((c) => c.isActive).map((c) => c.code);
+      setActiveCoupons(activeList);
+    }).catch(() => {});
+  }, []);
 
   // Auto-apply promo coupon from URL / popup session
   useEffect(() => {
@@ -202,7 +203,7 @@ export const CourseCheckout: React.FC = () => {
 
     try {
       const res = await couponService.validateAndApply(cleanCode, BASE_COURSE_MRP);
-      if (res.success && res.data) {
+      if (res && res.success && res.data) {
         const discountVal = res.discountAmount || 0;
         setAppliedCoupon({
           code: cleanCode,
@@ -215,17 +216,10 @@ export const CourseCheckout: React.FC = () => {
         setCouponCodeInput('');
         setCouponSuccess(`✓ ${cleanCode} applied! Saved ₹${discountVal.toLocaleString('en-IN')}`);
       } else {
-        setCouponError(res.message || 'Invalid or expired coupon code.');
+        setCouponError(res?.message || 'Invalid or inactive coupon code.');
       }
     } catch (err: any) {
-      const matched = VERIFIED_COUPONS[cleanCode];
-      if (matched) {
-        setAppliedCoupon({ code: cleanCode, data: matched });
-        setCouponCodeInput('');
-        setCouponSuccess(`✓ ${cleanCode} applied! ${matched.label}`);
-      } else {
-        setCouponError(err.message || 'Invalid or expired coupon code.');
-      }
+      setCouponError(err?.message || 'Invalid or inactive coupon code.');
     }
   };
 
@@ -627,9 +621,24 @@ export const CourseCheckout: React.FC = () => {
                   {couponError && (
                     <p className="text-xs text-rose-600 font-medium">{couponError}</p>
                   )}
-                  <p className="text-[10.5px] text-slate-400">
-                    Popular codes: <span className="font-bold text-slate-600">DK10</span>, <span className="font-bold text-slate-600">EARLYBIRD</span>
-                  </p>
+                  {activeCoupons.length > 0 && (
+                    <p className="text-[10.5px] text-slate-400">
+                      Popular codes:{' '}
+                      {activeCoupons.slice(0, 3).map((code, idx) => (
+                        <span key={code}>
+                          {idx > 0 && ', '}
+                          <button
+                            type="button"
+                            onClick={() => setCouponCodeInput(code)}
+                            className="font-bold text-slate-600 hover:text-blue-600 cursor-pointer underline"
+                            title="Click to apply"
+                          >
+                            {code}
+                          </button>
+                        </span>
+                      ))}
+                    </p>
+                  )}
                 </div>
               )}
 

@@ -109,7 +109,7 @@ export const CouponManagementWorkspace: React.FC = () => {
     message: 'JEE Main & Advanced 2026-27 Batches Open! Avail up to 90% Merit Scholarship + Kota Study Material.',
     linkText: 'Explore Batches',
     linkUrl: '/courses',
-    isActive: true
+    isActive: false
   });
 
   const [popupForm, setPopupForm] = useState<PopupOfferData>({
@@ -128,7 +128,7 @@ export const CouponManagementWorkspace: React.FC = () => {
     couponCode: 'KOTA2026',
     discountBadge: '⚡ 20% SCHOLARSHIP OFF',
     autoApplyOnRedirect: true,
-    isActive: true
+    isActive: false
   });
 
   const [itemOfferForm, setItemOfferForm] = useState<ItemOfferData>({
@@ -140,7 +140,7 @@ export const CouponManagementWorkspace: React.FC = () => {
     targetScope: 'all',
     applicableItemIds: [],
     message: 'Instant 25% discount applied across all premium flagship courses and CBT mock series.',
-    isActive: true
+    isActive: false
   });
 
   const [catalogCourses, setCatalogCourses] = useState<Course[]>(() => cmsService.getCourses());
@@ -151,9 +151,24 @@ export const CouponManagementWorkspace: React.FC = () => {
   const loadOffers = async () => {
     try {
       const res = await offerService.getAllOffers();
-      if (res.bannerOffer) setBannerForm(res.bannerOffer);
-      if (res.popupOffer) setPopupForm(res.popupOffer);
-      if (res.itemOffers && res.itemOffers.length > 0) setItemOfferForm(res.itemOffers[0]);
+      if (res.bannerOffer) {
+        setBannerForm(res.bannerOffer);
+      } else {
+        const found = res.all?.find((o) => o.offerType === 'banner');
+        if (found) setBannerForm(found as BannerOfferData);
+      }
+      if (res.popupOffer) {
+        setPopupForm(res.popupOffer);
+      } else {
+        const found = res.all?.find((o) => o.offerType === 'popup');
+        if (found) setPopupForm(found as PopupOfferData);
+      }
+      if (res.itemOffers && res.itemOffers.length > 0) {
+        setItemOfferForm(res.itemOffers[0]);
+      } else {
+        const found = res.all?.find((o) => o.offerType === 'item_discount');
+        if (found) setItemOfferForm(found as ItemOfferData);
+      }
     } catch {
       console.warn('Failed loading offers');
     }
