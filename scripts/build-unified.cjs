@@ -18,6 +18,12 @@ if (fs.existsSync(distPath)) {
     fs.rmSync(assetsPath, { recursive: true, force: true });
   }
   fs.cpSync(distPath, publicPath, { recursive: true });
+  
+  // Ensure local uploads directory exists
+  const uploadsPath = path.join(publicPath, 'uploads');
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+  }
   console.log(`Successfully copied ${distPath} -> ${publicPath}`);
 } else {
   console.warn(`Warning: Frontend dist directory not found at ${distPath}`);
