@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { createOrder, verifyPayment, getOrdersList, getMyOrders, createAdminInvoice, updateOrderStatus, deleteOrder, purgeDemoOrders } from '../controllers/paymentController.js';
-import { protect, directoryProtect, optionalProtect } from '../middlewares/authMiddleware.js';
+import { protect, optionalProtect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 const router = Router();
 const createOrderSchema = z
@@ -50,10 +50,10 @@ router.post('/create-order', optionalProtect, validate({ body: createOrderSchema
 router.post('/verify', optionalProtect, validate({ body: verifyPaymentSchema }), verifyPayment);
 // Student personal orders and fee receipts
 router.get('/my-orders', protect, getMyOrders);
-// Admin orders list, manual invoice creation, and management (supports valid JWT and admin session)
-router.get('/orders', directoryProtect, getOrdersList);
-router.post('/admin-invoice', directoryProtect, validate({ body: adminInvoiceSchema }), createAdminInvoice);
-router.patch('/orders/:id/status', directoryProtect, validate({ params: idOrSlugParamSchema, body: updateOrderStatusSchema }), updateOrderStatus);
-router.delete('/orders/:id', directoryProtect, validate({ params: idOrSlugParamSchema }), deleteOrder);
-router.post('/orders-purge-demo', directoryProtect, purgeDemoOrders);
+// Admin orders list, manual invoice creation, and management (strictly RBAC protected)
+router.get('/orders', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR'), getOrdersList);
+router.post('/admin-invoice', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ body: adminInvoiceSchema }), createAdminInvoice);
+router.patch('/orders/:id/status', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema, body: updateOrderStatusSchema }), updateOrderStatus);
+router.delete('/orders/:id', protect, authorize('SUPER_ADMIN'), validate({ params: idOrSlugParamSchema }), deleteOrder);
+router.post('/orders-purge-demo', protect, authorize('SUPER_ADMIN'), purgeDemoOrders);
 export default router;

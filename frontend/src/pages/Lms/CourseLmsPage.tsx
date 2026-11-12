@@ -729,27 +729,20 @@ export const CourseLmsPage: React.FC = () => {
   useEffect(() => {
     if (!course) return;
 
-    // 1. If unlocked via explicit full batch payment
-    const isUnlockedViaPayment = localStorage.getItem(`course_unlocked_full_${course.id}`) === 'true';
-    if (isUnlockedViaPayment) {
-      setIsUnlockedFull(true);
-      return;
-    }
-
-    // 2. If it is a FREE demo course, enrolling in free demo ONLY gives access to the first 5 lectures!
-    // Lectures 6+ MUST stay locked unless paid above.
+    // 1. If it is a FREE demo course, enrolling in free demo ONLY gives access to the first 5 lectures!
+    // Lectures 6+ MUST stay locked unless paid.
     if (isFreeCourse) {
       setIsUnlockedFull(false);
       return;
     }
 
-    // 3. For a PAID course: enrolled in MongoDB means full purchased batch
+    // 2. For a PAID course: enrolled in MongoDB means full purchased batch
     if (!isAuthenticated || !student) {
       setIsUnlockedFull(false);
       return;
     }
 
-    const enrolledIds = student.enrolledCourseIds || [];
+    const enrolledIds = student.enrolledCourseIds || (student as any).enrolledCourses || [];
     const isEnrolledInDB = Boolean(
       enrolledIds.includes(course.id) ||
       (course._id && enrolledIds.includes(course._id)) ||

@@ -9,17 +9,12 @@ export const seedInitialDatabase = async () => {
             superAdmin = await User.create({
                 name: 'Ritik (Super Admin)',
                 email: 'ritikweb30@gmail.com',
-                password: 'ritik@123',
+                password: process.env.INITIAL_SUPERADMIN_PASSWORD || 'ritik@123',
                 phone: '+91 98765 43210',
                 role: 'SUPER_ADMIN',
                 targetExam: 'JEE Advanced'
             });
             console.log('[Seed] Super Admin created: ritikweb30@gmail.com');
-        }
-        else {
-            superAdmin.password = 'ritik@123';
-            superAdmin.role = 'SUPER_ADMIN';
-            await superAdmin.save();
         }
         // 1b. Seed Dharmendra Kumar (DK Sir) Super Admin
         let dkSir = await User.findOne({ email: 'dharmendra@dkacademy.com' });
@@ -27,17 +22,12 @@ export const seedInitialDatabase = async () => {
             dkSir = await User.create({
                 name: 'Dharmendra Kumar (DK Sir)',
                 email: 'dharmendra@dkacademy.com',
-                password: 'admin123',
+                password: process.env.INITIAL_DKSIR_PASSWORD || 'admin123',
                 phone: '+91 93259 87875',
                 role: 'SUPER_ADMIN',
                 targetExam: 'JEE Advanced'
             });
             console.log('[Seed] Dharmendra Kumar (DK Sir) Super Admin created: dharmendra@dkacademy.com');
-        }
-        else {
-            dkSir.password = 'admin123';
-            dkSir.role = 'SUPER_ADMIN';
-            await dkSir.save();
         }
         // 1c. Seed DK Academy Administrator (admin@dkacademy.com)
         let adminAcc = await User.findOne({ email: 'admin@dkacademy.com' });
@@ -45,17 +35,12 @@ export const seedInitialDatabase = async () => {
             adminAcc = await User.create({
                 name: 'DK Academy Administrator',
                 email: 'admin@dkacademy.com',
-                password: 'admin123',
+                password: process.env.INITIAL_ADMIN_PASSWORD || 'admin123',
                 phone: '+91 93259 87875',
                 role: 'SUPER_ADMIN',
                 targetExam: 'JEE Advanced'
             });
             console.log('[Seed] Administrator created: admin@dkacademy.com');
-        }
-        else {
-            adminAcc.password = 'admin123';
-            adminAcc.role = 'SUPER_ADMIN';
-            await adminAcc.save();
         }
         // 1d. Seed Teacher Faculty Account
         let teacher = await User.findOne({ email: 'teacher@dkacademy.com' });
@@ -63,17 +48,12 @@ export const seedInitialDatabase = async () => {
             teacher = await User.create({
                 name: 'Senior Faculty (Mathematics)',
                 email: 'teacher@dkacademy.com',
-                password: 'teacher123',
+                password: process.env.INITIAL_TEACHER_PASSWORD || 'teacher123',
                 phone: '+91 98765 12345',
                 role: 'TEACHER',
                 targetExam: 'JEE Main & Advanced'
             });
             console.log('[Seed] Senior Faculty created: teacher@dkacademy.com');
-        }
-        else {
-            teacher.password = 'teacher123';
-            teacher.role = 'TEACHER';
-            await teacher.save();
         }
         // Clean up older demo & test dummy accounts from database
         await User.deleteMany({

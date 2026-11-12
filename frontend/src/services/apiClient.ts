@@ -62,50 +62,6 @@ export const ensureValidJwtToken = async (): Promise<string | null> => {
   if (token && token.split('.').length === 3) {
     return token;
   }
-
-  // Attempt transparent re-authentication with backend ONLY if an admin session actually exists in storage
-  try {
-    const adminRaw =
-      localStorage.getItem('dk_academy_admin_session_v1') ||
-      localStorage.getItem('dk_academy_admin_session');
-
-    if (!adminRaw) {
-      return null;
-    }
-
-    let email = 'ritikweb30@gmail.com';
-    let password = 'ritik@123';
-
-    try {
-      const parsed = JSON.parse(adminRaw);
-      if (parsed?.user?.email) {
-        email = parsed.user.email;
-        if (email.toLowerCase().includes('dharmendra')) {
-          password = 'admin123';
-        }
-      }
-    } catch {}
-
-    const cleanBase = getApiBaseUrl();
-    const res = await fetch(`${cleanBase}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await res.json();
-    if (res.ok && data?.success && data?.data?.token) {
-      const newJwt = data.data.token;
-      try {
-        const parsed = JSON.parse(adminRaw);
-        parsed.token = newJwt;
-        localStorage.setItem('dk_academy_admin_session_v1', JSON.stringify(parsed));
-        localStorage.setItem('dk_academy_admin_session', JSON.stringify(parsed));
-      } catch {}
-      return newJwt;
-    }
-  } catch {}
-
   return null;
 };
 
@@ -206,19 +162,38 @@ export const apiClient = {
 
   async post<T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
+      const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+      const headers: Record<string, string> = {
+        ...getAuthHeaders(!isFormData),
+        ...(options?.headers as Record<string, string> || {})
+      };
+      if (isFormData) {
+        delete headers['Content-Type'];
+        delete headers['content-type'];
+      }
+      const reqBody = isFormData ? body : (body !== undefined ? JSON.stringify(body) : undefined);
+
       let res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: body ? JSON.stringify(body) : undefined,
+        headers,
+        body: reqBody,
         ...options
       });
       if ((res.status === 401 || (res.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
+          const retryHeaders: Record<string, string> = {
+            ...getAuthHeaders(!isFormData),
+            ...(options?.headers as Record<string, string> || {})
+          };
+          if (isFormData) {
+            delete retryHeaders['Content-Type'];
+            delete retryHeaders['content-type'];
+          }
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
             method: 'POST',
-            headers: getAuthHeaders(),
-            body: body ? JSON.stringify(body) : undefined,
+            headers: retryHeaders,
+            body: reqBody,
             ...options
           });
         }
@@ -234,19 +209,38 @@ export const apiClient = {
 
   async put<T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
+      const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+      const headers: Record<string, string> = {
+        ...getAuthHeaders(!isFormData),
+        ...(options?.headers as Record<string, string> || {})
+      };
+      if (isFormData) {
+        delete headers['Content-Type'];
+        delete headers['content-type'];
+      }
+      const reqBody = isFormData ? body : (body !== undefined ? JSON.stringify(body) : undefined);
+
       let res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'PUT',
-        headers: getAuthHeaders(),
-        body: body ? JSON.stringify(body) : undefined,
+        headers,
+        body: reqBody,
         ...options
       });
       if ((res.status === 401 || (res.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
+          const retryHeaders: Record<string, string> = {
+            ...getAuthHeaders(!isFormData),
+            ...(options?.headers as Record<string, string> || {})
+          };
+          if (isFormData) {
+            delete retryHeaders['Content-Type'];
+            delete retryHeaders['content-type'];
+          }
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
             method: 'PUT',
-            headers: getAuthHeaders(),
-            body: body ? JSON.stringify(body) : undefined,
+            headers: retryHeaders,
+            body: reqBody,
             ...options
           });
         }
@@ -262,19 +256,38 @@ export const apiClient = {
 
   async patch<T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
+      const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+      const headers: Record<string, string> = {
+        ...getAuthHeaders(!isFormData),
+        ...(options?.headers as Record<string, string> || {})
+      };
+      if (isFormData) {
+        delete headers['Content-Type'];
+        delete headers['content-type'];
+      }
+      const reqBody = isFormData ? body : (body !== undefined ? JSON.stringify(body) : undefined);
+
       let res = await fetchWithTimeout(formatEndpoint(endpoint), {
         method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: body ? JSON.stringify(body) : undefined,
+        headers,
+        body: reqBody,
         ...options
       });
       if ((res.status === 401 || (res.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) && !endpoint.includes('/auth/')) {
         const refreshed = await ensureValidJwtToken();
         if (refreshed) {
+          const retryHeaders: Record<string, string> = {
+            ...getAuthHeaders(!isFormData),
+            ...(options?.headers as Record<string, string> || {})
+          };
+          if (isFormData) {
+            delete retryHeaders['Content-Type'];
+            delete retryHeaders['content-type'];
+          }
           res = await fetchWithTimeout(formatEndpoint(endpoint), {
             method: 'PATCH',
-            headers: getAuthHeaders(),
-            body: body ? JSON.stringify(body) : undefined,
+            headers: retryHeaders,
+            body: reqBody,
             ...options
           });
         }

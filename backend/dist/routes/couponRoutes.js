@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { getAllCoupons, createCoupon, updateCoupon, deleteCoupon, validateAndApplyCoupon } from '../controllers/couponController.js';
-import { directoryProtect } from '../middlewares/authMiddleware.js';
+import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validateMiddleware.js';
 const router = Router();
 const createCouponSchema = z
@@ -26,9 +26,9 @@ const validateCouponSchema = z
     apply: z.boolean().optional()
 })
     .strict();
-router.get('/', getAllCoupons);
-router.post('/', directoryProtect, validate({ body: createCouponSchema }), createCoupon);
+router.get('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), getAllCoupons);
+router.post('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), validate({ body: createCouponSchema }), createCoupon);
 router.post('/validate', validate({ body: validateCouponSchema }), validateAndApplyCoupon);
-router.put('/:id', directoryProtect, updateCoupon);
-router.delete('/:id', directoryProtect, deleteCoupon);
+router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), updateCoupon);
+router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), deleteCoupon);
 export default router;

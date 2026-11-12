@@ -39,6 +39,15 @@ export const uploadMedia = async (req, res) => {
             };
             try {
                 const result = await cloudinary.uploader.upload(uploadedFile.path, uploadOptions);
+                // Clean up temporary local disk file after successful Cloudinary upload
+                try {
+                    if (fs.existsSync(uploadedFile.path)) {
+                        fs.unlinkSync(uploadedFile.path);
+                    }
+                }
+                catch (unlinkErr) {
+                    console.warn('[Upload Cleanup Error]:', unlinkErr);
+                }
                 res.status(200).json({
                     success: true,
                     message: `${isVideo ? 'Video' : 'Image'} uploaded successfully to Cloudinary Media Vault`,
@@ -172,6 +181,14 @@ export const uploadMedia = async (req, res) => {
         }
     }
     catch (error) {
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+            try {
+                fs.unlinkSync(req.file.path);
+            }
+            catch (cleanupErr) {
+                console.warn('[Upload Error Cleanup Failure]:', cleanupErr);
+            }
+        }
         console.error('[Upload Controller Error]:', error.message);
         res.status(500).json({
             success: false,

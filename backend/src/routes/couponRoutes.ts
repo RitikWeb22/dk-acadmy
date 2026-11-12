@@ -36,11 +36,11 @@ const validateCouponSchema = z
   })
   .strict();
 
-router.get('/', getAllCoupons);
-router.post('/', directoryProtect, validate({ body: createCouponSchema }), createCoupon);
+router.get('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), getAllCoupons);
+router.post('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), validate({ body: createCouponSchema }), createCoupon);
 router.post('/validate', validate({ body: validateCouponSchema }), validateAndApplyCoupon);
-router.put('/:id', directoryProtect, updateCoupon);
-router.delete('/:id', directoryProtect, deleteCoupon);
+router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), updateCoupon);
+router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), deleteCoupon);
 
 export default router;
 

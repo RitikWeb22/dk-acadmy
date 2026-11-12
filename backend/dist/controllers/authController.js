@@ -266,42 +266,24 @@ export const adminLogin = async (req, res) => {
             res.status(400).json({ success: false, message: genericErrorMessage });
             return;
         }
-        let cleanEmail = email.trim().toLowerCase();
-        let user = await User.findOne({ email: cleanEmail }).select('+password');
-        // Resolve alias credentials if direct match not found
-        if (!user && ['admin', 'superadmin', 'director', 'ritik'].includes(cleanEmail)) {
-            user = await User.findOne({ email: { $in: ['ritikweb30@gmail.com', 'admin@dkacademy.com', 'dharmendra@dkacademy.com'] } }).select('+password');
-        }
-        else if (!user && ['dharmendra', 'dk sir'].includes(cleanEmail)) {
-            user = await User.findOne({ email: 'dharmendra@dkacademy.com' }).select('+password');
-        }
-        else if (!user && ['teacher', 'faculty'].includes(cleanEmail)) {
-            user = await User.findOne({ email: 'teacher@dkacademy.com' }).select('+password');
-        }
-        else if (!user && cleanEmail.includes('admin')) {
-            user = await User.findOne({ role: 'SUPER_ADMIN' }).select('+password');
-        }
+        const cleanEmail = email.trim().toLowerCase();
+        const user = await User.findOne({ email: cleanEmail }).select('+password');
         if (!user) {
+            res.status(401).json({ success: false, message: genericErrorMessage });
+            return;
+        }
+        // Role check: only administrative or faculty accounts can access admin portal
+        const allowedAdminRoles = ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'LEAD_MANAGER', 'COUNSELOR'];
+        if (!allowedAdminRoles.includes(user.role)) {
             res.status(401).json({ success: false, message: genericErrorMessage });
             return;
         }
         // Check account lockout
         if (user.lockUntil && user.lockUntil.getTime() > Date.now()) {
-            res.status(401).json({ success: false, message: genericErrorMessage });
+            res.status(401).json({ success: false, message: 'Account is temporarily locked due to failed attempts. Please try again later.' });
             return;
         }
-        let isMatch = await user.comparePassword(password);
-        // Allow recognized master passwords for Super Admin accounts
-        if (!isMatch && (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN')) {
-            if (['ritik@123', 'admin123', 'admin@123', 'admin'].includes(password)) {
-                isMatch = true;
-            }
-        }
-        else if (!isMatch && user.role === 'TEACHER') {
-            if (['teacher123', 'admin123', 'teacher'].includes(password)) {
-                isMatch = true;
-            }
-        }
+        const isMatch = await user.comparePassword(password);
         if (!isMatch) {
             const currentAttempts = (user.failedLoginAttempts || 0) + 1;
             const updates = { failedLoginAttempts: currentAttempts };
@@ -318,12 +300,6 @@ export const adminLogin = async (req, res) => {
                 $set: { failedLoginAttempts: 0 },
                 $unset: { lockUntil: 1 }
             });
-        }
-        // Explicitly allow TEACHER, ADMIN, SUPER_ADMIN, and Portal administrative roles
-        const allowedAdminRoles = ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'CMS_MANAGER', 'LEAD_MANAGER', 'COUNSELOR'];
-        if (!allowedAdminRoles.includes(user.role)) {
-            res.status(403).json({ success: false, message: 'Access denied: not an administrative or faculty account' });
-            return;
         }
         const token = generateToken(user._id.toString(), user.role);
         res.status(200).json({
@@ -551,6 +527,8 @@ export const updateStaffPasswordByAdmin = async (req, res) => {
     try {
         const id = String(req.params.id || '').trim();
         const { password } = req.body;
+        const requesterRole = String(req.user?.role || '').toUpperCase();
+        const isSuperAdmin = requesterRole === 'SUPER_ADMIN' || requesterRole === 'DIRECTOR';
         if (!password || password.trim().length < 6) {
             res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
             return;
@@ -570,6 +548,14 @@ export const updateStaffPasswordByAdmin = async (req, res) => {
             res.status(404).json({ success: false, message: 'Faculty member not found' });
             return;
         }
+        // Hierarchy check: Non-superadmins cannot modify a Super Admin's password
+        if (staff.role === 'SUPER_ADMIN' && !isSuperAdmin) {
+            res.status(403).json({
+                success: false,
+                message: 'Forbidden: Only a Super Admin can change another Super Admin\'s password'
+            });
+            return;
+        }
         staff.password = password.trim();
         await staff.save();
         res.status(200).json({
@@ -585,6 +571,8 @@ export const updateStaffByAdmin = async (req, res) => {
     try {
         const id = String(req.params.id || '').trim();
         const { name, phone, role, password } = req.body;
+        const requesterRole = String(req.user?.role || '').toUpperCase();
+        const isSuperAdmin = requesterRole === 'SUPER_ADMIN' || requesterRole === 'DIRECTOR';
         let staff = null;
         if (id.match(/^[0-9a-fA-F]{24}$/)) {
             staff = await User.findById(id).select('+password');
@@ -593,7 +581,18 @@ export const updateStaffByAdmin = async (req, res) => {
             staff = await User.findOne({ teacherId: id }).select('+password');
         }
         if (!staff) {
+            staff = await User.findOne({ email: id.toLowerCase() }).select('+password');
+        }
+        if (!staff) {
             res.status(404).json({ success: false, message: 'Staff member not found' });
+            return;
+        }
+        // Hierarchy check: Cannot edit a Super Admin unless you are a Super Admin
+        if (staff.role === 'SUPER_ADMIN' && !isSuperAdmin) {
+            res.status(403).json({
+                success: false,
+                message: 'Forbidden: Only a Super Admin can modify a Super Admin profile'
+            });
             return;
         }
         if (name)
@@ -601,13 +600,23 @@ export const updateStaffByAdmin = async (req, res) => {
         if (phone)
             staff.phone = phone.trim();
         if (role) {
-            staff.role = role.toUpperCase() === 'ADMIN' ? 'ADMIN' : role.toUpperCase() === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'TEACHER';
+            const targetRole = role.toUpperCase();
+            if ((targetRole === 'SUPER_ADMIN' || targetRole === 'ADMIN') && !isSuperAdmin) {
+                res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: Only a Super Admin can promote a user to ADMIN or SUPER_ADMIN'
+                });
+                return;
+            }
+            staff.role = targetRole === 'ADMIN' ? 'ADMIN' : targetRole === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'TEACHER';
         }
         if (password && password.trim().length >= 6) {
             staff.password = password.trim();
         }
         await staff.save();
-        res.status(200).json({ success: true, message: 'Staff details updated successfully', data: staff });
+        const safeStaff = staff.toObject();
+        delete safeStaff.password;
+        res.status(200).json({ success: true, message: 'Staff details updated successfully', data: safeStaff });
     }
     catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -616,12 +625,46 @@ export const updateStaffByAdmin = async (req, res) => {
 export const deleteUserByAdmin = async (req, res) => {
     try {
         const { id } = req.params;
-        const idStr = String(id);
+        const idStr = String(id || '').trim();
+        const requesterRole = String(req.user?.role || '').toUpperCase();
+        const isSuperAdmin = requesterRole === 'SUPER_ADMIN' || requesterRole === 'DIRECTOR';
+        if (!isSuperAdmin) {
+            res.status(403).json({
+                success: false,
+                message: 'Forbidden: Only a Super Admin can delete user or staff accounts'
+            });
+            return;
+        }
         const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
-        const deleted = await User.findOneAndDelete(isObjectId
+        const targetUser = await User.findOne(isObjectId
             ? { $or: [{ _id: idStr }, { teacherId: idStr }, { email: idStr.toLowerCase() }] }
             : { $or: [{ teacherId: idStr }, { email: idStr.toLowerCase() }] });
-        res.status(200).json({ success: true, message: 'User deleted successfully', deleted });
+        if (!targetUser) {
+            res.status(404).json({ success: false, message: 'User not found' });
+            return;
+        }
+        // Root super admin protection
+        if (targetUser.email === 'ritikweb30@gmail.com' || targetUser.email === 'dharmendra@dkacademy.com') {
+            res.status(403).json({
+                success: false,
+                message: 'Security violation: Root founder and director accounts cannot be deleted'
+            });
+            return;
+        }
+        // Prevent self-deletion
+        if (req.user && targetUser._id.toString() === req.user._id.toString()) {
+            res.status(400).json({
+                success: false,
+                message: 'Operation not permitted: You cannot delete your own active administrative account'
+            });
+            return;
+        }
+        await User.findByIdAndDelete(targetUser._id);
+        res.status(200).json({
+            success: true,
+            message: 'User deleted successfully',
+            deleted: { id: targetUser._id, name: targetUser.name, email: targetUser.email }
+        });
     }
     catch (error) {
         res.status(500).json({ success: false, message: error.message });

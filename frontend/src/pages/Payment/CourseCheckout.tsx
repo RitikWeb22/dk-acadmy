@@ -470,7 +470,7 @@ export const CourseCheckout: React.FC = () => {
                 <span className="text-xs sm:text-sm text-slate-700 leading-normal">
                   I have read and agree to the <a href="/terms" target="_blank" rel="noreferrer" className="text-blue-600 font-semibold underline">Terms &amp; Conditions</a>,{' '}
                   <a href="/privacy" target="_blank" rel="noreferrer" className="text-blue-600 font-semibold underline">Privacy Policy</a>, and{' '}
-                  <a href="/refund" target="_blank" rel="noreferrer" className="text-blue-600 font-semibold underline">7-Day Refund Policy</a>.
+                  <a href="/refunds" target="_blank" rel="noreferrer" className="text-blue-600 font-semibold underline">7-Day Refund Policy</a>.
                 </span>
               </label>
               {submitted && !agreedToTerms && (

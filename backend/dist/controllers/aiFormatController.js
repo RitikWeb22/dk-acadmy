@@ -24,33 +24,41 @@ export const getGeminiConfig = async (_req, res) => {
 export const updateGeminiConfig = async (req, res) => {
     try {
         const { apiKey, model = 'gemini-2.5-flash' } = req.body;
-        const cleanModel = model || 'gemini-2.5-flash';
+        const cleanModel = String(model || 'gemini-2.5-flash').trim();
+        // Validate model characters to prevent injection
+        if (!/^[a-zA-Z0-9_\-\.]+$/.test(cleanModel)) {
+            res.status(400).json({ success: false, message: 'Invalid model format' });
+            return;
+        }
         if (apiKey !== undefined) {
-            process.env.GEMINI_API_KEY = String(apiKey).trim();
+            const cleanKey = String(apiKey).trim();
+            // Validate API key: prevent newlines or illegal control characters that could corrupt .env
+            if (/[\r\n\0]/.test(cleanKey)) {
+                res.status(400).json({ success: false, message: 'Invalid API key characters detected' });
+                return;
+            }
+            process.env.GEMINI_API_KEY = cleanKey;
         }
-        if (cleanModel) {
-            process.env.GEMINI_MODEL = String(cleanModel).trim();
-        }
-        // Persist to backend/.env if accessible
+        process.env.GEMINI_MODEL = cleanModel;
+        // Persist to backend/.env if accessible and running in development/self-managed server
         try {
             const envPath = path.resolve(__dirname, '../../.env');
             if (fs.existsSync(envPath)) {
                 let envContent = fs.readFileSync(envPath, 'utf8');
                 if (apiKey !== undefined) {
+                    const cleanKey = String(apiKey).trim();
                     if (/^GEMINI_API_KEY=/m.test(envContent)) {
-                        envContent = envContent.replace(/^GEMINI_API_KEY=.*$/m, `GEMINI_API_KEY=${String(apiKey).trim()}`);
+                        envContent = envContent.replace(/^GEMINI_API_KEY=.*$/m, `GEMINI_API_KEY=${cleanKey}`);
                     }
                     else {
-                        envContent += `\nGEMINI_API_KEY=${String(apiKey).trim()}`;
+                        envContent += `\nGEMINI_API_KEY=${cleanKey}`;
                     }
                 }
-                if (cleanModel) {
-                    if (/^GEMINI_MODEL=/m.test(envContent)) {
-                        envContent = envContent.replace(/^GEMINI_MODEL=.*$/m, `GEMINI_MODEL=${String(cleanModel).trim()}`);
-                    }
-                    else {
-                        envContent += `\nGEMINI_MODEL=${String(cleanModel).trim()}`;
-                    }
+                if (/^GEMINI_MODEL=/m.test(envContent)) {
+                    envContent = envContent.replace(/^GEMINI_MODEL=.*$/m, `GEMINI_MODEL=${cleanModel}`);
+                }
+                else {
+                    envContent += `\nGEMINI_MODEL=${cleanModel}`;
                 }
                 fs.writeFileSync(envPath, envContent, 'utf8');
             }

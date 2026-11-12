@@ -42,21 +42,34 @@ export const getLiveToken = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
+    const authUser = (req as any).user;
+    const authRole = String(authUser?.role || '').toUpperCase();
+    const isAuthFacultyOrAdmin = Boolean(
+      authUser && ['SUPER_ADMIN', 'ADMIN', 'TEACHER'].includes(authRole)
+    );
+
     const normalizedRole = String(role).trim().toLowerCase();
-    const isTeacher =
+    const requestedTeacher =
       normalizedRole === 'teacher' ||
       normalizedRole === 'admin' ||
       normalizedRole === 'super_admin';
 
-    // Effective identity & display name
-    const effectiveUserId =
-      userId ||
-      (req as any).user?._id?.toString() ||
+    // Disallow granting teacher/publisher permissions unless requester is verified staff
+    if (requestedTeacher && !isAuthFacultyOrAdmin) {
+      res.status(403).json({
+        success: false,
+        message: 'Forbidden: Only verified faculty and administrators can obtain instructor tokens'
+      });
+      return;
+    }
+
+    const isTeacher = isAuthFacultyOrAdmin && requestedTeacher;
+
+    // Effective identity & display name strictly derived from auth if logged in
+    const effectiveUserId = authUser?._id?.toString() ||
       (isTeacher ? `teacher_${Date.now()}` : `student_${Math.random().toString(36).substring(2, 9)}`);
 
-    const effectiveName =
-      userName ||
-      (req as any).user?.name ||
+    const effectiveName = authUser?.name ||
       (isTeacher ? 'Dharmendra Kumar (DK Sir)' : `Student ${effectiveUserId.slice(-4)}`);
 
     // Verify batch enrollment for students
@@ -65,8 +78,7 @@ export const getLiveToken = async (req: Request, res: Response): Promise<void> =
 
       // If batch is specified and not public/demo, check student enrollment
       if (targetBatch !== 'all' && targetBatch !== 'free-demo' && targetBatch !== 'public') {
-        const studentRecord =
-          (req as any).user ||
+        const studentRecord = authUser ||
           (userId && userId.match(/^[0-9a-fA-F]{24}$/) ? await User.findById(userId) : null);
 
         if (studentRecord) {

@@ -57,7 +57,7 @@ const createTestSeriesSchema = z
 
 // Public routes for catalog & CBT simulator
 router.get('/', getAllTestSeries);
-router.get('/:id', getTestSeriesByIdOrSlug);
+router.get('/:id', optionalProtect, getTestSeriesByIdOrSlug);
 
 // Submission, Autosave & Student-Specific Solution Scheduling
 router.post('/:id/submit', optionalProtect, submitTestSeries);
@@ -80,9 +80,10 @@ router.patch(
   updateTestSeriesSolutionConfig
 );
 
-// Post-payment test unlock
+// Post-payment test unlock (Strictly protected)
 router.post(
   '/:id/unlock',
+  protect,
   unlockTestSeries
 );
 

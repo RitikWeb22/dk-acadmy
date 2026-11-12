@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { getLiveToken, getLiveSessions, startLiveSession, endLiveSession, getLiveSessionById } from '../controllers/liveController.js';
-import { protect, authorize } from '../middlewares/authMiddleware.js';
+import { protect, authorize, optionalProtect } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validateMiddleware.js';
 const router = Router();
 const tokenSchema = z
@@ -24,7 +24,7 @@ const createSessionSchema = z
 })
     .strict();
 // 1. Role-based LiveKit Token Generator
-router.post('/token', validate({ body: tokenSchema }), getLiveToken);
+router.post('/token', optionalProtect, validate({ body: tokenSchema }), getLiveToken);
 // 2. Live Session Management
 router.get('/sessions', getLiveSessions);
 router.post('/sessions', protect, authorize('SUPER_ADMIN', 'ADMIN', 'TEACHER'), validate({ body: createSessionSchema }), startLiveSession);

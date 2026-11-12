@@ -67,8 +67,8 @@ const upload = multer({
         cb(null, true);
     }
 });
-// Support both multipart file upload (`file` field) and JSON base64 payload
-router.post('/', uploadRateLimiter, upload.single('file'), uploadMedia);
+// Support both multipart file upload (`file` field) and JSON base64 payload (Authenticated user protected)
+router.post('/', protect, uploadRateLimiter, upload.single('file'), uploadMedia);
 // Delete media asset (Admin & Staff protected)
 router.post('/delete', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), deleteMedia);
 export default router;

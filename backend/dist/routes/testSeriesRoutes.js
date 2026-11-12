@@ -40,7 +40,7 @@ const createTestSeriesSchema = z
     .passthrough();
 // Public routes for catalog & CBT simulator
 router.get('/', getAllTestSeries);
-router.get('/:id', getTestSeriesByIdOrSlug);
+router.get('/:id', optionalProtect, getTestSeriesByIdOrSlug);
 // Submission, Autosave & Student-Specific Solution Scheduling
 router.post('/:id/submit', optionalProtect, submitTestSeries);
 router.post('/:id/autosave', optionalProtect, autosaveTestProgress);
@@ -50,8 +50,8 @@ router.get('/submissions/:submissionId/solution', optionalProtect, getTestSeries
 // Admin Solution Management & Overview
 router.get('/:id/solution-admin-overview', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), getTestSeriesSolutionAdminOverview);
 router.patch('/:id/solution-config', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateTestSeriesSolutionConfig);
-// Post-payment test unlock
-router.post('/:id/unlock', unlockTestSeries);
+// Post-payment test unlock (Strictly protected)
+router.post('/:id/unlock', protect, unlockTestSeries);
 // Mathematical KaTeX formatting utility
 router.post('/ai-format-math', formatMathWithAi);
 router.post('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ body: createTestSeriesSchema }), createTestSeries);

@@ -1,5 +1,7 @@
 import { TestSeries } from '../models/TestSeries.js';
 import { TestSubmission } from '../models/TestSubmission.js';
+import { Order } from '../models/Order.js';
+import { User } from '../models/User.js';
 import { PART_TESTS_DATA } from '../data/partTestsData.js';
 import { normalizeCanonicalMath, normalizeOptionMath } from '../services/mathImport/index.js';
 import { broadcastTestSeriesCreated, broadcastTestSeriesUpdated, broadcastTestSeriesDeleted } from '../sockets/socket.js';
@@ -403,6 +405,15 @@ export const getAllTestSeries = async (req, res) => {
         });
     }
 };
+const sanitizeQuestionsForStudent = (questions) => {
+    if (!Array.isArray(questions))
+        return [];
+    return questions.map((q) => {
+        const rawQ = q.toObject ? q.toObject() : { ...q };
+        const { correctAnswer, numericalAnswer, formulaKey, explanation, explanationBlocks, shortcutTrick, videoSolutionUrl, pdfSolutionUrl, mathValidation, ...safeQ } = rawQ;
+        return safeQ;
+    });
+};
 export const getTestSeriesByIdOrSlug = async (req, res) => {
     try {
         const param = String(req.params.id);
@@ -413,25 +424,55 @@ export const getTestSeriesByIdOrSlug = async (req, res) => {
                 { _id: param.match(/^[0-9a-fA-F]{24}$/) ? param : null }
             ]
         });
+        const requester = req.user;
+        const requesterRole = String(requester?.role || '').toUpperCase();
+        const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRole);
         if (!item) {
             const fallbackItem = SEED_TEST_SERIES.find((s) => s.id === param || s.slug === param);
             if (fallbackItem) {
-                res.status(200).json({ success: true, data: fallbackItem });
+                const safeFallback = { ...fallbackItem };
+                if (!isAdmin) {
+                    safeFallback.questions = sanitizeQuestionsForStudent(safeFallback.questions);
+                }
+                res.status(200).json({ success: true, data: safeFallback });
                 return;
             }
             res.status(404).json({ success: false, message: 'Test Series not found' });
             return;
         }
         const raw = item.toObject ? item.toObject() : { ...item };
-        const requesterRole = String(req.user?.role || '').toUpperCase();
-        const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRole);
-        if (!isAdmin && raw.solutionRelease) {
-            raw.solutionRelease = {
-                enabled: Boolean(raw.solutionRelease.enabled),
-                releaseDelayHours: raw.solutionRelease.releaseDelayHours || 24,
-                hasPdf: Boolean(raw.solutionRelease.pdfUrl),
-                hasVideo: Boolean(raw.solutionRelease.videoUrl)
-            };
+        // Check payment access if test is paid
+        const isPaidTest = raw.accessMode === 'paid' || raw.isFree === false;
+        if (isPaidTest && !isAdmin) {
+            const studentId = requester?._id?.toString() || requester?.id;
+            const enrolledCourses = requester?.enrolledCourses || [];
+            const hasPurchased = studentId && ((Array.isArray(raw.unlockedStudents) && raw.unlockedStudents.includes(studentId)) ||
+                enrolledCourses.some((c) => {
+                    const cId = typeof c === 'string' ? c : c?.courseId || c?.id;
+                    return cId === raw.id || cId === raw.slug || cId === String(raw._id);
+                }));
+            if (!hasPurchased) {
+                raw.isLocked = true;
+                raw.questions = [];
+                res.status(200).json({
+                    success: true,
+                    data: raw,
+                    isLocked: true,
+                    message: 'Premium Test Series: Please complete course or test enrollment to access questions.'
+                });
+                return;
+            }
+        }
+        if (!isAdmin) {
+            raw.questions = sanitizeQuestionsForStudent(raw.questions);
+            if (raw.solutionRelease) {
+                raw.solutionRelease = {
+                    enabled: Boolean(raw.solutionRelease.enabled),
+                    releaseDelayHours: raw.solutionRelease.releaseDelayHours || 24,
+                    hasPdf: Boolean(raw.solutionRelease.pdfUrl),
+                    hasVideo: Boolean(raw.solutionRelease.videoUrl)
+                };
+            }
         }
         res.status(200).json({ success: true, data: raw });
     }
@@ -439,7 +480,13 @@ export const getTestSeriesByIdOrSlug = async (req, res) => {
         const param = String(req.params.id);
         const fallbackItem = SEED_TEST_SERIES.find((s) => s.id === param || s.slug === param);
         if (fallbackItem) {
-            res.status(200).json({ success: true, data: fallbackItem, isFallback: true });
+            const requesterRole = String(req.user?.role || '').toUpperCase();
+            const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRole);
+            const safeFallback = { ...fallbackItem };
+            if (!isAdmin) {
+                safeFallback.questions = sanitizeQuestionsForStudent(safeFallback.questions);
+            }
+            res.status(200).json({ success: true, data: safeFallback, isFallback: true });
             return;
         }
         res.status(500).json({ success: false, message: error.message });
@@ -1015,10 +1062,35 @@ export const autosaveTestProgress = async (req, res) => {
             res.status(404).json({ success: false, message: 'Test Series not found' });
             return;
         }
-        const studentId = req.user?.id || req.user?._id || req.body.studentId;
-        if (!studentId) {
-            res.status(400).json({ success: false, message: 'Student ID is required for autosave' });
-            return;
+        let studentId;
+        if (req.user) {
+            const authId = String(req.user._id || req.user.id);
+            if (req.body.studentId && String(req.body.studentId) !== authId) {
+                const role = String(req.user.role || '').toUpperCase();
+                const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER'].includes(role);
+                if (!isAdmin) {
+                    res.status(403).json({
+                        success: false,
+                        message: 'Forbidden: You cannot autosave progress for another student account.'
+                    });
+                    return;
+                }
+                studentId = String(req.body.studentId);
+            }
+            else {
+                studentId = authId;
+            }
+        }
+        else {
+            const candidateGuestId = String(req.body.studentId || '');
+            if (!candidateGuestId.startsWith('guest-')) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required. Non-guest progress requires a valid login session.'
+                });
+                return;
+            }
+            studentId = candidateGuestId;
         }
         const progressKey = `progress_${test.id}_${studentId}`;
         // 1. Guard against autosaving if the exam has already been finalized
@@ -1100,17 +1172,42 @@ export const autosaveTestProgress = async (req, res) => {
 export const getTestProgress = async (req, res) => {
     try {
         const id = String(req.params.id);
-        const studentId = req.user?.id || req.user?._id || req.query.studentId;
-        if (!studentId) {
-            res.status(400).json({ success: false, message: 'Student ID is required' });
-            return;
-        }
         const test = await TestSeries.findOne({
             $or: [{ id }, { slug: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }]
         });
         if (!test) {
             res.status(404).json({ success: false, message: 'Test Series not found' });
             return;
+        }
+        let studentId;
+        if (req.user) {
+            const authId = String(req.user._id || req.user.id);
+            if (req.query.studentId && String(req.query.studentId) !== authId) {
+                const role = String(req.user.role || '').toUpperCase();
+                const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER'].includes(role);
+                if (!isAdmin) {
+                    res.status(403).json({
+                        success: false,
+                        message: 'Forbidden: You cannot access test progress for another student account.'
+                    });
+                    return;
+                }
+                studentId = String(req.query.studentId);
+            }
+            else {
+                studentId = authId;
+            }
+        }
+        else {
+            const candidateGuestId = String(req.query.studentId || '');
+            if (!candidateGuestId.startsWith('guest-')) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required to access student test progress.'
+                });
+                return;
+            }
+            studentId = candidateGuestId;
         }
         const progressKey = `progress_${test.id}_${studentId}`;
         const progress = await TestSubmission.findOne({
@@ -1157,11 +1254,11 @@ export const getTestSeriesSubmissionSolution = async (req, res) => {
         }
         // Ownership & Role Verification
         const requesterId = req.user?.id || req.user?._id;
-        const isOwner = requesterId && String(submission.studentId) === String(requesterId);
+        const isOwner = Boolean(requesterId && String(submission.studentId) === String(requesterId));
         const requesterRoleUpper = String(req.user?.role || '').toUpperCase();
         const isAdmin = Boolean(req.user && ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRoleUpper));
-        const isGuest = String(submission.studentId).startsWith('guest-') || !requesterId;
-        if (!isOwner && !isAdmin && !isGuest) {
+        const isGuestSubmission = String(submission.studentId).startsWith('guest-');
+        if (!isGuestSubmission && !isOwner && !isAdmin) {
             res.status(403).json({
                 success: false,
                 message: 'Access Denied: You are not authorized to access this submission’s solutions.'
@@ -1392,8 +1489,39 @@ export const updateTestSeriesSolutionConfig = async (req, res) => {
 export const unlockTestSeries = async (req, res) => {
     try {
         const id = String(req.params.id);
-        const { paymentId, studentId } = req.body;
-        const studentIdentifier = studentId || req.user?.id || req.user?._id?.toString();
+        const { paymentId } = req.body;
+        if (!paymentId) {
+            res.status(400).json({ success: false, message: 'Payment reference ID is required to unlock content' });
+            return;
+        }
+        if (!req.user) {
+            res.status(401).json({ success: false, message: 'Authentication required' });
+            return;
+        }
+        const studentIdentifier = req.user._id?.toString() || req.user?.id;
+        // Verify payment in Order database
+        const verifiedOrder = await Order.findOne({
+            $or: [
+                { paymentId: String(paymentId).trim() },
+                { orderId: String(paymentId).trim() }
+            ],
+            status: 'SUCCESS'
+        });
+        if (!verifiedOrder) {
+            res.status(400).json({
+                success: false,
+                message: 'Payment verification failed: No completed transaction found for this reference'
+            });
+            return;
+        }
+        // Security check: ensure order belongs to authenticated student
+        if (verifiedOrder.userId && verifiedOrder.userId.toString() !== studentIdentifier && verifiedOrder.studentEmail !== req.user.email) {
+            res.status(403).json({
+                success: false,
+                message: 'Security violation: Payment transaction does not match this student account'
+            });
+            return;
+        }
         const test = await TestSeries.findOne({
             $or: [{ id }, { slug: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }]
         });
@@ -1401,18 +1529,27 @@ export const unlockTestSeries = async (req, res) => {
             res.status(404).json({ success: false, message: 'Test Series not found' });
             return;
         }
-        if (studentIdentifier) {
-            if (!Array.isArray(test.unlockedStudents)) {
-                test.unlockedStudents = [];
-            }
-            if (!test.unlockedStudents.includes(studentIdentifier)) {
-                test.unlockedStudents.push(studentIdentifier);
-                await test.save();
+        if (!Array.isArray(test.unlockedStudents)) {
+            test.unlockedStudents = [];
+        }
+        if (!test.unlockedStudents.includes(studentIdentifier)) {
+            test.unlockedStudents.push(studentIdentifier);
+            await test.save();
+        }
+        // Also add to student's enrolledCourses if not already there
+        const userToUpdate = await User.findById(studentIdentifier);
+        if (userToUpdate) {
+            const currentEnrolled = userToUpdate.enrolledCourses || [];
+            const testKey = test.id || String(test._id);
+            if (!currentEnrolled.map((c) => String(c)).includes(testKey)) {
+                currentEnrolled.push(testKey);
+                userToUpdate.enrolledCourses = currentEnrolled;
+                await userToUpdate.save();
             }
         }
         res.status(200).json({
             success: true,
-            message: 'Test Series unlocked successfully',
+            message: 'Test Series unlocked and verified successfully',
             data: {
                 testId: test.id,
                 isUnlocked: true,

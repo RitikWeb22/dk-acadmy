@@ -477,7 +477,9 @@ export const App: React.FC = () => {
                   <Route path="/coming-soon" element={<Navigate to="/courses" replace />} />
                   <Route path="/contact" element={<ContactPage />} />
                   <Route path="/privacy" element={<PrivacyPage />} />
+                  <Route path="/refund" element={<Navigate to="/privacy#refunds" replace />} />
                   <Route path="/refunds" element={<Navigate to="/privacy#refunds" replace />} />
+                  <Route path="/refund-policy" element={<Navigate to="/privacy#refunds" replace />} />
                   <Route path="/cancellation" element={<Navigate to="/privacy#refunds" replace />} />
                   <Route path="/shipping" element={<Navigate to="/privacy#shipping" replace />} />
                   <Route path="/terms" element={<TermsPage />} />

@@ -161,8 +161,8 @@ router.use('/coupons', couponRoutes);
 router.use('/offers', offerRoutes);
 router.use('/math-import', mathImportRoutes);
 
-// Gemini AI System Configuration
-router.get('/system/gemini-config', getGeminiConfig);
-router.post('/system/gemini-config', updateGeminiConfig);
+// Gemini AI System Configuration (Restricted to SUPER_ADMIN & ADMIN)
+router.get('/system/gemini-config', protect, authorize('SUPER_ADMIN', 'ADMIN'), getGeminiConfig);
+router.post('/system/gemini-config', protect, authorize('SUPER_ADMIN', 'ADMIN'), updateGeminiConfig);
 
 export default router;

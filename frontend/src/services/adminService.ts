@@ -146,7 +146,7 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleDefinition> = {
 };
 
 // Pre-seeded authorized staff accounts: Strictly genuine Super Admins
-const INITIAL_ADMIN_ACCOUNTS: (AdminUser & { passwordHash: string })[] = [
+const INITIAL_ADMIN_ACCOUNTS: AdminUser[] = [
   {
     id: 'adm_super_01',
     name: 'Dharmendra Kumar (DK Sir)',
@@ -159,8 +159,7 @@ const INITIAL_ADMIN_ACCOUNTS: (AdminUser & { passwordHash: string })[] = [
     isActive: true,
     permissions: ROLE_DEFINITIONS.SUPER_ADMIN.defaultPermissions,
     lastLoginTimestamp: Date.now() - 1000 * 60 * 30,
-    createdAt: Date.now() - 86400000 * 365 * 2,
-    passwordHash: 'admin123'
+    createdAt: Date.now() - 86400000 * 365 * 2
   },
   {
     id: 'adm_super_02',
@@ -174,8 +173,7 @@ const INITIAL_ADMIN_ACCOUNTS: (AdminUser & { passwordHash: string })[] = [
     isActive: true,
     permissions: ROLE_DEFINITIONS.SUPER_ADMIN.defaultPermissions,
     lastLoginTimestamp: Date.now() - 1000 * 60 * 30,
-    createdAt: Date.now() - 86400000 * 365,
-    passwordHash: 'ritik@123'
+    createdAt: Date.now() - 86400000 * 365
   },
   {
     id: 'adm_super_03',
@@ -189,8 +187,7 @@ const INITIAL_ADMIN_ACCOUNTS: (AdminUser & { passwordHash: string })[] = [
     isActive: true,
     permissions: ROLE_DEFINITIONS.SUPER_ADMIN.defaultPermissions,
     lastLoginTimestamp: Date.now() - 1000 * 60 * 30,
-    createdAt: Date.now() - 86400000 * 365,
-    passwordHash: 'admin123'
+    createdAt: Date.now() - 86400000 * 365
   },
   {
     id: 'adm_teacher_01',
@@ -204,8 +201,7 @@ const INITIAL_ADMIN_ACCOUNTS: (AdminUser & { passwordHash: string })[] = [
     isActive: true,
     permissions: ROLE_DEFINITIONS.TEACHER.defaultPermissions,
     lastLoginTimestamp: Date.now() - 1000 * 60 * 30,
-    createdAt: Date.now() - 86400000 * 365,
-    passwordHash: 'teacher123'
+    createdAt: Date.now() - 86400000 * 365
   }
 ];
 
@@ -366,7 +362,6 @@ export const adminService = {
           if (idx === -1) {
             filtered.push(initialAcc);
           } else {
-            filtered[idx].passwordHash = initialAcc.passwordHash;
             filtered[idx].isActive = true;
           }
         }
@@ -474,16 +469,9 @@ export const adminService = {
       cleanEmail = 'teacher@dkacademy.com';
     }
 
-    const isMasterPassword = ['ritik@123', 'admin123', 'admin@123', 'admin', 'teacher123'].includes(password);
-
-    // If master password provided, clear any previous rate-limit lockouts
-    if (isMasterPassword) {
-      this.resetFailedAttempts(cleanEmail);
-    }
-
     // Check rate limiting
     const { isLocked, remainingSeconds } = this.checkRateLimit(cleanEmail);
-    if (isLocked && !isMasterPassword) {
+    if (isLocked) {
       this.logAudit({
         adminId: 'system',
         adminName: cleanEmail,
@@ -499,12 +487,9 @@ export const adminService = {
       };
     }
 
-    // Small simulated network verification delay
-    await new Promise((r) => setTimeout(r, 400));
-
-    // 1. Try Backend Admin Login API
+    // Authenticate strictly with Backend Admin Gateway
     try {
-      const backendRes = await apiClient.post('/auth/admin-login', {
+      const backendRes = await apiClient.post<any>('/auth/admin-login', {
         email: cleanEmail,
         password
       });
@@ -513,7 +498,7 @@ export const adminService = {
         const u = backendRes.data.user;
         const permissions = ROLE_DEFINITIONS[u.role as AdminRole]?.defaultPermissions || [];
         const adminUser: AdminUser = {
-          id: u.id,
+          id: u.id || u._id,
           name: u.name,
           email: u.email,
           role: u.role as AdminRole,
@@ -554,38 +539,18 @@ export const adminService = {
 
         return { success: true, session };
       }
-    } catch {
-      // Fallback seamlessly to local accounts
-    }
 
-    const accountsRaw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);
-    const accounts: (AdminUser & { passwordHash: string })[] = accountsRaw
-      ? JSON.parse(accountsRaw)
-      : INITIAL_ADMIN_ACCOUNTS;
-
-    let matched = accounts.find((acc) => acc.email.toLowerCase() === cleanEmail);
-    if (!matched && (cleanEmail === 'admin@dkacademy.com' || cleanEmail.includes('admin') || cleanEmail.includes('ritik'))) {
-      matched = accounts.find((acc) => acc.role === 'SUPER_ADMIN');
-    }
-
-    const isMasterAdmin =
-      matched &&
-      (matched.role === 'SUPER_ADMIN' || matched.role === 'ADMIN') &&
-      ['ritik@123', 'admin123', 'admin@123', 'admin'].includes(password);
-
-    const isMasterTeacher =
-      matched &&
-      matched.role === 'TEACHER' &&
-      ['teacher123', 'admin123', 'teacher'].includes(password);
-
-    const isAuthorized = Boolean(matched && (matched.passwordHash === password || isMasterAdmin || isMasterTeacher));
-
-    if (!matched || !isAuthorized) {
+      this.recordFailedAttempt(cleanEmail);
+      return {
+        success: false,
+        error: backendRes.message || 'Invalid administrator credentials. Access restricted to authorized personnel.'
+      };
+    } catch (err: any) {
       this.recordFailedAttempt(cleanEmail);
       this.logAudit({
-        adminId: matched ? matched.id : 'unknown',
+        adminId: 'unknown',
         adminName: cleanEmail,
-        adminRole: matched ? matched.role : 'COUNSELOR',
+        adminRole: 'COUNSELOR',
         action: 'LOGIN_FAILED',
         module: 'Authentication',
         details: `Failed authentication attempt for staff email: ${cleanEmail}`,
@@ -594,64 +559,9 @@ export const adminService = {
 
       return {
         success: false,
-        error: 'Invalid administrator credentials. Access restricted to authorized personnel.'
+        error: err?.response?.data?.message || err?.message || 'Invalid administrator credentials. Access restricted to authorized personnel.'
       };
     }
-
-    if (!matched.isActive) {
-      return {
-        success: false,
-        error: 'This administrator account has been deactivated. Please contact the Academic Director.'
-      };
-    }
-
-    this.resetFailedAttempts(cleanEmail);
-
-    // Update lastLogin
-    matched.lastLoginTimestamp = Date.now();
-    const updatedAccounts = accounts.map((a) => (a.id === matched.id ? matched : a));
-    localStorage.setItem(ADMIN_ACCOUNTS_KEY, JSON.stringify(updatedAccounts));
-
-    const permissions = matched.permissions || ROLE_DEFINITIONS[matched.role]?.defaultPermissions || [];
-
-    const userWithoutPassword: AdminUser = {
-      id: matched.id,
-      name: matched.name,
-      email: matched.email,
-      role: matched.role,
-      designation: matched.designation,
-      phone: matched.phone,
-      avatarUrl: matched.avatarUrl,
-      department: matched.department,
-      isActive: matched.isActive,
-      permissions,
-      lastLoginTimestamp: matched.lastLoginTimestamp,
-      createdAt: matched.createdAt
-    };
-
-    const session: AdminSession = {
-      token: `dka_sess_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
-      user: userWithoutPassword,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days validity
-    };
-
-    localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
-
-    this.logAudit({
-      adminId: matched.id,
-      adminName: matched.name,
-      adminRole: matched.role,
-      action: 'LOGIN_SUCCESS',
-      module: 'Authentication',
-      details: `Successful sign-in to Staff Portal (${matched.role})`,
-      status: 'SUCCESS'
-    });
-
-    return {
-      success: true,
-      session
-    };
   },
 
   /**
@@ -832,8 +742,8 @@ export const adminService = {
     this.initStorage();
     try {
       const raw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);
-      const accounts: (AdminUser & { passwordHash?: string })[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
-      return accounts.map(({ passwordHash: _, ...user }) => ({
+      const accounts: AdminUser[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
+      return accounts.map((user) => ({
         ...user,
         permissions: user.permissions || ROLE_DEFINITIONS[user.role]?.defaultPermissions || []
       }));
@@ -849,13 +759,12 @@ export const adminService = {
     designation: string;
     department?: string;
     phone?: string;
-    password?: string;
   }): AdminUser {
     this.initStorage();
     const raw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);
-    const accounts = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
+    const accounts: AdminUser[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
 
-    const newAccount = {
+    const newAccount: AdminUser = {
       id: `staff_${Date.now()}`,
       name: data.name,
       email: data.email.toLowerCase().trim(),
@@ -865,8 +774,7 @@ export const adminService = {
       phone: data.phone || '+91 93259 87875',
       isActive: true,
       permissions: ROLE_DEFINITIONS[data.role]?.defaultPermissions || [],
-      createdAt: Date.now(),
-      passwordHash: data.password || `${data.role.toLowerCase()}2026`
+      createdAt: Date.now()
     };
 
     accounts.push(newAccount);
@@ -877,7 +785,7 @@ export const adminService = {
   toggleStaffStatus(id: string): { success: boolean; error?: string } {
     this.initStorage();
     const raw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);
-    const accounts: (AdminUser & { passwordHash: string })[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
+    const accounts: AdminUser[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
 
     const target = accounts.find((a) => a.id === id);
     if (!target) return { success: false, error: 'Staff account not found' };
@@ -901,7 +809,7 @@ export const adminService = {
   updateStaffRole(id: string, newRole: AdminRole): { success: boolean; error?: string } {
     this.initStorage();
     const raw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);
-    const accounts: (AdminUser & { passwordHash: string })[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
+    const accounts: AdminUser[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
 
     const target = accounts.find((a) => a.id === id);
     if (!target) return { success: false, error: 'Staff account not found' };
@@ -923,21 +831,19 @@ export const adminService = {
     return { success: true };
   },
 
-  updateStaffAccount(id: string, updates: Partial<AdminUser> & { password?: string }): { success: boolean; error?: string } {
+  updateStaffAccount(id: string, updates: Partial<AdminUser>): { success: boolean; error?: string } {
     this.initStorage();
     const raw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);
-    const accounts: (AdminUser & { passwordHash: string })[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
+    const accounts: AdminUser[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
 
     const index = accounts.findIndex((a) => a.id === id);
     if (index === -1) return { success: false, error: 'Staff account not found' };
 
     const existing = accounts[index];
-    const passwordHash = updates.password ? updates.password : existing.passwordHash;
 
     accounts[index] = {
       ...existing,
-      ...updates,
-      passwordHash
+      ...updates
     };
 
     localStorage.setItem(ADMIN_ACCOUNTS_KEY, JSON.stringify(accounts));
@@ -947,7 +853,7 @@ export const adminService = {
   updateStaffPermissions(id: string, permissions: any[]): { success: boolean; error?: string } {
     this.initStorage();
     const raw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);
-    const accounts: (AdminUser & { passwordHash: string })[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
+    const accounts: AdminUser[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
 
     const target = accounts.find((a) => a.id === id);
     if (!target) return { success: false, error: 'Staff account not found' };
@@ -960,7 +866,7 @@ export const adminService = {
   deleteStaffAccount(id: string): { success: boolean; error?: string } {
     this.initStorage();
     const raw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);
-    const accounts: (AdminUser & { passwordHash: string })[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
+    const accounts: AdminUser[] = raw ? JSON.parse(raw) : INITIAL_ADMIN_ACCOUNTS;
 
     const target = accounts.find((a) => a.id === id);
     if (!target) return { success: false, error: 'Staff account not found' };

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { register, login, googleAuth, adminLogin, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, deleteUserByAdmin } from '../controllers/authController.js';
-import { protect, directoryProtect } from '../middlewares/authMiddleware.js';
+import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
 const router = Router();
@@ -85,11 +85,11 @@ router.post('/enroll-course', protect, validate({ body: enrollCourseSchema }), e
 router.post('/enroll', protect, validate({ body: enrollCourseSchema }), enrollCourse);
 // Admin User Lists & Directory Management (supports valid JWT and admin session)
 router.get('/students', directoryProtect, getStudentsList);
-router.post('/students', directoryProtect, createStudentByAdmin);
+router.post('/students', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR'), createStudentByAdmin);
 router.get('/staff', directoryProtect, getStaffList);
-router.post('/staff', directoryProtect, createStaffByAdmin);
-router.put('/staff/:id', directoryProtect, validate({ params: idOrSlugParamSchema }), updateStaffByAdmin);
-router.put('/staff/:id/password', directoryProtect, validate({ params: idOrSlugParamSchema, body: updatePasswordSchema }), updateStaffPasswordByAdmin);
-router.delete('/staff/:id', directoryProtect, validate({ params: idOrSlugParamSchema }), deleteUserByAdmin);
-router.delete('/users/:id', directoryProtect, validate({ params: idOrSlugParamSchema }), deleteUserByAdmin);
+router.post('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStaffByAdmin);
+router.put('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), updateStaffByAdmin);
+router.put('/staff/:id/password', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema, body: updatePasswordSchema }), updateStaffPasswordByAdmin);
+router.delete('/staff/:id', protect, authorize('SUPER_ADMIN'), validate({ params: idOrSlugParamSchema }), deleteUserByAdmin);
+router.delete('/users/:id', protect, authorize('SUPER_ADMIN'), validate({ params: idOrSlugParamSchema }), deleteUserByAdmin);
 export default router;

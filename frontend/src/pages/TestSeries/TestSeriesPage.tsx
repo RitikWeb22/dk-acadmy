@@ -342,11 +342,19 @@ export const TestSeriesPage: React.FC = () => {
     // If not marked paid or explicitly free, it is open
     if (test.isFree !== false && test.accessMode !== 'paid') return true;
     const testId = test.id || (test as any)._id;
-    // Check local unlocked cache
-    if (unlockedMockTestIds.includes(testId)) return true;
-    // Check student enrolled list
-    if (student?.id && Array.isArray((test as any).unlockedStudents) && (test as any).unlockedStudents.includes(student.id)) {
-      return true;
+    
+    // Check student enrolled courses or test unlocked student roster
+    if (student?.id) {
+      if (Array.isArray((test as any).unlockedStudents) && (test as any).unlockedStudents.includes(student.id)) {
+        return true;
+      }
+      if (Array.isArray((student as any).enrolledCourses)) {
+        const isEnrolledInCourseOrTest = (student as any).enrolledCourses.some((c: any) => {
+          const cId = typeof c === 'string' ? c : c?.courseId || c?.id;
+          return cId === testId || cId === test.slug || cId === String((test as any)._id);
+        });
+        if (isEnrolledInCourseOrTest) return true;
+      }
     }
     return false;
   };

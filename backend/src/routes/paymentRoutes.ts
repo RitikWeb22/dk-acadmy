@@ -10,7 +10,7 @@ import {
   deleteOrder,
   purgeDemoOrders
 } from '../controllers/paymentController.js';
-import { protect, directoryProtect, optionalProtect } from '../middlewares/authMiddleware.js';
+import { protect, directoryProtect, optionalProtect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
@@ -67,26 +67,29 @@ router.post('/verify', optionalProtect, validate({ body: verifyPaymentSchema }),
 // Student personal orders and fee receipts
 router.get('/my-orders', protect, getMyOrders);
 
-// Admin orders list, manual invoice creation, and management (supports valid JWT and admin session)
-router.get('/orders', directoryProtect, getOrdersList);
+// Admin orders list, manual invoice creation, and management (strictly RBAC protected)
+router.get('/orders', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR'), getOrdersList);
 router.post(
   '/admin-invoice',
-  directoryProtect,
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN'),
   validate({ body: adminInvoiceSchema }),
   createAdminInvoice
 );
 router.patch(
   '/orders/:id/status',
-  directoryProtect,
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN'),
   validate({ params: idOrSlugParamSchema, body: updateOrderStatusSchema }),
   updateOrderStatus
 );
 router.delete(
   '/orders/:id',
-  directoryProtect,
+  protect,
+  authorize('SUPER_ADMIN'),
   validate({ params: idOrSlugParamSchema }),
   deleteOrder
 );
-router.post('/orders-purge-demo', directoryProtect, purgeDemoOrders);
+router.post('/orders-purge-demo', protect, authorize('SUPER_ADMIN'), purgeDemoOrders);
 
 export default router;

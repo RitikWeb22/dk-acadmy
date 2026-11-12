@@ -7,7 +7,7 @@ import {
   endLiveSession,
   getLiveSessionById
 } from '../controllers/liveController.js';
-import { protect, authorize } from '../middlewares/authMiddleware.js';
+import { protect, authorize, optionalProtect } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validateMiddleware.js';
 
 const router = Router();
@@ -34,7 +34,7 @@ const createSessionSchema = z
   .strict();
 
 // 1. Role-based LiveKit Token Generator
-router.post('/token', validate({ body: tokenSchema }), getLiveToken);
+router.post('/token', optionalProtect, validate({ body: tokenSchema }), getLiveToken);
 
 // 2. Live Session Management
 router.get('/sessions', getLiveSessions);
