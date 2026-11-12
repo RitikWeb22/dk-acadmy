@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { Course } from '../models/Course.js';
+import { escapeRegex, getPagination } from '../utils/sanitize.js';
 import {
   broadcastCMSUpdated,
   broadcastCourseCreated,
@@ -9,12 +10,43 @@ import {
 
 export const getAllCourses = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { category, targetClass, mode } = req.query;
+    const { category, targetClass, mode, search, page, limit } = req.query;
     const filter: any = {};
 
     if (category && category !== 'All') filter.category = category;
     if (targetClass && targetClass !== 'All') filter.targetClass = targetClass;
     if (mode && mode !== 'All') filter.deliveryMode = mode;
+    if (search && typeof search === 'string' && search.trim()) {
+      const q = escapeRegex(search.trim());
+      filter.$or = [
+        { title: { $regex: q, $options: 'i' } },
+        { subtitle: { $regex: q, $options: 'i' } },
+        { slug: { $regex: q, $options: 'i' } }
+      ];
+    }
+
+    if (limit) {
+      const pagination = getPagination(page, limit, 20, 100);
+      const [courses, total] = await Promise.all([
+        Course.find(filter)
+          .sort({ createdAt: -1 })
+          .skip(pagination.skip)
+          .limit(pagination.limit)
+          .lean(),
+        Course.countDocuments(filter)
+      ]);
+
+      res.status(200).json({
+        success: true,
+        count: courses.length,
+        total,
+        page: pagination.page,
+        totalPages: Math.ceil(total / pagination.limit),
+        hasMore: pagination.page * pagination.limit < total,
+        data: courses
+      });
+      return;
+    }
 
     const courses = await Course.find(filter).sort({ createdAt: -1 });
     res.status(200).json({ success: true, count: courses.length, data: courses });

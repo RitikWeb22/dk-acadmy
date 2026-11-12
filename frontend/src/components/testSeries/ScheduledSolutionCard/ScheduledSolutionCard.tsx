@@ -10,6 +10,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { apiClient } from '../../../services/apiClient';
+import { useSharedClock } from '../../../hooks/useSharedClock';
 import styles from './ScheduledSolutionCard.module.scss';
 
 interface ScheduledSolutionCardProps {
@@ -69,7 +70,8 @@ export const ScheduledSolutionCard: React.FC<ScheduledSolutionCardProps> = ({
     }
   };
 
-  // Real-time countdown timer hook
+  // Real-time countdown timer hook (via high-performance shared clock)
+  const currentClock = useSharedClock(!isUnlocked);
   useEffect(() => {
     const updateCountdown = () => {
       const now = Date.now();
@@ -92,15 +94,14 @@ export const ScheduledSolutionCard: React.FC<ScheduledSolutionCardProps> = ({
     };
 
     updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
 
     // If already unlocked on mount, fetch right away
     if (Date.now() >= unlockTargetTime) {
       fetchUnlockedSolutions();
     }
 
-    return () => clearInterval(interval);
-  }, [unlockTargetTime, submissionId, isUnlocked]);
+
+  }, [unlockTargetTime, submissionId, isUnlocked, currentClock]);
 
   // Format exact unlock date & time
   const unlockDateObj = new Date(unlockTargetTime);

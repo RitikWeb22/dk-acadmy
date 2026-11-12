@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { apiClient } from '../../../services/apiClient';
+import { adminService } from '../../../services/adminService';
 import { generateTeacherId } from '../../../utils/uuid';
 import {
   Search,
@@ -25,7 +26,9 @@ import {
   GraduationCap,
   ShieldCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  KeyRound,
+  Lock
 } from 'lucide-react';
 import styles from './FacultyManagementWorkspace.module.scss';
 
@@ -38,6 +41,8 @@ export interface FacultyItem {
   mobile: string;
   role: 'Super Admin' | 'Faculty' | 'Admin' | 'Lead HOD';
   status: 'ACTIVE' | 'SUSPENDED';
+  isLocked?: boolean;
+  failedLoginAttempts?: number;
   batchesCount: number;
   batchesList: string[];
   joinedAt: string;
@@ -142,6 +147,8 @@ export const FacultyManagementWorkspace: React.FC = () => {
             mobile: u.phone || '+91 98112 34567',
             role: (u.role === 'SUPER_ADMIN' ? 'Super Admin' : u.role === 'ADMIN' ? 'Admin' : 'Faculty') as any,
             status: 'ACTIVE',
+            isLocked: Boolean(u.isLocked || (u.lockUntil && new Date(u.lockUntil).getTime() > Date.now())),
+            failedLoginAttempts: u.failedLoginAttempts || 0,
             batchesCount: 2,
             batchesList: ['JEE Rankers Batch'],
             joinedAt: u.createdAt
@@ -209,7 +216,22 @@ export const FacultyManagementWorkspace: React.FC = () => {
     );
   };
 
-  // Toggle Suspend Status handler
+  // Unlock Account immediately
+  const handleUnlockFaculty = async (faculty: FacultyItem) => {
+    try {
+      const res = await adminService.unlockStaffAccount(faculty.id);
+      if (res.success) {
+        setFacultyList((prev) =>
+          prev.map((f) => (f.id === faculty.id ? { ...f, isLocked: false, status: 'ACTIVE' } : f))
+        );
+        showToast(res.message || `Account for ${faculty.name} successfully unlocked!`);
+      } else {
+        alert(res.error || 'Failed to unlock staff account');
+      }
+    } catch {
+      alert('Network error while unlocking account');
+    }
+  };
   const handleToggleSuspend = (faculty: FacultyItem) => {
     if (faculty.status === 'ACTIVE') {
       setSuspendCandidate(faculty);
@@ -631,7 +653,25 @@ export const FacultyManagementWorkspace: React.FC = () => {
                       {/* 5. Role & Status */}
                       <td className={styles.tdRole}>
                         <div className={styles.statusGroup}>
-                          {isSuspended ? (
+                          {faculty.isLocked ? (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                background: '#fef2f2',
+                                color: '#b91c1c',
+                                border: '1px solid #fca5a5'
+                              }}
+                              title="Locked due to failed login attempts"
+                            >
+                              <Lock size={10} /> Locked
+                            </span>
+                          ) : isSuspended ? (
                             <span className={styles.statusPillSuspended} title="Access suspended">
                               ● Suspended
                             </span>
@@ -677,9 +717,19 @@ export const FacultyManagementWorkspace: React.FC = () => {
                         <span className={styles.joinedAtText}>{faculty.joinedAt}</span>
                       </td>
 
-                      {/* 8. Combined Actions (Edit, Suspend, Message, Delete) */}
+                      {/* 8. Combined Actions (Unlock, Edit, Suspend, Message, Delete) */}
                       <td className={styles.tdAction}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            className={styles.editActionBtn}
+                            style={faculty.isLocked ? { background: '#fef2f2', color: '#dc2626', borderColor: '#fca5a5' } : undefined}
+                            onClick={() => handleUnlockFaculty(faculty)}
+                            title={`Immediately unlock & reactivate ${faculty.name}`}
+                            aria-label={`Unlock ${faculty.name}`}
+                          >
+                            <KeyRound size={13} />
+                          </button>
                           <button
                             type="button"
                             className={styles.editActionBtn}

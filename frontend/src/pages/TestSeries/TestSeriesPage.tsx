@@ -200,16 +200,27 @@ export const TestSeriesPage: React.FC = () => {
     window.addEventListener('dk_test_series_updated', handleUpsert);
     window.addEventListener('dk_test_series_deleted', handleDeleteEvent);
 
+    // Stale-while-revalidate fallback polling (60s) with visibility awareness
     const pollInterval = setInterval(() => {
-      cmsService.fetchTestSeriesFromAPI(true).then((items) => {
-        if (Array.isArray(items)) {
-          setTestSeriesList(items);
-        }
-      }).catch(() => {});
-    }, 3500);
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        cmsService.fetchTestSeriesFromAPI(false).then((items) => {
+          if (Array.isArray(items)) {
+            setTestSeriesList(items);
+          }
+        }).catch(() => {});
+      }
+    }, 60000);
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        syncTestSeries();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       unsubscribeBroadcast();
       window.removeEventListener(CMS_EVENT_KEY, handleUpsert);
       window.removeEventListener('dk_test_series_created', handleUpsert);

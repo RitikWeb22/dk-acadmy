@@ -5,6 +5,7 @@ import { QuestionBank } from '../models/QuestionBank.js';
 import { PdfImportHistory } from '../models/PdfImportHistory.js';
 import { extractQuestionsFromPdfBuffer, extractQuestionsFromDocxBuffer, parseQuestionsFromText } from '../utils/pdfQuestionExtractor.js';
 import { broadcastDppPyqCreated, broadcastDppPyqUpdated, broadcastDppPyqDeleted } from '../sockets/socket.js';
+import { escapeRegex } from '../utils/sanitize.js';
 const SEED_QUESTIONS = [];
 const SEED_DPP_PYQ_ITEMS = [
     {
@@ -192,21 +193,22 @@ export const getAllDppPyq = async (req, res) => {
         const isForce = force === 'true' || force === '1';
         const filter = {};
         if (moduleType && moduleType !== 'ALL') {
-            filter.moduleType = { $regex: new RegExp(`^${String(moduleType).trim()}$`, 'i') };
+            filter.moduleType = { $regex: new RegExp(`^${escapeRegex(String(moduleType).trim())}$`, 'i') };
         }
         if (subject && subject !== 'ALL') {
-            filter.subject = { $regex: new RegExp(`^${String(subject).trim()}$`, 'i') };
+            filter.subject = { $regex: new RegExp(`^${escapeRegex(String(subject).trim())}$`, 'i') };
         }
         if (status && status !== 'ALL') {
             filter.status = status;
         }
         if (search && typeof search === 'string' && search.trim()) {
+            const safeSearch = escapeRegex(search.trim());
             filter.$or = [
-                { title: { $regex: search.trim(), $options: 'i' } },
-                { slug: { $regex: search.trim(), $options: 'i' } },
-                { categoryLabel: { $regex: search.trim(), $options: 'i' } },
-                { badgeCode: { $regex: search.trim(), $options: 'i' } },
-                { chapter: { $regex: search.trim(), $options: 'i' } }
+                { title: { $regex: safeSearch, $options: 'i' } },
+                { slug: { $regex: safeSearch, $options: 'i' } },
+                { categoryLabel: { $regex: safeSearch, $options: 'i' } },
+                { badgeCode: { $regex: safeSearch, $options: 'i' } },
+                { chapter: { $regex: safeSearch, $options: 'i' } }
             ];
         }
         const hasFilters = Object.keys(filter).length > 0;
@@ -662,10 +664,11 @@ export const getQuestionBank = async (req, res) => {
         const { search, subject, exam, year, chapter, difficulty, questionType, page = 1, limit = 50 } = req.query;
         const filter = {};
         if (search) {
+            const safeSearch = escapeRegex(String(search).trim());
             filter.$or = [
-                { statement: { $regex: String(search), $options: 'i' } },
-                { chapter: { $regex: String(search), $options: 'i' } },
-                { topic: { $regex: String(search), $options: 'i' } }
+                { statement: { $regex: safeSearch, $options: 'i' } },
+                { chapter: { $regex: safeSearch, $options: 'i' } },
+                { topic: { $regex: safeSearch, $options: 'i' } }
             ];
         }
         if (subject && subject !== 'All')

@@ -5,6 +5,7 @@ import { User } from '../models/User.js';
 import { PART_TESTS_DATA } from '../data/partTestsData.js';
 import { normalizeCanonicalMath, normalizeOptionMath } from '../services/mathImport/index.js';
 import { broadcastTestSeriesCreated, broadcastTestSeriesUpdated, broadcastTestSeriesDeleted } from '../sockets/socket.js';
+import { escapeRegex, getPagination } from '../utils/sanitize.js';
 // Default starter dataset if DB is empty
 const BASE_SEED_TEST_SERIES = [
     {
@@ -351,7 +352,7 @@ export const getAllTestSeries = async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
-        const { examType, format, status, search } = req.query;
+        const { examType, format, status, search, page, limit } = req.query;
         const filter = {};
         if (examType && examType !== 'ALL' && examType !== 'All') {
             filter.examType = examType;
@@ -363,17 +364,38 @@ export const getAllTestSeries = async (req, res) => {
             filter.status = status;
         }
         if (search) {
-            const q = String(search).trim();
+            const q = escapeRegex(String(search).trim());
             filter.$or = [
                 { title: { $regex: q, $options: 'i' } },
                 { subtitle: { $regex: q, $options: 'i' } },
                 { slug: { $regex: q, $options: 'i' } }
             ];
         }
-        let items = await TestSeries.find(filter)
-            .sort({ createdAt: -1 })
-            .lean()
-            .maxTimeMS(4000);
+        let items;
+        let totalCount = 0;
+        let paginationMeta = null;
+        if (limit) {
+            const pagination = getPagination(page, limit, 20, 100);
+            paginationMeta = pagination;
+            const [fetchedItems, total] = await Promise.all([
+                TestSeries.find(filter)
+                    .sort({ createdAt: -1 })
+                    .skip(pagination.skip)
+                    .limit(pagination.limit)
+                    .lean()
+                    .maxTimeMS(4000),
+                TestSeries.countDocuments(filter)
+            ]);
+            items = fetchedItems;
+            totalCount = total;
+        }
+        else {
+            items = await TestSeries.find(filter)
+                .sort({ createdAt: -1 })
+                .lean()
+                .maxTimeMS(4000);
+            totalCount = items.length;
+        }
         const sanitizedItems = items.map((it) => {
             const obj = { ...it };
             if (!obj.markingScheme || typeof obj.markingScheme.correct !== 'number') {
@@ -389,6 +411,18 @@ export const getAllTestSeries = async (req, res) => {
             }
             return obj;
         });
+        if (paginationMeta) {
+            res.status(200).json({
+                success: true,
+                count: sanitizedItems.length,
+                total: totalCount,
+                page: paginationMeta.page,
+                totalPages: Math.ceil(totalCount / paginationMeta.limit),
+                hasMore: paginationMeta.page * paginationMeta.limit < totalCount,
+                data: sanitizedItems
+            });
+            return;
+        }
         res.status(200).json({
             success: true,
             count: sanitizedItems.length,

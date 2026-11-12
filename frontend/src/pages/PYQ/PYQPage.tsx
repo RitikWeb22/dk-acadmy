@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useSharedClock } from '../../hooks/useSharedClock';
 import {
   ChevronRight,
   Home,
@@ -108,12 +109,8 @@ export const PYQPage: React.FC = () => {
     return [2026, 2025, 2024, 2023, 2022, 2021, 2020];
   });
 
-  // 1-second interval for real-time live scheduled paper countdowns
-  const [nowTime, setNowTime] = useState<number>(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNowTime(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // High-performance shared 1-second clock for real-time live scheduled paper countdowns
+  const nowTime = useSharedClock(true);
 
   const getCountdown = (scheduledDate?: string) => {
     if (!scheduledDate) return null;

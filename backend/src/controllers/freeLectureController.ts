@@ -6,6 +6,7 @@ import {
   broadcastFreeLectureUpdated,
   broadcastFreeLectureDeleted
 } from '../sockets/socket.js';
+import { escapeRegex } from '../utils/sanitize.js';
 
 const SEED_FREE_LECTURES = [
   // Track 1: Mathematics - Differential Calculus Shortcuts
@@ -520,7 +521,7 @@ export const getFreeLectures = async (req: Request, res: Response): Promise<void
       filter.status = status;
     }
     if (search && typeof search === 'string' && search.trim() !== '') {
-      const q = search.trim();
+      const q = escapeRegex(search.trim());
       filter.$or = [
         { title: { $regex: q, $options: 'i' } },
         { trackTitle: { $regex: q, $options: 'i' } },

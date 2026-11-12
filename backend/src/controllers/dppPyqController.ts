@@ -10,6 +10,7 @@ import {
   broadcastDppPyqUpdated,
   broadcastDppPyqDeleted
 } from '../sockets/socket.js';
+import { escapeRegex } from '../utils/sanitize.js';
 
 const SEED_QUESTIONS: any[] = [];
 
@@ -203,21 +204,22 @@ export const getAllDppPyq = async (req: Request, res: Response): Promise<void> =
     const filter: any = {};
 
     if (moduleType && moduleType !== 'ALL') {
-      filter.moduleType = { $regex: new RegExp(`^${String(moduleType).trim()}$`, 'i') };
+      filter.moduleType = { $regex: new RegExp(`^${escapeRegex(String(moduleType).trim())}$`, 'i') };
     }
     if (subject && subject !== 'ALL') {
-      filter.subject = { $regex: new RegExp(`^${String(subject).trim()}$`, 'i') };
+      filter.subject = { $regex: new RegExp(`^${escapeRegex(String(subject).trim())}$`, 'i') };
     }
     if (status && status !== 'ALL') {
       filter.status = status;
     }
     if (search && typeof search === 'string' && search.trim()) {
+      const safeSearch = escapeRegex(search.trim());
       filter.$or = [
-        { title: { $regex: search.trim(), $options: 'i' } },
-        { slug: { $regex: search.trim(), $options: 'i' } },
-        { categoryLabel: { $regex: search.trim(), $options: 'i' } },
-        { badgeCode: { $regex: search.trim(), $options: 'i' } },
-        { chapter: { $regex: search.trim(), $options: 'i' } }
+        { title: { $regex: safeSearch, $options: 'i' } },
+        { slug: { $regex: safeSearch, $options: 'i' } },
+        { categoryLabel: { $regex: safeSearch, $options: 'i' } },
+        { badgeCode: { $regex: safeSearch, $options: 'i' } },
+        { chapter: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -739,10 +741,11 @@ export const getQuestionBank = async (req: Request, res: Response): Promise<void
 
     const filter: any = {};
     if (search) {
+      const safeSearch = escapeRegex(String(search).trim());
       filter.$or = [
-        { statement: { $regex: String(search), $options: 'i' } },
-        { chapter: { $regex: String(search), $options: 'i' } },
-        { topic: { $regex: String(search), $options: 'i' } }
+        { statement: { $regex: safeSearch, $options: 'i' } },
+        { chapter: { $regex: safeSearch, $options: 'i' } },
+        { topic: { $regex: safeSearch, $options: 'i' } }
       ];
     }
     if (subject && subject !== 'All') filter.subject = subject;

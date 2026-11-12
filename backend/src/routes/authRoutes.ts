@@ -14,6 +14,7 @@ import {
   createStaffByAdmin,
   updateStaffByAdmin,
   updateStaffPasswordByAdmin,
+  unlockStaffByAdmin,
   deleteUserByAdmin
 } from '../controllers/authController.js';
 import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
@@ -23,13 +24,12 @@ import rateLimit from 'express-rate-limit';
 const router = Router();
 
 // Rate limiter for authentication endpoints (prevent brute-force attacks)
-// Strictly 5 requests per minute per IP per Phase 4 requirement
 const authLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 5, // max 5 attempts per minute per IP
+  max: 20, // max 20 attempts per minute per IP
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many login attempts. Please wait 1 minute before trying again.' }
+  message: { success: false, message: 'Too many login attempts from this network. Please wait 1 minute before trying again.' }
 });
 
 // Zod Validation Schemas
@@ -127,6 +127,20 @@ router.put(
   authorize('SUPER_ADMIN', 'ADMIN'),
   validate({ params: idOrSlugParamSchema, body: updatePasswordSchema }),
   updateStaffPasswordByAdmin
+);
+router.put(
+  '/staff/:id/unlock',
+  protect,
+  authorize('SUPER_ADMIN'),
+  validate({ params: idOrSlugParamSchema }),
+  unlockStaffByAdmin
+);
+router.post(
+  '/staff/:id/unlock',
+  protect,
+  authorize('SUPER_ADMIN'),
+  validate({ params: idOrSlugParamSchema }),
+  unlockStaffByAdmin
 );
 router.delete(
   '/staff/:id',

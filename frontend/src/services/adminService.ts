@@ -863,6 +863,124 @@ export const adminService = {
     return { success: true };
   },
 
+  /**
+   * Unlock and reactivate a staff or administrative account immediately
+   * Clears both backend database lockout and client-side rate-limiting
+   */
+  async unlockStaffAccount(idOrEmail: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    this.initStorage();
+    let memberEmail = idOrEmail.toLowerCase().trim();
+
+    // Map common aliases
+    if (['admin', 'superadmin', 'director', 'ritik'].includes(memberEmail)) {
+      memberEmail = 'ritikweb30@gmail.com';
+    } else if (['dharmendra', 'dk sir'].includes(memberEmail)) {
+      memberEmail = 'dharmendra@dkacademy.com';
+    } else if (['teacher', 'faculty'].includes(memberEmail)) {
+      memberEmail = 'teacher@dkacademy.com';
+    }
+
+    const accounts = this.getStaffAccounts();
+    const target = accounts.find((a) => a.id === idOrEmail || a.email.toLowerCase() === memberEmail);
+    if (target) {
+      memberEmail = target.email.toLowerCase();
+    }
+
+    // 1. Immediately reset client-side rate limit lockouts
+    this.resetFailedAttempts(memberEmail);
+    this.resetFailedAttempts(idOrEmail);
+    if (target) {
+      this.resetFailedAttempts(target.id);
+    }
+
+    // 2. Call backend API to unlock account in MongoDB
+    try {
+      const res = await apiClient.put<any>(`/auth/staff/${encodeURIComponent(idOrEmail)}/unlock`, {});
+      if (res.success) {
+        if (target) {
+          target.isActive = true;
+          (target as any).isLocked = false;
+          (target as any).failedLoginAttempts = 0;
+          this.updateStaffAccount(target.id, { isActive: true, isLocked: false, failedLoginAttempts: 0 } as any);
+        }
+
+        const currentSession = this.getCurrentSession();
+        if (currentSession?.user) {
+          this.logAudit({
+            adminId: currentSession.user.id,
+            adminName: currentSession.user.name,
+            adminRole: currentSession.user.role,
+            action: 'STAFF_STATUS_TOGGLED',
+            module: 'Account Security & Lockout Recovery',
+            details: `Super Admin unlocked & reactivated account for ${target?.name || idOrEmail} (${memberEmail})`,
+            status: 'SUCCESS'
+          });
+        }
+
+        return {
+          success: true,
+          message: res.message || `Account for ${target?.name || memberEmail} has been immediately unlocked and reactivated.`
+        };
+      } else {
+        return {
+          success: false,
+          error: res.message || 'Failed to unlock staff account on server'
+        };
+      }
+    } catch (err: any) {
+      // In case of local/offline mode, still succeed if local target was unlocked
+      if (target) {
+        target.isActive = true;
+        (target as any).isLocked = false;
+        this.updateStaffAccount(target.id, { isActive: true, isLocked: false, failedLoginAttempts: 0 } as any);
+        return {
+          success: true,
+          message: `Account for ${target.name} has been locally unlocked and reactivated.`
+        };
+      }
+      return {
+        success: false,
+        error: err?.response?.data?.message || err?.message || 'Server error while unlocking account'
+      };
+    }
+  },
+
+  /**
+   * Reset staff password and immediately clear any lockout
+   */
+  async resetStaffPasswordByAdmin(
+    idOrEmail: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    this.initStorage();
+    const cleanId = encodeURIComponent(idOrEmail.trim());
+
+    // Immediately reset local lockouts
+    this.resetFailedAttempts(idOrEmail.toLowerCase().trim());
+
+    try {
+      const res = await apiClient.put<any>(`/auth/staff/${cleanId}/password`, {
+        password: newPassword
+      });
+
+      if (res.success) {
+        return {
+          success: true,
+          message: res.message || 'Password successfully updated and account unlocked.'
+        };
+      }
+      return {
+        success: false,
+        error: res.message || 'Failed to update password'
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.response?.data?.message || err?.message || 'Failed to update password'
+      };
+    }
+  },
+
   deleteStaffAccount(id: string): { success: boolean; error?: string } {
     this.initStorage();
     const raw = localStorage.getItem(ADMIN_ACCOUNTS_KEY);

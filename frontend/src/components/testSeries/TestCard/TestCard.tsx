@@ -3,6 +3,7 @@ import { Clock, Target, List, ArrowRight, CheckCircle2, RotateCcw, BarChart2, Ca
 import type { TestSeriesItem, TestAttempt } from '../../../types';
 import { requestFullScreen } from '../../../utils/fullscreen';
 import { offerService, OFFERS_EVENT_KEY } from '../../../services/offerService';
+import { useSharedClock } from '../../../hooks/useSharedClock';
 import styles from './TestCard.module.scss';
 
 interface TestCardProps {
@@ -78,29 +79,21 @@ export const TestCard: React.FC<TestCardProps> = ({
       }).format(new Date(endTime))
     : '';
 
-  // Live Countdown Timer for Upcoming Scheduled Tests
-  const [countdown, setCountdown] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
+  // Live Countdown Timer for Upcoming Scheduled Tests (optimized)
+  const isCountdownActive = Boolean(startTime && isUpcoming);
+  const nowTime = useSharedClock(isCountdownActive);
 
-  useEffect(() => {
-    if (!startTime || !isUpcoming) return;
+  const countdown = useMemo(() => {
+    if (!startTime || !isUpcoming) return null;
+    const diff = startTime - nowTime;
+    if (diff <= 0) return null;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    return { days, hours, minutes, seconds };
+  }, [startTime, isUpcoming, nowTime]);
 
-    const updateCountdown = () => {
-      const diff = startTime - Date.now();
-      if (diff <= 0) {
-        setCountdown(null);
-        return;
-      }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      setCountdown({ days, hours, minutes, seconds });
-    };
-
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
-  }, [startTime, isUpcoming]);
 
   const countdownFormatted = countdown
     ? `${countdown.days > 0 ? `${countdown.days}d ` : ''}${String(countdown.hours).padStart(2, '0')}h : ${String(countdown.minutes).padStart(2, '0')}m : ${String(countdown.seconds).padStart(2, '0')}s`

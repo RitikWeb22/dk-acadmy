@@ -72,12 +72,23 @@ export const DashboardPage: React.FC = () => {
     window.addEventListener('dk_test_series_updated', refreshTests);
     window.addEventListener('dk_test_series_deleted', refreshTests);
 
+    // Stale-while-revalidate fallback polling (60s) with visibility awareness
     const pollTimer = setInterval(() => {
-      refreshTests();
-    }, 4500);
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshTests();
+      }
+    }, 60000);
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshTests();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearInterval(pollTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       unsubscribeBroadcast();
       window.removeEventListener(CMS_EVENT_KEY, handleCmsEvent);
       window.removeEventListener('dk_test_series_created', refreshTests);

@@ -43,6 +43,10 @@ export interface AdminUser {
   avatarUrl?: string;
   department?: string;
   isActive: boolean;
+  isLocked?: boolean;
+  failedLoginAttempts?: number;
+  lockUntil?: string | number | Date;
+  remainingLockMinutes?: number;
   permissions: PermissionId[];
   lastLoginTimestamp?: number;
   createdAt: number;

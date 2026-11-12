@@ -19,7 +19,7 @@ module.exports = {
     {
       name: 'dk-academy-api',
       script: './backend/dist/server.js',
-      instances: process.env.PM2_INSTANCES || 4, // 4 cluster workers by default
+      instances: process.env.PM2_INSTANCES ? Number(process.env.PM2_INSTANCES) : (process.env.REDIS_URL ? 4 : 1), // 1 worker default without Redis (avoids socket/state drift); 4+ when REDIS_URL is provided
       exec_mode: 'cluster',
       autorestart: true,
       watch: false,

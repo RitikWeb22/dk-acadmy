@@ -1,18 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { register, login, googleAuth, adminLogin, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, deleteUserByAdmin } from '../controllers/authController.js';
+import { register, login, googleAuth, adminLogin, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, unlockStaffByAdmin, deleteUserByAdmin } from '../controllers/authController.js';
 import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
 const router = Router();
 // Rate limiter for authentication endpoints (prevent brute-force attacks)
-// Strictly 5 requests per minute per IP per Phase 4 requirement
 const authLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 5, // max 5 attempts per minute per IP
+    max: 20, // max 20 attempts per minute per IP
     standardHeaders: true,
     legacyHeaders: false,
-    message: { success: false, message: 'Too many login attempts. Please wait 1 minute before trying again.' }
+    message: { success: false, message: 'Too many login attempts from this network. Please wait 1 minute before trying again.' }
 });
 // Zod Validation Schemas
 const registerSchema = z
@@ -90,6 +89,8 @@ router.get('/staff', directoryProtect, getStaffList);
 router.post('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStaffByAdmin);
 router.put('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), updateStaffByAdmin);
 router.put('/staff/:id/password', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema, body: updatePasswordSchema }), updateStaffPasswordByAdmin);
+router.put('/staff/:id/unlock', protect, authorize('SUPER_ADMIN'), validate({ params: idOrSlugParamSchema }), unlockStaffByAdmin);
+router.post('/staff/:id/unlock', protect, authorize('SUPER_ADMIN'), validate({ params: idOrSlugParamSchema }), unlockStaffByAdmin);
 router.delete('/staff/:id', protect, authorize('SUPER_ADMIN'), validate({ params: idOrSlugParamSchema }), deleteUserByAdmin);
 router.delete('/users/:id', protect, authorize('SUPER_ADMIN'), validate({ params: idOrSlugParamSchema }), deleteUserByAdmin);
 export default router;

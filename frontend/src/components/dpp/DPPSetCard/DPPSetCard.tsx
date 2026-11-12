@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Clock, HelpCircle, ArrowRight, CheckCircle2, RotateCcw, FileText, Download, Lock } from 'lucide-react';
 import type { DPPSet, DPPAttempt } from '../../../types';
 import { Badge } from '../../ui/Badge/Badge';
+import { useSharedClock } from '../../../hooks/useSharedClock';
 import styles from './DPPSetCard.module.scss';
 
 interface DPPSetCardProps {
@@ -26,11 +27,8 @@ export const DPPSetCard: React.FC<DPPSetCardProps> = ({
   const isClosed = (set as any).status === 'Closed' || (set as any).isClosed === true;
   const isLocked = !isClosed && set.isFree === false && (set.price || 0) > 0 && !isUnlocked;
 
-  const [nowTime, setNowTime] = useState<number>(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNowTime(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const isScheduled = (set as any).status === 'Scheduled' && Boolean((set as any).scheduledDate);
+  const nowTime = useSharedClock(isScheduled);
 
   const countdown = useMemo(() => {
     const schedDate = (set as any).scheduledDate;

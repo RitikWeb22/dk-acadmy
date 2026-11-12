@@ -34,8 +34,6 @@ export const watchProgressSchema = z.object({
     positionSeconds: z.number().min(0),
     durationSeconds: z.number().min(0)
 });
-// Resumable chunk storage map
-const chunkUploads = new Map();
 export const lmsVideoController = {
     // 1. Standard Multipart Upload
     uploadVideo: async (req, res) => {
@@ -116,32 +114,46 @@ export const lmsVideoController = {
                 fs.mkdirSync(tempDir, { recursive: true });
             const chunkFilePath = path.join(tempDir, `chunk_${index}`);
             fs.renameSync(file.path, chunkFilePath);
-            let uploadState = chunkUploads.get(uploadId);
-            if (!uploadState) {
-                let metadata = {};
+            const metaPath = path.join(tempDir, 'meta.json');
+            let uploadMetadata = {};
+            if (metadataStr) {
                 try {
-                    if (metadataStr)
-                        metadata = JSON.parse(metadataStr);
+                    uploadMetadata = JSON.parse(metadataStr);
                 }
                 catch (_) { }
-                uploadState = {
-                    totalChunks: total,
-                    receivedChunks: new Set(),
-                    tempDir,
-                    originalName: originalName || 'video.mp4',
-                    metadata
-                };
-                chunkUploads.set(uploadId, uploadState);
             }
-            uploadState.receivedChunks.add(index);
+            if (!fs.existsSync(metaPath)) {
+                try {
+                    fs.writeFileSync(metaPath, JSON.stringify({
+                        totalChunks: total,
+                        originalName: originalName || 'video.mp4',
+                        metadata: uploadMetadata
+                    }), 'utf8');
+                }
+                catch (_) { }
+            }
+            // Check chunks on disk (shared across cluster worker processes)
+            const existingChunks = fs.readdirSync(tempDir).filter((f) => f.startsWith('chunk_'));
             // Check if all chunks have arrived
-            if (uploadState.receivedChunks.size === total) {
+            if (existingChunks.length >= total) {
+                let metaJson = { totalChunks: total, originalName: originalName || 'video.mp4', metadata: uploadMetadata };
+                try {
+                    if (fs.existsSync(metaPath)) {
+                        metaJson = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                    }
+                }
+                catch (_) { }
+                const uploadState = {
+                    totalChunks: total,
+                    originalName: metaJson.originalName,
+                    metadata: metaJson.metadata || {}
+                };
                 // Reassemble chunks
                 const rawDir = path.join(process.cwd(), 'storage', 'private', 'raw-videos');
                 if (!fs.existsSync(rawDir))
                     fs.mkdirSync(rawDir, { recursive: true });
                 const videoId = new (await import('mongoose')).default.Types.ObjectId().toString();
-                const extension = path.extname(uploadState.originalName) || '.mp4';
+                const extension = path.extname(metaJson.originalName) || '.mp4';
                 const finalFilePath = path.join(rawDir, `${videoId}${extension}`);
                 const writeStream = fs.createWriteStream(finalFilePath);
                 for (let i = 0; i < total; i++) {
@@ -149,16 +161,20 @@ export const lmsVideoController = {
                     if (fs.existsSync(partPath)) {
                         const data = fs.readFileSync(partPath);
                         writeStream.write(data);
-                        fs.unlinkSync(partPath);
+                        try {
+                            fs.unlinkSync(partPath);
+                        }
+                        catch (_) { }
                     }
                 }
                 writeStream.end();
                 // Cleanup temp chunk dir
                 try {
+                    if (fs.existsSync(metaPath))
+                        fs.unlinkSync(metaPath);
                     fs.rmdirSync(tempDir);
                 }
                 catch (_) { }
-                chunkUploads.delete(uploadId);
                 const stats = fs.statSync(finalFilePath);
                 const hlsDir = path.join(process.cwd(), 'storage', 'private', 'hls', videoId);
                 const videoDoc = await Video.create({
@@ -200,7 +216,7 @@ export const lmsVideoController = {
                 success: true,
                 completed: false,
                 chunkReceived: index,
-                totalReceived: uploadState.receivedChunks.size,
+                totalReceived: existingChunks.length,
                 totalExpected: total
             });
         }

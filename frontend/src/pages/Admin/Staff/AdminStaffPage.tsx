@@ -8,7 +8,11 @@ import {
   Phone,
   Calendar,
   X,
-  AlertCircle
+  AlertCircle,
+  KeyRound,
+  Lock,
+  Unlock,
+  Key
 } from 'lucide-react';
 import { adminService, ROLE_DEFINITIONS } from '../../../services/adminService';
 import { apiClient } from '../../../services/apiClient';
@@ -34,6 +38,10 @@ export const AdminStaffPage: React.FC = () => {
     password: ''
   });
 
+  const [passwordModalMember, setPasswordModalMember] = useState<AdminUser | null>(null);
+  const [newPasswordValue, setNewPasswordValue] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+
   const refreshList = async () => {
     try {
       const res = await apiClient.get('/auth/staff');
@@ -47,7 +55,10 @@ export const AdminStaffPage: React.FC = () => {
           department: u.department || 'Academic Department',
           phone: u.phone,
           avatarUrl: u.avatarUrl || '',
-          isActive: true,
+          isActive: u.isActive !== false,
+          isLocked: Boolean(u.isLocked || (u.lockUntil && new Date(u.lockUntil).getTime() > Date.now())),
+          failedLoginAttempts: u.failedLoginAttempts || 0,
+          remainingLockMinutes: u.remainingLockMinutes || 0,
           permissions: ROLE_DEFINITIONS[u.role as AdminRole]?.defaultPermissions || [],
           lastLoginTimestamp: Date.now(),
           createdAt: u.createdAt ? new Date(u.createdAt).getTime() : Date.now()
@@ -67,6 +78,50 @@ export const AdminStaffPage: React.FC = () => {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleUnlockAccount = async (member: AdminUser) => {
+    if (admin?.role !== 'SUPER_ADMIN') {
+      alert('Only a Super Administrator has the privilege to unlock administrative accounts.');
+      return;
+    }
+
+    try {
+      const res = await adminService.unlockStaffAccount(member.id);
+      if (res.success) {
+        showToast(res.message || `Account for ${member.name} has been immediately unlocked.`);
+        await refreshList();
+      } else {
+        alert(res.error || 'Failed to unlock staff account');
+      }
+    } catch {
+      alert('Network error while unlocking account');
+    }
+  };
+
+  const handleConfirmPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordModalMember || !newPasswordValue.trim() || newPasswordValue.trim().length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      const res = await adminService.resetStaffPasswordByAdmin(passwordModalMember.id, newPasswordValue.trim());
+      if (res.success) {
+        showToast(res.message || `Password successfully updated and account unlocked for ${passwordModalMember.name}.`);
+        setPasswordModalMember(null);
+        setNewPasswordValue('');
+        await refreshList();
+      } else {
+        alert(res.error || 'Failed to update password');
+      }
+    } catch {
+      alert('Network error while updating password');
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   const handleToggleStatus = (member: AdminUser) => {
@@ -264,11 +319,32 @@ export const AdminStaffPage: React.FC = () => {
                     <span className={styles.deptText}>{member.department || 'Academic Support'}</span>
                   </td>
                   <td>
-                    <span
-                      className={`${styles.statusBadge} ${member.isActive ? styles.active : styles.suspended}`}
-                    >
-                      {member.isActive ? 'Active' : 'Suspended'}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                      <span
+                        className={`${styles.statusBadge} ${member.isActive ? styles.active : styles.suspended}`}
+                      >
+                        {member.isActive ? 'Active' : 'Suspended'}
+                      </span>
+                      {member.isLocked && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '2px 7px',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            background: '#fef2f2',
+                            color: '#b91c1c',
+                            border: '1px solid #fca5a5'
+                          }}
+                          title={`Account locked due to ${member.failedLoginAttempts || 5} failed login attempts`}
+                        >
+                          <Lock size={11} /> Locked (Attempts)
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <select
@@ -289,13 +365,64 @@ export const AdminStaffPage: React.FC = () => {
                     </select>
                   </td>
                   <td>
-                    <button
-                      type="button"
-                      className={`${styles.toggleBtn} ${member.isActive ? styles.btnSuspend : styles.btnActivate}`}
-                      onClick={() => handleToggleStatus(member)}
-                    >
-                      {member.isActive ? 'Suspend' : 'Activate'}
-                    </button>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      {admin?.role === 'SUPER_ADMIN' && (
+                        <>
+                          <button
+                            type="button"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 9px',
+                              borderRadius: '6px',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              background: member.isLocked ? '#dc2626' : '#2563eb',
+                              color: '#ffffff',
+                              border: 'none',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onClick={() => handleUnlockAccount(member)}
+                            title={`Unlock and reactivate ${member.name} immediately`}
+                          >
+                            <KeyRound size={12} />
+                            <span>{member.isLocked ? 'Unlock Now' : 'Unlock'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              background: '#f1f5f9',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              setPasswordModalMember(member);
+                              setNewPasswordValue('');
+                            }}
+                            title={`Reset password for ${member.name}`}
+                          >
+                            <Key size={12} />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        className={`${styles.toggleBtn} ${member.isActive ? styles.btnSuspend : styles.btnActivate}`}
+                        onClick={() => handleToggleStatus(member)}
+                      >
+                        {member.isActive ? 'Suspend' : 'Activate'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -406,6 +533,68 @@ export const AdminStaffPage: React.FC = () => {
                 </button>
                 <button type="submit" className={styles.submitBtn}>
                   Provision Account
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Super Admin Quick Password Reset & Unlock Modal */}
+      {passwordModalMember && (
+        <div className={styles.modalBackdrop} onClick={() => setPasswordModalMember(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleRow}>
+                <KeyRound size={18} color="#2563eb" />
+                <h3>Reset Password &amp; Unlock Account</h3>
+              </div>
+              <button
+                type="button"
+                className={styles.closeBtn}
+                onClick={() => setPasswordModalMember(null)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmPasswordReset} className={styles.modalForm}>
+              <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155' }}>
+                  Member: <strong>{passwordModalMember.name}</strong> ({passwordModalMember.email})
+                </p>
+                <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                  Role: <strong>{passwordModalMember.role}</strong> • Status: {passwordModalMember.isLocked ? 'Locked' : 'Active'}
+                </p>
+              </div>
+
+              <div className={styles.formRow}>
+                <label>New Password (min 6 characters) *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. DkSir@2026 or admin123"
+                  value={newPasswordValue}
+                  onChange={(e) => setNewPasswordValue(e.target.value)}
+                  minLength={6}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <p style={{ margin: '0 0 16px', fontSize: '0.75rem', color: '#16a34a' }}>
+                ✓ Submitting will immediately clear any login lockout, reset failed attempts counter to 0, and activate this password instantly.
+              </p>
+
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={() => setPasswordModalMember(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className={styles.submitBtn} disabled={isResettingPassword}>
+                  {isResettingPassword ? 'Updating...' : 'Set Password & Unlock'}
                 </button>
               </div>
             </form>
