@@ -226,7 +226,7 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 32px;
-  padding: 12px 18px;
+  padding: 14px 18px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
@@ -234,9 +234,11 @@
   position: relative;
   z-index: 2;
 
-  @include tablet {
+  @include tablet-down {
     flex-direction: column;
     align-items: stretch;
+    gap: 14px;
+    padding: 14px;
   }
 }
 
@@ -248,9 +250,9 @@
   max-width: 380px;
   background: #f8fafc;
   border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 0 12px;
-  height: 40px;
+  height: 42px;
   transition: all 0.2s ease;
 
   &:focus-within {
@@ -259,8 +261,9 @@
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
 
-  @include tablet {
+  @include tablet-down {
     max-width: 100%;
+    width: 100%;
   }
 }
 
@@ -300,24 +303,63 @@
   }
 }
 
-.filterChipsRow {
+.filterGroupsRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+
+  @include tablet-down {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+}
+
+.filterGroup {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+
+  @include mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 
 .filterLabel {
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #64748b;
   text-transform: uppercase;
-  margin-right: 4px;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  min-width: 44px;
+}
+
+.chipsScrollList {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+
+  @include mobile {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
 }
 
 .filterChip {
   height: 32px;
-  padding: 0 14px;
+  padding: 0 12px;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
@@ -325,6 +367,8 @@
   font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 
   &:hover {
@@ -334,13 +378,13 @@
 }
 
 .filterChipActive {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  color: #ffffff;
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
 
   &:hover {
-    background: #1e40af;
-    color: #ffffff;
+    background: #1e40af !important;
+    color: #ffffff !important;
   }
 }
 
@@ -387,7 +431,7 @@
 .cardItemWrap {
   flex: 0 0 270px;
   width: 270px;
-  height: 485px;
+  height: 495px;
   display: flex;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -443,9 +487,9 @@
               box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.25s ease;
   width: 270px;
-  height: 485px;
-  min-height: 485px;
-  max-height: 485px;
+  height: 495px;
+  min-height: 495px;
+  max-height: 495px;
   box-sizing: border-box;
 
   &:hover {
@@ -580,13 +624,13 @@
 .portraitWrapper {
   position: relative;
   width: 100%;
-  height: 200px;
+  height: 215px;
   background: linear-gradient(180deg, #edf5fe 0%, #f6faff 60%, #ffffff 100%);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 8px;
+  padding-top: 6px;
 }
 
 .portraitAura {
@@ -619,8 +663,8 @@
 }
 
 .passportFrame {
-  width: 130px;
-  height: 165px;
+  width: 136px;
+  height: 172px;
   border-radius: 12px;
   background: #ffffff;
   border: 2.5px solid #ffffff;
@@ -638,8 +682,9 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: top center;
+  object-position: center 12%;
   display: block;
+  background-color: #ffffff;
   transition: transform 0.3s ease;
 }
 
@@ -657,7 +702,7 @@
 .nameplateWrapper {
   position: relative;
   z-index: 5;
-  margin-top: -18px;
+  margin-top: -10px;
   padding: 0 14px;
   display: flex;
   justify-content: center;

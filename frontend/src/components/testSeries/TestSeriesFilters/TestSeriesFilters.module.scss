@@ -6,6 +6,11 @@
   gap: 16px;
   margin-bottom: 24px;
   width: 100%;
+
+  @media (max-width: 640px) {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
 }
 
 // ─── 1. Primary Exam Tabs: Pill Row ─────────────────────────────
@@ -97,6 +102,11 @@
   box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
   display: flex;
   flex-direction: column;
+
+  @media (max-width: 640px) {
+    padding: 12px 14px;
+    border-radius: 16px;
+  }
 }
 
 .controlsRow {
@@ -108,6 +118,7 @@
   @media (max-width: 900px) {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 }
 
@@ -117,6 +128,12 @@
   min-width: 240px;
   display: flex;
   align-items: center;
+
+  @media (max-width: 900px) {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .searchIcon {
@@ -185,6 +202,10 @@
     .selectWrapper {
       width: 100%;
       min-width: 0;
+
+      &:nth-child(3) {
+        grid-column: 1 / -1;
+      }
     }
 
     .clearAllBtn {
@@ -261,6 +282,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  @media (max-width: 640px) {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
 }
 
 .resultsCount {

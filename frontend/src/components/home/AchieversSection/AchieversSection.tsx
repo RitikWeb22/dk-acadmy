@@ -202,37 +202,47 @@ export const AchieversSection: React.FC<AchieversSectionProps> = ({
           </div>
 
           {/* Year and Exam Filter Chips */}
-          <div className={styles.filterChipsRow}>
-            <span className={styles.filterLabel}>Year:</span>
-            <button
-              type="button"
-              className={`${styles.filterChip} ${selectedYear === 'All' ? styles.filterChipActive : ''}`}
-              onClick={() => setSelectedYear('All')}
-            >
-              All
-            </button>
-            {availableYears.map((yr) => (
-              <button
-                key={yr}
-                type="button"
-                className={`${styles.filterChip} ${selectedYear === yr ? styles.filterChipActive : ''}`}
-                onClick={() => setSelectedYear(yr)}
-              >
-                {yr}
-              </button>
-            ))}
+          <div className={styles.filterGroupsRow}>
+            {/* Year Filters */}
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>Year:</span>
+              <div className={styles.chipsScrollList}>
+                <button
+                  type="button"
+                  className={`${styles.filterChip} ${selectedYear === 'All' ? styles.filterChipActive : ''}`}
+                  onClick={() => setSelectedYear('All')}
+                >
+                  All
+                </button>
+                {availableYears.map((yr) => (
+                  <button
+                    key={yr}
+                    type="button"
+                    className={`${styles.filterChip} ${selectedYear === yr ? styles.filterChipActive : ''}`}
+                    onClick={() => setSelectedYear(yr)}
+                  >
+                    {yr}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            <span className={styles.filterLabel} style={{ marginLeft: '8px' }}>Exam:</span>
-            {(['All', 'JEE Advanced', 'JEE Main', 'BITSAT'] as const).map((ex) => (
-              <button
-                key={ex}
-                type="button"
-                className={`${styles.filterChip} ${selectedExam === ex ? styles.filterChipActive : ''}`}
-                onClick={() => setSelectedExam(ex)}
-              >
-                {ex}
-              </button>
-            ))}
+            {/* Exam Filters */}
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>Exam:</span>
+              <div className={styles.chipsScrollList}>
+                {(['All', 'JEE Advanced', 'JEE Main', 'BITSAT'] as const).map((ex) => (
+                  <button
+                    key={ex}
+                    type="button"
+                    className={`${styles.filterChip} ${selectedExam === ex ? styles.filterChipActive : ''}`}
+                    onClick={() => setSelectedExam(ex)}
+                  >
+                    {ex}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </Container>
