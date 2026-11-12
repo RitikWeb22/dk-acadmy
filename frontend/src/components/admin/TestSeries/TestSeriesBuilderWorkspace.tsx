@@ -23,6 +23,7 @@ import {
   Image as ImageIcon,
   Copy,
   Download,
+  Info,
   AlertTriangle,
   AlertCircle,
   Wrench,
@@ -823,11 +824,19 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
   // CBT Live Simulator Interactive State (matches user screenshot)
   const [cbtQIndex, setCbtQIndex] = useState<number>(0);
-  const [cbtResponses, setCbtResponses] = useState<Record<string, { selectedOption?: string; isMarkedForReview?: boolean; isVisited?: boolean }>>({
+  const [cbtResponses, setCbtResponses] = useState<
+    Record<string, { selectedOption?: string; numericalValue?: string; isMarkedForReview?: boolean; isVisited?: boolean }>
+  >({
     'ja-cg-q1': { isVisited: true, isMarkedForReview: false }
   });
   const [cbtSecondsRemaining, setCbtSecondsRemaining] = useState<number>(5372); // 01:29:32 in seconds
   const [cbtSubmitted, setCbtSubmitted] = useState<boolean>(false);
+  const [cbtActiveSubject, setCbtActiveSubject] = useState<string>('Mathematics');
+
+  // Overview Modal Section-wise View State
+  const [overviewSubTab, setOverviewSubTab] = useState<'QUESTIONS' | 'GUIDELINES'>('QUESTIONS');
+  const [overviewActiveSubject, setOverviewActiveSubject] = useState<string>('Mathematics');
+  const [overviewSectionFilter, setOverviewSectionFilter] = useState<'ALL' | 'A' | 'B'>('ALL');
 
   // Fetch live test series from MongoDB
   const isFetchingLiveRef = useRef(false);
@@ -943,12 +952,90 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  const isSectionB = (q: any, idx?: number): boolean => {
+    if (!q) return false;
+    if (q.section === 'B' || q.type === 'NUMERICAL') return true;
+    const hasOptions = Array.isArray(q.options) && q.options.some((o: any) => o.text && o.text.trim().length > 0);
+    if (!hasOptions) return true;
+    if (typeof idx === 'number' && idx >= 20) return true;
+    if (q.section === 'A') return false;
+    return false;
+  };
+
+  const cbtSubjects = useMemo(() => {
+    if (!questions || questions.length === 0) return ['Mathematics'];
+    const subs = Array.from(new Set(questions.map((q) => q.subject || 'Mathematics')));
+    return subs.length > 0 ? subs : ['Mathematics'];
+  }, [questions]);
+
   const currentCbtQ = questions[cbtQIndex] || questions[0];
+  const currentCbtSubject = currentCbtQ?.subject || cbtActiveSubject || cbtSubjects[0] || 'Mathematics';
+
+  const currentSubjectQuestions = useMemo(() => {
+    return questions.filter((q) => (q.subject || 'Mathematics') === currentCbtSubject);
+  }, [questions, currentCbtSubject]);
+
+  const currentSubjectIndex = useMemo(() => {
+    return currentSubjectQuestions.findIndex((q) => q.id === currentCbtQ?.id);
+  }, [currentSubjectQuestions, currentCbtQ]);
+
+  const isCurrentSectionB = useMemo(() => {
+    return isSectionB(currentCbtQ, currentSubjectIndex >= 0 ? currentSubjectIndex : undefined);
+  }, [currentCbtQ, currentSubjectIndex]);
+
+  const currentSection: 'A' | 'B' = isCurrentSectionB ? 'B' : 'A';
+
+  const currentSubjectSecA = useMemo(() => {
+    return currentSubjectQuestions.filter((q, idx) => !isSectionB(q, idx));
+  }, [currentSubjectQuestions]);
+
+  const currentSubjectSecB = useMemo(() => {
+    return currentSubjectQuestions.filter((q, idx) => isSectionB(q, idx));
+  }, [currentSubjectQuestions]);
+
   const cbtResponse = cbtResponses[currentCbtQ?.id] || { isVisited: true, isMarkedForReview: false };
 
-  const cbtAnsweredCount = Object.keys(cbtResponses).filter(
-    (id) => Boolean(cbtResponses[id]?.selectedOption)
-  ).length;
+  const secAAnsweredCount = useMemo(() => {
+    return currentSubjectSecA.filter((q) => {
+      const resp = cbtResponses[q.id];
+      return Boolean(resp?.selectedOption || resp?.numericalValue?.trim());
+    }).length;
+  }, [currentSubjectSecA, cbtResponses]);
+
+  const secBAnsweredCount = useMemo(() => {
+    return currentSubjectSecB.filter((q) => {
+      const resp = cbtResponses[q.id];
+      return Boolean(resp?.selectedOption || resp?.numericalValue?.trim());
+    }).length;
+  }, [currentSubjectSecB, cbtResponses]);
+
+  const cbtAnsweredCount = useMemo(() => {
+    return Object.keys(cbtResponses).filter(
+      (id) => Boolean(cbtResponses[id]?.selectedOption || cbtResponses[id]?.numericalValue?.trim())
+    ).length;
+  }, [cbtResponses]);
+
+  const handleCbtSubjectClick = (sub: string) => {
+    setCbtActiveSubject(sub);
+    const targetIdx = questions.findIndex((q) => (q.subject || 'Mathematics') === sub);
+    if (targetIdx >= 0) {
+      handleCbtNavigate(targetIdx);
+    }
+  };
+
+  const handleCbtSectionClick = (sec: 'A' | 'B') => {
+    if (sec === 'A') {
+      if (currentSubjectSecA.length > 0) {
+        const targetIdx = questions.findIndex((q) => q.id === currentSubjectSecA[0].id);
+        if (targetIdx >= 0) handleCbtNavigate(targetIdx);
+      }
+    } else {
+      if (currentSubjectSecB.length > 0) {
+        const targetIdx = questions.findIndex((q) => q.id === currentSubjectSecB[0].id);
+        if (targetIdx >= 0) handleCbtNavigate(targetIdx);
+      }
+    }
+  };
 
   const handleCbtSelectOption = (optKey: string) => {
     setCbtResponses((prev) => ({
@@ -959,6 +1046,43 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
         isVisited: true
       }
     }));
+  };
+
+  const handleCbtNumericalChange = (val: string) => {
+    if (!currentCbtQ) return;
+    const sanitized = val.replace(/[^0-9.-]/g, '');
+    setCbtResponses((prev) => ({
+      ...prev,
+      [currentCbtQ.id]: {
+        ...(prev[currentCbtQ.id] || {}),
+        selectedOption: sanitized,
+        numericalValue: sanitized,
+        isVisited: true
+      }
+    }));
+  };
+
+  const handleCbtKeypadPress = (char: string) => {
+    if (!currentCbtQ) return;
+    const currentVal = cbtResponse.numericalValue ?? cbtResponse.selectedOption ?? '';
+    if (char === '.' && currentVal.includes('.')) return;
+    if (char === '-') {
+      const nextVal = currentVal.startsWith('-') ? currentVal.slice(1) : '-' + currentVal;
+      handleCbtNumericalChange(nextVal);
+      return;
+    }
+    handleCbtNumericalChange(currentVal + char);
+  };
+
+  const handleCbtKeypadBackspace = () => {
+    if (!currentCbtQ) return;
+    const currentVal = cbtResponse.numericalValue ?? cbtResponse.selectedOption ?? '';
+    handleCbtNumericalChange(currentVal.slice(0, -1));
+  };
+
+  const handleCbtKeypadClear = () => {
+    if (!currentCbtQ) return;
+    handleCbtNumericalChange('');
   };
 
   const handleCbtToggleMark = () => {
@@ -976,26 +1100,43 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     if (targetIdx < 0 || targetIdx >= questions.length) return;
     setCbtQIndex(targetIdx);
     const targetQ = questions[targetIdx];
-    if (targetQ && !cbtResponses[targetQ.id]?.isVisited) {
-      setCbtResponses((prev) => ({
-        ...prev,
-        [targetQ.id]: {
-          ...(prev[targetQ.id] || { isMarkedForReview: false }),
-          isVisited: true
-        }
-      }));
+    if (targetQ) {
+      if (targetQ.subject) setCbtActiveSubject(targetQ.subject);
+      if (!cbtResponses[targetQ.id]?.isVisited) {
+        setCbtResponses((prev) => ({
+          ...prev,
+          [targetQ.id]: {
+            ...(prev[targetQ.id] || { isMarkedForReview: false }),
+            isVisited: true
+          }
+        }));
+      }
     }
   };
 
   const cbtScore = useMemo(() => {
     let score = 0;
-    questions.forEach((q) => {
+    questions.forEach((q, idx) => {
       const resp = cbtResponses[q.id];
-      if (resp?.selectedOption) {
-        if (resp.selectedOption === q.correctKey) {
-          score += positiveMarks;
-        } else {
-          score -= negativeMarks;
+      const isSecB = isSectionB(q, idx);
+      if (isSecB) {
+        if (resp?.numericalValue !== undefined && resp.numericalValue.trim() !== '') {
+          const correctVal = q.numericalAnswer ?? q.correctKey ?? (q as any)?.correctAnswer;
+          const userNum = parseFloat(resp.numericalValue.trim());
+          const correctNum = parseFloat(String(correctVal).trim());
+          if (!isNaN(userNum) && !isNaN(correctNum) && Math.abs(userNum - correctNum) < 0.01) {
+            score += positiveMarks;
+          } else {
+            score -= negativeMarks;
+          }
+        }
+      } else {
+        if (resp?.selectedOption) {
+          if (resp.selectedOption === q.correctKey) {
+            score += positiveMarks;
+          } else {
+            score -= negativeMarks;
+          }
         }
       }
     });
@@ -1723,11 +1864,19 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
     setPreviewTab(tab);
     setCbtQIndex(0);
     setCbtSubmitted(false);
+    setCbtResponses({});
+    setOverviewSubTab('QUESTIONS');
+    setOverviewSectionFilter('ALL');
     setCbtSecondsRemaining(item.durationMinutes ? item.durationMinutes * 60 : 5400);
 
     if (Array.isArray(item.questions) && item.questions.length > 0) {
       const parsed = mapBackendQuestionsToBuilder(item.questions);
       setQuestions(parsed);
+      if (parsed[0]) {
+        const initSub = parsed[0].subject || 'Mathematics';
+        setCbtActiveSubject(initSub);
+        setOverviewActiveSubject(initSub);
+      }
     }
 
     try {
@@ -1736,6 +1885,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
       if (fresh && Array.isArray(fresh.questions) && fresh.questions.length > 0) {
         const freshParsed = mapBackendQuestionsToBuilder(fresh.questions);
         setQuestions(freshParsed);
+        if (freshParsed[0]) {
+          const initSub = freshParsed[0].subject || 'Mathematics';
+          setCbtActiveSubject(initSub);
+          setOverviewActiveSubject(initSub);
+        }
       }
     } catch {}
   };
@@ -6228,9 +6382,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
             <div className={styles.previewModalCard} onClick={(e) => e.stopPropagation()}>
               <div className={styles.previewHeader}>
                 <div>
-                  <span className={styles.darkExamPillBadge}>{previewItem.badgeCode}</span>
+                  <span className={styles.darkExamPillBadge}>{previewItem.badgeCode || previewItem.examType || 'JEE Main'}</span>
                   <h3 className={styles.mTitle}>{previewItem.title}</h3>
-                  <span className={styles.slugUrlText}>{editingSeriesSubtitle}</span>
+                  <span className={styles.slugUrlText}>{editingSeriesSubtitle || previewItem.subtitle || 'DK Academy Examination System'}</span>
                 </div>
                 <button
                   type="button"
@@ -6241,58 +6395,245 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 </button>
               </div>
 
-              {/* 4 Bento Spec Cards */}
-              <div className={styles.specCardsBento}>
-                <div className={styles.specCard}>
-                  <div className={styles.specIconBox}>
-                    <Clock size={16} />
-                  </div>
-                  <div className={styles.specMetaStack}>
-                    <span className={styles.specValueText}>{previewItem.durationMinutes} Minutes</span>
-                    <span className={styles.specLabelText}>Duration</span>
-                  </div>
-                </div>
-
-                <div className={styles.specCard}>
-                  <div className={styles.specIconBox}>
-                    <HelpCircle size={16} />
-                  </div>
-                  <div className={styles.specMetaStack}>
-                    <span className={styles.specValueText}>{previewItem.totalTests} Problems</span>
-                    <span className={styles.specLabelText}>Total Questions</span>
-                  </div>
-                </div>
-
-                <div className={styles.specCard}>
-                  <div className={styles.specIconBox}>
-                    <Award size={16} />
-                  </div>
-                  <div className={styles.specMetaStack}>
-                    <span className={styles.specValueText}>{previewItem.totalMarks} Marks</span>
-                    <span className={styles.specLabelText}>Maximum Score</span>
-                  </div>
-                </div>
-
-                <div className={styles.specCard}>
-                  <div className={styles.specIconBox}>
-                    <CheckCircle size={16} />
-                  </div>
-                  <div className={styles.specMetaStack}>
-                    <span className={styles.specValueText}>+{positiveMarks} / -{negativeMarks}</span>
-                    <span className={styles.specLabelText}>Marking Scheme</span>
-                  </div>
-                </div>
+              {/* Top Tabs: Section-wise Question Paper vs Guidelines & Specs */}
+              <div className={styles.overviewTopNavTabs}>
+                <button
+                  type="button"
+                  className={`${styles.overviewNavTab} ${overviewSubTab === 'QUESTIONS' ? styles.overviewNavTabActive : ''}`}
+                  onClick={() => setOverviewSubTab('QUESTIONS')}
+                >
+                  <FileText size={15} />
+                  <span>Section-wise Question Paper ({questions.length} Questions)</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.overviewNavTab} ${overviewSubTab === 'GUIDELINES' ? styles.overviewNavTabActive : ''}`}
+                  onClick={() => setOverviewSubTab('GUIDELINES')}
+                >
+                  <Info size={15} />
+                  <span>Overview &amp; Guidelines</span>
+                </button>
               </div>
 
-              {/* Guidelines Box */}
-              <div className={styles.guidelinesBox}>
-                <div className={styles.guidelinesBoxTitle}>Important Examination Guidelines</div>
-                <ol className={styles.guidelinesOrderedList}>
-                  {examGuidelines.map((rule, idx) => (
-                    <li key={idx}>{rule}</li>
-                  ))}
-                </ol>
-              </div>
+              {overviewSubTab === 'QUESTIONS' ? (
+                <div className={styles.overviewSectionExplorer}>
+                  {/* Subject Filter Bar */}
+                  <div className={styles.overviewFilterBar}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B' }}>Subject:</span>
+                      {cbtSubjects.map((sub) => {
+                        const isSubActive = sub === overviewActiveSubject;
+                        const subQCount = questions.filter((q) => (q.subject || 'Mathematics') === sub).length;
+                        return (
+                          <button
+                            key={sub}
+                            type="button"
+                            className={`${styles.overviewSecFilterBtn} ${isSubActive ? styles.overviewSecFilterBtnActive : ''}`}
+                            onClick={() => setOverviewActiveSubject(sub)}
+                          >
+                            {sub} ({subQCount})
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Section Filter (All / Section A / Section B) */}
+                    <div className={styles.overviewSecFilterGroup}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B' }}>Section:</span>
+                      <button
+                        type="button"
+                        className={`${styles.overviewSecFilterBtn} ${overviewSectionFilter === 'ALL' ? styles.overviewSecFilterBtnActive : ''}`}
+                        onClick={() => setOverviewSectionFilter('ALL')}
+                      >
+                        All Sections
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.overviewSecFilterBtn} ${overviewSectionFilter === 'A' ? styles.overviewSecFilterBtnActive : ''}`}
+                        onClick={() => setOverviewSectionFilter('A')}
+                      >
+                        Section A (MCQs)
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.overviewSecFilterBtn} ${overviewSectionFilter === 'B' ? styles.overviewSecFilterBtnActive : ''}`}
+                        onClick={() => setOverviewSectionFilter('B')}
+                      >
+                        Section B (Numerical)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Questions List for Active Subject & Filter */}
+                  {(() => {
+                    const subQuestions = questions.filter((q) => (q.subject || 'Mathematics') === overviewActiveSubject);
+                    const filteredList = subQuestions.filter((q, idx) => {
+                      const isSecB = isSectionB(q, idx);
+                      if (overviewSectionFilter === 'A') return !isSecB;
+                      if (overviewSectionFilter === 'B') return isSecB;
+                      return true;
+                    });
+
+                    if (filteredList.length === 0) {
+                      return (
+                        <div style={{ textAlign: 'center', padding: '36px 16px', color: '#64748B' }}>
+                          <p style={{ fontWeight: 600, fontSize: '14px' }}>No questions found for the selected section filter.</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {filteredList.map((q) => {
+                          const globalIdx = questions.findIndex((item) => item.id === q.id);
+                          const subIdx = subQuestions.findIndex((item) => item.id === q.id);
+                          const isSecB = isSectionB(q, subIdx >= 0 ? subIdx : undefined);
+
+                          return (
+                            <div key={q.id} className={styles.overviewQuestionCard}>
+                              <div className={styles.overviewQHeader}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
+                                    Q{subIdx + 1}
+                                  </span>
+                                  <span style={{ fontSize: '11px', color: '#64748B' }}>(Overall #{globalIdx + 1})</span>
+                                  <span className={isSecB ? styles.cbtSecLetterBadgeB : styles.cbtSecLetterBadgeA}>
+                                    {isSecB ? 'Section B: Numerical' : 'Section A: MCQ'}
+                                  </span>
+                                  {q.topicTag && <span className={styles.cbtTagTopic}>{q.topicTag}</span>}
+                                </div>
+
+                                <span className={styles.cbtMarksPill}>
+                                  +{positiveMarks} / -{isSecB ? 0 : negativeMarks} Marks
+                                </span>
+                              </div>
+
+                              {/* Statement */}
+                              <div className={styles.cbtStatementArea}>
+                                <MathText text={q.questionText} />
+                              </div>
+
+                              {/* MCQs Options or Numerical Answer */}
+                              {!isSecB ? (
+                                <div className={styles.overviewOptionsGrid}>
+                                  {q.options?.map((opt) => {
+                                    const isCorrect = opt.key === q.correctKey;
+                                    return (
+                                      <div
+                                        key={opt.key}
+                                        className={`${styles.overviewOptionChip} ${isCorrect ? styles.overviewOptionCorrect : ''}`}
+                                      >
+                                        <span style={{
+                                          width: '24px',
+                                          height: '24px',
+                                          borderRadius: '6px',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontWeight: 800,
+                                          fontSize: '11px',
+                                          background: isCorrect ? '#10B981' : '#E2E8F0',
+                                          color: isCorrect ? '#FFFFFF' : '#475569',
+                                          flexShrink: 0
+                                        }}>
+                                          {opt.key}
+                                        </span>
+                                        <span style={{ flex: 1 }}>
+                                          <MathText text={opt.text} />
+                                        </span>
+                                        {isCorrect && (
+                                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#059669' }}>
+                                            Correct ✓
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                  <div className={styles.overviewNumericalBadge}>
+                                    <span>Correct Numerical Answer:</span>
+                                    <strong style={{ fontSize: '14px', color: '#78350F' }}>
+                                      {q.numericalAnswer ?? q.correctKey ?? (q as any)?.correctAnswer ?? 'N/A'}
+                                    </strong>
+                                  </div>
+                                  <span style={{ fontSize: '12px', color: '#64748B' }}>
+                                    (Integer or decimal evaluation)
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Explanation if present */}
+                              {(q.solutionDerivation || (q as any).solutionExplanation) && (
+                                <div className={styles.overviewExplBox}>
+                                  <strong style={{ color: '#0F172A', display: 'block', marginBottom: '4px' }}>Solution &amp; Explanation:</strong>
+                                  <MathText text={q.solutionDerivation || (q as any).solutionExplanation} />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <>
+                  {/* 4 Bento Spec Cards */}
+                  <div className={styles.specCardsBento}>
+                    <div className={styles.specCard}>
+                      <div className={styles.specIconBox}>
+                        <Clock size={16} />
+                      </div>
+                      <div className={styles.specMetaStack}>
+                        <span className={styles.specValueText}>{previewItem.durationMinutes} Minutes</span>
+                        <span className={styles.specLabelText}>Duration</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.specCard}>
+                      <div className={styles.specIconBox}>
+                        <HelpCircle size={16} />
+                      </div>
+                      <div className={styles.specMetaStack}>
+                        <span className={styles.specValueText}>{previewItem.totalTests} Problems</span>
+                        <span className={styles.specLabelText}>Total Questions</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.specCard}>
+                      <div className={styles.specIconBox}>
+                        <Award size={16} />
+                      </div>
+                      <div className={styles.specMetaStack}>
+                        <span className={styles.specValueText}>{previewItem.totalMarks} Marks</span>
+                        <span className={styles.specLabelText}>Maximum Score</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.specCard}>
+                      <div className={styles.specIconBox}>
+                        <CheckCircle size={16} />
+                      </div>
+                      <div className={styles.specMetaStack}>
+                        <span className={styles.specValueText}>+{positiveMarks} / -{negativeMarks}</span>
+                        <span className={styles.specLabelText}>Marking Scheme</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Guidelines Box */}
+                  <div className={styles.guidelinesBox}>
+                    <div className={styles.guidelinesBoxTitle}>Important Examination Guidelines</div>
+                    <ol className={styles.guidelinesOrderedList}>
+                      {examGuidelines.map((rule, idx) => (
+                        <li key={idx}>{rule}</li>
+                      ))}
+                    </ol>
+                  </div>
+                </>
+              )}
 
               <div className={styles.modalFooterActions}>
                 <button
@@ -6313,11 +6654,11 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     setPreviewTab('CBT_SIMULATOR');
                     setCbtQIndex(0);
                     setCbtSubmitted(false);
-                    setCbtSecondsRemaining(5372); // 01:29:32 in seconds
+                    setCbtSecondsRemaining(previewItem.durationMinutes ? previewItem.durationMinutes * 60 : 5400);
                   }}
                 >
                   <Sparkles size={14} />
-                  <span>Launch CBT Exam Simulator →</span>
+                  <span>Launch Student CBT Simulator →</span>
                 </button>
               </div>
             </div>
@@ -6328,8 +6669,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 <div className={styles.cbtBentoMetric}>
                   <div className={styles.cbtMetricLeft}>
                     <span className={styles.cbtBentoMetricTitle}>Mock Tests</span>
-                    <span className={styles.cbtBentoMetricVal}>9 Mock Tests</span>
-                    <span className={styles.cbtBentoMetricSub}>Full CBT &amp; Part Mocks</span>
+                    <span className={styles.cbtBentoMetricVal}>Active Test</span>
+                    <span className={styles.cbtBentoMetricSub}>Interactive CBT Engine</span>
                   </div>
                   <div className={`${styles.cbtMetricIconBox} ${styles.iconBoxBlue}`}>
                     <Layers size={18} />
@@ -6339,8 +6680,8 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 <div className={styles.cbtBentoMetric}>
                   <div className={styles.cbtMetricLeft}>
                     <span className={styles.cbtBentoMetricTitle}>Total Questions</span>
-                    <span className={styles.cbtBentoMetricVal}>46 Total Questions</span>
-                    <span className={styles.cbtBentoMetricSub}>Physics, Chemistry &amp; Maths</span>
+                    <span className={styles.cbtBentoMetricVal}>{questions.length} Total Problems</span>
+                    <span className={styles.cbtBentoMetricSub}>{cbtSubjects.join(', ')}</span>
                   </div>
                   <div className={`${styles.cbtMetricIconBox} ${styles.iconBoxPurple}`}>
                     <FileCheck size={18} />
@@ -6349,9 +6690,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                 <div className={styles.cbtBentoMetric}>
                   <div className={styles.cbtMetricLeft}>
-                    <span className={styles.cbtBentoMetricTitle}>Exam Formats</span>
-                    <span className={styles.cbtBentoMetricVal}>2 Exam Formats</span>
-                    <span className={styles.cbtBentoMetricSub}>JEE Main &amp; Advanced Engines</span>
+                    <span className={styles.cbtBentoMetricTitle}>Exam Format</span>
+                    <span className={styles.cbtBentoMetricVal}>{previewItem.examType || 'JEE Main'}</span>
+                    <span className={styles.cbtBentoMetricSub}>Section A (MCQ) &amp; Section B (Numerical)</span>
                   </div>
                   <div className={`${styles.cbtMetricIconBox} ${styles.iconBoxAmber}`}>
                     <Clock size={18} />
@@ -6360,9 +6701,9 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
 
                 <div className={styles.cbtBentoMetric}>
                   <div className={styles.cbtMetricLeft}>
-                    <span className={styles.cbtBentoMetricTitle}>Tests Attempted</span>
-                    <span className={styles.cbtBentoMetricVal}>4 Tests Attempted</span>
-                    <span className={styles.cbtBentoMetricSub}>Active performance tracked</span>
+                    <span className={styles.cbtBentoMetricTitle}>Answered</span>
+                    <span className={styles.cbtBentoMetricVal}>{cbtAnsweredCount} / {questions.length}</span>
+                    <span className={styles.cbtBentoMetricSub}>Live candidate responses</span>
                   </div>
                   <div className={`${styles.cbtMetricIconBox} ${styles.iconBoxEmerald}`}>
                     <CheckCircle2 size={18} />
@@ -6379,12 +6720,12 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     onClick={() => setPreviewTab('OVERVIEW')}
                   >
                     <ArrowLeft size={14} />
-                    <span>Leave Test</span>
+                    <span>Back to Overview</span>
                   </button>
 
                   <h3 className={styles.cbtTestTitle}>{previewItem.title}</h3>
-                  <span className={styles.cbtBadgeAdv}>JEE ADVANCED</span>
-                  <span className={styles.cbtBadgePart}>Part Test</span>
+                  <span className={styles.cbtBadgeAdv}>{previewItem.badgeCode || previewItem.examType || 'JEE Main'}</span>
+                  <span className={styles.cbtBadgePart}>Student CBT View</span>
                 </div>
 
                 <div className={styles.cbtTopBarRight}>
@@ -6404,6 +6745,73 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                 </div>
               </div>
 
+              {/* Subject Navigation Tabs Bar (Physics, Chemistry, Mathematics) */}
+              {cbtSubjects.length > 1 && (
+                <div className={styles.cbtSubjectTabsBar}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', marginRight: '4px' }}>Subjects:</span>
+                  {cbtSubjects.map((sub) => {
+                    const isSubActive = sub === currentCbtSubject;
+                    const subQuestions = questions.filter((q) => (q.subject || 'Mathematics') === sub);
+                    const subAnswered = subQuestions.filter((q) => {
+                      const resp = cbtResponses[q.id];
+                      return Boolean(resp?.selectedOption || resp?.numericalValue?.trim());
+                    }).length;
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        className={`${styles.cbtSubjectTab} ${isSubActive ? styles.cbtSubjectTabActive : ''}`}
+                        onClick={() => handleCbtSubjectClick(sub)}
+                      >
+                        <span>{sub}</span>
+                        <span className={styles.cbtSubCountBadge}>
+                          {subAnswered}/{subQuestions.length}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Section A (MCQs) & Section B (Numerical) Sub-sections Bar */}
+              <div className={styles.cbtSubSectionsBar}>
+                <div className={styles.cbtSubSectionTabs}>
+                  <button
+                    type="button"
+                    className={`${styles.cbtSubSecTab} ${currentSection === 'A' ? styles.cbtSubSecTabActiveA : ''}`}
+                    onClick={() => handleCbtSectionClick('A')}
+                  >
+                    <span className={styles.cbtSecLetterBadgeA}>Section A</span>
+                    <span className={styles.cbtSecTypeText}>Multiple Choice (MCQs)</span>
+                    <span className={styles.cbtSecRatioBadge}>
+                      {secAAnsweredCount}/{currentSubjectSecA.length}
+                    </span>
+                  </button>
+
+                  {currentSubjectSecB.length > 0 && (
+                    <button
+                      type="button"
+                      className={`${styles.cbtSubSecTab} ${currentSection === 'B' ? styles.cbtSubSecTabActiveB : ''}`}
+                      onClick={() => handleCbtSectionClick('B')}
+                    >
+                      <span className={styles.cbtSecLetterBadgeB}>Section B</span>
+                      <span className={styles.cbtSecTypeText}>Numerical Value Questions</span>
+                      <span className={styles.cbtSecRatioBadge}>
+                        {secBAnsweredCount}/{currentSubjectSecB.length}
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600 }}>
+                  {isCurrentSectionB ? (
+                    <span style={{ color: '#D97706' }}>★ Section B: Enter numerical value (+{positiveMarks} / 0)</span>
+                  ) : (
+                    <span style={{ color: '#2563EB' }}>★ Section A: Choose 1 of 4 options (+{positiveMarks} / -{negativeMarks})</span>
+                  )}
+                </div>
+              </div>
+
               {/* Main CBT Workspace (Question Stage & Palette) */}
               {!cbtSubmitted ? (
                 <div className={styles.cbtWorkspaceGrid}>
@@ -6412,13 +6820,16 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                     <div className={styles.cbtQMetaHeader}>
                       <div className={styles.cbtQTags}>
                         <span className={styles.cbtQNumText}>
-                          Question {cbtQIndex + 1} of {questions.length}
+                          Question {currentSubjectIndex >= 0 ? currentSubjectIndex + 1 : cbtQIndex + 1} of {currentSubjectQuestions.length}
                         </span>
                         <span className={styles.cbtTagSubject}>{currentCbtQ.subject}</span>
-                        <span className={styles.cbtTagTopic}>{currentCbtQ.topicTag}</span>
+                        <span className={isCurrentSectionB ? styles.cbtSecLetterBadgeB : styles.cbtSecLetterBadgeA}>
+                          {isCurrentSectionB ? 'Section B: Numerical' : 'Section A: MCQ'}
+                        </span>
+                        {currentCbtQ.topicTag && <span className={styles.cbtTagTopic}>{currentCbtQ.topicTag}</span>}
                       </div>
                       <span className={styles.cbtMarksPill}>
-                        +{positiveMarks} / -{negativeMarks} Marks
+                        +{positiveMarks} / -{isCurrentSectionB ? 0 : negativeMarks} Marks
                       </span>
                     </div>
 
@@ -6426,23 +6837,68 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       <MathText text={currentCbtQ.questionText} />
                     </div>
 
-                    <div className={styles.cbtOptionsGrid}>
-                      {currentCbtQ.options.map((opt) => {
-                        const isSelected = cbtResponse.selectedOption === opt.key;
-                        return (
-                          <div
-                            key={opt.key}
-                            className={`${styles.cbtOptionItem} ${isSelected ? styles.cbtOptionSelected : ''}`}
-                            onClick={() => handleCbtSelectOption(opt.key)}
-                          >
-                            <span className={styles.cbtOptionKey}>{opt.key}</span>
-                            <span className={styles.cbtOptionText}>
-                              <MathText text={opt.text} />
-                            </span>
+                    {/* Section A (MCQs) vs Section B (Numerical Input & Keypad) */}
+                    {!isCurrentSectionB ? (
+                      <div className={styles.cbtOptionsGrid}>
+                        {currentCbtQ.options.map((opt) => {
+                          const isSelected = cbtResponse.selectedOption === opt.key;
+                          return (
+                            <div
+                              key={opt.key}
+                              className={`${styles.cbtOptionItem} ${isSelected ? styles.cbtOptionSelected : ''}`}
+                              onClick={() => handleCbtSelectOption(opt.key)}
+                            >
+                              <span className={styles.cbtOptionKey}>{opt.key}</span>
+                              <span className={styles.cbtOptionText}>
+                                <MathText text={opt.text} />
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className={styles.cbtNumericalInputArea}>
+                        <div className={styles.cbtNtaGuidanceBox}>
+                          <Info size={16} />
+                          <span>Section B: Enter your numerical answer using on-screen keypad or keyboard.</span>
+                        </div>
+                        <div className={styles.cbtNumericalInputBox}>
+                          <input
+                            type="text"
+                            className={styles.cbtNumericalInput}
+                            placeholder="Enter Numerical Answer"
+                            value={cbtResponse.numericalValue ?? cbtResponse.selectedOption ?? ''}
+                            onChange={(e) => handleCbtNumericalChange(e.target.value)}
+                          />
+                        </div>
+                        <div className={styles.cbtVirtualKeypad}>
+                          <div className={styles.cbtKeypadRow}>
+                            {['1', '2', '3'].map((n) => (
+                              <button key={n} type="button" className={styles.cbtKeypadBtn} onClick={() => handleCbtKeypadPress(n)}>{n}</button>
+                            ))}
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className={styles.cbtKeypadRow}>
+                            {['4', '5', '6'].map((n) => (
+                              <button key={n} type="button" className={styles.cbtKeypadBtn} onClick={() => handleCbtKeypadPress(n)}>{n}</button>
+                            ))}
+                          </div>
+                          <div className={styles.cbtKeypadRow}>
+                            {['7', '8', '9'].map((n) => (
+                              <button key={n} type="button" className={styles.cbtKeypadBtn} onClick={() => handleCbtKeypadPress(n)}>{n}</button>
+                            ))}
+                          </div>
+                          <div className={styles.cbtKeypadRow}>
+                            <button type="button" className={`${styles.cbtKeypadBtn} ${styles.cbtKeypadSpecialBtn}`} onClick={() => handleCbtKeypadPress('.')}>.</button>
+                            <button type="button" className={styles.cbtKeypadBtn} onClick={() => handleCbtKeypadPress('0')}>0</button>
+                            <button type="button" className={`${styles.cbtKeypadBtn} ${styles.cbtKeypadSpecialBtn}`} onClick={() => handleCbtKeypadPress('-')}>-</button>
+                          </div>
+                          <div className={styles.cbtKeypadActionRow}>
+                            <button type="button" className={styles.cbtKeypadBackspaceBtn} onClick={handleCbtKeypadBackspace}>⌫ Backspace</button>
+                            <button type="button" className={styles.cbtKeypadClearBtn} onClick={handleCbtKeypadClear}>Clear</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className={styles.cbtBottomNav}>
                       <button
@@ -6494,38 +6950,123 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       <div className={styles.cbtPaletteHeader}>
                         <span className={styles.cbtPaletteTitle}>Question Palette</span>
                         <span className={styles.cbtPaletteCount}>
-                          {cbtQIndex + 1} of {questions.length}
+                          Q{currentSubjectIndex >= 0 ? currentSubjectIndex + 1 : cbtQIndex + 1} of {currentSubjectQuestions.length}
                         </span>
                       </div>
 
-                      <div className={styles.cbtPaletteGrid}>
-                        {questions.map((q, idx) => {
-                          const resp = cbtResponses[q.id];
-                          const isCurrent = idx === cbtQIndex;
-                          const isVisited = resp?.isVisited ?? false;
-                          const isAnswered = Boolean(resp?.selectedOption);
-                          const isMarked = resp?.isMarkedForReview ?? false;
+                      {/* Quick Subject Tabs inside Palette */}
+                      {cbtSubjects.length > 1 && (
+                        <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                          {cbtSubjects.map((sub) => {
+                            const isSubActive = sub === currentCbtSubject;
+                            return (
+                              <button
+                                key={sub}
+                                type="button"
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  border: isSubActive ? '1.5px solid #2563EB' : '1px solid #E2E8F0',
+                                  background: isSubActive ? '#2563EB' : '#F8FAFC',
+                                  color: isSubActive ? '#FFFFFF' : '#475569',
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => handleCbtSubjectClick(sub)}
+                              >
+                                {sub}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                          let statusStyle = styles.paletteNotVisited;
-                          if (isAnswered && isMarked) statusStyle = styles.paletteAnsMarked;
-                          else if (isMarked) statusStyle = styles.paletteMarked;
-                          else if (isAnswered) statusStyle = styles.paletteAnswered;
-                          else if (isVisited) statusStyle = styles.paletteNotAnswered;
+                      {/* Section A Block */}
+                      <div className={styles.cbtSecPaletteBlock}>
+                        <div className={styles.cbtSecPaletteHeader}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className={styles.cbtSecPaletteBadgeA}>Section A</span>
+                            <span className={styles.cbtSecPaletteTitleText}>MCQs</span>
+                          </div>
+                          <span className={styles.cbtSecPaletteCount}>
+                            {secAAnsweredCount}/{currentSubjectSecA.length}
+                          </span>
+                        </div>
+                        <div className={styles.cbtPaletteGrid}>
+                          {currentSubjectSecA.map((q) => {
+                            const globalIdx = questions.findIndex((item) => item.id === q.id);
+                            const resp = cbtResponses[q.id];
+                            const isCurrent = globalIdx === cbtQIndex;
+                            const isVisited = resp?.isVisited ?? false;
+                            const isAnswered = Boolean(resp?.selectedOption || resp?.numericalValue?.trim());
+                            const isMarked = resp?.isMarkedForReview ?? false;
 
-                          return (
-                            <button
-                              key={q.id}
-                              type="button"
-                              className={`${styles.cbtPaletteBtn} ${statusStyle} ${
-                                isCurrent ? styles.paletteCurrent : ''
-                              }`}
-                              onClick={() => handleCbtNavigate(idx)}
-                            >
-                              {idx + 1}
-                            </button>
-                          );
-                        })}
+                            let statusStyle = styles.paletteNotVisited;
+                            if (isAnswered && isMarked) statusStyle = styles.paletteAnsMarked;
+                            else if (isMarked) statusStyle = styles.paletteMarked;
+                            else if (isAnswered) statusStyle = styles.paletteAnswered;
+                            else if (isVisited) statusStyle = styles.paletteNotAnswered;
+
+                            return (
+                              <button
+                                key={q.id}
+                                type="button"
+                                className={`${styles.cbtPaletteBtn} ${statusStyle} ${
+                                  isCurrent ? styles.paletteCurrent : ''
+                                }`}
+                                onClick={() => handleCbtNavigate(globalIdx)}
+                              >
+                                {globalIdx + 1}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
+
+                      {/* Section B Block (if numerical exists in current subject) */}
+                      {currentSubjectSecB.length > 0 && (
+                        <div className={styles.cbtSecPaletteBlock}>
+                          <div className={styles.cbtSecPaletteHeader}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span className={styles.cbtSecPaletteBadgeB}>Section B</span>
+                              <span className={styles.cbtSecPaletteTitleText}>Numerical</span>
+                            </div>
+                            <span className={styles.cbtSecPaletteCount}>
+                              {secBAnsweredCount}/{currentSubjectSecB.length}
+                            </span>
+                          </div>
+                          <div className={styles.cbtPaletteGrid}>
+                            {currentSubjectSecB.map((q) => {
+                              const globalIdx = questions.findIndex((item) => item.id === q.id);
+                              const resp = cbtResponses[q.id];
+                              const isCurrent = globalIdx === cbtQIndex;
+                              const isVisited = resp?.isVisited ?? false;
+                              const isAnswered = Boolean(resp?.selectedOption || resp?.numericalValue?.trim());
+                              const isMarked = resp?.isMarkedForReview ?? false;
+
+                              let statusStyle = styles.paletteNotVisited;
+                              if (isAnswered && isMarked) statusStyle = styles.paletteAnsMarked;
+                              else if (isMarked) statusStyle = styles.paletteMarked;
+                              else if (isAnswered) statusStyle = styles.paletteAnswered;
+                              else if (isVisited) statusStyle = styles.paletteNotAnswered;
+
+                              return (
+                                <button
+                                  key={q.id}
+                                  type="button"
+                                  className={`${styles.cbtPaletteBtn} ${statusStyle} ${
+                                    isCurrent ? styles.paletteCurrent : ''
+                                  }`}
+                                  onClick={() => handleCbtNavigate(globalIdx)}
+                                >
+                                  {globalIdx + 1}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       <div className={styles.cbtLegendGrid}>
                         <div className={styles.cbtLegendItem}>
@@ -6587,21 +7128,45 @@ export const TestSeriesBuilderWorkspace: React.FC = () => {
                       Question Paper &amp; Official Answer Keys:
                     </h4>
                     {questions.map((q, idx) => {
-                      const userAns = cbtResponses[q.id]?.selectedOption;
-                      const isCorrect = userAns === q.correctKey;
+                      const isSecB = isSectionB(q, idx);
+                      const userAns = isSecB
+                        ? (cbtResponses[q.id]?.numericalValue || cbtResponses[q.id]?.selectedOption)
+                        : cbtResponses[q.id]?.selectedOption;
+                      let isCorrect = false;
+                      if (isSecB) {
+                        const correctVal = q.numericalAnswer ?? q.correctKey ?? (q as any)?.correctAnswer;
+                        if (userAns && correctVal !== undefined) {
+                          const userNum = parseFloat(userAns.trim());
+                          const correctNum = parseFloat(String(correctVal).trim());
+                          isCorrect = !isNaN(userNum) && !isNaN(correctNum) && Math.abs(userNum - correctNum) < 0.01;
+                        }
+                      } else {
+                        isCorrect = userAns === q.correctKey;
+                      }
+
                       return (
                         <div key={q.id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                            <strong style={{ fontSize: '13px', color: '#0F172A' }}>Question {idx + 1} ({q.topicTag})</strong>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <strong style={{ fontSize: '13px', color: '#0F172A' }}>Question {idx + 1}</strong>
+                              <span className={isSecB ? styles.cbtSecLetterBadgeB : styles.cbtSecLetterBadgeA}>
+                                {isSecB ? 'Section B: Numerical' : 'Section A: MCQ'}
+                              </span>
+                              {q.topicTag && <span style={{ fontSize: '11px', color: '#64748B' }}>({q.topicTag})</span>}
+                            </div>
                             <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: isCorrect ? '#ECFDF5' : '#FFF1F2', color: isCorrect ? '#059669' : '#DC2626' }}>
-                              {isCorrect ? `✓ Correct (+${positiveMarks})` : userAns ? `✗ Incorrect (-${negativeMarks})` : '— Unattempted (0)'}
+                              {isCorrect ? `✓ Correct (+${positiveMarks})` : userAns ? `✗ Incorrect (-${isSecB ? 0 : negativeMarks})` : '— Unattempted (0)'}
                             </span>
                           </div>
                           <div style={{ fontSize: '12.5px', color: '#334155', margin: '4px 0' }}>
                             <MathText text={q.questionText} />
                           </div>
                           <div style={{ fontSize: '12px', color: '#059669', fontWeight: 600, marginTop: '6px' }}>
-                            Correct Answer: Option {q.correctKey} (<MathText text={q.options.find(o => o.key === q.correctKey)?.text || ''} />)
+                            {!isSecB ? (
+                              <span>Correct Answer: Option {q.correctKey} (<MathText text={q.options.find(o => o.key === q.correctKey)?.text || ''} />)</span>
+                            ) : (
+                              <span>Correct Numerical Answer: <strong>{q.numericalAnswer ?? q.correctKey ?? (q as any)?.correctAnswer ?? 'N/A'}</strong> (Your Answer: {userAns || 'None'})</span>
+                            )}
                           </div>
                         </div>
                       );
