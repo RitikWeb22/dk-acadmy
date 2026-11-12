@@ -6,7 +6,8 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "build": "node scripts/build-unified.cjs",
+    "build": "npm --prefix backend run build",
+    "build:full": "node scripts/build-unified.cjs",
     "build:backend": "npm --prefix backend run build",
     "build:frontend": "npm --prefix frontend run build",
     "start": "node server.js",
