@@ -218,7 +218,7 @@ export const SignupPage: React.FC = () => {
   const handlePhoneBlur = () => {
     const cleanPhone = phone.replace(/\D/g, '');
     if (!cleanPhone) {
-      setPhoneError('Mobile number is required for OTP verification.');
+      setPhoneError('Mobile number is required for batch updates.');
     } else if (cleanPhone.length !== 10) {
       setPhoneError('Please enter a valid 10-digit Indian mobile number.');
     } else {
