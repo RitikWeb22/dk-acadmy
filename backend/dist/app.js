@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import helmet from 'helmet';
+import compression from 'compression';
 import { env } from './config/env.js';
 import apiRoutes from './routes/apiRoutes.js';
 import { handleRazorpayWebhook } from './controllers/paymentController.js';
@@ -18,6 +19,17 @@ app.use(requestLogger);
 // Trust reverse proxy (for rate limiting, IP resolution behind Nginx/Render/Cloudflare)
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+// High-performance gzip/deflate compression for static assets and API JSON payloads
+app.use(compression({
+    level: 6,
+    threshold: 1024,
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression.filter(req, res);
+    }
+}));
 // Enhanced Security Headers (Helmet with strict Content-Security-Policy)
 app.use(helmet({
     contentSecurityPolicy: {
