@@ -30,11 +30,11 @@ app.use(
   compression({
     level: 6,
     threshold: 1024,
-    filter: (req, res) => {
-      if (req.headers['x-no-compression']) {
+    filter: (req: any, res: any) => {
+      if (req.headers && req.headers['x-no-compression']) {
         return false;
       }
-      return compression.filter(req, res);
+      return (compression as any).filter ? (compression as any).filter(req, res) : true;
     }
   })
 );

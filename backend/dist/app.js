@@ -24,10 +24,10 @@ app.use(compression({
     level: 6,
     threshold: 1024,
     filter: (req, res) => {
-        if (req.headers['x-no-compression']) {
+        if (req.headers && req.headers['x-no-compression']) {
             return false;
         }
-        return compression.filter(req, res);
+        return compression.filter ? compression.filter(req, res) : true;
     }
 }));
 // Enhanced Security Headers (Helmet with strict Content-Security-Policy)
