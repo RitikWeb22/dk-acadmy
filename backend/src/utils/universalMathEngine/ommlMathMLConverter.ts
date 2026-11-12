@@ -264,9 +264,9 @@ export function ommlNodeToLatex(node: any): string {
       const character = (rawCharacter || nodeText(characterNode) || '').trim();
       const normalized = character.toLowerCase();
       let operator = '';
-      if (character === '∑' || normalized.includes('sum')) operator = '\\sum';
+      if (!character || character === '∫' || normalized.includes('int')) operator = '\\int';
+      else if (character === '∑' || normalized.includes('sum')) operator = '\\sum';
       else if (character === '∏' || normalized.includes('prod')) operator = '\\prod';
-      else if (character === '∫' || normalized.includes('int')) operator = '\\int';
       else if (character === '∮') operator = '\\oint';
       else if (character === '∬') operator = '\\iint';
       else if (character === '∭') operator = '\\iiint';

@@ -10,7 +10,7 @@
  * wrapping them into canonical $...$ KaTeX syntax with ZERO manual fixing.
  */
 
-import { ommlNodeToLatex, mathMLNodeToLatex } from '../universalMathEngine';
+import { ommlNodeToLatex, mathMLNodeToLatex, parseMarkupToDoc } from '../universalMathEngine';
 import { parseWordMatricesAndCases, areValidExtractedOptions, fixNestedExponents, normalizePrimes, convertFractionsBalanced, convertExpBraces, convertLiteralCurlyBraces, normalizeAllRadicals, normalizeWordIntegrals } from '../wordPasteParser';
 
 export interface ParsedOption {
@@ -76,13 +76,12 @@ export function extractMathFromHtml(html: string): string {
 
   const ommlCommentRegex = /<!--\[if\s+gte\s+(?:msEquation|mso)\s+\d+\]>([\s\S]*?)<!\[endif\]-->/gi;
   s = s.replace(ommlCommentRegex, (_match, innerOmml: string) => {
-    if (typeof DOMParser !== 'undefined') {
-      try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(
-          `<root xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${innerOmml}</root>`,
-          'text/xml'
-        );
+    try {
+      const doc = parseMarkupToDoc(
+        `<root xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${innerOmml}</root>`,
+        'xml'
+      );
+      if (doc) {
         const oMath =
           (doc.getElementsByTagNameNS && doc.getElementsByTagNameNS('*', 'oMath')[0]) ||
           doc.getElementsByTagName('m:oMath')[0] ||
@@ -92,8 +91,8 @@ export function extractMathFromHtml(html: string): string {
           const latex = ommlNodeToLatex(oMath);
           if (latex) return ` $${latex}$ `;
         }
-      } catch {}
-    }
+      }
+    } catch {}
     return ' ';
   });
 
@@ -104,17 +103,16 @@ export function extractMathFromHtml(html: string): string {
 
   // 3. Convert MathML: <math>...</math>
   s = s.replace(/<math[\s\S]*?<\/math>/gi, (match) => {
-    if (typeof DOMParser !== 'undefined') {
-      try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(match, 'text/xml');
-        const mathEl = doc.querySelector('math');
+    try {
+      const doc = parseMarkupToDoc(match, 'xml');
+      if (doc) {
+        const mathEl = doc.querySelector ? doc.querySelector('math') : doc.getElementsByTagName('math')[0];
         if (mathEl) {
           const latex = mathMLNodeToLatex(mathEl);
           if (latex) return ` $${latex}$ `;
         }
-      } catch {}
-    }
+      }
+    } catch {}
     return match;
   });
 
@@ -174,6 +172,33 @@ export function normalizeMathString(raw: string): string {
   s = s.replace(/[\u200B-\u200D\uFEFF\u2060\u2061\u2062\u2063\u2064▒□〖〗]/g, '');
   s = s.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
   s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Remove stray unescaped $ inside open LaTeX groups/braces: e.g. \dfrac{x$\int...} or {- $1}
+  let groupSanitized = '';
+  let braceDepth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const char = s[i];
+    const prev = i > 0 ? s[i - 1] : '';
+    if (char === '{' && prev !== '\\') {
+      braceDepth++;
+      groupSanitized += char;
+    } else if (char === '}' && prev !== '\\') {
+      if (braceDepth > 0) braceDepth--;
+      groupSanitized += char;
+    } else if (char === '$' && prev !== '\\' && braceDepth > 0) {
+      // Stray $ inside an open LaTeX brace group - omit it
+      continue;
+    } else {
+      groupSanitized += char;
+    }
+  }
+  s = groupSanitized;
+
+  // If \lim or \sum or \prod is immediately before a $, pull the $ in front of \lim:
+  s = s.replace(/(\\\b(?:lim|sum|prod)(?:_[^{}\s]+|_\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|\^[^{}\s]+|\^\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*)\s*\$/gi, '$$$1 ');
+
+  // If $ was opened after \lim or around \dfrac and left unclosed before prose stop (", then"):
+  s = s.replace(/\$([^$\n]+?)(?=\s*,\s*(?:then|where|when|if|and)\b)/g, '$$$1$$');
 
   // Convert plain text piecewise cases: e.g. f(x) = { -2, -2 <= x <= 0 \n x - 2, 0 < x <= 2
   s = s.replace(/([a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=\s*)\{\s*([\s\S]+?)(?=\s*(?:and|where|when|such|for|Then|\.|\b[a-zA-Z]\s*\([a-zA-Z0-9_]+\)\s*=|$))/gi, (match, lhs, body) => {
@@ -613,13 +638,13 @@ export function normalizeMathString(raw: string): string {
   // 4. Integrals: \int ... dx
   s = s.replace(
     new RegExp(`(?<![$\\w])(\\\\(?:int|iint|iiint|oint)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*[\\s\\S]+?(?:\\\\,?\\s*d[a-zA-Z]|dx|dy|dt|dz|du|dv|d\\theta|dr)(?![a-zA-Z]))(?=(?:\\s*=\\s*[^,;.\\n]+)?(?:\\s*[,;.]|\\s+${proseStops}|$))`, 'gi'),
-    (fullMatch) => protect(fullMatch)
+    (fullMatch, _int, offset) => isInsideLatexGroup(s, offset) ? fullMatch : protect(fullMatch)
   );
 
   // 5. Limits, Summations, Products: \lim_{...} ... (stop strictly before prose)
   s = s.replace(
-    new RegExp(`(?<![$\\w])(\\\\(?:lim|sum|prod)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*(?:[-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]\\s.]*?[-a-zA-Z0-9_^{}()'|\\\\+*/\\]]))(?=\\s+${proseStops}|\\s*[,;.]|$)`, 'gi'),
-    (_, m) => protect(m)
+    new RegExp(`(?<![$\\w])(\\\\(?:lim|sum|prod)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*[-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]=\\s.,]*?[-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]=}])(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
+    (m, _, offset) => isInsideLatexGroup(s, offset) ? m : protect(m)
   );
 
   // 6. Differential equations with explicit differentials: 2x^2 dy = (2xy+y^2) dx OR y(x+1) dx - x^2 dy = 0 OR [ ... ] x \dfrac{dy}{dx} = ...
@@ -746,7 +771,8 @@ export function normalizeMathString(raw: string): string {
   // 13. Single function terms / derivatives: f'(0), y(4), f( \dfrac{1}{2} ), f( 1/2 )
   s = s.replace(
     /(?<![$\w])([a-zA-Z]'*\s*\(\s*(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|\d+\s*\/\s*\d+|[0-9a-zA-Z_+\-/*]+)\s*\))(?![$\w])/g,
-    (_, m) => {
+    (m, _, offset) => {
+      if (isInsideLatexGroup(s, offset)) return m;
       const fracNorm = m.replace(/\(\s*(\d+)\s*\/\s*(\d+)\s*\)/, '\\left(\\dfrac{$1}{$2}\\right)')
                         .replace(/\(\s*(\\d?frac\{[^{}]+\}\{[^{}]+\})\s*\)/, '\\left($1\\right)');
       return protect(fracNorm);

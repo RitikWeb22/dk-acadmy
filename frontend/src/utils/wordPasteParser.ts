@@ -279,6 +279,15 @@ export function normalizeWordIntegrals(text: string): string {
   });
 
   s = s.replace(/[∫\u222B]\s*[▒□]?\s*[\u200A\s]*/g, '\\int ');
+
+  // Repair dropped integral symbol where limits became e.g. "integral $-11 \log_e...dx" or "integral -11 \log_e...dx"
+  s = s.replace(/(?<=\bintegral\s+)\$?[-−](\d+)\s*(\d+)\b\s*\$?([a-zA-Z0-9_\\^{}()+\-*/\s|.,]+?\bd[a-zA-Z]\b)\$?/gi, (_m, lower, upper, body) => {
+    return `$\\int_{-${lower}}^{${upper}} ${body.trim()}$`;
+  });
+  s = s.replace(/(?<=\bintegral\s+)\$?(\d)\s*(\d)\b\s*\$?([a-zA-Z0-9_\\^{}()+\-*/\s|.,]+?\bd[a-zA-Z]\b)\$?/gi, (_m, lower, upper, body) => {
+    return `$\\int_{${lower}}^{${upper}} ${body.trim()}$`;
+  });
+
   return s;
 }
 
