@@ -1,6 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Home, BookOpen, Layers, CheckCircle2, Clock, FileText, Zap, ListOrdered } from 'lucide-react';
+import {
+  ChevronRight,
+  Home,
+  FileText,
+  Zap,
+  ListOrdered,
+  Trophy,
+  Package,
+  CheckCircle2,
+  Users,
+  TrendingUp
+} from 'lucide-react';
 import { Container } from '../../ui/Container/Container';
 import styles from './DPPPageHeader.module.scss';
 
@@ -19,11 +30,11 @@ export const DPPPageHeader: React.FC<DPPPageHeaderProps> = ({
 }) => {
   return (
     <header className={styles.header}>
-      <Container>
+      <Container size="wide">
         {/* Breadcrumb */}
         <nav className={styles.breadcrumb} aria-label="Breadcrumb">
           <Link to="/" className={styles.breadcrumbLink}>
-            <Home size={14} />
+            <Home size={14} className={styles.homeIcon} />
             <span>Home</span>
           </Link>
           <ChevronRight size={14} className={styles.breadcrumbSeparator} />
@@ -32,21 +43,43 @@ export const DPPPageHeader: React.FC<DPPPageHeaderProps> = ({
           </span>
         </nav>
 
-        {/* Header Content */}
-        <div className={styles.headerContent}>
-          <div className={styles.textContent}>
+        {/* Header Grid: Left Content + Right 3D Visual & Stats */}
+        <div className={styles.heroGrid}>
+          {/* Left Column: Eyebrow, Heading, Description, Hub Buttons */}
+          <div className={styles.heroLeftCol}>
             <div className={styles.badgeRow}>
               <span className={styles.liveBadge}>
-                <span className={styles.pulseDot} />
-                JEE Main & Advanced 2025–26
+                <Trophy size={13} className={styles.trophyIcon} />
+                <span>JEE Main &amp; Advanced 2025–26</span>
               </span>
             </div>
-            <h1 className={styles.title}>Daily Practice Problems</h1>
+
+            <h1 className={styles.title}>
+              Daily Practice{' '}
+              <span className={styles.titleHighlight}>
+                Problems
+                <svg
+                  className={styles.headingWave}
+                  viewBox="0 0 120 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M2 8C25 2 45 10 70 4C95 -2 108 8 118 6"
+                    stroke="#2563EB"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+            </h1>
+
             <p className={styles.description}>
-              Consistent daily practice is the cornerstone of a top JEE rank. Solve curated, topic-wise problem sets across Physics, Chemistry, and Mathematics with instant step-by-step solutions and exam-simulation modes.
+              Consistent <strong>daily practice</strong> is the cornerstone of a top JEE rank. Solve curated, topic-wise problem sets across Physics, Chemistry, and Mathematics with instant step-by-step solutions and exam-simulation modes.
             </p>
 
-            {/* Quick Practice Hub Switcher */}
+            {/* Quick Practice Hub Switcher Tabs */}
             <div className={styles.hubTabs} role="navigation" aria-label="Practice modes">
               <Link to="/pyq" className={styles.hubTab}>
                 <FileText size={15} aria-hidden="true" />
@@ -63,45 +96,93 @@ export const DPPPageHeader: React.FC<DPPPageHeaderProps> = ({
             </div>
           </div>
 
-          {/* Quick Stats Grid */}
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statIconWrap}>
-                <BookOpen size={18} className={styles.statIcon} />
+          {/* Right Column: 3D Student Illustration + Floating Glass Stats Card */}
+          <div className={styles.heroRightCol}>
+            <div className={styles.heroVisualWrap}>
+              {/* Decorative Glow Aura Backdrop */}
+              <div className={styles.heroBackdropAura} aria-hidden="true" />
+
+              {/* Target / Dartboard Motif in Background */}
+              <div className={styles.dartboardTarget} aria-hidden="true">
+                <div className={styles.targetRing3} />
+                <div className={styles.targetRing2} />
+                <div className={styles.targetRing1} />
               </div>
-              <div className={styles.statInfo}>
-                <span className={styles.statValue}>{totalSets} Sets</span>
-                <span className={styles.statLabel}>Available DPPs</span>
+
+              {/* Practice Score Higher Script Note with Curved Arrow */}
+              <div className={styles.scoreHigherNote}>
+                <span>Practice</span>
+                <span>Score Higher</span>
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#2563EB"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M7 17L17 7" />
+                  <path d="M7 7h10v10" />
+                </svg>
               </div>
+
+              {/* 3D Student Illustration */}
+              <img
+                src="/images/dpp-hero-student.png"
+                alt="JEE Aspirant Practicing DPP Daily - DK Academy"
+                className={styles.heroStudentImg}
+              />
             </div>
 
-            <div className={styles.statCard}>
-              <div className={styles.statIconWrap}>
-                <Layers size={18} className={styles.statIcon} />
+            {/* Floating Glass-Style Statistics Card */}
+            <div className={styles.floatingStatsCard}>
+              <div className={styles.statMetric}>
+                <div className={`${styles.metricIconWrap} ${styles.iconWrapBlue}`}>
+                  <Package size={17} />
+                </div>
+                <div className={styles.metricText}>
+                  <span className={styles.metricNumber}>{totalSets || 8} Sets</span>
+                  <span className={styles.metricLabel}>AVAILABLE DPPs</span>
+                </div>
               </div>
-              <div className={styles.statInfo}>
-                <span className={styles.statValue}>{totalQuestions}</span>
-                <span className={styles.statLabel}>Total Problems</span>
-              </div>
-            </div>
 
-            <div className={styles.statCard}>
-              <div className={styles.statIconWrap}>
-                <Clock size={18} className={styles.statIcon} />
-              </div>
-              <div className={styles.statInfo}>
-                <span className={styles.statValue}>{subjectsCount} Subjects</span>
-                <span className={styles.statLabel}>PCM Coverage</span>
-              </div>
-            </div>
+              <div className={styles.statDivider} aria-hidden="true" />
 
-            <div className={styles.statCard}>
-              <div className={styles.statIconWrap}>
-                <CheckCircle2 size={18} className={styles.statIcon} />
+              <div className={styles.statMetric}>
+                <div className={`${styles.metricIconWrap} ${styles.iconWrapGreen}`}>
+                  <CheckCircle2 size={17} />
+                </div>
+                <div className={styles.metricText}>
+                  <span className={styles.metricNumber}>{totalQuestions || 29}</span>
+                  <span className={styles.metricLabel}>TOTAL PROBLEMS</span>
+                </div>
               </div>
-              <div className={styles.statInfo}>
-                <span className={styles.statValue}>{attemptedSetsCount}</span>
-                <span className={styles.statLabel}>Sets Practiced</span>
+
+              <div className={styles.statDivider} aria-hidden="true" />
+
+              <div className={styles.statMetric}>
+                <div className={`${styles.metricIconWrap} ${styles.iconWrapPurple}`}>
+                  <Users size={17} />
+                </div>
+                <div className={styles.metricText}>
+                  <span className={styles.metricNumber}>{subjectsCount || 3}</span>
+                  <span className={styles.metricLabel}>Subjects PCM COVERAGE</span>
+                </div>
+              </div>
+
+              <div className={styles.statDivider} aria-hidden="true" />
+
+              <div className={styles.statMetric}>
+                <div className={`${styles.metricIconWrap} ${styles.iconWrapCyan}`}>
+                  <TrendingUp size={17} />
+                </div>
+                <div className={styles.metricText}>
+                  <span className={styles.metricNumber}>{attemptedSetsCount || 3}</span>
+                  <span className={styles.metricLabel}>SETS PRACTICED</span>
+                </div>
               </div>
             </div>
           </div>

@@ -1,6 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Home, Award, Clock, FileCheck, CheckCircle2, Flame, Layers } from 'lucide-react';
+import {
+  Home,
+  ChevronRight,
+  Trophy,
+  Play,
+  ArrowRight,
+  Info,
+  Calendar,
+  HelpCircle,
+  FileText,
+  TrendingUp,
+} from 'lucide-react';
 import { Container } from '../../ui/Container/Container';
 import styles from './TestSeriesHeader.module.scss';
 
@@ -17,89 +28,149 @@ export const TestSeriesHeader: React.FC<TestSeriesHeaderProps> = ({
   availableExamsCount,
   attemptedTestsCount,
 }) => {
+  const handleScrollToTests = () => {
+    const el = document.getElementById('available-mock-tests');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <header className={styles.header}>
-      <Container>
+      <Container size="wide">
         {/* Breadcrumb Navigation */}
         <nav className={styles.breadcrumb} aria-label="Breadcrumb">
           <Link to="/" className={styles.breadcrumbLink}>
             <Home size={14} aria-hidden="true" />
             <span>Home</span>
           </Link>
-          <ChevronRight size={14} className={styles.breadcrumbSeparator} aria-hidden="true" />
+          <ChevronRight size={13} className={styles.breadcrumbSeparator} aria-hidden="true" />
           <span className={styles.breadcrumbCurrent} aria-current="page">
             Test Series
           </span>
         </nav>
 
-        {/* Content Heading */}
-        <div className={styles.headerHero}>
-          <div className={styles.titleWrapper}>
-            <h1 className={styles.title}>JEE CBT Test Series Dashboard</h1>
-            <span className={styles.patternPill}>NTA Pattern 2025–26</span>
+        {/* Two-Column Hero Grid */}
+        <div className={styles.heroGrid}>
+          {/* Left Column: Heading, Subtitle, CTAs */}
+          <div className={styles.heroLeftCol}>
+            <div className={styles.heroEyebrowBadge}>
+              <Trophy size={14} className={styles.eyebrowIcon} aria-hidden="true" />
+              <span>NTA Pattern 2025–26</span>
+            </div>
+
+            <h1 className={styles.heroHeading}>
+              <span className={styles.headingAccent}>JEE</span> CBT Test Series
+              <br />
+              Dashboard
+            </h1>
+
+            <p className={styles.heroDescription}>
+              Experience authentic exam conditions with timed full-length and chapter-wise mock tests for JEE Main and JEE Advanced. Built with real countdown timers, negative marking schemes, instant question palettes, and comprehensive post-test analysis.
+            </p>
+
+            <div className={styles.heroCtaRow}>
+              <button
+                type="button"
+                className={styles.heroPrimaryBtn}
+                onClick={handleScrollToTests}
+              >
+                <Play size={15} fill="currentColor" aria-hidden="true" />
+                <span>Start a Test</span>
+                <ArrowRight size={15} aria-hidden="true" />
+              </button>
+
+              <button
+                type="button"
+                className={styles.heroSecondaryBtn}
+                onClick={handleScrollToTests}
+              >
+                <span>Learn More</span>
+                <Info size={15} aria-hidden="true" />
+              </button>
+            </div>
           </div>
-          <p className={styles.description}>
-            Experience authentic exam conditions with timed full-length and chapter-wise mock tests for JEE Main and JEE Advanced. Built with real countdown timers, negative marking schemes, instant question palettes, and comprehensive post-test analysis.
-          </p>
+
+          {/* Right Column: 3D Illustration & Aura (Static, zero animation) */}
+          <div className={styles.heroRightCol}>
+            <div className={styles.heroVisualCard}>
+              {/* Dot Matrix Pattern */}
+              <div className={styles.dotMatrixGrid} aria-hidden="true" />
+
+              {/* Curved Aura Backdrop */}
+              <div className={styles.heroWaveBackdrop} aria-hidden="true" />
+
+              {/* JEE CBT Test Series Math & STEM Illustration */}
+              <img
+                src="/images/test-series-hero-3d.png"
+                alt="JEE CBT Test Series Mathematics and STEM Concept Illustration"
+                className={styles.heroIllustrationImg}
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  if (!img.src.includes('cutout')) {
+                    img.src = '/images/test-series-hero-cutout.png';
+                  }
+                }}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* 4 Bento-style Summary Tiles with Matching Accent Icon Badges */}
-        <div className={styles.bentoGrid} role="region" aria-label="Test series overview metrics">
-          {/* Tile 1: 9 Mock Tests */}
-          <div className={`${styles.bentoTile} ${styles.tileBlue}`}>
-            <div className={styles.tileTopRow}>
-              <span className={styles.tileLabel}>Mock Tests</span>
-              <div className={`${styles.iconBadge} ${styles.badgeBlue}`} aria-hidden="true">
-                <Layers size={18} />
-              </div>
+        {/* 4 Summary Metric Cards */}
+        <div className={styles.summaryTilesRow} role="region" aria-label="Test series overview metrics">
+          {/* Card 1: Mock Tests */}
+          <div className={styles.summaryCard}>
+            <div className={`${styles.iconBadge} ${styles.badgeBlue}`} aria-hidden="true">
+              <Calendar size={18} />
             </div>
-            <div className={styles.tileMetricBlock}>
-              <span className={styles.tileValue}>{totalTests} Mock Tests</span>
-              <span className={styles.tileSub}>Full CBT &amp; Part Mocks</span>
+            <div className={styles.cardContent}>
+              <div className={styles.cardValueRow}>
+                <span className={styles.metricNumber}>{totalTests}</span>
+                <span className={styles.metricLabel}>Mock Tests</span>
+              </div>
+              <span className={styles.metricSub}>Full CBT &amp; Part Mocks</span>
             </div>
           </div>
 
-          {/* Tile 2: 48 Total Questions */}
-          <div className={`${styles.bentoTile} ${styles.tilePurple}`}>
-            <div className={styles.tileTopRow}>
-              <span className={styles.tileLabel}>Total Questions</span>
-              <div className={`${styles.iconBadge} ${styles.badgePurple}`} aria-hidden="true">
-                <FileCheck size={18} />
-              </div>
+          {/* Card 2: Total Questions */}
+          <div className={styles.summaryCard}>
+            <div className={`${styles.iconBadge} ${styles.badgePurple}`} aria-hidden="true">
+              <HelpCircle size={18} />
             </div>
-            <div className={styles.tileMetricBlock}>
-              <span className={styles.tileValue}>{totalQuestions} Total Questions</span>
-              <span className={styles.tileSub}>Physics, Chemistry &amp; Maths</span>
+            <div className={styles.cardContent}>
+              <div className={styles.cardValueRow}>
+                <span className={styles.metricNumber}>{totalQuestions}</span>
+                <span className={styles.metricLabel}>Total Questions</span>
+              </div>
+              <span className={styles.metricSub}>Physics, Chemistry &amp; Maths</span>
             </div>
           </div>
 
-          {/* Tile 3: 2 Exam Formats */}
-          <div className={`${styles.bentoTile} ${styles.tileAmber}`}>
-            <div className={styles.tileTopRow}>
-              <span className={styles.tileLabel}>Exam Formats</span>
-              <div className={`${styles.iconBadge} ${styles.badgeAmber}`} aria-hidden="true">
-                <Clock size={18} />
-              </div>
+          {/* Card 3: Exam Formats */}
+          <div className={styles.summaryCard}>
+            <div className={`${styles.iconBadge} ${styles.badgeOrange}`} aria-hidden="true">
+              <FileText size={18} />
             </div>
-            <div className={styles.tileMetricBlock}>
-              <span className={styles.tileValue}>{availableExamsCount} Exam Formats</span>
-              <span className={styles.tileSub}>JEE Main &amp; Advanced Engines</span>
+            <div className={styles.cardContent}>
+              <div className={styles.cardValueRow}>
+                <span className={styles.metricNumber}>{availableExamsCount}</span>
+                <span className={styles.metricLabel}>Exam Formats</span>
+              </div>
+              <span className={styles.metricSub}>JEE Main &amp; Advanced Engines</span>
             </div>
           </div>
 
-          {/* Tile 4: 2 Tests Attempted */}
-          <div className={`${styles.bentoTile} ${styles.tileGreen}`}>
-            <div className={styles.tileTopRow}>
-              <span className={styles.tileLabel}>Tests Attempted</span>
-              <div className={`${styles.iconBadge} ${styles.badgeGreen}`} aria-hidden="true">
-                <CheckCircle2 size={18} />
-              </div>
+          {/* Card 4: Tests Attempted */}
+          <div className={styles.summaryCard}>
+            <div className={`${styles.iconBadge} ${styles.badgeGreen}`} aria-hidden="true">
+              <TrendingUp size={18} />
             </div>
-            <div className={styles.tileMetricBlock}>
-              <span className={styles.tileValue}>{attemptedTestsCount} Tests Attempted</span>
-              <span className={styles.tileSub}>
-                {attemptedTestsCount > 0 ? 'Active performance tracked' : 'Ready to start first mock'}
-              </span>
+            <div className={styles.cardContent}>
+              <div className={styles.cardValueRow}>
+                <span className={styles.metricNumber}>{attemptedTestsCount}</span>
+                <span className={styles.metricLabel}>Tests Attempted</span>
+              </div>
+              <span className={styles.metricSub}>Active performance tracked</span>
             </div>
           </div>
         </div>

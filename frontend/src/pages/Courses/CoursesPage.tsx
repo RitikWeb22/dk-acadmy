@@ -977,13 +977,13 @@ export const CoursesPage: React.FC = () => {
             {/* Left Column: Visual Mock Test Card */}
             <div className={styles.mockTestBannerCard}>
               <img
-                src="/images/mock-test-banner-hd.png"
-                alt="JEE CBT Mock Test Paper"
+                src="/images/rishabh-banner.jpg"
+                alt="Rishabh Anand - JEE Advanced Achiever"
                 className={styles.mockTestBgImage}
                 onError={(e) => {
                   const img = e.target as HTMLImageElement;
-                  if (!img.src.includes('mock-test-banner-crop')) {
-                    img.src = '/images/mock-test-banner-crop.png';
+                  if (!img.src.includes('mock-test-banner-hd')) {
+                    img.src = '/images/mock-test-banner-hd.png';
                   }
                 }}
               />

@@ -90,7 +90,7 @@ const DEFAULT_OFFERS: AllOffersPayload = {
       title: 'Flagship Batch - Limited Admission Offer!',
       tagText: 'EXCLUSIVE SCHOLARSHIP',
       message: 'Direct mentorship under Dharmendra Kumar (DK Sir) with 20-30s math inspection shortcuts, daily DPPs & CBT test series.',
-      imageUrl: '/img/dk-results-banner.jpeg',
+      imageUrl: '/images/rishabh-banner.jpg',
       buttonText: 'Claim Scholarship & Enroll Now',
       linkUrl: '/courses',
       audience: 'all',

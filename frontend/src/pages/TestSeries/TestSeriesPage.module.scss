@@ -42,39 +42,55 @@
 }
 
 .sectionHeader {
-  margin-top: $space-6;
-  margin-bottom: $space-4;
+  margin-top: 28px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: $space-3;
+  gap: 16px;
 }
 
 .sectionTitle {
   font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
+  font-weight: 800;
+  color: #0f172a;
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleIconBadge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .pyqHintLink {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-primary);
+  gap: 6px;
+  font-size: 0.84375rem;
+  font-weight: 700;
+  color: #2563eb;
   text-decoration: none;
-  transition: all $transition-fast;
+  transition: all 0.15s ease;
 
   &:hover {
-    color: var(--color-primary-hover);
+    color: #1d4ed8;
     transform: translateX(2px);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid #2563eb;
     outline-offset: 2px;
   }
 }

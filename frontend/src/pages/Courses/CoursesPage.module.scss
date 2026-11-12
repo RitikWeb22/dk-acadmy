@@ -337,17 +337,11 @@ $radius-full: 9999px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(219, 234, 254, 0.8) 0%, rgba(239, 246, 255, 0.3) 70%, transparent 100%);
   z-index: 0;
-  animation: pulseBackdrop 6s ease-in-out infinite alternate;
 
   @media (max-width: 576px) {
     width: 280px;
     height: 280px;
   }
-}
-
-@keyframes pulseBackdrop {
-  0% { transform: scale(0.96); opacity: 0.8; }
-  100% { transform: scale(1.04); opacity: 1; }
 }
 
 .heroStudentImage {
@@ -358,11 +352,7 @@ $radius-full: 9999px;
   height: auto;
   border-radius: $radius-xl;
   filter: drop-shadow(0 16px 32px rgba(15, 23, 42, 0.12));
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: scale(1.02);
-  }
+  user-select: none;
 
   @media (max-width: 576px) {
     max-width: 280px;
@@ -1567,10 +1557,10 @@ $radius-full: 9999px;
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: rgba(15, 23, 42, 0.65) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 9999999 !important;
+  background: rgba(15, 23, 42, 0.7) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 99999999 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -1580,18 +1570,22 @@ $radius-full: 9999px;
 
 .modalCard {
   background: #ffffff !important;
+  background-color: #ffffff !important;
   border-radius: $radius-xl !important;
   max-width: 560px !important;
   width: 100% !important;
   max-height: 85vh !important;
   overflow-y: auto !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
-  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45) !important;
+  border: 1.5px solid #cbd5e1 !important;
   position: relative !important;
-  z-index: 10000000 !important;
+  z-index: 100000000 !important;
   opacity: 1 !important;
   visibility: visible !important;
-  animation: modalEnterAnim 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex !important;
+  flex-direction: column !important;
+  pointer-events: auto !important;
+  margin: auto !important;
 }
 
 @keyframes modalEnterAnim {

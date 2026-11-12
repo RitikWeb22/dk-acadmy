@@ -1,125 +1,152 @@
 @use '../../../styles/variables' as *;
 
 .header {
-  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
-  border-bottom: 1px solid $color-border;
-  padding: $space-6 0 $space-10;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 55%, #eaf2ff 100%);
+  border-bottom: 1px solid #e2e8f0;
+  padding: $space-6 0 $space-12;
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+  position: relative;
 
   @media (max-width: $bp-tablet) {
-    padding: $space-4 0 $space-6;
+    padding: $space-4 0 $space-8;
   }
 }
 
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: $space-2;
+  gap: 0.35rem;
   font-size: 0.8125rem;
-  color: $color-text-muted;
-  margin-bottom: $space-4;
+  color: #64748b;
+  margin-bottom: $space-6;
   flex-wrap: wrap;
 }
 
 .breadcrumbLink {
   display: inline-flex;
   align-items: center;
-  gap: $space-1;
-  color: $color-text-muted;
+  gap: 0.35rem;
+  color: #64748b;
   text-decoration: none;
+  font-weight: 500;
   transition: color $transition-fast;
 
   &:hover {
-    color: $color-primary;
+    color: #2563eb;
   }
+}
+
+.homeIcon {
+  color: #64748b;
 }
 
 .breadcrumbSeparator {
-  color: $color-border;
+  color: #94a3b8;
 }
 
 .breadcrumbCurrent {
-  color: $color-text-primary;
-  font-weight: 500;
+  color: #2563eb;
+  font-weight: 700;
 }
 
-.headerContent {
-  display: flex;
-  flex-direction: column;
-  gap: $space-6;
+// ─── Hero Two-Column Grid ──────────────────────────────────
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 36px;
+  align-items: center;
 
-  @media (min-width: 992px) {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
+  @include desktop {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 48px;
   }
 }
 
-.textContent {
-  max-width: 680px;
+.heroLeftCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  z-index: 2;
 }
 
 .badgeRow {
-  margin-bottom: $space-2;
+  margin-bottom: 16px;
 }
 
 .liveBadge {
   display: inline-flex;
   align-items: center;
-  gap: $space-2;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: $color-primary;
-  background-color: $color-primary-soft;
-  border: 1px solid $color-primary-soft-border;
-  padding: 0.25rem 0.625rem;
-  border-radius: $radius-full;
-  letter-spacing: 0.02em;
-}
+  gap: 7px;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 9999px;
+  padding: 5px 14px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
 
-.pulseDot {
-  width: 6px;
-  height: 6px;
-  border-radius: $radius-full;
-  background-color: $color-accent;
-  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+  .trophyIcon {
+    color: #eab308;
+    flex-shrink: 0;
+  }
 }
 
 .title {
-  font-size: 2.25rem;
-  font-weight: 800;
-  color: $color-text-primary;
-  line-height: 1.2;
-  margin-bottom: $space-3;
-  letter-spacing: -0.02em;
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: #0f172a;
+  margin: 0 0 16px;
+}
 
-  @media (max-width: $bp-tablet) {
-    font-size: 1.75rem;
+.titleHighlight {
+  position: relative;
+  display: inline-block;
+  color: #2563eb;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  .headingWave {
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    width: 100%;
+    height: 10px;
+    overflow: visible;
+    pointer-events: none;
   }
 }
 
 .description {
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: $color-text-secondary;
-  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #475569;
+  margin: 0 0 26px;
+  max-width: 580px;
+
+  strong {
+    color: #0f172a;
+  }
 }
 
+// Quick Practice Hub Switcher Tabs
 .hubTabs {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   overflow-x: auto;
   flex-wrap: nowrap;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding: 4px 2px 10px 2px;
-  margin-top: $space-4;
   width: 100%;
   box-sizing: border-box;
-
   &::-webkit-scrollbar {
     display: none;
   }
@@ -135,21 +162,33 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 18px;
+  padding: 9px 20px;
   height: 42px;
   min-height: 42px;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
-  white-space: nowrap; // Prevents text wrapping into deformed multi-line circles
-  flex-shrink: 0; // Prevents shrinking into deformed oval bubbles on mobile
-  color: $color-text-secondary;
-  background-color: #fff;
-  border: 1.5px solid $color-border;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: #334155;
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
   box-sizing: border-box;
   transition: all $transition-fast;
+
+  svg {
+    color: #2563eb;
+  }
+
+  &:hover {
+    color: #0f172a;
+    border-color: #cbd5e1;
+    background-color: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  }
 
   @include mobile {
     height: 38px;
@@ -157,94 +196,248 @@
     padding: 6px 14px;
     font-size: 0.8125rem;
     gap: 6px;
-
-    svg {
-      width: 14px;
-      height: 14px;
-      flex-shrink: 0;
-    }
-  }
-
-  &:hover {
-    color: $color-primary;
-    border-color: $color-primary;
-    background-color: $color-primary-soft;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(0, 82, 204, 0.12);
   }
 }
 
 .hubTabActive {
-  background-color: $color-primary;
-  color: #fff !important;
-  border-color: $color-primary;
+  background-color: #ffffff !important;
+  color: #2563eb !important;
+  border-color: #2563eb !important;
   font-weight: 700;
-  box-shadow: 0 3px 10px rgba(0, 82, 204, 0.28);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.18) !important;
+
+  svg {
+    color: #2563eb;
+  }
 
   &:hover {
-    background-color: #0043a8 !important;
-    color: #fff !important;
-    border-color: #0043a8 !important;
+    background-color: #f0f7ff !important;
+    color: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
   }
 }
 
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: $space-3;
-  width: 100%;
-
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  @media (min-width: 992px) {
-    width: auto;
-    display: flex;
-    gap: $space-3;
-  }
-}
-
-.statCard {
-  background-color: $color-surface;
-  border: 1px solid $color-border;
-  border-radius: $radius-lg;
-  padding: $space-3 $space-4;
+// ─── Hero Right Column & 3D Student Visual ────────────────
+.heroRightCol {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: $space-3;
-  box-shadow: $shadow-xs;
-  min-width: 140px;
+  position: relative;
+  width: 100%;
 }
 
-.statIconWrap {
-  width: 36px;
-  height: 36px;
-  border-radius: $radius-md;
-  background-color: $color-primary-soft;
-  color: $color-primary;
+.heroVisualWrap {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 340px;
+
+  @media (max-width: 768px) {
+    min-height: 280px;
+  }
+}
+
+.heroBackdropAura {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(191, 219, 254, 0.6) 0%, rgba(219, 234, 254, 0.2) 65%, transparent 100%);
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(15px);
+
+  @media (max-width: 576px) {
+    width: 260px;
+    height: 260px;
+  }
+}
+
+// Target / Dartboard Motif
+.dartboardTarget {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  opacity: 0.55;
+  pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  .targetRing3 {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px dashed rgba(37, 99, 235, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .targetRing2 {
+    width: 68%;
+    height: 68%;
+    border-radius: 50%;
+    border: 2px solid rgba(37, 99, 235, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .targetRing1 {
+    width: 38%;
+    height: 38%;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.2);
+    border: 2px solid #2563eb;
+  }
+}
+
+// Script Note
+.scoreHigherNote {
+  position: absolute;
+  top: -15px;
+  left: 10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Caveat', 'Comic Sans MS', cursive, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  transform: rotate(-6deg);
+  pointer-events: none;
+  user-select: none;
+  line-height: 1.1;
+
+  svg {
+    align-self: flex-end;
+    margin-top: 2px;
+  }
+}
+
+.heroStudentImg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 16px 32px rgba(37, 99, 235, 0.16)) drop-shadow(0 4px 10px rgba(15, 23, 42, 0.06));
+  animation: none !important;
+  transform: none !important;
+  user-select: none;
+
+  @media (max-width: 768px) {
+    max-width: 300px;
+  }
+
+  @media (max-width: 576px) {
+    max-width: 250px;
+  }
+}
+
+// ─── Floating Glass-Style Statistics Card ─────────────────
+.floatingStatsCard {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 540px;
+  margin-top: -16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  padding: 14px 20px;
+  box-shadow: 0 12px 32px -6px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  @media (max-width: 640px) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    padding: 16px;
+  }
+}
+
+.statMetric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+}
+
+.metricIconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
   flex-shrink: 0;
 }
 
-.statInfo {
-  display: flex;
-  flex-direction: column;
+.iconWrapBlue {
+  background: #eff6ff;
+  color: #2563eb;
 }
 
-.statValue {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: $color-text-primary;
+.iconWrapGreen {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.iconWrapPurple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.iconWrapCyan {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.metricText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.metricNumber {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
   line-height: 1.2;
 }
 
-.statLabel {
-  font-size: 0.6875rem;
-  color: $color-text-muted;
+.metricLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  font-weight: 500;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.statDivider {
+  width: 1px;
+  height: 36px;
+  background: #e2e8f0;
+  flex-shrink: 0;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 }

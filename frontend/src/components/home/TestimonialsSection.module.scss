@@ -201,20 +201,12 @@
   max-height: 360px;
   object-fit: contain;
   filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.4));
-  animation: floatMascot 4s ease-in-out infinite alternate;
+  animation: none !important;
+  transform: none !important;
 
   @include desktop {
     width: 290px;
     max-height: 390px;
-  }
-}
-
-@keyframes floatMascot {
-  0% {
-    transform: translateY(0px);
-  }
-  100% {
-    transform: translateY(-8px);
   }
 }
 

@@ -1,86 +1,90 @@
 @use '../../../styles/variables' as *;
 
 .filtersContainer {
-  background-color: $color-surface;
-  border: 1px solid $color-border;
-  border-radius: $radius-xl;
-  padding: $space-4;
-  margin-bottom: $space-6;
-  box-shadow: $shadow-xs;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 16px 22px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+  position: relative;
 }
 
 .filterRow {
   display: flex;
-  flex-direction: column;
-  gap: $space-3;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 
-  @media (min-width: 768px) {
-    flex-direction: row;
-    align-items: center;
+  @media (max-width: 900px) {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
 .searchBox {
   position: relative;
-  flex: 1;
+  flex: 1 1 280px;
+  min-width: 240px;
   display: flex;
   align-items: center;
 }
 
 .searchIcon {
   position: absolute;
-  left: $space-3;
-  color: $color-text-muted;
+  left: 14px;
+  color: #64748b;
   pointer-events: none;
 }
 
 .searchInput {
   width: 100%;
-  height: 42px;
-  padding: 0 $space-8 0 $space-8;
+  height: 44px;
+  padding: 0 36px 0 38px;
   font-size: 0.875rem;
-  font-family: $font-family-base;
-  color: $color-text-primary;
-  background-color: #FAFCFF;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  transition: all $transition-fast;
+  font-family: inherit;
+  color: #0f172a;
+  background-color: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  transition: all 0.2s ease;
 
   &::placeholder {
-    color: $color-text-muted;
+    color: #94a3b8;
+    font-size: 0.84375rem;
   }
 
   &:focus {
     outline: none;
-    background-color: $color-surface;
-    border-color: $color-primary;
+    background-color: #ffffff;
+    border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
 }
 
 .clearSearchBtn {
   position: absolute;
-  right: $space-3;
+  right: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: none;
   border: none;
-  color: $color-text-muted;
+  color: #94a3b8;
   cursor: pointer;
-  padding: 0.25rem;
-  border-radius: $radius-full;
-  transition: color $transition-fast;
+  padding: 4px;
+  border-radius: 50%;
+  transition: color 0.15s ease;
 
   &:hover {
-    color: $color-text-primary;
+    color: #0f172a;
   }
 }
 
 .selectGroup {
   display: flex;
   align-items: center;
-  gap: $space-2;
+  gap: 10px;
   flex-wrap: wrap;
 
   @media (max-width: 640px) {
@@ -89,13 +93,13 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
 
+    .filterLeadIcon {
+      display: none;
+    }
+
     .selectWrapper {
       width: 100%;
       min-width: 0;
-    }
-
-    .selectControl {
-      width: 100%;
     }
 
     .clearAllBtn {
@@ -106,38 +110,52 @@
   }
 }
 
+.filterLeadIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1.5px solid #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .selectWrapper {
   position: relative;
-  min-width: 150px;
-  flex: 1;
-
-  @media (min-width: 768px) {
-    flex: none;
-  }
+  min-width: 140px;
+  flex: 0 1 auto;
 }
 
 .selectControl {
   width: 100%;
-  height: 42px;
-  padding: 0 $space-6 0 $space-3;
-  font-size: 0.8125rem;
-  font-family: $font-family-base;
-  font-weight: 500;
-  color: $color-text-primary;
-  background-color: #FAFCFF;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
+  height: 44px;
+  padding: 0 32px 0 14px;
+  font-size: 0.84375rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: #334155;
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  transition: all $transition-fast;
+  background-position: right 12px center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #cbd5e1;
+    background-color: #f8fafc;
+  }
 
   &:focus {
     outline: none;
-    border-color: $color-primary;
-    background-color: $color-surface;
+    border-color: #2563eb;
+    background-color: #ffffff;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
 }
@@ -145,27 +163,28 @@
 .clearAllBtn {
   display: inline-flex;
   align-items: center;
-  gap: $space-1;
-  height: 42px;
-  padding: 0 $space-3;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
   font-size: 0.8125rem;
-  font-weight: 600;
-  color: $color-error;
-  background-color: rgba(220, 38, 38, 0.06);
-  border: 1px solid rgba(220, 38, 38, 0.15);
-  border-radius: $radius-md;
+  font-weight: 700;
+  color: #dc2626;
+  background-color: #fef2f2;
+  border: 1.5px solid #fee2e2;
+  border-radius: 14px;
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: all 0.15s ease;
 
   &:hover {
-    background-color: rgba(220, 38, 38, 0.12);
+    background-color: #fee2e2;
+    border-color: #fca5a5;
   }
 }
 
 .resultsMeta {
-  margin-top: 1.125rem;
-  padding-top: 1.125rem;
-  border-top: 1px solid $color-border-subtle;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -174,13 +193,30 @@
 .resultsCount {
   display: flex;
   align-items: center;
-  gap: $space-2;
-  font-size: 0.8125rem;
-  color: $color-text-secondary;
+  gap: 8px;
+  font-size: 0.84375rem;
+  color: #64748b;
+  font-weight: 500;
+
+  strong {
+    color: #0f172a;
+    font-weight: 700;
+  }
 }
 
 .metaIcon {
-  color: $color-primary;
+  color: #2563eb;
+}
+
+.decorativeCurve {
+  display: flex;
+  align-items: center;
+  color: #93c5fd;
+  opacity: 0.85;
+
+  svg {
+    display: block;
+  }
 }
 
 .visuallyHidden {

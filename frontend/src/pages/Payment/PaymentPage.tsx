@@ -493,68 +493,18 @@ export const PaymentPage: React.FC = () => {
             {/* 3. Payment Confirmation */}
             <section className={`${styles.whiteCard} ${styles.paymentConfirmationCard}`}>
               <div className={styles.cardHeaderStrip}>
-                <h2 className={styles.cardHeading}>Select Payment Gateway</h2>
-                <span className={styles.cardHeadingNote}>Secure online payment powered by Razorpay</span>
+                <h2 className={styles.cardHeading}>Payment Confirmation</h2>
+                <span className={styles.cardHeadingNote}>Review terms and proceed to secure checkout</span>
               </div>
 
-              {/* Razorpay Dedicated Gateway Card */}
-              <div className={styles.razorpayGatewayBox}>
-                <div className={styles.gatewayHeaderRow}>
-                  <div className={styles.gatewayBrandInfo}>
-                    <div className={styles.razorpayLogoBadge}>
-                      <span>Razorpay</span>
-                    </div>
-                    <div>
-                      <h3 className={styles.gatewayTitle}>Razorpay Trusted Payment Gateway</h3>
-                      <p className={styles.gatewaySub}>Official 256-bit Encrypted Checkout • RBI Authorized</p>
-                    </div>
-                  </div>
-                  <span className={styles.activeGatewayPill}>
-                    <Check size={12} /> Active Gateway
+              {(course.id === 'jee-pyq-archive-mastery' || targetId.includes('pyq')) && (
+                <div className={styles.pyqUnlockFeatureAlert} style={{ marginBottom: '18px' }}>
+                  <Sparkles size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span>
+                    <strong>Instant PYQ Unlock:</strong> All 500+ Chapter-wise Questions, DK Sir 20-30s Shortcuts Video Solutions &amp; Downloadable PDF Solutions will be unlocked immediately upon payment.
                   </span>
                 </div>
-
-                {/* Supported Payment Channels */}
-                <div className={styles.paymentMethodsOverview}>
-                  <div className={styles.methodChip}>
-                    <Smartphone size={16} color="#2563eb" />
-                    <div>
-                      <span className={styles.methodName}>UPI Instant</span>
-                      <span className={styles.methodSub}>GPay, PhonePe, Paytm, QR</span>
-                    </div>
-                  </div>
-                  <div className={styles.methodChip}>
-                    <CreditCard size={16} color="#059669" />
-                    <div>
-                      <span className={styles.methodName}>Cards</span>
-                      <span className={styles.methodSub}>Visa, Mastercard, RuPay</span>
-                    </div>
-                  </div>
-                  <div className={styles.methodChip}>
-                    <Building size={16} color="#7c3aed" />
-                    <div>
-                      <span className={styles.methodName}>NetBanking</span>
-                      <span className={styles.methodSub}>50+ Indian Banks</span>
-                    </div>
-                  </div>
-                  <div className={styles.methodChip}>
-                    <ShieldCheck size={16} color="#d97706" />
-                    <div>
-                      <span className={styles.methodName}>Wallets &amp; EMI</span>
-                      <span className={styles.methodSub}>PayLater &amp; No-Cost EMI</span>
-                    </div>
-                  </div>
-                </div>
-
-                {(course.id === 'jee-pyq-archive-mastery' || targetId.includes('pyq')) && (
-                  <div className={styles.pyqUnlockFeatureAlert}>
-                    <Sparkles size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <span>
-                      <strong>Instant PYQ Unlock:</strong> All 500+ Chapter-wise Questions, DK Sir 20-30s Shortcuts Video Solutions &amp; Downloadable PDF Solutions will be unlocked immediately upon payment.
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Terms and Privacy Checkbox */}
               <div className={styles.termsWrapper}>

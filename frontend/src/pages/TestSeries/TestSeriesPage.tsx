@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, BarChart2 } from 'lucide-react';
 import type {
   TestAttempt,
   TestQuestionResponse,
@@ -313,6 +313,16 @@ export const TestSeriesPage: React.FC = () => {
       (a) => a.status === 'In Progress' || a.status === 'Completed'
     ).length;
   }, [attempts]);
+
+  // Dynamic available exam formats count
+  const availableExamsCount = useMemo(() => {
+    const formats = new Set<string>();
+    visibleStudentTests.forEach((t) => {
+      if (t.examType) formats.add(t.examType);
+      if (t.format) formats.add(t.format);
+    });
+    return Math.max(1, formats.size);
+  }, [visibleStudentTests]);
 
   // Paid Test Unlock & Monetization State
   const [unlockedMockTestIds, setUnlockedMockTestIds] = useState<string[]>(() => {
@@ -884,9 +894,9 @@ export const TestSeriesPage: React.FC = () => {
     <div className={styles.testSeriesPage}>
       {/* Page Header */}
       <TestSeriesHeader
-        totalTests={testSeriesList.length}
+        totalTests={visibleStudentTests.length}
         totalQuestions={totalQuestions}
-        availableExamsCount={2}
+        availableExamsCount={availableExamsCount}
         attemptedTestsCount={attemptedTestsCount}
       />
 
@@ -897,13 +907,18 @@ export const TestSeriesPage: React.FC = () => {
             {/* Section Heading & Chapter-wise Link */}
             <div className={styles.sectionHeader}>
               <h2 id="available-mock-tests" className={styles.sectionTitle}>
-                {selectedExam === 'MathSpeed'
-                  ? 'DK Sir Math Speed & Accuracy CBT Series'
-                  : selectedExam === 'JEE Advanced'
-                  ? 'JEE Advanced Simulation Engine Mocks'
-                  : selectedExam === 'JEE Main'
-                  ? 'JEE Main All-India CBT Mock Tests'
-                  : 'All India CBT Mock Tests & Simulation'}
+                <span className={styles.titleIconBadge} aria-hidden="true">
+                  <BarChart2 size={18} />
+                </span>
+                <span>
+                  {selectedExam === 'MathSpeed'
+                    ? 'DK Sir Math Speed & Accuracy CBT Series'
+                    : selectedExam === 'JEE Advanced'
+                    ? 'JEE Advanced Simulation Engine Mocks'
+                    : selectedExam === 'JEE Main'
+                    ? 'JEE Main All-India CBT Mock Tests'
+                    : 'All India CBT Mock Tests & Simulation'}
+                </span>
               </h2>
               <Link to="/pyq" className={styles.pyqHintLink} title="Practice chapter-wise previous year questions & DPP tests">
                 <span>Practice Chapter-Wise PYQ &amp; DPP Tests</span>

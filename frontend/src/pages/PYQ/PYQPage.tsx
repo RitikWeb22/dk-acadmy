@@ -20,7 +20,11 @@ import {
   Filter,
   AlertCircle,
   RotateCcw,
-  Clock
+  Clock,
+  Trophy,
+  Calendar,
+  BarChart2,
+  Star
 } from 'lucide-react';
 import type { PYQExam, Subject, PYQUserResponse, PYQQuestion } from '../../types';
 import { Container } from '../../components/ui/Container/Container';
@@ -581,62 +585,130 @@ export const PYQPage: React.FC = () => {
             </ol>
           </nav>
 
-          {/* Page Introduction */}
-          <div className={styles.introWrapper}>
-            <div className={styles.pageEyebrow}>
-              <span className={styles.livePulseDot} aria-hidden="true">
-                <span className={styles.pulseRing} />
-                <span className={styles.pulseCore} />
-              </span>
-              <span className={styles.eyebrowHighlight}>Official PYQ Question Bank</span>
-              <span className={styles.eyebrowDivider}>•</span>
-              <span className={styles.eyebrowTag}>JEE Main &amp; Advanced Chapter-Wise</span>
+          {/* Hero Section Content */}
+          {!activeSet ? (
+            <div className={styles.heroGrid}>
+              {/* Left Column: Heading, Pedagogy, CTAs */}
+              <div className={styles.heroLeftCol}>
+                <div className={styles.heroEyebrowBadge}>
+                  <Star size={13} className={styles.eyebrowStarIcon} fill="#eab308" />
+                  <span>Official PYQ Question Bank</span>
+                </div>
+
+                <h1 className={styles.heroHeading}>
+                  Practice Previous Year{' '}
+                  <span className={styles.heroHeadingAccent}>
+                    JEE
+                    <svg
+                      className={styles.headingWaveUnderline}
+                      viewBox="0 0 120 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M2 8C25 2 45 10 70 4C95 -2 108 8 118 6"
+                        stroke="#2563EB"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </span>{' '}
+                  Questions
+                </h1>
+
+                <p className={styles.heroDescription}>
+                  Solve past JEE Main &amp; Advanced papers authored by senior faculty.
+                  Master speed with DK Sir 20-30s inspection shortcuts, step-by-step solutions, and video explanations.
+                </p>
+
+                {/* 4 Feature Pills */}
+                <div className={styles.pedagogyPillsRow}>
+                  <div className={styles.pedagogyPill}>
+                    <Zap size={14} className={styles.pillIconBlue} aria-hidden="true" />
+                    <span>DK Sir 20-30s Inspection Tricks</span>
+                  </div>
+                  <div className={styles.pedagogyPill}>
+                    <Play size={13} className={styles.pillIconSky} aria-hidden="true" fill="currentColor" />
+                    <span>Video Solution Walkthroughs</span>
+                  </div>
+                  <div className={styles.pedagogyPill}>
+                    <Download size={14} className={styles.pillIconEmerald} aria-hidden="true" />
+                    <span>Downloadable PDF Solutions</span>
+                  </div>
+                  <div className={styles.pedagogyPill}>
+                    <CheckCircle2 size={14} className={styles.pillIconGreen} aria-hidden="true" />
+                    <span>Direct Admit Verified Content</span>
+                  </div>
+                </div>
+
+                {/* Action CTAs */}
+                <div className={styles.heroCtaRow}>
+                  <button
+                    type="button"
+                    className={styles.heroPrimaryBtn}
+                    onClick={() => {
+                      const el = document.getElementById('pyq-catalog-anchor');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <Play size={14} fill="currentColor" />
+                    <span>Chapter-Wise PYQs</span>
+                    <ArrowRight size={14} />
+                  </button>
+
+                  <Link to="/dpp" className={styles.heroSecondaryBtn}>
+                    <BarChart2 size={15} />
+                    <span>Daily Practice Problems (DPP)</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right Column: 3D Illustration & Floating Score Badge */}
+              <div className={styles.heroRightCol}>
+                <div className={styles.heroVisualCard}>
+                  {/* Organic wave backdrop aura */}
+                  <div className={styles.heroWaveBackdrop} aria-hidden="true" />
+
+                  {/* Score Higher Badge at top right */}
+                  <div className={styles.scoreHigherBadge}>
+                    <span>Score Higher</span>
+                    <svg width="52" height="10" viewBox="0 0 52 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M2 7C14 2.5 32 8.5 50 3" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+                  </div>
+
+                  {/* 3D Illustrated Paper Sheet */}
+                  <img
+                    src="/images/jee-pyq-hero-sheet.png"
+                    alt="JEE Previous Year Papers 3D Illustration - DK Academy"
+                    className={styles.heroSheetImage}
+                  />
+                </div>
+              </div>
             </div>
-
-            <h1 className={styles.pageTitle}>
-              Practice Previous Year <span className={styles.titleHighlight}>JEE Questions</span>
-            </h1>
-            <p className={styles.pageDescription}>
-              Solved past JEE Main &amp; Advanced papers authored by senior faculty.
-              Master speed with DK Sir 20-30s inspection shortcuts, step-by-step solutions, and video explanations.
-            </p>
-
-            {/* Quick Pedagogy Proof Badges */}
-            <div className={styles.pedagogyBadgesRow}>
-              <div className={styles.pedagogyBadge}>
-                <Zap size={14} className={styles.badgeIconBlue} aria-hidden="true" />
-                <span>DK Sir 20-30s Inspection Tricks</span>
+          ) : (
+            /* Active Set Top Title when solving a set */
+            <div className={styles.activeSetIntroHeader}>
+              <div className={styles.activeSetBadges}>
+                <span className={styles.examTargetBadge}>
+                  {activeSet.examTarget || 'JEE Main'}
+                </span>
+                <span
+                  className={
+                    activeSet.subject === 'Physics'
+                      ? styles.subjectPillPhy
+                      : activeSet.subject === 'Chemistry'
+                      ? styles.subjectPillChem
+                      : styles.subjectPillMath
+                  }
+                >
+                  {activeSet.subject}
+                </span>
               </div>
-              <div className={styles.pedagogyBadge}>
-                <Video size={14} className={styles.badgeIconRed} aria-hidden="true" />
-                <span>Video Solution Walkthroughs</span>
-              </div>
-              <div className={styles.pedagogyBadge}>
-                <FileText size={14} className={styles.badgeIconEmerald} aria-hidden="true" />
-                <span>Downloadable PDF Solutions</span>
-              </div>
-              <div className={styles.pedagogyBadge}>
-                <ShieldCheck size={14} className={styles.badgeIconPurple} aria-hidden="true" />
-                <span>Direct Admin Verified Content</span>
-              </div>
+              <h1 className={styles.activeSetPageTitle}>{activeSet.title}</h1>
             </div>
-          </div>
-
-          {/* Quick Practice Hub Switcher */}
-          <div className={styles.hubTabs} role="navigation" aria-label="Practice modes">
-            <span className={`${styles.hubTab} ${styles.hubTabActive}`}>
-              <FileText size={15} aria-hidden="true" />
-              <span>Chapter-Wise PYQs</span>
-            </span>
-            <Link to="/dpp" className={styles.hubTab}>
-              <Zap size={15} aria-hidden="true" />
-              <span>Daily Practice Problems (DPP)</span>
-            </Link>
-            <Link to="/test-series" className={styles.hubTab}>
-              <ListOrdered size={15} aria-hidden="true" />
-              <span>Full CBT Test Series</span>
-            </Link>
-          </div>
+          )}
         </Container>
       </section>
 
@@ -648,46 +720,54 @@ export const PYQPage: React.FC = () => {
                1. CATALOG VIEW: Direct PYQ Titles Created by Admin
                ═══════════════════════════════════════════════════════════════ */
             <div className={styles.catalogSection}>
-              {/* Filter & Search Bar */}
-              <div className={styles.catalogFilterBar}>
-                {/* Search Box */}
-                <div className={styles.catalogSearchBox}>
-                  <Search size={18} className={styles.searchIcon} />
-                  <input
-                    type="text"
-                    className={styles.searchInput}
-                    placeholder="Search PYQ papers by title, chapter, or year..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      style={{
-                        position: 'absolute',
-                        right: '12px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                        fontWeight: 700
-                      }}
-                    >
-                      ✕
-                    </button>
-                  )}
+              {/* Filter & Search Bar Card */}
+              <div id="pyq-catalog-anchor" className={styles.searchFilterCard}>
+                {/* Search Bar Row */}
+                <div className={styles.searchBarRow}>
+                  <div className={styles.searchInputGroup}>
+                    <Search size={18} className={styles.searchFieldIcon} />
+                    <input
+                      type="text"
+                      className={styles.searchInputField}
+                      placeholder="Search PYQ papers by title, chapter, or year..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className={styles.clearSearchBtn}
+                        title="Clear search"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.searchSubmitBtn}
+                    onClick={() => {
+                      const el = document.getElementById('pyq-catalog-anchor');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <span>Search</span>
+                    <ArrowRight size={14} />
+                  </button>
                 </div>
 
-                <div className={styles.dropdownsToolbarRow}>
+                {/* Dropdowns Toolbar Row */}
+                <div className={styles.filterDropdownsRow}>
                   {/* Dropdown 1: Target Exam */}
-                  <div className={styles.dropdownField}>
-                    <label htmlFor="pyq-exam-select">Exam Target</label>
+                  <div className={styles.filterDropdownItem}>
+                    <label htmlFor="pyq-exam-select" className={styles.filterLabelWrap}>
+                      <Trophy size={14} className={styles.filterIconGold} />
+                      <span>Exam Target</span>
+                    </label>
                     <select
                       id="pyq-exam-select"
-                      className={styles.dropdownSelect}
+                      className={styles.filterSelectControl}
                       value={selectedExam}
                       onChange={(e) => setSelectedExam(e.target.value as any)}
                     >
@@ -698,11 +778,14 @@ export const PYQPage: React.FC = () => {
                   </div>
 
                   {/* Dropdown 2: Subject */}
-                  <div className={styles.dropdownField}>
-                    <label htmlFor="pyq-subject-select">Subject</label>
+                  <div className={styles.filterDropdownItem}>
+                    <label htmlFor="pyq-subject-select" className={styles.filterLabelWrap}>
+                      <BookOpen size={14} className={styles.filterIconBlue} />
+                      <span>Subject</span>
+                    </label>
                     <select
                       id="pyq-subject-select"
-                      className={styles.dropdownSelect}
+                      className={styles.filterSelectControl}
                       value={selectedSubject}
                       onChange={(e) => setSelectedSubject(e.target.value as any)}
                     >
@@ -714,11 +797,14 @@ export const PYQPage: React.FC = () => {
                   </div>
 
                   {/* Dropdown 3: Exam Year */}
-                  <div className={styles.dropdownField}>
-                    <label htmlFor="pyq-year-select">Exam Year</label>
+                  <div className={styles.filterDropdownItem}>
+                    <label htmlFor="pyq-year-select" className={styles.filterLabelWrap}>
+                      <Calendar size={14} className={styles.filterIconIndigo} />
+                      <span>Exam Year</span>
+                    </label>
                     <select
                       id="pyq-year-select"
-                      className={styles.dropdownSelect}
+                      className={styles.filterSelectControl}
                       value={selectedYear}
                       onChange={(e) =>
                         setSelectedYear(e.target.value === 'All' ? 'All' : Number(e.target.value))
@@ -734,11 +820,14 @@ export const PYQPage: React.FC = () => {
                   </div>
 
                   {/* Dropdown 4: Access Type */}
-                  <div className={styles.dropdownField}>
-                    <label htmlFor="pyq-access-select">Access</label>
+                  <div className={styles.filterDropdownItem}>
+                    <label htmlFor="pyq-access-select" className={styles.filterLabelWrap}>
+                      <Lock size={14} className={styles.filterIconPurple} />
+                      <span>Access</span>
+                    </label>
                     <select
                       id="pyq-access-select"
-                      className={styles.dropdownSelect}
+                      className={styles.filterSelectControl}
                       value={selectedAccess}
                       onChange={(e) => setSelectedAccess(e.target.value as any)}
                     >
@@ -754,10 +843,10 @@ export const PYQPage: React.FC = () => {
                     selectedYear !== 'All' ||
                     selectedAccess !== 'All' ||
                     searchQuery.trim().length > 0) && (
-                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                    <div className={styles.resetFiltersWrap}>
                       <button
                         type="button"
-                        className={styles.resetBtn}
+                        className={styles.resetFiltersBtn}
                         onClick={() => {
                           setSelectedExam('All');
                           setSelectedSubject('All');
@@ -767,7 +856,7 @@ export const PYQPage: React.FC = () => {
                         }}
                       >
                         <RotateCcw size={13} />
-                        <span>Reset Filters</span>
+                        <span>Reset</span>
                       </button>
                     </div>
                   )}
@@ -910,11 +999,15 @@ export const PYQPage: React.FC = () => {
                   })}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '60px 20px', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                  <BookOpen size={40} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>No PYQ papers found</h3>
-                  <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                    Try searching for another chapter or reset the filter.
+                <div className={styles.emptyStateContainer}>
+                  <img
+                    src="/images/pyq-empty-search.png"
+                    alt="No PYQ Papers Found - DK Academy"
+                    className={styles.emptyStateIllustration}
+                  />
+                  <h3 className={styles.emptyStateHeading}>No PYQ Papers Found</h3>
+                  <p className={styles.emptyStateDesc}>
+                    We couldn&apos;t find any papers matching your current search or filter combination.
                   </p>
                   <button
                     type="button"
@@ -922,19 +1015,13 @@ export const PYQPage: React.FC = () => {
                       setSearchQuery('');
                       setSelectedSubject('All');
                       setSelectedExam('All');
+                      setSelectedYear('All');
+                      setSelectedAccess('All');
                     }}
-                    style={{
-                      marginTop: '12px',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      background: '#2563eb',
-                      color: '#fff',
-                      border: 'none',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
+                    className={styles.emptyStateResetBtn}
                   >
-                    Reset Filters
+                    <RotateCcw size={14} />
+                    <span>Reset All Filters</span>
                   </button>
                 </div>
               )}

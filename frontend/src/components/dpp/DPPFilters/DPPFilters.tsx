@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Search, X, SlidersHorizontal, RotateCcw, Eye, Filter } from 'lucide-react';
 import type { DPPDifficulty } from '../../../types';
 import styles from './DPPFilters.module.scss';
 
@@ -60,8 +60,12 @@ export const DPPFilters: React.FC<DPPFiltersProps> = ({
           )}
         </div>
 
-        {/* Dropdowns */}
+        {/* Dropdowns with leading Filter Icon */}
         <div className={styles.selectGroup}>
+          <div className={styles.filterLeadIcon} aria-hidden="true" title="Filter problem sets">
+            <Filter size={15} />
+          </div>
+
           {onSubjectChange && (
             <div className={styles.selectWrapper}>
               <label htmlFor="dpp-subject-select" className={styles.visuallyHidden}>
@@ -129,13 +133,19 @@ export const DPPFilters: React.FC<DPPFiltersProps> = ({
         </div>
       </div>
 
-      {/* Results summary bar */}
+      {/* Results summary bar with Eye icon and subtle indicator */}
       <div className={styles.resultsMeta}>
         <div className={styles.resultsCount}>
-          <SlidersHorizontal size={14} className={styles.metaIcon} />
+          <Eye size={15} className={styles.metaIcon} />
           <span>
             Showing <strong>{totalResults}</strong> {totalResults === 1 ? 'practice set' : 'practice sets'}
           </span>
+        </div>
+
+        <div className={styles.decorativeCurve} aria-hidden="true">
+          <svg width="28" height="24" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4C14 4 22 10 22 18M22 18L18 14M22 18L26 14" stroke="#93C5FD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </div>
       </div>
     </div>

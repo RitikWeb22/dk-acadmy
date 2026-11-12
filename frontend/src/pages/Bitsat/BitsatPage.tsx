@@ -1007,20 +1007,14 @@ export const BitsatPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Column: Hero Visual Card */}
+            {/* Right Column: Hero Visual Card with Speed Rocket */}
             <div className={styles.heroVisualRight}>
               <div className={styles.heroVisualCard}>
                 <div className={styles.heroVisualCircleBackdrop} aria-hidden="true" />
                 <img
-                  src="/img/Chirayu%20Sethia.jpeg"
-                  alt="Chirayu Sethia - DK Academy Top Achiever"
-                  className={styles.heroStudentImage}
-                  onError={(e) => {
-                    const img = e.target as HTMLImageElement;
-                    if (!img.src.includes('RISHABH')) {
-                      img.src = '/img/RISHABH%20ANAND.png';
-                    }
-                  }}
+                  src="/images/bitsat-rocket-hero.png"
+                  alt="BITSAT Speed Rocket - DK Academy"
+                  className={styles.heroRocketImage}
                 />
               </div>
             </div>
@@ -1087,7 +1081,7 @@ export const BitsatPage: React.FC = () => {
             }}
           >
             <Zap size={15} />
-            <span>⚡ Live Speed Drills ({drills.length})</span>
+            <span>Live Speed Drills ({drills.length})</span>
           </button>
           <button
             type="button"
@@ -1095,7 +1089,7 @@ export const BitsatPage: React.FC = () => {
             onClick={() => setViewMode('batches')}
           >
             <Flame size={15} />
-            <span>🏆 Crash Programs &amp; Batches</span>
+            <span>Crash Programs &amp; Batches</span>
           </button>
           <button
             type="button"
@@ -1103,7 +1097,7 @@ export const BitsatPage: React.FC = () => {
             onClick={() => setViewMode('blueprint')}
           >
             <Brain size={15} />
-            <span>📊 Exam Architecture &amp; Cutoffs</span>
+            <span>Exam Architecture &amp; Cutoffs</span>
           </button>
           <button
             type="button"
@@ -1111,7 +1105,7 @@ export const BitsatPage: React.FC = () => {
             onClick={() => setViewMode('diagnostic')}
           >
             <Award size={15} />
-            <span>📋 Free Diagnostic Test &amp; FAQs</span>
+            <span> Free Diagnostic Test &amp; FAQs</span>
           </button>
         </div>
 
