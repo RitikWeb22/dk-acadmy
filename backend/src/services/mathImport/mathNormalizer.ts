@@ -246,6 +246,17 @@ export function convertUnicodeMathToLatex(text: string): string {
     res = res.replaceAll(uni, ` ${cmd} `);
   }
 
+  // Belong to relations and English phrases
+  res = res.replace(/\b([a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*(?:\s*,\s*[a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*)*)\s+belongs?\s+to\s+/gi, '$1 \\in ');
+  res = res.replace(/[∈\u2208]/g, ' \\in ');
+  res = res.replace(/[∉\u2209]/g, ' \\notin ');
+
+  // Unspaced cosec / cot functions
+  res = res.replace(/\bcosec\s*([a-zA-Z])\b/gi, '\\csc $1');
+  res = res.replace(/cosec([a-zA-Z])(?=[a-zA-Z\s\(\)\[\]]|$)/gi, '\\csc $1 ');
+  res = res.replace(/\bcot\s*([a-zA-Z])\b/gi, '\\cot $1');
+  res = res.replace(/cot([a-zA-Z])(?=[a-zA-Z\s\(\)\[\]]|$)/gi, '\\cot $1 ');
+
   // Superscript numbers: ², ³, ⁴, ⁿ
   const superMap: Record<string, string> = {
     '⁰': '^{0}', '¹': '^{1}', '²': '^{2}', '³': '^{3}', '⁴': '^{4}',
@@ -1050,9 +1061,9 @@ export function wrapBareLatexInDollars(text: string): string {
     (_, m) => protect(m)
   );
 
-  // 4. Integrals: \int ... dx
+  // 4. Integrals: \int ... dx, with optional LHS (e.g. g(x) = \int... or \alpha = \int...) or RHS equation (e.g. \int... dt = 2x - 1)
   s = s.replace(
-    new RegExp(`(?<![$\\w])(\\\\(?:int|iint|iiint|oint)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*[\\s\\S]+?(?:\\\\,?\\s*d[a-zA-Z]|dx|dy|dt|dz|du|dv|d\\theta|dr)(?![a-zA-Z]))(?=(?:\\s*=\\s*[^,;.\\n]+)?(?:\\s*[,;.]|\\s+${proseStops}|$))`, 'gi'),
+    new RegExp(`(?<![$\\w])((?:[a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*(?:\\s*\\([^()\\n]+\\))?\\s*=\\s*)?\\\\(?:int|iint|iiint|oint)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*[\\s\\S]+?(?:\\\\,?\\s*d[a-zA-Z]|dx|dy|dt|dz|du|dv|d\\theta|dr)(?![a-zA-Z])(?:\\s*=\\s*[-+*/0-9a-zA-Z_\\^{}()\\s.]+?)?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
     (fullMatch) => protect(fullMatch)
   );
 
@@ -1181,15 +1192,19 @@ export function wrapBareLatexInDollars(text: string): string {
     }
   );
 
-  // 13b. Expressions before "is equal to" / "equals"
-  // e.g. "then 6(y'(0) + (y(log_e √3))^2) is equal to", "then the value of 3\alpha^2 is equal to", "then y(2) is equal to"
+  // 13b. Expressions before "is equal to" / "equals" / "is"
+  // e.g. "then 6(y'(0) + (y(log_e √3))^2) is equal to", "then the value of 3\alpha^2 is equal to", "then the value of (\log_e |1 + \alpha| - \dfrac{3\pi}{4}) is"
   s = s.replace(
-    /\b(then\s+(?:the\s+)?value\s+of|the\s+value\s+of|value\s+of|then|and|if|where|find|evaluate)\s+([^,;\n]+?)\s+(is\s+equal\s+to|equals\b)(?:\s*[:=_\-]+)?/gi,
+    /\b(then\s+(?:the\s+)?value\s+of|the\s+value\s+of|value\s+of|then|and|if|where|find|evaluate)\s+((?:[^,;.\n]|\.(?=\d))+?)\s+(is\s+equal\s+to|equals\b|is\b)(?:\s*[:=_\-]+|\s*(?=\[|\d|$))?/gi,
     (fullMatch, lead, expr, tail) => {
       let trimmed = expr.trim();
       trimmed = trimmed.replace(/(?<![a-zA-Z0-9_\\])([-+]?\d+)\s*\/\s*(\d+)(?![a-zA-Z0-9_])/g, '\\dfrac{$1}{$2}');
-      if (/[0-9\+\-\*\/\^_{}\(\)\[\]\\]/.test(trimmed) && !/\b(?:is|are|the|number|points|statement|curves?)\b/i.test(trimmed)) {
-        return `${lead} ${protect(trimmed)} ${tail}`;
+      if (/[0-9\+\-\*\/\^_{}\(\)\[\]\\|]/.test(trimmed) && !/\b(?:are|the|number|points|statement|curves?)\b/i.test(trimmed)) {
+        let formatted = trimmed;
+        if (formatted.startsWith('(') && formatted.endsWith(')') && !formatted.slice(1, -1).includes('(')) {
+          formatted = `\\left(${formatted.slice(1, -1).trim()}\\right)`;
+        }
+        return `${lead} ${protect(formatted)} ${tail}`;
       }
       return fullMatch;
     }
@@ -1201,8 +1216,20 @@ export function wrapBareLatexInDollars(text: string): string {
   // 13d. Function composition expressions: e.g. (f \circ g)(x) or (fog)(x)
   s = s.replace(/(?<![$\w])(\([a-zA-Z]\s*\\circ\s*[a-zA-Z]\)\s*(?:\([^()\n]+\))?)(?![$\w])/gi, (_m, expr) => protect(expr));
 
-  // 14b. Set membership relations: x, y \in \mathbb{R} or x \in R or n \in \mathbb{N}
-  s = s.replace(/(?<![$\w])([a-zA-Z](?:\s*,\s*[a-zA-Z])*\s*\\in\s*(?:\\mathbb\{[RNZQ]\}|[RNZQ]|\[[^\[\]\n]+\]|\([^()\n]+\)))(?![$\w])/g, (_, m) => protect(m));
+  // 14a. Modulus / Absolute Value expressions: e.g. |1 + \alpha|, |x|, \log_e |1 + \alpha|, \ln |x|, |f(x)|
+  s = s.replace(
+    /(?<![$\w|\\])(\\log(?:_[0-9a-zA-Z]+)?\s*|\\ln\s*)?(\|(?:[^{}|\n]|\\{[^{}]*\\})+\|)(?![$\w|])/g,
+    (m) => protect(m)
+  );
+
+  // 14b. Set membership relations: x, y \in \mathbb{R} or x \in R or n \in \mathbb{N} or x \in (0, \pi/2] or x \in [0, 1]
+  s = s.replace(/(?<![$\w])([a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*(?:\s*,\s*[a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*)*\s*\\(?:in|notin)\s*(?:\\mathbb\{[RNZQ]\}|[RNZQ]|[\[\(][^()\[\]\n]+[\]\)]|\\?\{[^{}\n]+?\\?\}))(?![$\w])/g, (_, m) => protect(m));
+
+  // 14b-2. Standalone trig / inverse trig / math functions with arguments: e.g. \tan^{-1} x, \sin x, \cos(2x)
+  s = s.replace(
+    /(?<![$\w\\])(\\(?:sin|cos|tan|cot|sec|csc|log|ln|exp)(?:\^\{?-?1\}?|\^[0-9]+)?(?:\s*\([^()\n]+\)|\s+[a-zA-Z0-9]+))(?![$\w])/g,
+    (m) => protect(m)
+  );
 
   // 14c. Simple variable assignments after at/for/where/when/if: at x = 0, for x = 1
   s = s.replace(
