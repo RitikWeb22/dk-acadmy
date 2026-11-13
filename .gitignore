@@ -43,6 +43,7 @@ Thumbs.db
 *.tsbuildinfo
 .vite-temp/
 **/node_modules/.tmp/
+scratch/
 backend/scratch_test_paste.ts
 backend/scripts/__pycache__/
 __pycache__/
