@@ -354,6 +354,494 @@ const BASE_SEED_TEST_SERIES = [
     attemptsCount: 0,
     totalTests: 1,
     testsBreakdown: { published: 0, draft: 0, scheduled: 1 }
+  },
+  {
+    id: 'test-class8-olympiad-math-01',
+    title: 'Class 8 Foundation & Olympiad Math Speed Mastery',
+    subtitle: 'Algebraic expressions, linear equations, squares & square roots, geometry basics & mental shortcuts.',
+    slug: 'class-8-foundation-olympiad-math-speed-mastery',
+    badgeCode: 'CLASS 8',
+    examType: 'Class 8',
+    format: 'Full Mock',
+    difficulty: 'Moderate',
+    durationMinutes: 60,
+    totalQuestions: 6,
+    totalMarks: 24,
+    subjects: ['Mathematics'],
+    markingScheme: { correct: 4, incorrect: 1, unattempted: 0 },
+    instructions: [
+      'Foundation mock designed specifically for Class 8 school excellence and Olympiad readiness.',
+      'Marking Scheme: +4 marks for correct choice, -1 mark penalty for incorrect choice.',
+      'Apply DK Sir 20-30s inspection shortcuts for algebraic equations.'
+    ],
+    status: 'Published',
+    isFree: true,
+    targetClass: 'Class 8',
+    targetCohort: 'Class 8',
+    batch: 'Class 8 Foundation & Olympiad Batch',
+    targetBatches: ['Class 8 Foundation & Olympiad Batch'],
+    questions: [
+      {
+        id: 'c8-m-q1',
+        questionNumber: 1,
+        subject: 'Mathematics',
+        chapter: 'Linear Equations in One Variable',
+        statement: 'Solve for x: 3(x - 3) = 5(2x + 1). The value of x is:',
+        options: [
+          { id: 'A', text: '-2' },
+          { id: 'B', text: '2' },
+          { id: 'C', text: '-14/7' },
+          { id: 'D', text: '-2/7' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Linear expansion: a(x - b) = c(dx + e)',
+        explanation: '3(x - 3) = 5(2x + 1) ⇒ 3x - 9 = 10x + 5 ⇒ 3x - 10x = 5 + 9 ⇒ -7x = 14 ⇒ x = -2.'
+      },
+      {
+        id: 'c8-m-q2',
+        questionNumber: 2,
+        subject: 'Mathematics',
+        chapter: 'Squares and Square Roots',
+        statement: 'What is the least natural number that must be added to 1750 to make it a perfect square?',
+        options: [
+          { id: 'A', text: '14' },
+          { id: 'B', text: '16' },
+          { id: 'C', text: '24' },
+          { id: 'D', text: '12' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Perfect square proximity: 41² = 1681, 42² = 1764',
+        explanation: 'We know 41² = 1681 and 42² = 1764. Since 1750 lies between 1681 and 1764, the next perfect square is 1764. The least number to add = 1764 - 1750 = 14.'
+      },
+      {
+        id: 'c8-m-q3',
+        questionNumber: 3,
+        subject: 'Mathematics',
+        chapter: 'Exponents and Powers',
+        statement: 'If 2^(x-1) + 2^(x+1) = 320, find the integer value of x.',
+        options: [
+          { id: 'A', text: '5' },
+          { id: 'B', text: '6' },
+          { id: 'C', text: '7' },
+          { id: 'D', text: '8' }
+        ],
+        correctAnswer: 'C',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Factor out common exponent: 2^(x-1)[1 + 2²] = 320',
+        explanation: '2^(x-1) + 2^(x+1) = 2^(x-1)(1 + 2²) = 2^(x-1) × 5 = 320. Hence 2^(x-1) = 320/5 = 64 = 2⁶. Therefore x - 1 = 6 ⇒ x = 7.'
+      },
+      {
+        id: 'c8-m-q4',
+        questionNumber: 4,
+        subject: 'Mathematics',
+        chapter: 'Understanding Quadrilaterals',
+        statement: 'The sum of all interior angles of a regular polygon is 1080°. How many sides does this polygon have?',
+        options: [
+          { id: 'A', text: '6' },
+          { id: 'B', text: '7' },
+          { id: 'C', text: '8' },
+          { id: 'D', text: '10' }
+        ],
+        correctAnswer: 'C',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Interior angle sum = (n - 2) × 180°',
+        explanation: '(n - 2) × 180° = 1080° ⇒ n - 2 = 1080/180 = 6 ⇒ n = 8 (Octagon).'
+      },
+      {
+        id: 'c8-m-q5',
+        questionNumber: 5,
+        subject: 'Mathematics',
+        chapter: 'Algebraic Expressions & Identities',
+        statement: 'If x + (1/x) = 5, find the value of x² + (1/x²).',
+        options: [
+          { id: 'A', text: '23' },
+          { id: 'B', text: '25' },
+          { id: 'C', text: '27' },
+          { id: 'D', text: '21' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: '(x + 1/x)² = x² + 1/x² + 2',
+        explanation: 'Squaring both sides: (x + 1/x)² = 5² ⇒ x² + 1/x² + 2 = 25 ⇒ x² + 1/x² = 25 - 2 = 23.'
+      },
+      {
+        id: 'c8-m-q6',
+        questionNumber: 6,
+        subject: 'Mathematics',
+        chapter: 'Mensuration',
+        statement: 'A cylindrical water tank has radius 7 m and height 10 m. What is its total surface area? (Take π = 22/7)',
+        options: [
+          { id: 'A', text: '748 m²' },
+          { id: 'B', text: '616 m²' },
+          { id: 'C', text: '440 m²' },
+          { id: 'D', text: '880 m²' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Total Surface Area = 2πr(r + h)',
+        explanation: 'TSA = 2 × (22/7) × 7 × (7 + 10) = 44 × 17 = 748 m².'
+      }
+    ]
+  },
+  {
+    id: 'test-class8-science-math-02',
+    title: 'Class 8 Foundation Science & Math Diagnostic CBT',
+    subtitle: 'Force & Pressure, Sound, Light, Rational Numbers & Kota 20-30s speed techniques.',
+    slug: 'class-8-foundation-science-math-diagnostic-cbt',
+    badgeCode: 'CLASS 8',
+    examType: 'Class 8',
+    format: 'Part Test',
+    difficulty: 'Moderate',
+    durationMinutes: 45,
+    totalQuestions: 5,
+    totalMarks: 20,
+    subjects: ['Physics', 'Chemistry', 'Mathematics'],
+    markingScheme: { correct: 4, incorrect: 1, unattempted: 0 },
+    instructions: [
+      'Multi-subject diagnostic test evaluating fundamental science and quantitative logic.',
+      'Marking Scheme: +4 for correct option, -1 for incorrect option.',
+      'Check all units carefully before finalizing response.'
+    ],
+    status: 'Published',
+    isFree: true,
+    targetClass: 'Class 8',
+    targetCohort: 'Class 8',
+    batch: 'Class 8 Foundation & Olympiad Batch',
+    targetBatches: ['Class 8 Foundation & Olympiad Batch'],
+    questions: [
+      {
+        id: 'c8-sm-q1',
+        questionNumber: 1,
+        subject: 'Physics',
+        chapter: 'Force and Pressure',
+        statement: 'A wooden block of weight 100 N rests on an area of 0.25 m². The pressure exerted by the block on the surface is:',
+        options: [
+          { id: 'A', text: '400 Pa' },
+          { id: 'B', text: '25 Pa' },
+          { id: 'C', text: '250 Pa' },
+          { id: 'D', text: '100 Pa' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Pressure = Force / Area',
+        explanation: 'Pressure = F / A = 100 N / 0.25 m² = 400 N/m² = 400 Pa.'
+      },
+      {
+        id: 'c8-sm-q2',
+        questionNumber: 2,
+        subject: 'Physics',
+        chapter: 'Sound',
+        statement: 'A pendulum oscillates 40 times in 4 seconds. What is its frequency and time period?',
+        options: [
+          { id: 'A', text: '10 Hz, 0.1 s' },
+          { id: 'B', text: '4 Hz, 0.25 s' },
+          { id: 'C', text: '0.1 Hz, 10 s' },
+          { id: 'D', text: '40 Hz, 4 s' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Frequency = Oscillations / Time, T = 1 / f',
+        explanation: 'Frequency f = 40 / 4 = 10 Hz. Time period T = 1 / f = 1 / 10 = 0.1 s.'
+      },
+      {
+        id: 'c8-sm-q3',
+        questionNumber: 3,
+        subject: 'Chemistry',
+        chapter: 'Combustion and Flame',
+        statement: 'Which zone of a candle flame is the hottest and is used by goldsmiths for melting gold and silver?',
+        options: [
+          { id: 'A', text: 'Outer non-luminous zone (blue)' },
+          { id: 'B', text: 'Middle luminous zone (yellow)' },
+          { id: 'C', text: 'Innermost dark zone (black)' },
+          { id: 'D', text: 'Central zone' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Complete combustion in outer zone',
+        explanation: 'The outermost zone undergoes complete combustion due to ample oxygen supply and is the hottest zone (blue in color).'
+      },
+      {
+        id: 'c8-sm-q4',
+        questionNumber: 4,
+        subject: 'Mathematics',
+        chapter: 'Rational Numbers',
+        statement: 'The additive inverse of -7/19 added to the multiplicative inverse of 19/7 is equal to:',
+        options: [
+          { id: 'A', text: '14/19' },
+          { id: 'B', text: '0' },
+          { id: 'C', text: '1' },
+          { id: 'D', text: '-14/19' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Additive inverse of a is -a; Multiplicative inverse of a/b is b/a',
+        explanation: 'Additive inverse of -7/19 = 7/19. Multiplicative inverse of 19/7 = 7/19. Their sum = 7/19 + 7/19 = 14/19.'
+      },
+      {
+        id: 'c8-sm-q5',
+        questionNumber: 5,
+        subject: 'Mathematics',
+        chapter: 'Comparing Quantities',
+        statement: 'An article marked at ₹800 is sold for ₹704 after a festival discount. The discount percentage is:',
+        options: [
+          { id: 'A', text: '12%' },
+          { id: 'B', text: '10%' },
+          { id: 'C', text: '15%' },
+          { id: 'D', text: '8%' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Discount % = (Discount / Marked Price) × 100',
+        explanation: 'Discount = 800 - 704 = ₹96. Discount % = (96 / 800) × 100 = 12%.'
+      }
+    ]
+  },
+  {
+    id: 'test-class9-foundation-math-01',
+    title: 'Class 9 Foundation & IIT Bridge: Number Systems & Polynomials',
+    subtitle: 'Coordinate geometry, polynomials, Heron formula & Kota inspection rules for Class 9 students.',
+    slug: 'class-9-foundation-iit-bridge-number-systems-polynomials',
+    badgeCode: 'CLASS 9',
+    examType: 'Class 9',
+    format: 'Full Mock',
+    difficulty: 'Moderate',
+    durationMinutes: 60,
+    totalQuestions: 5,
+    totalMarks: 20,
+    subjects: ['Mathematics'],
+    markingScheme: { correct: 4, incorrect: 1, unattempted: 0 },
+    instructions: [
+      'Comprehensive Class 9 foundation mock bridging CBSE basics with early JEE problem concepts.',
+      'Marking Scheme: +4 for correct choice, -1 for incorrect choice.'
+    ],
+    status: 'Published',
+    isFree: true,
+    targetClass: 'Class 9',
+    targetCohort: 'Class 9',
+    batch: 'Class 9 Foundation & Olympiad Batch',
+    targetBatches: ['Class 9 Foundation & Olympiad Batch'],
+    questions: [
+      {
+        id: 'c9-m-q1',
+        questionNumber: 1,
+        subject: 'Mathematics',
+        chapter: 'Number Systems',
+        statement: 'Express 0.2353535... (with 35 repeating) as a rational number p/q in simplest form:',
+        options: [
+          { id: 'A', text: '233 / 990' },
+          { id: 'B', text: '235 / 999' },
+          { id: 'C', text: '235 / 990' },
+          { id: 'D', text: '23 / 99' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Shortcut: (Total number - Non-repeating part) / 990',
+        explanation: 'Let x = 0.23535... 10x = 2.3535... and 1000x = 235.3535... Subtracting gives 990x = 233 ⇒ x = 233/990.'
+      },
+      {
+        id: 'c9-m-q2',
+        questionNumber: 2,
+        subject: 'Mathematics',
+        chapter: 'Polynomials',
+        statement: 'If (x - 2) is a factor of polynomial P(x) = 2x³ - 3x² + kx - 6, find the value of k.',
+        options: [
+          { id: 'A', text: '1' },
+          { id: 'B', text: '-1' },
+          { id: 'C', text: '2' },
+          { id: 'D', text: '-2' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Factor Theorem: P(2) = 0',
+        explanation: 'P(2) = 2(8) - 3(4) + 2k - 6 = 16 - 12 + 2k - 6 = 2k - 2 = 0 ⇒ 2k = 2 ⇒ k = 1.'
+      },
+      {
+        id: 'c9-m-q3',
+        questionNumber: 3,
+        subject: 'Mathematics',
+        chapter: 'Coordinate Geometry',
+        statement: 'The perpendicular distance of the point P(-3, 4) from the y-axis is:',
+        options: [
+          { id: 'A', text: '3 units' },
+          { id: 'B', text: '4 units' },
+          { id: 'C', text: '5 units' },
+          { id: 'D', text: '-3 units' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Perpendicular distance from y-axis = |x-coordinate|',
+        explanation: 'The perpendicular distance from the y-axis is the absolute value of the x-coordinate: |-3| = 3 units.'
+      },
+      {
+        id: 'c9-m-q4',
+        questionNumber: 4,
+        subject: 'Mathematics',
+        chapter: 'Herons Formula',
+        statement: 'The perimeter of a triangular field is 540 m and its sides are in the ratio 25 : 17 : 12. Its area is:',
+        options: [
+          { id: 'A', text: '9000 m²' },
+          { id: 'B', text: '4500 m²' },
+          { id: 'C', text: '18000 m²' },
+          { id: 'D', text: '6000 m²' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Herons Formula: Area = √[s(s-a)(s-b)(s-c)]',
+        explanation: '25x + 17x + 12x = 54x = 540 ⇒ x = 10. Sides are 250, 170, 120. Semi-perimeter s = 270. Area = √[270 × 20 × 100 × 150] = 9000 m².'
+      },
+      {
+        id: 'c9-m-q5',
+        questionNumber: 5,
+        subject: 'Mathematics',
+        chapter: 'Lines and Angles',
+        statement: 'In a triangle ABC, if ∠A - ∠B = 15° and ∠B - ∠C = 30°, then ∠A is equal to:',
+        options: [
+          { id: 'A', text: '80°' },
+          { id: 'B', text: '65°' },
+          { id: 'C', text: '35°' },
+          { id: 'D', text: '75°' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Angle sum property: ∠A + ∠B + ∠C = 180°',
+        explanation: 'Let ∠B = y. Then ∠A = y + 15° and ∠C = y - 30°. Sum = (y + 15) + y + (y - 30) = 3y - 15 = 180° ⇒ 3y = 195° ⇒ y = 65°. Thus ∠A = 65° + 15° = 80°.'
+      }
+    ]
+  },
+  {
+    id: 'test-class10-ntse-boards-01',
+    title: 'Class 10 NTSE & Board Accelerator: Quadratic Equations & Trigonometry',
+    subtitle: 'High-yield quadratic equations, arithmetic progressions, trigonometry & NTSE Stage 1 simulation.',
+    slug: 'class-10-ntse-board-accelerator-quadratic-equations-trigonometry',
+    badgeCode: 'CLASS 10',
+    examType: 'Class 10',
+    format: 'Full Mock',
+    difficulty: 'Moderate',
+    durationMinutes: 75,
+    totalQuestions: 5,
+    totalMarks: 20,
+    subjects: ['Mathematics'],
+    markingScheme: { correct: 4, incorrect: 1, unattempted: 0 },
+    instructions: [
+      'Targeted for Class 10 CBSE Board & NTSE Stage 1 aspirants building JEE foundation.',
+      'Marking Scheme: +4 for correct choice, -1 for incorrect choice.'
+    ],
+    status: 'Published',
+    isFree: true,
+    targetClass: 'Class 10',
+    targetCohort: 'Class 10',
+    batch: 'Class 10 NTSE & Foundation Batch',
+    targetBatches: ['Class 10 NTSE & Foundation Batch'],
+    questions: [
+      {
+        id: 'c10-m-q1',
+        questionNumber: 1,
+        subject: 'Mathematics',
+        chapter: 'Quadratic Equations',
+        statement: 'If the roots of the quadratic equation (k - 12)x² + 2(k - 12)x + 2 = 0 are real and equal, find the value of k (k ≠ 12):',
+        options: [
+          { id: 'A', text: '14' },
+          { id: 'B', text: '12' },
+          { id: 'C', text: '16' },
+          { id: 'D', text: '10' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Equal roots condition: Discriminant D = b² - 4ac = 0',
+        explanation: 'D = [2(k - 12)]² - 4(k - 12)(2) = 4(k - 12)[(k - 12) - 2] = 4(k - 12)(k - 14) = 0. Since k ≠ 12, k = 14.'
+      },
+      {
+        id: 'c10-m-q2',
+        questionNumber: 2,
+        subject: 'Mathematics',
+        chapter: 'Arithmetic Progressions',
+        statement: 'If the nth term of an AP is given by aₙ = 5n - 3, then the sum of first 20 terms is:',
+        options: [
+          { id: 'A', text: '990' },
+          { id: 'B', text: '1020' },
+          { id: 'C', text: '970' },
+          { id: 'D', text: '1050' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Sₙ = n/2 (a + l)',
+        explanation: 'First term a₁ = 5(1) - 3 = 2. 20th term a₂₀ = 5(20) - 3 = 97. Sum S₂₀ = (20/2) × (2 + 97) = 10 × 99 = 990.'
+      },
+      {
+        id: 'c10-m-q3',
+        subject: 'Mathematics',
+        questionNumber: 3,
+        chapter: 'Trigonometry',
+        statement: 'If tan θ + cot θ = 2, then the value of tan¹⁰ θ + cot¹⁰ θ is:',
+        options: [
+          { id: 'A', text: '2' },
+          { id: 'B', text: '1' },
+          { id: 'C', text: '20' },
+          { id: 'D', text: '10' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'tan θ + 1/tan θ = 2 ⇒ tan θ = 1',
+        explanation: 'tan θ + 1/tan θ = 2 ⇒ tan² θ - 2 tan θ + 1 = 0 ⇒ (tan θ - 1)² = 0 ⇒ tan θ = 1. Thus cot θ = 1. So tan¹⁰ θ + cot¹⁰ θ = 1¹⁰ + 1¹⁰ = 2.'
+      },
+      {
+        id: 'c10-m-q4',
+        questionNumber: 4,
+        subject: 'Mathematics',
+        chapter: 'Coordinate Geometry',
+        statement: 'The coordinates of the point which divides the line segment joining (4, -3) and (8, 5) in the ratio 3 : 1 internally are:',
+        options: [
+          { id: 'A', text: '(7, 3)' },
+          { id: 'B', text: '(7, -3)' },
+          { id: 'C', text: '(6, 1)' },
+          { id: 'D', text: '(5, 2)' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Section Formula: x = (mx₂ + nx₁)/(m + n), y = (my₂ + ny₁)/(m + n)',
+        explanation: 'x = (3×8 + 1×4)/(3+1) = (24+4)/4 = 7. y = (3×5 + 1×(-3))/(3+1) = (15-3)/4 = 3. Point is (7, 3).'
+      },
+      {
+        id: 'c10-m-q5',
+        questionNumber: 5,
+        subject: 'Mathematics',
+        chapter: 'Circles',
+        statement: 'From a point P, the length of the tangent to a circle is 24 cm and the distance of P from the center is 25 cm. The radius of the circle is:',
+        options: [
+          { id: 'A', text: '7 cm' },
+          { id: 'B', text: '12 cm' },
+          { id: 'C', text: '15 cm' },
+          { id: 'D', text: '24.5 cm' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Pythagorean Triplet: r² + L² = d²',
+        explanation: 'The tangent is perpendicular to the radius at the point of contact. r = √(25² - 24²) = √(625 - 576) = √49 = 7 cm.'
+      }
+    ]
   }
 ];
 
@@ -414,6 +902,32 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
         .lean()
         .maxTimeMS(4000);
       totalCount = items.length;
+    }
+
+    if (items.length === 0) {
+      let seedFiltered = SEED_TEST_SERIES;
+      if (examType && examType !== 'ALL' && examType !== 'All') {
+        const normExam = String(examType).toLowerCase();
+        seedFiltered = seedFiltered.filter((s: any) =>
+          String(s.examType).toLowerCase() === normExam ||
+          (s.badgeCode && String(s.badgeCode).toLowerCase().includes(normExam))
+        );
+      }
+      if (format && format !== 'ALL' && format !== 'All') {
+        seedFiltered = seedFiltered.filter((s: any) => s.format === format);
+      }
+      if (seedFiltered.length > 0) {
+        items = seedFiltered;
+        totalCount = seedFiltered.length;
+      }
+    } else {
+      // If DB has tests but lacks Class 8/9/10 foundation tests, merge them from SEED_TEST_SERIES
+      const hasClass8 = items.some((it: any) => it.examType === 'Class 8' || it.badgeCode === 'CLASS 8');
+      if (!hasClass8) {
+        const foundationSeeds = SEED_TEST_SERIES.filter((s: any) => s.examType === 'Class 8' || s.examType === 'Class 9' || s.examType === 'Class 10');
+        items = [...items, ...foundationSeeds];
+        totalCount = items.length;
+      }
     }
 
     const sanitizedItems = items.map((it: any) => {
