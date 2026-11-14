@@ -1043,7 +1043,7 @@ export function wrapBareLatexInDollars(text: string): string {
   s = s.replace(/\\,\s*/g, ' ');
 
   const proseLead = '(?:Let|If|Suppose|Given|Define|Find|Evaluate|Calculate|Show|Consider)\\b\\s*[:,]?\\s*';
-  const proseStops = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are|represented|representing|given)\\b';
+  const proseStops = '(?:pass|passes|passing|touch|touches|touching|intersect|intersects|has|have|having|where|when|such|if|then|and|with|at|for|is|are|represented|representing|given|\\\\forall|\\\\exists|\\\\in|[∀∃∈∉])\\b';
 
   // 1. Environments (with optional LHS: f(x) = \begin{cases} ... \end{cases} or A = \begin{pmatrix} ... \end{pmatrix})
   s = s.replace(
@@ -1061,10 +1061,15 @@ export function wrapBareLatexInDollars(text: string): string {
     (_, m) => protect(m)
   );
 
-  // 4. Integrals: \int ... dx, with optional LHS (e.g. g(x) = \int... or \alpha = \int...) or RHS equation (e.g. \int... dt = 2x - 1)
+  // 4. Integrals: \int ... dx, with optional LHS (e.g. g(x) = \int... or \alpha = \int...) or optional scalar coefficient (e.g. \frac{2}{\pi} \int...) or RHS equation (e.g. \int... dt = 2x - 1)
+  const intCoeff = `(?:[a-zA-Z\\u0370-\\u03FF\\\\][0-9a-zA-Z_\\^{}'′]*(?:\\s*\\([^()\\n]+\\))?\\s*=\\s*|[-+]?(?:\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\}|[0-9a-zA-Z_]+(?:\\/[0-9a-zA-Z_]+)?)\\s*)?`;
+  const intRhsPattern = `(?:\\s*=\\s*(?:\\\\(?:d?frac|sqrt|cbrt|sin|cos|tan|cot|sec|csc|log|ln|exp|cdot|times)\\{[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\}|[-+*/0-9a-zA-Z_\\\\^'′{}()\\[\\]\\s.]|\\^\\{[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\})+?)?`;
   s = s.replace(
-    new RegExp(`(?<![$\\w])((?:[a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*(?:\\s*\\([^()\\n]+\\))?\\s*=\\s*)?\\\\(?:int|iint|iiint|oint)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*[\\s\\S]+?(?:\\\\,?\\s*d[a-zA-Z]|dx|dy|dt|dz|du|dv|d\\theta|dr)(?![a-zA-Z])(?:\\s*=\\s*[-+*/0-9a-zA-Z_\\^{}()\\s.]+?)?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
-    (fullMatch) => protect(fullMatch)
+    new RegExp(`(${proseLead})?(${intCoeff}\\\\(?:int|iint|iiint|oint)(?:_[^{}\\s]+|_\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\}|\\^[^{}\\s]+|\\^\\{\\s*[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\s*\\})*\\s*[\\s\\S]+?(?:\\\\,?\\s*d[a-zA-Z]|dx|dy|dt|dz|du|dv|d\\theta|dr)(?![a-zA-Z])${intRhsPattern})(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
+    (fullMatch, lead, math) => {
+      const activeLead = lead || '';
+      return (activeLead ? activeLead + ' ' : '') + protect(math);
+    }
   );
 
   // 5. Limits, Summations, Products: \lim_{...} ... (stop strictly before prose)
@@ -1210,6 +1215,16 @@ export function wrapBareLatexInDollars(text: string): string {
     }
   );
 
+  // 14b. Generalized set membership relations (MUST run BEFORE standalone \mathbb{R} / \mathbb{N} so \mathbb is not stolen):
+  // e.g. x \in S, x, y \in S, l, m, n \in \mathbb{N}, \forall x \in (0, \pi/2), x \in \mathbb{R}, x \in [0, 1], x \in \{...\}
+  s = s.replace(
+    /(?<![$\w])((?:\\forall\s+|\\exists\s+|[∀∃]\s*)?[a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*(?:\s*,\s*[a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*)*\s*(?:\\(?:in|notin)|[∈∉])\s*(?:\\mathbb\{[A-Z]\}|[A-Z]|[\[\(][^()\[\]\n]+[\]\)]|\\?\{[^{}\n]+?\\?\}))(?![$\w])/g,
+    (_, m) => protect(m)
+  );
+
+  // Greatest integer inequality: e.g. "greatest integer \le t" -> "greatest integer $\le t$"
+  s = s.replace(/(?<=\bgreatest\s+integer\s+(?:function\s+)?)(?:\\le|\\ge|<=|>=|≤|≥)\s*([a-zA-Z0-9]+)/gi, (_, v) => protect(`\\le ${v}`));
+
   // 13c. Standalone blackboard bold sets: \mathbb{R}, \mathbb{N}, etc.
   s = s.replace(/(?<![$\w])(\\(?:mathbb|mathbf|mathcal)\{[A-Z]\})(?![$\w])/g, (_, m) => protect(m));
 
@@ -1221,9 +1236,6 @@ export function wrapBareLatexInDollars(text: string): string {
     /(?<![$\w|\\])(\\log(?:_[0-9a-zA-Z]+)?\s*|\\ln\s*)?(\|(?:[^{}|\n]|\\{[^{}]*\\})+\|)(?![$\w|])/g,
     (m) => protect(m)
   );
-
-  // 14b. Set membership relations: x, y \in \mathbb{R} or x \in R or n \in \mathbb{N} or x \in (0, \pi/2] or x \in [0, 1]
-  s = s.replace(/(?<![$\w])([a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*(?:\s*,\s*[a-zA-Z\u0370-\u03FF\\][0-9a-zA-Z_\\^{}'′]*)*\s*\\(?:in|notin)\s*(?:\\mathbb\{[RNZQ]\}|[RNZQ]|[\[\(][^()\[\]\n]+[\]\)]|\\?\{[^{}\n]+?\\?\}))(?![$\w])/g, (_, m) => protect(m));
 
   // 14b-2. Standalone trig / inverse trig / math functions with arguments: e.g. \tan^{-1} x, \sin x, \cos(2x)
   s = s.replace(
@@ -1298,6 +1310,32 @@ export function wrapBareLatexInDollars(text: string): string {
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*\{\s*\}/g, '');
   s = s.replace(/\\(?:d?frac)\{\s*\}\s*/g, '');
   s = s.replace(/\\(?:d?frac)(?!\s*\{)/g, '');
+
+  // Expressions after "square root of" / "cube root of": e.g. "square root of \frac{a^2}{4} + ... - \frac{3}{4}", "(4a+5b+5c)^2 - (5a+4b+4c)^2"
+  s = s.replace(
+    new RegExp(`(?<=\\b(?:square\\s+root\\s+of|cube\\s+root\\s+of)\\s+)([-+0-9a-zA-Z_\\\\^'′{}()\\[\\]\\s/+\\-*.,]+?)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
+    (fullMatch, expr) => {
+      const stripped = expr.replace(/\\[a-zA-Z]+/g, ' ');
+      if (/\b(?:let|the|and|for|with|where|when|if|then|is|are)\b/i.test(stripped)) return fullMatch;
+      if (/[0-9a-zA-Z_\\^{}()+\-*/]/.test(expr)) {
+        return protect(expr);
+      }
+      return fullMatch;
+    }
+  );
+
+  // Compound fraction sums/differences: e.g. \dfrac{a^2}{4} + \dfrac{1}{a^2} - \dfrac{1}{a} + \dfrac{a}{2} - \dfrac{3}{4}
+  s = s.replace(
+    new RegExp(`(?<![$\\w])((?:[-+]?\\s*\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\}|[-+]?[0-9a-zA-Z_\\\\^{}()]+)(?:\\s*[-+*/]\\s*[-+]?(?:\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\}|\\\\(?:sqrt|cbrt)\\{[^{}]+\\}|[0-9a-zA-Z_\\\\^{}()]+))+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
+    (fullMatch, expr) => {
+      if (!/\\(?:d?frac|sqrt|cbrt)\{/.test(expr)) return fullMatch;
+      const stripped = expr.replace(/\\[a-zA-Z]+/g, ' ');
+      if (/\b(?:let|the|and|for|with|where|when|if|then|is|are|find|curve|line|plane)\b/i.test(stripped)) {
+        return fullMatch;
+      }
+      return protect(expr);
+    }
+  );
 
   // 15. Remaining standalone LaTeX commands with balanced braces
   s = s.replace(
