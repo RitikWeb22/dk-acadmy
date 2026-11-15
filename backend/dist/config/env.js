@@ -24,7 +24,8 @@ export const envSchema = z.object({
     CLOUDINARY_API_SECRET: z.string().optional().default(''),
     LIVEKIT_URL: z.string().optional().default(''),
     LIVEKIT_API_KEY: z.string().optional().default(''),
-    LIVEKIT_API_SECRET: z.string().optional().default('')
+    LIVEKIT_API_SECRET: z.string().optional().default(''),
+    REDIS_URL: z.string().optional().default('')
 });
 export const validateEnv = (customEnv = process.env) => {
     const result = envSchema.safeParse(customEnv);

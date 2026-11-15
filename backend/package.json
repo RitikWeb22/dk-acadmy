@@ -9,6 +9,7 @@
     "build": "tsc",
     "postinstall": "npm run build",
     "start": "node dist/server.js",
+    "backup:db": "node scripts/backup-mongodb.js",
     "test": "node --import tsx --test tests/**/*.test.ts"
   },
   "keywords": [
@@ -20,6 +21,7 @@
   "author": "DK Academy",
   "license": "ISC",
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
@@ -38,6 +40,7 @@
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
     "helmet": "^8.3.0",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "jszip": "^3.10.2",
     "katex": "^0.19.1",
@@ -46,6 +49,8 @@
     "mongoose": "^9.11.3",
     "multer": "^2.5.0",
     "pdf-parse": "^2.4.5",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
     "razorpay": "^2.9.8",
     "socket.io": "^4.8.4",
     "typescript": "^5.7.3",

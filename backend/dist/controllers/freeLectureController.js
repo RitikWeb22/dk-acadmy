@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { FreeLecture } from '../models/FreeLecture.js';
 import { broadcastFreeLectureCreated, broadcastFreeLectureUpdated, broadcastFreeLectureDeleted } from '../sockets/socket.js';
-import { escapeRegex } from '../utils/sanitize.js';
+import { escapeRegex, getPagination } from '../utils/sanitize.js';
 const SEED_FREE_LECTURES = [
     // Track 1: Mathematics - Differential Calculus Shortcuts
     {
@@ -494,7 +494,7 @@ const ensureSeedData = async () => {
 export const getFreeLectures = async (req, res) => {
     try {
         await ensureSeedData();
-        const { subject, trackId, isFree, search, status } = req.query;
+        const { subject, trackId, isFree, search, status, page, limit } = req.query;
         const filter = {};
         if (subject && subject !== 'All') {
             filter.subject = subject;
@@ -517,10 +517,40 @@ export const getFreeLectures = async (req, res) => {
                 { dppName: { $regex: q, $options: 'i' } }
             ];
         }
-        const lectures = await FreeLecture.find(filter).sort({ trackId: 1, order: 1 });
-        const totalLectures = await FreeLecture.countDocuments({});
-        const freeCount = await FreeLecture.countDocuments({ isFree: true });
-        const paidCount = await FreeLecture.countDocuments({ isFree: false });
+        if (page || limit) {
+            const pagination = getPagination(page, limit, 20, 100);
+            const [lectures, total, freeCount] = await Promise.all([
+                FreeLecture.find(filter)
+                    .sort({ trackId: 1, order: 1 })
+                    .skip(pagination.skip)
+                    .limit(pagination.limit)
+                    .lean(),
+                FreeLecture.countDocuments(filter),
+                FreeLecture.countDocuments({ isFree: true })
+            ]);
+            const paidCount = Math.max(0, total - freeCount);
+            res.status(200).json({
+                success: true,
+                count: lectures.length,
+                total,
+                page: pagination.page,
+                totalPages: Math.ceil(total / pagination.limit),
+                hasMore: pagination.page * pagination.limit < total,
+                data: lectures,
+                summary: {
+                    total,
+                    freeCount,
+                    paidCount
+                }
+            });
+            return;
+        }
+        const [lectures, totalLectures, freeCount] = await Promise.all([
+            FreeLecture.find(filter).sort({ trackId: 1, order: 1 }).lean(),
+            FreeLecture.countDocuments({}),
+            FreeLecture.countDocuments({ isFree: true })
+        ]);
+        const paidCount = Math.max(0, totalLectures - freeCount);
         res.status(200).json({
             success: true,
             data: lectures,

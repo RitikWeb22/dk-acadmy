@@ -862,11 +862,12 @@ export const getAllTestSeries = async (req, res) => {
         let items;
         let totalCount = 0;
         let paginationMeta = null;
+        const projection = req.query.includeQuestions === 'true' ? {} : { questions: 0, 'sections.questions': 0 };
         if (limit) {
             const pagination = getPagination(page, limit, 20, 100);
             paginationMeta = pagination;
             const [fetchedItems, total] = await Promise.all([
-                TestSeries.find(filter)
+                TestSeries.find(filter, projection)
                     .sort({ createdAt: -1 })
                     .skip(pagination.skip)
                     .limit(pagination.limit)
@@ -878,7 +879,7 @@ export const getAllTestSeries = async (req, res) => {
             totalCount = total;
         }
         else {
-            items = await TestSeries.find(filter)
+            items = await TestSeries.find(filter, projection)
                 .sort({ createdAt: -1 })
                 .lean()
                 .maxTimeMS(4000);

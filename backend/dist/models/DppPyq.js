@@ -67,4 +67,7 @@ const dppPyqSchema = new Schema({
 });
 dppPyqSchema.index({ status: 1, subject: 1 });
 dppPyqSchema.index({ status: 1, createdAt: -1 });
+dppPyqSchema.index({ moduleType: 1, subject: 1, status: 1, createdAt: -1 });
+dppPyqSchema.index({ chapter: 1, subject: 1 });
+dppPyqSchema.index({ title: 'text', categoryLabel: 'text', chapter: 'text' });
 export const DppPyq = mongoose.model('DppPyq', dppPyqSchema);

@@ -1,6 +1,7 @@
 import dns from 'dns';
 import mongoose from 'mongoose';
 import { env } from './env.js';
+import { logger } from './logger.js';
 
 // Prioritize IPv4 DNS lookups on Windows (prevents getaddrinfo ENOTFOUND with MongoDB Atlas replica sets)
 try {
@@ -11,7 +12,36 @@ try {
   // ignore
 }
 
-// Note: Global sanitizeFilter is omitted as it incorrectly treats Mongoose query operators ($in, $ne) as string literals
+// ─────────────────────────────────────────────────────────────────────────────
+// SLOW QUERY PROFILER PLUGIN
+// Automatically logs queries exceeding threshold (default: 100ms) with execution time
+// ─────────────────────────────────────────────────────────────────────────────
+const SLOW_QUERY_THRESHOLD_MS = Number(process.env.SLOW_QUERY_THRESHOLD_MS) || 100;
+
+mongoose.plugin((schema: mongoose.Schema) => {
+  schema.pre(/^find|count|update|delete/, function (this: any) {
+    this._queryStartTime = Date.now();
+  });
+
+  schema.post(/^find|count|update|delete/, function (this: any) {
+    if (this._queryStartTime) {
+      const durationMs = Date.now() - this._queryStartTime;
+      if (durationMs > SLOW_QUERY_THRESHOLD_MS) {
+        const collectionName = this.model?.collection?.name || 'unknown';
+        const operation = this.op || 'query';
+        logger.warn(
+          {
+            collection: collectionName,
+            op: operation,
+            durationMs,
+            thresholdMs: SLOW_QUERY_THRESHOLD_MS
+          },
+          `[SLOW MONGODB QUERY: ${durationMs}ms] ${collectionName}.${operation}`
+        );
+      }
+    }
+  });
+});
 
 export interface MongoPoolMetrics {
   maxPoolSize: number;
@@ -27,14 +57,14 @@ export interface MongoPoolMetrics {
 }
 
 const poolMetrics: MongoPoolMetrics = {
-  maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE) || 75,
-  minPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE) || 15,
+  maxPoolSize: Number(process.env.DB_MAX_POOL_SIZE || process.env.MONGO_MAX_POOL_SIZE) || 75,
+  minPoolSize: Number(process.env.DB_MIN_POOL_SIZE || process.env.MONGO_MIN_POOL_SIZE) || 15,
   currentCheckedOut: 0,
   peakCheckedOut: 0,
   totalCheckouts: 0,
   totalCheckins: 0,
   totalCheckoutFailures: 0,
-  waitQueueTimeoutMS: 15000,
+  waitQueueTimeoutMS: Number(process.env.DB_WAIT_QUEUE_TIMEOUT_MS) || 15000,
   readyState: 0
 };
 

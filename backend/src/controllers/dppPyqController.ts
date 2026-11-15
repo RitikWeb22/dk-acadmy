@@ -10,7 +10,7 @@ import {
   broadcastDppPyqUpdated,
   broadcastDppPyqDeleted
 } from '../sockets/socket.js';
-import { escapeRegex } from '../utils/sanitize.js';
+import { escapeRegex, getPagination } from '../utils/sanitize.js';
 
 const SEED_QUESTIONS: any[] = [];
 
@@ -199,7 +199,7 @@ export const invalidateDppPyqCache = () => {
 
 export const getAllDppPyq = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { moduleType, subject, status, search, force } = req.query;
+    const { moduleType, subject, status, search, force, page, limit } = req.query;
     const isForce = force === 'true' || force === '1';
     const filter: any = {};
 
@@ -226,8 +226,33 @@ export const getAllDppPyq = async (req: Request, res: Response): Promise<void> =
     const hasFilters = Object.keys(filter).length > 0;
 
     // Fast memory cache path
-    if (!hasFilters && !isForce && cachedDppPyqList && (Date.now() - lastDppPyqCacheTime < DPP_CACHE_TTL)) {
+    if (!hasFilters && !isForce && !page && !limit && cachedDppPyqList && (Date.now() - lastDppPyqCacheTime < DPP_CACHE_TTL)) {
       res.status(200).json(cachedDppPyqList);
+      return;
+    }
+
+    if (page || limit) {
+      const pagination = getPagination(page, limit, 20, 100);
+      const [items, total] = await Promise.all([
+        DppPyq.find(filter)
+          .sort({ createdAt: -1 })
+          .skip(pagination.skip)
+          .limit(pagination.limit)
+          .select('-questions') // Exclude heavy questions array in listing for fast throughput
+          .lean()
+          .maxTimeMS(4000),
+        DppPyq.countDocuments(filter)
+      ]);
+
+      res.status(200).json({
+        success: true,
+        count: items.length,
+        total,
+        page: pagination.page,
+        totalPages: Math.ceil(total / pagination.limit),
+        hasMore: pagination.page * pagination.limit < total,
+        data: items
+      });
       return;
     }
 
@@ -245,7 +270,7 @@ export const getAllDppPyq = async (req: Request, res: Response): Promise<void> =
       return doc;
     });
 
-    if (!hasFilters) {
+    if (!hasFilters && !page && !limit) {
       cachedDppPyqList = sanitizedItems;
       lastDppPyqCacheTime = Date.now();
     }
@@ -760,7 +785,7 @@ export const getQuestionBank = async (req: Request, res: Response): Promise<void
     const skip = (pageNum - 1) * limitNum;
 
     const [items, total] = await Promise.all([
-      QuestionBank.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      QuestionBank.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
       QuestionBank.countDocuments(filter)
     ]);
 

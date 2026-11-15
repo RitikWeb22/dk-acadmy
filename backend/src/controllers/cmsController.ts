@@ -1,16 +1,29 @@
 import type { Request, Response } from 'express';
 import { CMSConfig } from '../models/CMS.js';
 import { broadcastCMSUpdated } from '../sockets/socket.js';
+import { cacheGet, cacheSet, cacheDel } from '../config/redis.js';
 
 export const getCMSConfig = async (req: Request, res: Response): Promise<void> => {
   try {
     const type = String(req.params.type);
+    const cacheKey = `cms:${type}`;
+
+    // Try fast retrieval from Redis cache
+    const cached = await cacheGet(cacheKey);
+    if (cached !== null) {
+      res.status(200).json({ success: true, key: type, data: cached });
+      return;
+    }
+
     const config = await CMSConfig.findOne({ key: type });
 
     if (!config) {
       res.status(200).json({ success: true, key: type, data: null });
       return;
     }
+
+    // Cache valid CMS payload for 10 minutes
+    await cacheSet(cacheKey, config.data, 600);
 
     res.status(200).json({ success: true, key: type, data: config.data });
   } catch (error: any) {
@@ -29,6 +42,8 @@ export const saveCMSConfig = async (req: Request, res: Response): Promise<void> 
       { upsert: true, returnDocument: 'after' }
     );
 
+    // Invalidate Redis cache
+    await cacheDel(`cms:${type}`);
     broadcastCMSUpdated(type);
 
     res.status(200).json({
@@ -46,6 +61,8 @@ export const resetCMSConfig = async (req: Request, res: Response): Promise<void>
     const type = String(req.params.type);
     await CMSConfig.findOneAndDelete({ key: type });
 
+    // Invalidate Redis cache
+    await cacheDel(`cms:${type}`);
     broadcastCMSUpdated(type);
 
     res.status(200).json({

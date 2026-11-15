@@ -5,7 +5,7 @@ import { QuestionBank } from '../models/QuestionBank.js';
 import { PdfImportHistory } from '../models/PdfImportHistory.js';
 import { extractQuestionsFromPdfBuffer, extractQuestionsFromDocxBuffer, parseQuestionsFromText } from '../utils/pdfQuestionExtractor.js';
 import { broadcastDppPyqCreated, broadcastDppPyqUpdated, broadcastDppPyqDeleted } from '../sockets/socket.js';
-import { escapeRegex } from '../utils/sanitize.js';
+import { escapeRegex, getPagination } from '../utils/sanitize.js';
 const SEED_QUESTIONS = [];
 const SEED_DPP_PYQ_ITEMS = [
     {
@@ -189,7 +189,7 @@ export const invalidateDppPyqCache = () => {
 };
 export const getAllDppPyq = async (req, res) => {
     try {
-        const { moduleType, subject, status, search, force } = req.query;
+        const { moduleType, subject, status, search, force, page, limit } = req.query;
         const isForce = force === 'true' || force === '1';
         const filter = {};
         if (moduleType && moduleType !== 'ALL') {
@@ -213,8 +213,31 @@ export const getAllDppPyq = async (req, res) => {
         }
         const hasFilters = Object.keys(filter).length > 0;
         // Fast memory cache path
-        if (!hasFilters && !isForce && cachedDppPyqList && (Date.now() - lastDppPyqCacheTime < DPP_CACHE_TTL)) {
+        if (!hasFilters && !isForce && !page && !limit && cachedDppPyqList && (Date.now() - lastDppPyqCacheTime < DPP_CACHE_TTL)) {
             res.status(200).json(cachedDppPyqList);
+            return;
+        }
+        if (page || limit) {
+            const pagination = getPagination(page, limit, 20, 100);
+            const [items, total] = await Promise.all([
+                DppPyq.find(filter)
+                    .sort({ createdAt: -1 })
+                    .skip(pagination.skip)
+                    .limit(pagination.limit)
+                    .select('-questions') // Exclude heavy questions array in listing for fast throughput
+                    .lean()
+                    .maxTimeMS(4000),
+                DppPyq.countDocuments(filter)
+            ]);
+            res.status(200).json({
+                success: true,
+                count: items.length,
+                total,
+                page: pagination.page,
+                totalPages: Math.ceil(total / pagination.limit),
+                hasMore: pagination.page * pagination.limit < total,
+                data: items
+            });
             return;
         }
         const items = await DppPyq.find(filter).sort({ createdAt: -1 }).lean().maxTimeMS(4000);
@@ -228,7 +251,7 @@ export const getAllDppPyq = async (req, res) => {
             }
             return doc;
         });
-        if (!hasFilters) {
+        if (!hasFilters && !page && !limit) {
             cachedDppPyqList = sanitizedItems;
             lastDppPyqCacheTime = Date.now();
         }
@@ -687,7 +710,7 @@ export const getQuestionBank = async (req, res) => {
         const limitNum = Math.max(1, Math.min(100, parseInt(String(limit), 10) || 50));
         const skip = (pageNum - 1) * limitNum;
         const [items, total] = await Promise.all([
-            QuestionBank.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+            QuestionBank.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
             QuestionBank.countDocuments(filter)
         ]);
         res.status(200).json({

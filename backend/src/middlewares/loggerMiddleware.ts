@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { logger } from '../config/logger.js';
 
 declare global {
   namespace Express {
@@ -9,38 +10,10 @@ declare global {
   }
 }
 
-const SENSITIVE_KEYS = new Set([
-  'password',
-  'token',
-  'credential',
-  'idtoken',
-  'accesstoken',
-  'signature',
-  'razorpay_signature',
-  'razorpay_payment_id',
-  'secret',
-  'key_secret',
-  'jwt_secret',
-  'authorization'
-]);
-
-function redactObject(obj: any): any {
-  if (!obj || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(redactObject);
-
-  const cleaned: Record<string, any> = {};
-  for (const [key, val] of Object.entries(obj)) {
-    if (SENSITIVE_KEYS.has(key.toLowerCase())) {
-      cleaned[key] = '[REDACTED]';
-    } else if (val && typeof val === 'object') {
-      cleaned[key] = redactObject(val);
-    } else {
-      cleaned[key] = val;
-    }
-  }
-  return cleaned;
-}
-
+/**
+ * High-performance Structured HTTP Request Logger powered by Pino.
+ * Attaches unique correlation ID and logs duration, status code, and IP.
+ */
 export const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
   const requestId = (req.headers['x-request-id'] as string) || crypto.randomUUID();
   req.id = requestId;
@@ -50,29 +23,31 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction): 
 
   res.on('finish', () => {
     const durationMs = Date.now() - startTime;
-    const logEntry = {
-      timestamp: new Date().toISOString(),
+    const url = req.originalUrl || req.url;
+
+    // Skip verbose logs for health checks
+    if (url.startsWith('/health') || url.startsWith('/api/v1/health')) {
+      return;
+    }
+
+    const logData = {
       requestId,
       method: req.method,
-      url: req.originalUrl || req.url,
+      url,
       statusCode: res.statusCode,
       durationMs,
       ip: req.ip || req.socket.remoteAddress,
       userAgent: req.headers['user-agent']
     };
 
-    // Only log non-health endpoints in standard operational logs
-    if (!req.path.startsWith('/health')) {
-      if (res.statusCode >= 500) {
-        console.error('[HTTP ERROR]', JSON.stringify(logEntry));
-      } else if (res.statusCode >= 400) {
-        console.warn('[HTTP WARN]', JSON.stringify(logEntry));
-      } else {
-        console.log('[HTTP INFO]', JSON.stringify(logEntry));
-      }
+    if (res.statusCode >= 500) {
+      logger.error(logData, `[HTTP ${res.statusCode}] ${req.method} ${url} failed in ${durationMs}ms`);
+    } else if (res.statusCode >= 400) {
+      logger.warn(logData, `[HTTP ${res.statusCode}] ${req.method} ${url} in ${durationMs}ms`);
+    } else {
+      logger.info(logData, `[HTTP ${res.statusCode}] ${req.method} ${url} completed in ${durationMs}ms`);
     }
   });
 
   next();
 };
-

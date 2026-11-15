@@ -3,6 +3,7 @@ import { env } from './config/env.js';
 import { app } from './app.js';
 import { connectDB, disconnectDB } from './config/db.js';
 import { initSocket } from './sockets/socket.js';
+import { initRedis, disconnectRedis } from './config/redis.js';
 const PORT = env.PORT;
 // Create HTTP server
 const server = http.createServer(app);
@@ -13,6 +14,10 @@ const startServer = () => {
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`[Server] Running on http://0.0.0.0:${PORT} in ${env.NODE_ENV} mode`);
         console.log(`[Socket.io] Realtime gateway active on port ${PORT}`);
+    });
+    // Connect to Redis in background
+    initRedis().catch((err) => {
+        console.warn('[Redis] Initial connection failed:', err.message);
     });
     // Connect to DB in background and seed initial data
     connectDB()
@@ -30,11 +35,11 @@ const shutdown = async (signal) => {
     server.close(async () => {
         console.log('[Server] HTTP server closed.');
         try {
-            await disconnectDB();
+            await Promise.allSettled([disconnectDB(), disconnectRedis()]);
             process.exit(0);
         }
         catch (err) {
-            console.error('[Server] Error during database disconnection:', err);
+            console.error('[Server] Error during database/redis disconnection:', err);
             process.exit(1);
         }
     });

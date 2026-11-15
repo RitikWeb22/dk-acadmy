@@ -232,5 +232,7 @@ const testSeriesSchema = new Schema<ITestSeries>(
 
 testSeriesSchema.index({ status: 1, examType: 1 });
 testSeriesSchema.index({ status: 1, createdAt: -1 });
+testSeriesSchema.index({ examType: 1, format: 1, status: 1, createdAt: -1 });
+testSeriesSchema.index({ slug: 1 }, { unique: true, sparse: true });
 
 export const TestSeries = mongoose.model<ITestSeries>('TestSeries', testSeriesSchema);

@@ -11,14 +11,18 @@ import { handleRazorpayWebhook } from './controllers/paymentController.js';
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 import { sanitizeInputs, globalApiLimiter } from './middlewares/securityMiddleware.js';
 import { requestLogger } from './middlewares/loggerMiddleware.js';
+import { requestTimeout } from './middlewares/timeoutMiddleware.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 export const app = express();
-// Assign correlation IDs and log structured requests with sensitive data redaction
+// 1. Assign correlation IDs and log structured requests with Pino
 app.use(requestLogger);
+// 2. Request Timeout Middleware (prevents hung socket/DB connections)
+app.use(requestTimeout({ defaultTimeoutMs: 30000, extendedTimeoutMs: 120000 }));
 // Trust reverse proxy (for rate limiting, IP resolution behind Nginx/Render/Cloudflare)
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+app.set('etag', 'strong'); // Enables HTTP 304 conditional cache validation
 // High-performance gzip/deflate compression for static assets and API JSON payloads
 app.use(compression({
     level: 6,

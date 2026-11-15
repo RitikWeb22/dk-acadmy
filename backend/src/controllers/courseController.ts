@@ -7,11 +7,21 @@ import {
   broadcastCourseUpdated,
   broadcastCourseDeleted
 } from '../sockets/socket.js';
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../config/redis.js';
 
 export const getAllCourses = async (req: Request, res: Response): Promise<void> => {
   try {
     const { category, targetClass, mode, search, page, limit } = req.query;
     const filter: any = {};
+
+    const isDefaultQuery = !category && !targetClass && !mode && !search && !page && !limit;
+    if (isDefaultQuery) {
+      const cachedCourses = await cacheGet<any[]>('courses:all');
+      if (cachedCourses) {
+        res.status(200).json({ success: true, count: cachedCourses.length, data: cachedCourses });
+        return;
+      }
+    }
 
     if (category && category !== 'All') filter.category = category;
     if (targetClass && targetClass !== 'All') filter.targetClass = targetClass;
@@ -49,6 +59,9 @@ export const getAllCourses = async (req: Request, res: Response): Promise<void> 
     }
 
     const courses = await Course.find(filter).sort({ createdAt: -1 });
+    if (isDefaultQuery) {
+      await cacheSet('courses:all', courses, 300);
+    }
     res.status(200).json({ success: true, count: courses.length, data: courses });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -58,6 +71,14 @@ export const getAllCourses = async (req: Request, res: Response): Promise<void> 
 export const getCourseBySlug = async (req: Request, res: Response): Promise<void> => {
   try {
     const slug = String(req.params.slug);
+    const cacheKey = `course:${slug}`;
+
+    const cachedCourse = await cacheGet(cacheKey);
+    if (cachedCourse) {
+      res.status(200).json({ success: true, data: cachedCourse });
+      return;
+    }
+
     const course = await Course.findOne({
       $or: [{ slug }, { _id: slug.match(/^[0-9a-fA-F]{24}$/) ? slug : null }]
     });
@@ -67,6 +88,7 @@ export const getCourseBySlug = async (req: Request, res: Response): Promise<void
       return;
     }
 
+    await cacheSet(cacheKey, course, 300);
     res.status(200).json({ success: true, data: course });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -141,6 +163,7 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
         runValidators: true
       });
       if (updated) {
+        await cacheDel('courses:all', `course:${existing.slug}`, `course:${existing._id}`);
         broadcastCourseUpdated(updated);
         res.status(200).json({
           success: true,
@@ -152,6 +175,7 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
     }
 
     const newCourse = await Course.create(courseData);
+    await cacheDel('courses:all');
     broadcastCourseCreated(newCourse);
 
     res.status(201).json({
@@ -235,6 +259,7 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
       };
 
       updated = await Course.create(newCourseDoc);
+      await cacheDel('courses:all', `course:${courseSlug}`, `course:${updated._id}`);
       broadcastCourseCreated(updated);
       res.status(200).json({
         success: true,
@@ -244,6 +269,7 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
+    await cacheDel('courses:all', `course:${id}`, `course:${updated.slug}`, `course:${updated._id}`);
     broadcastCourseUpdated(updated);
     res.status(200).json({
       success: true,
@@ -263,6 +289,7 @@ export const deleteCourse = async (req: Request, res: Response): Promise<void> =
       $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { slug: id }]
     });
 
+    await cacheDel('courses:all', `course:${id}`, `course:${deleted?._id}`, `course:${deleted?.slug}`);
     broadcastCourseDeleted(id);
     res.status(200).json({
       success: true,

@@ -75,5 +75,7 @@ const testSubmissionSchema = new Schema<ITestSubmission>(
 );
 
 testSubmissionSchema.index({ testId: 1, studentId: 1 });
+testSubmissionSchema.index({ testId: 1, totalScore: -1, timeSpentSeconds: 1 });
+testSubmissionSchema.index({ studentId: 1, createdAt: -1 });
 
 export const TestSubmission = mongoose.model<ITestSubmission>('TestSubmission', testSubmissionSchema);

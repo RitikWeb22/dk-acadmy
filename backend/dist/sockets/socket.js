@@ -1,6 +1,8 @@
 import { Server as SocketIOServer } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import { createAdapter } from '@socket.io/redis-adapter';
 import { env } from '../config/env.js';
+import { createRedisClient } from '../config/redis.js';
 let io = null;
 const allowedOrigins = env.ALLOWED_ORIGINS_ARRAY;
 export const initSocket = (server) => {
@@ -33,6 +35,32 @@ export const initSocket = (server) => {
         pingTimeout: 20000,
         pingInterval: 25000
     });
+    // Attach Redis adapter if REDIS_URL is provided (enables cross-worker event broadcasting)
+    if (env.REDIS_URL && env.REDIS_URL.trim() !== '') {
+        try {
+            const pubClient = createRedisClient();
+            const subClient = pubClient ? pubClient.duplicate() : null;
+            if (pubClient && subClient) {
+                pubClient.on('error', (err) => {
+                    console.warn('[Socket.io Redis pubClient] Warning:', err.message);
+                });
+                subClient.on('error', (err) => {
+                    console.warn('[Socket.io Redis subClient] Warning:', err.message);
+                });
+                Promise.all([pubClient.connect(), subClient.connect()])
+                    .then(() => {
+                    io.adapter(createAdapter(pubClient, subClient));
+                    console.log('[Socket.io] Redis adapter attached for multi-worker scaling.');
+                })
+                    .catch((err) => {
+                    console.warn('[Socket.io] Redis adapter failed to connect, continuing with in-memory adapter:', err.message);
+                });
+            }
+        }
+        catch (err) {
+            console.warn('[Socket.io] Could not initialize Redis adapter:', err.message);
+        }
+    }
     // Optional handshake authentication middleware
     io.use((socket, next) => {
         try {

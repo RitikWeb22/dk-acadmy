@@ -6,7 +6,7 @@ import {
   broadcastFreeLectureUpdated,
   broadcastFreeLectureDeleted
 } from '../sockets/socket.js';
-import { escapeRegex } from '../utils/sanitize.js';
+import { escapeRegex, getPagination } from '../utils/sanitize.js';
 
 const SEED_FREE_LECTURES = [
   // Track 1: Mathematics - Differential Calculus Shortcuts
@@ -505,7 +505,7 @@ export const getFreeLectures = async (req: Request, res: Response): Promise<void
   try {
     await ensureSeedData();
 
-    const { subject, trackId, isFree, search, status } = req.query;
+    const { subject, trackId, isFree, search, status, page, limit } = req.query;
     const filter: any = {};
 
     if (subject && subject !== 'All') {
@@ -530,11 +530,44 @@ export const getFreeLectures = async (req: Request, res: Response): Promise<void
       ];
     }
 
-    const lectures = await FreeLecture.find(filter).sort({ trackId: 1, order: 1 });
+    if (page || limit) {
+      const pagination = getPagination(page, limit, 20, 100);
+      const [lectures, total, freeCount] = await Promise.all([
+        FreeLecture.find(filter)
+          .sort({ trackId: 1, order: 1 })
+          .skip(pagination.skip)
+          .limit(pagination.limit)
+          .lean(),
+        FreeLecture.countDocuments(filter),
+        FreeLecture.countDocuments({ isFree: true })
+      ]);
 
-    const totalLectures = await FreeLecture.countDocuments({});
-    const freeCount = await FreeLecture.countDocuments({ isFree: true });
-    const paidCount = await FreeLecture.countDocuments({ isFree: false });
+      const paidCount = Math.max(0, total - freeCount);
+
+      res.status(200).json({
+        success: true,
+        count: lectures.length,
+        total,
+        page: pagination.page,
+        totalPages: Math.ceil(total / pagination.limit),
+        hasMore: pagination.page * pagination.limit < total,
+        data: lectures,
+        summary: {
+          total,
+          freeCount,
+          paidCount
+        }
+      });
+      return;
+    }
+
+    const [lectures, totalLectures, freeCount] = await Promise.all([
+      FreeLecture.find(filter).sort({ trackId: 1, order: 1 }).lean(),
+      FreeLecture.countDocuments({}),
+      FreeLecture.countDocuments({ isFree: true })
+    ]);
+
+    const paidCount = Math.max(0, totalLectures - freeCount);
 
     res.status(200).json({
       success: true,

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { Lead } from '../models/Lead.js';
 import { broadcastNewLead, broadcastLeadUpdated, broadcastLeadDeleted } from '../sockets/socket.js';
 import { generateInquiryId } from '../utils/uuid.js';
+import { escapeRegex, getPagination } from '../utils/sanitize.js';
 
 // Public submission or Admin creation
 export const submitLead = async (req: Request, res: Response): Promise<void> => {
@@ -92,7 +93,7 @@ export const submitLead = async (req: Request, res: Response): Promise<void> => 
 // Admin & Counselor: Get all leads with search, filter, and stats
 export const getAllLeads = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { search, status, priority, source, limit = 200 } = req.query;
+    const { search, status, priority, source, page = 1, limit = 50 } = req.query;
 
     const queryFilter: any = {};
 
@@ -109,7 +110,7 @@ export const getAllLeads = async (req: Request, res: Response): Promise<void> =>
     }
 
     if (search && typeof search === 'string' && search.trim()) {
-      const s = search.trim();
+      const s = escapeRegex(search.trim());
       const regex = new RegExp(s, 'i');
       queryFilter.$or = [
         { fullName: regex },
@@ -124,27 +125,32 @@ export const getAllLeads = async (req: Request, res: Response): Promise<void> =>
       ];
     }
 
-    const leads = await Lead.find(queryFilter)
-      .sort({ createdAt: -1 })
-      .limit(Number(limit));
+    const { page: pageNum, limit: limitNum, skip } = getPagination(page, limit, 50, 200);
 
-    // Calculate aggregated metrics
-    const allLeadsSummary = await Lead.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
+    const [leads, totalFiltered, allLeadsSummary, highPriorityCount] = await Promise.all([
+      Lead.find(queryFilter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Lead.countDocuments(queryFilter),
+      Lead.aggregate([
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 }
+          }
         }
-      }
+      ]),
+      Lead.countDocuments({ priority: 'High' })
     ]);
 
     const statsMap: Record<string, number> = {};
+    let totalLeads = 0;
     allLeadsSummary.forEach((item) => {
       statsMap[item._id] = item.count;
+      totalLeads += item.count;
     });
-
-    const totalLeads = await Lead.countDocuments();
-    const highPriorityCount = await Lead.countDocuments({ priority: 'High' });
 
     const stats = {
       totalLeads,
@@ -162,6 +168,10 @@ export const getAllLeads = async (req: Request, res: Response): Promise<void> =>
     res.status(200).json({
       success: true,
       count: leads.length,
+      total: totalFiltered,
+      page: pageNum,
+      totalPages: Math.ceil(totalFiltered / limitNum),
+      hasMore: pageNum * limitNum < totalFiltered,
       stats,
       data: leads
     });

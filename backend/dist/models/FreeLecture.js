@@ -37,4 +37,6 @@ const freeLectureSchema = new Schema({
 });
 freeLectureSchema.index({ status: 1, subject: 1 });
 freeLectureSchema.index({ trackId: 1, order: 1 });
+freeLectureSchema.index({ isFree: 1, status: 1, subject: 1, trackId: 1 });
+freeLectureSchema.index({ title: 'text', description: 'text', dppName: 'text' });
 export const FreeLecture = mongoose.model('FreeLecture', freeLectureSchema);

@@ -86,6 +86,7 @@ const doubtSchema = new Schema<IDoubt>(
 
 doubtSchema.index({ courseId: 1, status: 1, createdAt: -1 });
 doubtSchema.index({ studentEmail: 1, createdAt: -1 });
+doubtSchema.index({ status: 1, subject: 1, createdAt: -1 });
 
 export const Doubt = mongoose.model<IDoubt>('Doubt', doubtSchema);
 
