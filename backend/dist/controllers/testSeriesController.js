@@ -862,7 +862,9 @@ export const getAllTestSeries = async (req, res) => {
         let items;
         let totalCount = 0;
         let paginationMeta = null;
-        const projection = req.query.includeQuestions === 'true' ? {} : { questions: 0, 'sections.questions': 0 };
+        const projection = (req.query.includeQuestions === 'false' || req.query.excludeQuestions === 'true')
+            ? { questions: 0, 'sections.questions': 0 }
+            : {};
         if (limit) {
             const pagination = getPagination(page, limit, 20, 100);
             paginationMeta = pagination;
@@ -909,8 +911,14 @@ export const getAllTestSeries = async (req, res) => {
                 totalCount = items.length;
             }
         }
+        const requester = req.user;
+        const requesterRole = String(requester?.role || '').toUpperCase();
+        const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRole);
         const sanitizedItems = items.map((it) => {
             const obj = { ...it };
+            if (!isAdmin && Array.isArray(obj.questions)) {
+                obj.questions = sanitizeQuestionsForStudent(obj.questions);
+            }
             if (!obj.markingScheme || typeof obj.markingScheme.correct !== 'number') {
                 obj.markingScheme = { correct: 4, incorrect: 1, unattempted: 0 };
             }
