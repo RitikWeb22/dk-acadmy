@@ -1,11 +1,13 @@
 import mongoose, { Schema } from 'mongoose';
 const optionSchema = new Schema({
     key: { type: String, enum: ['A', 'B', 'C', 'D'], required: true },
-    text: { type: String, required: true }
+    text: { type: String, required: true },
+    imageUrl: { type: String }
 }, { _id: false });
 const questionBankSchema = new Schema({
     id: { type: String, required: true, unique: true, index: true },
     statement: { type: String, required: true },
+    statementBlocks: { type: [Schema.Types.Mixed], default: undefined },
     subject: {
         type: String,
         enum: ['Mathematics', 'Physics', 'Chemistry', 'Mixed'],
@@ -43,6 +45,7 @@ const questionBankSchema = new Schema({
     dkSirShortcut: { type: String, default: '' },
     videoUrl: { type: String, default: '' },
     pdfUrl: { type: String, default: '' },
+    imageUrl: { type: String, default: '' },
     diagramUrl: { type: String, default: '' },
     accessOverride: { type: String, enum: ['inherit', 'free', 'paid'], default: 'inherit' },
     usageCount: { type: Number, default: 0 },

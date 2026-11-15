@@ -1,12 +1,15 @@
 import mongoose, { Schema } from 'mongoose';
 const optionSchema = new Schema({
     key: { type: String, enum: ['A', 'B', 'C', 'D'], required: true },
-    text: { type: String, required: true }
+    text: { type: String, required: true },
+    imageUrl: { type: String }
 }, { _id: false });
 const questionSchema = new Schema({
     id: { type: String, required: true },
     qNum: { type: Number, required: true },
     statement: { type: String, required: true },
+    imageUrl: { type: String },
+    diagramUrl: { type: String },
     topic: { type: String, required: true, default: 'General' },
     options: { type: [optionSchema], default: [] },
     correctKey: { type: String, enum: ['A', 'B', 'C', 'D'], required: true, default: 'A' },

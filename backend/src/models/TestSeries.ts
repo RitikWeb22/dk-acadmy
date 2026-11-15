@@ -17,6 +17,7 @@ export interface ITestQuestion {
   statement: string;
   statementBlocks?: any[];
   imageUrl?: string;
+  diagramUrl?: string;
   options: ITestOption[];
   correctAnswer: string;
   marks: number;
@@ -119,6 +120,7 @@ const questionSchema = new Schema<ITestQuestion>(
     statement: { type: String, default: '' },
     statementBlocks: { type: [Schema.Types.Mixed], default: undefined },
     imageUrl: { type: String },
+    diagramUrl: { type: String },
     options: { type: [optionSchema], default: [] },
     correctAnswer: { type: String, default: 'A' },
     marks: { type: Number, default: 4 },

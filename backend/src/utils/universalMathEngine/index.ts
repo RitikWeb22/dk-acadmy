@@ -27,6 +27,7 @@ export * from './ommlMathMLConverter.js';
 export * from './linearEquationParser.js';
 export * from './latexValidator.js';
 export * from './questionPreserver.js';
+export * from './mathDelimiters.js';
 
 /**
  * Normalizes any mathematical string into standardized LaTeX while executing validation.

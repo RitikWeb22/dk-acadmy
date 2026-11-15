@@ -279,3 +279,65 @@ export function ensureMathDelimiters(text) {
         .replace(/\$\s+,/g, '$,')
         .trim();
 }
+/**
+ * Sanitizes and repairs unclosed, missing, or mismatched \left and \right delimiters.
+ * Handles recurring real-world JEE copy-paste and Word/OCR corruptions:
+ * - \right\tan or \right \tan -> \right) \tan
+ * - \right\cos, \right\sin, \right\sqrt, \right\dfrac, etc.
+ * - \left( ... \right. -> \left( ... \right)
+ * - \left[ ... \right. -> \left[ ... \right]
+ * - Stray orphan $\right.$ or \right. with no \left
+ * - Preserves legitimate piecewise cases \left\{ \begin{cases} ... \end{cases} \right.
+ */
+export function sanitizeDelimiters(text) {
+    if (!text)
+        return '';
+    let s = text;
+    // 1. Strip orphan $\right.$ or $\left.$ with no paired delimiter across the whole string
+    s = s.replace(/\$\s*\\right\s*\.\s*\$/g, '');
+    s = s.replace(/\$\s*\\left\s*\.\s*\$/g, '');
+    s = s.replace(/(^|[\s.,;:!?])\\right\s*\.(?=\s*[\s.,;:!?]|$)/g, '$1');
+    // Valid right delimiter commands in LaTeX:
+    const validRightDelimCmds = '(?:[}\\\\|]|rangle|rceil|rfloor|rgroup|rmoustache|vert|Vert|uparrow|downarrow|updownarrow|Uparrow|Downarrow|Updownarrow)\\b';
+    // 2a. Fix \right followed immediately (or with spaces) by a non-delimiter LaTeX command:
+    const nonDelimCmdRegex = new RegExp(`\\\\right\\s*(\\\\(?!(?:${validRightDelimCmds}))[a-zA-Z]+)`, 'g');
+    s = s.replace(nonDelimCmdRegex, (_m, cmd) => `\\right) ${cmd}`);
+    // 2b. Fix \right followed by whitespace and non-delimiter characters:
+    const validSingleRightDelims = '[\\]\\)\\}\\/\\|.]';
+    s = s.replace(new RegExp(`\\\\right\\s+(?!${validSingleRightDelims}|\\\\(?:${validRightDelimCmds}))`, 'g'), '\\right) ');
+    // 2c. Fix \right followed immediately by closing curly brace, dollar sign, or end of string:
+    s = s.replace(/\\right\s*(?=\}|\$|$)/g, '\\right) ');
+    // 2d. Fix \left followed by non-delimiter LaTeX command:
+    const validLeftDelimCmds = '(?:[{\\\\|]|langle|lceil|lfloor|lgroup|lmoustache|vert|Vert|uparrow|downarrow|updownarrow|Uparrow|Downarrow|Updownarrow)\\b';
+    const nonDelimLeftCmdRegex = new RegExp(`\\\\left\\s*(\\\\(?!(?:${validLeftDelimCmds}))[a-zA-Z]+)`, 'g');
+    s = s.replace(nonDelimLeftCmdRegex, (_m, cmd) => `\\left( ${cmd}`);
+    // 3. Fix \left( ... \right. where opening is '(' but closing is dummy dot '.'
+    s = s.replace(/(\\left\s*\(\s*(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*?)\\right\s*\./g, '$1\\right)');
+    s = s.replace(/(\\left\s*\[\s*(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*?)\\right\s*\./g, '$1\\right]');
+    // For \left\{ ... \right., only change to \right\} if NOT enclosing an environment (cases, matrix, aligned, array)
+    s = s.replace(/(\\left\s*\\\{\s*(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*?)\\right\s*\./g, (full, inner) => {
+        if (/\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|aligned|array)\}/.test(inner)) {
+            return full;
+        }
+        return `${inner}\\right\\}`;
+    });
+    // 4. Clean orphan \right. or \right) inside formulas where there is NO corresponding \left
+    const leftMatches = s.match(/\\left(?:[\[\(\{\|.]|\\\{)/g) || [];
+    const rightMatches = s.match(/\\right(?:[\]\)\}\|.]|\\\})/g) || [];
+    if (rightMatches.length > leftMatches.length) {
+        s = s.replace(/\\right\s*\./g, (m) => {
+            const curL = (s.match(/\\left(?:[\[\(\{\|.]|\\\{)/g) || []).length;
+            const curR = (s.match(/\\right(?:[\]\)\}\|.]|\\\})/g) || []).length;
+            if (curR > curL)
+                return '';
+            return m;
+        });
+    }
+    // 5. Final balance: if more \left than \right, balance with \right.
+    const finalL = (s.match(/\\left(?:[\[\(\{\|.]|\\\{)/g) || []).length;
+    const finalR = (s.match(/\\right(?:[\]\)\}\|.]|\\\})/g) || []).length;
+    if (finalL > finalR) {
+        s += '\\right.'.repeat(finalL - finalR);
+    }
+    return s;
+}

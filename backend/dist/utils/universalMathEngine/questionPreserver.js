@@ -8,7 +8,7 @@ import { detectInputFormat } from './inputDetector.js';
 import { convertHtmlWithMath } from './ommlMathMLConverter.js';
 import { reconstructLinearEquation } from './linearEquationParser.js';
 import { validateLatex } from './latexValidator.js';
-import { ensureMathDelimiters } from './mathDelimiters.js';
+import { ensureMathDelimiters, sanitizeDelimiters } from './mathDelimiters.js';
 const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -267,8 +267,10 @@ export function normalizePastedQuestionContent(clipboardOrText) {
     if (html && isMathHtml) {
         reconstructed = convertHtmlWithMath(html);
     }
-    reconstructed = ensureMathDelimiters(reconstructLinearEquation(reconstructed.trim() ? reconstructed : plain));
+    reconstructed = sanitizeDelimiters(ensureMathDelimiters(reconstructLinearEquation(reconstructed.trim() ? reconstructed : plain)));
     const extracted = extractStatementAndOptionsPreserving(reconstructed);
+    extracted.statement = sanitizeDelimiters(extracted.statement);
+    extracted.options = extracted.options.map((o) => ({ ...o, text: sanitizeDelimiters(o.text) }));
     // Validate the options too, not just the statement.
     const report = validateLatex([extracted.statement, ...extracted.options.map((o) => o.text)].join('\n'));
     return {

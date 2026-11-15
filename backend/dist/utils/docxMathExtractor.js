@@ -21,7 +21,7 @@ import { ommlNodeToLatex } from './universalMathEngine/ommlMathMLConverter.js';
 import { createDefaultNormalizedQuestion } from './questionSchema/normalizedQuestion.js';
 import { classifyQuestion, extractSolutionAndShortcuts } from './questionClassifier.js';
 import { validateQuestionLatexStructure } from './mathLatexValidator.js';
-import { extractStatementAndOptionsPreserving } from './universalMathEngine/index.js';
+import { extractStatementAndOptionsPreserving, sanitizeDelimiters } from './universalMathEngine/index.js';
 // ============================================================================
 // Safety limits
 // ============================================================================
@@ -114,19 +114,42 @@ function walkElementsInDocumentOrder(root, cb) {
 function ommlElementToInlineLatex(el) {
     const isDisplay = localName(el) === 'omathpara';
     try {
-        const latex = ommlNodeToLatex(el).replace(/\s+/g, ' ').trim();
-        if (!latex)
+        const rawLatex = ommlNodeToLatex(el).replace(/\s+/g, ' ').trim();
+        if (!rawLatex)
             return '';
+        const latex = sanitizeDelimiters(rawLatex);
         return isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `;
     }
     catch {
         return '';
     }
 }
+const WORD_SYMBOL_FONT_MAP = {
+    'a': '\\alpha', 'b': '\\beta', 'g': '\\gamma', 'd': '\\delta', 'e': '\\epsilon',
+    'z': '\\zeta', 'h': '\\eta', 'q': '\\theta', 'i': '\\iota', 'k': '\\kappa',
+    'l': '\\lambda', 'm': '\\mu', 'n': '\\nu', 'x': '\\xi', 'o': 'o',
+    'p': '\\pi', 'r': '\\rho', 's': '\\sigma', 't': '\\tau', 'u': '\\upsilon',
+    'f': '\\phi', 'c': '\\chi', 'y': '\\psi', 'w': '\\omega',
+    'A': 'A', 'B': 'B', 'G': '\\Gamma', 'D': '\\Delta', 'E': 'E',
+    'Z': 'Z', 'H': 'H', 'Q': '\\Theta', 'I': 'I', 'K': 'K',
+    'L': '\\Lambda', 'M': 'M', 'N': 'N', 'X': '\\Xi', 'O': 'O',
+    'P': '\\Pi', 'R': 'P', 'S': '\\Sigma', 'T': 'T', 'U': '\\Upsilon',
+    'F': '\\Phi', 'C': '\\Chi', 'Y': '\\Psi', 'W': '\\Omega',
+    '±': '\\pm', '≤': '\\le', '≥': '\\ge', '≠': '\\ne', '≡': '\\equiv',
+    '≈': '\\approx', '∈': '\\in', '∉': '\\notin', '⊂': '\\subset', '⊆': '\\subseteq',
+    '∪': '\\cup', '∩': '\\cap', '∞': '\\infty', '→': '\\to', '←': '\\leftarrow',
+    '↔': '\\leftrightarrow', '⇒': '\\Rightarrow', '⇔': '\\Leftrightarrow',
+    '×': '\\times', '÷': '\\div', '∂': '\\partial', '∇': '\\nabla',
+    '∫': '\\int', '∑': '\\sum', '∏': '\\prod', '√': '\\sqrt'
+};
 /**
  * Extracts all text + OMML math + image references from a paragraph-level element.
  */
 function extractParagraphText(paragraphEl, relsMap) {
+    if (localName(paragraphEl) === 'omath' || localName(paragraphEl) === 'omathpara') {
+        const latex = ommlElementToInlineLatex(paragraphEl);
+        return { text: latex.trim(), hasMath: Boolean(latex.trim()) };
+    }
     let text = '';
     let hasMath = false;
     const images = [];
@@ -142,6 +165,79 @@ function extractParagraphText(paragraphEl, relsMap) {
                 hasMath = true;
             }
             return;
+        }
+        if (name === 'r') {
+            // Check run properties for superscript, subscript, or Symbol font
+            let isSuperscript = false;
+            let isSubscript = false;
+            let isSymbolFont = false;
+            for (let i = 0; i < el.childNodes.length; i++) {
+                const child = el.childNodes[i];
+                if (child && child.nodeType === 1 && localName(child) === 'rpr') {
+                    for (let j = 0; j < child.childNodes.length; j++) {
+                        const prop = child.childNodes[j];
+                        if (prop && prop.nodeType === 1) {
+                            const propName = localName(prop);
+                            if (propName === 'vertalign') {
+                                const val = prop.getAttribute?.('w:val') || prop.getAttribute?.('val') || '';
+                                if (val === 'superscript')
+                                    isSuperscript = true;
+                                else if (val === 'subscript')
+                                    isSubscript = true;
+                            }
+                            else if (propName === 'rfonts') {
+                                const asciiFont = prop.getAttribute?.('w:ascii') || prop.getAttribute?.('ascii') || '';
+                                const hAnsiFont = prop.getAttribute?.('w:hAnsi') || prop.getAttribute?.('hAnsi') || '';
+                                if (/symbol/i.test(asciiFont) || /symbol/i.test(hAnsiFont)) {
+                                    isSymbolFont = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (isSuperscript || isSubscript || isSymbolFont) {
+                let runText = '';
+                for (let i = 0; i < el.childNodes.length; i++) {
+                    const child = el.childNodes[i];
+                    if (child && child.nodeType === 1) {
+                        const childName = localName(child);
+                        if (childName === 't') {
+                            runText += child.textContent || '';
+                        }
+                        else if (childName === 'br' || childName === 'cr') {
+                            runText += '\n';
+                        }
+                        else if (childName === 'tab') {
+                            runText += '\t';
+                        }
+                        else if (childName === 'blip' || childName === 'imagedata') {
+                            const embedId = child.getAttribute?.('r:embed') || child.getAttribute?.('r:id') || child.getAttribute?.('id');
+                            if (embedId && relsMap.has(embedId)) {
+                                const safeName = relsMap.get(embedId);
+                                images.push(safeName);
+                                runText += ` [Image: ${safeName}] `;
+                            }
+                        }
+                    }
+                }
+                if (runText) {
+                    if (isSymbolFont) {
+                        runText = runText.split('').map((char) => WORD_SYMBOL_FONT_MAP[char] || char).join('');
+                        hasMath = true;
+                    }
+                    if (isSuperscript) {
+                        runText = `^{${runText.trim()}}`;
+                        hasMath = true;
+                    }
+                    else if (isSubscript) {
+                        runText = `_{${runText.trim()}}`;
+                        hasMath = true;
+                    }
+                    text += runText;
+                }
+                return;
+            }
         }
         if (name === 't') {
             text += el.textContent || '';
@@ -163,7 +259,7 @@ function extractParagraphText(paragraphEl, relsMap) {
             if (embedId && relsMap.has(embedId)) {
                 const safeName = relsMap.get(embedId);
                 images.push(safeName);
-                text += ` [Image: ${safeName}] `;
+                text += ` ![Diagram](${safeName}) `;
             }
         }
         for (let i = 0; i < el.childNodes.length; i++) {
@@ -322,24 +418,60 @@ export async function extractDocxMath(buffer, warnings = [], errorLog = []) {
     // 7. Walk the document body collecting paragraphs and tables in natural reading order
     const paragraphs = [];
     const blocks = [];
-    const allParagraphEls = [];
-    walkElementsInDocumentOrder(doc.documentElement, (el) => {
-        if (localName(el) === 'p') {
-            allParagraphEls.push(el);
+    function processElement(el) {
+        if (!el || el.nodeType !== 1)
+            return;
+        const n = localName(el);
+        if (n === 'p') {
+            const para = extractParagraphText(el, relsMap);
+            if (para.text) {
+                paragraphs.push(para);
+                blocks.push({
+                    type: 'paragraph',
+                    text: para.text,
+                    hasMath: para.hasMath,
+                    images: para.images
+                });
+            }
         }
-    });
-    for (const pEl of allParagraphEls) {
-        const para = extractParagraphText(pEl, relsMap);
-        if (para.text) {
-            paragraphs.push(para);
-            blocks.push({
-                type: 'paragraph',
-                text: para.text,
-                hasMath: para.hasMath,
-                images: para.images
-            });
+        else if (n === 'tbl') {
+            const tblBlock = extractTableBlock(el, relsMap);
+            if (tblBlock.markdownText) {
+                const hasMath = tblBlock.markdownText.includes('$');
+                paragraphs.push({ text: tblBlock.markdownText, hasMath });
+                blocks.push({
+                    type: 'table',
+                    text: tblBlock.markdownText,
+                    hasMath,
+                    tableData: tblBlock
+                });
+            }
+        }
+        else if (n === 'omathpara' || n === 'omath') {
+            const parent = localName(el.parentNode);
+            if (parent !== 'p' && parent !== 'omathpara') {
+                const para = extractParagraphText(el, relsMap);
+                if (para.text) {
+                    paragraphs.push(para);
+                    blocks.push({
+                        type: 'paragraph',
+                        text: para.text,
+                        hasMath: true
+                    });
+                }
+            }
+        }
+        else {
+            // Container element (w:document, w:body, w:sdt, w:sdtContent, w:txbxContent, etc.)
+            const children = el.childNodes;
+            if (children) {
+                for (let i = 0; i < children.length; i++) {
+                    processElement(children[i]);
+                }
+            }
         }
     }
+    processElement(doc.documentElement);
     const media = Array.from(mediaMap.values());
     const rawText = paragraphs.map((p) => p.text).join('\n');
     return {

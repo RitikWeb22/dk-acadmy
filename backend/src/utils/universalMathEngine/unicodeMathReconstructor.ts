@@ -263,11 +263,12 @@ export function reconstructGreekAndOperators(
   });
 
   if (numberSets) {
-    // where α,β∈Z -> where \alpha,\beta \in \mathbb{Z}
+    // where α,β∈Z -> where \alpha,\beta \in \mathbb{Z} (except tuples (a,b) \in R in relation R)
     s = s.replace(
-      /\\(in|notin|subseteq|subset)(?![A-Za-z])\s*(Z|R)\b/g,
+      /(?<!\)\s*)\\(in|notin|subseteq|subset)(?![A-Za-z])\s*(Z|R)\b/g,
       '\\$1 \\mathbb{$2}'
     );
+    s = s.replace(/(\(\s*[-+0-9a-zA-Z_\\^'′]+\s*,\s*[-+0-9a-zA-Z_\\^'′]+\s*\)\s*\\(?:in|notin)\s*)\\mathbb\{R\}(?!\s*\\times)/g, '$1 R');
   }
   return s;
 }

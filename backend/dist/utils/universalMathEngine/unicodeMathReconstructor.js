@@ -237,8 +237,9 @@ export function reconstructGreekAndOperators(text, options = {}) {
         return /^[A-Za-z0-9]/.test(nextOut) ? `${latex} ` : latex;
     });
     if (numberSets) {
-        // where α,β∈Z -> where \alpha,\beta \in \mathbb{Z}
-        s = s.replace(/\\(in|notin|subseteq|subset)(?![A-Za-z])\s*(Z|R)\b/g, '\\$1 \\mathbb{$2}');
+        // where α,β∈Z -> where \alpha,\beta \in \mathbb{Z} (except tuples (a,b) \in R in relation R)
+        s = s.replace(/(?<!\)\s*)\\(in|notin|subseteq|subset)(?![A-Za-z])\s*(Z|R)\b/g, '\\$1 \\mathbb{$2}');
+        s = s.replace(/(\(\s*[-+0-9a-zA-Z_\\^'′]+\s*,\s*[-+0-9a-zA-Z_\\^'′]+\s*\)\s*\\(?:in|notin)\s*)\\mathbb\{R\}(?!\s*\\times)/g, '$1 R');
     }
     return s;
 }

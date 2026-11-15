@@ -209,6 +209,46 @@ export function parseWordMatricesAndCases(input: string): string {
     markerRegex.lastIndex = fullMatchStart + replacement.length;
   }
 
+  // Semicolon determinants inside | ... |: | 1 a a²; 1 b b²; 1 c c² | or | a1 a2 a3; b1 b2 b3; c1 c2 c3 |
+  s = s.replace(/(?<![a-zA-Z0-9_\\|])\|\s*([^;|]+(?:;[^;|]+)+)\s*\|(?![a-zA-Z0-9_\\|])/g, (_m, body) => {
+    const rows = body.split(';').map((row: string) => {
+      const trimmed = row.trim();
+      const cells = trimmed.includes(',')
+        ? trimmed.split(',').map((c: string) => c.trim())
+        : trimmed.split(/\s+/).map((c: string) => c.trim());
+      return cells.join(' & ');
+    });
+    return `\\begin{vmatrix} ${rows.join(' \\\\ ')} \\end{vmatrix}`;
+  });
+
+  // Nested bracket matrices: [[1,2,3],[0,-1,4],[2,1,0]]
+  s = s.replace(/\[\s*(\[[^\[\]]+\](?:\s*,\s*\[[^\[\]]+\])+)\s*\]/g, (_m, body) => {
+    const rowMatches = body.match(/\[([^\[\]]+)\]/g);
+    if (!rowMatches) return _m;
+    const rows = rowMatches.map((r: string) => {
+      const inner = r.replace(/^\[\s*/, '').replace(/\s*\]$/, '');
+      const cells = inner.split(',').map((c: string) => c.trim());
+      return cells.join(' & ');
+    });
+    return `\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}`;
+  });
+
+  // Piecewise / cases with semicolons: f(x) = { x²+2x+1, x<0 ; sin(x), 0≤x≤π ; e^(-x), x>π }
+  s = s.replace(/(?:([a-zA-Z]\s*\([a-zA-Z0-9_,\s]+\)\s*=\s*))?\{\s*([^;{}]+(?:;[^;{}]+)+)\s*\}/g, (_m, lhs, body) => {
+    const branches = body.split(';').map((br: string) => {
+      const trimmed = br.trim();
+      const commaIdx = trimmed.indexOf(',');
+      if (commaIdx !== -1) {
+        const val = trimmed.slice(0, commaIdx).trim();
+        const cond = trimmed.slice(commaIdx + 1).trim();
+        return `${val}, & ${cond}`;
+      }
+      return trimmed;
+    });
+    const env = `\\begin{cases} ${branches.join(' \\\\ ')} \\end{cases}`;
+    return lhs ? `${lhs}${env}` : env;
+  });
+
   // Domain & codomain: Let f,g:R→R or f:R->R
   s = s.replace(/\b([a-zA-Z](?:\s*,\s*[a-zA-Z])*)\s*:\s*([RNZQ])\s*(?:→|->|\\to)\s*([RNZQ])\b/g, (_m, funcs, d, cd) => {
     const formattedFuncs = funcs.split(',').map((f: string) => f.trim()).join(', ');
@@ -256,6 +296,59 @@ export function convertUnicodeMathToLatex(text: string): string {
   res = res.replace(/cosec([a-zA-Z])(?=[a-zA-Z\s\(\)\[\]]|$)/gi, '\\csc $1 ');
   res = res.replace(/\bcot\s*([a-zA-Z])\b/gi, '\\cot $1');
   res = res.replace(/cot([a-zA-Z])(?=[a-zA-Z\s\(\)\[\]]|$)/gi, '\\cot $1 ');
+
+  // Combining vector arrow U+20D7: a⃗ -> \vec{a}
+  res = res.replace(/([a-zA-Z])\u20D7/gu, '\\vec{$1}');
+
+  // Blackboard bold mathematical sets
+  res = res.replace(/[ℝ\u211D]/gu, '\\mathbb{R}');
+  res = res.replace(/[ℕ\u2115]/gu, '\\mathbb{N}');
+  res = res.replace(/[ℤ\u2124]/gu, '\\mathbb{Z}');
+  res = res.replace(/[ℚ\u211A]/gu, '\\mathbb{Q}');
+  res = res.replace(/[ℂ\u2102]/gu, '\\mathbb{C}');
+
+  // Binomial coefficient: C(n,r) -> \binom{n}{r}
+  res = res.replace(/\bC\s*\(\s*([a-zA-Z0-9]+)\s*,\s*([a-zA-Z0-9]+)\s*\)/g, '\\binom{$1}{$2}');
+
+  // Radical with superscript index: ⁴√(x⁸+1) -> \sqrt[4]{x^8+1}
+  const supToRootNum: Record<string, string> = {
+    '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', 'ⁿ': 'n'
+  };
+  res = res.replace(/([²³⁴⁵⁶⁷⁸⁹ⁿ])\s*[√](?:\(([^()]+)\)|\[([^\[\]]+)\]|([a-zA-Z0-9]+))/g, (_m, sup, p1, p2, p3) => {
+    const root = supToRootNum[sup] || sup;
+    const body = p1 || p2 || p3;
+    return `\\sqrt[${root}]{${body}}`;
+  });
+
+  // Group consecutive subscripts: e.g. ᵣ₌₀ -> _{r=0}, ₙ₌₁ -> _{n=1}
+  const fullSubMap: Record<string, string> = {
+    '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
+    '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
+    '₊': '+', '₋': '-', '₌': '=',
+    'ᵣ': 'r', 'ₙ': 'n', 'ₖ': 'k', 'ᵢ': 'i', 'ⱼ': 'j', 'ₘ': 'm',
+    'ₚ': 'p', 'ₛ': 's', 'ₜ': 't', 'ₐ': 'a', 'ₑ': 'e', 'ₒ': 'o', 'ₓ': 'x'
+  };
+  res = res.replace(/([₀₁₂₃₄₅₆₇₈₉₊₋₌ᵣₙₖᵢⱼₘₚₛₜₐₑₒₓ]+)/gu, (match) => {
+    const content = Array.from(match).map((c) => fullSubMap[c] || c).join('');
+    return `_{${content}}`;
+  });
+
+  // Group consecutive superscripts: e.g. ⁻¹ -> ^{-1}, ⁿ⁻ʳ -> ^{n-r}
+  const fullSupMap: Record<string, string> = {
+    '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+    '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+    '⁺': '+', '⁻': '-', '⁼': '=',
+    'ⁿ': 'n', 'ⁱ': 'i', 'ʳ': 'r'
+  };
+  res = res.replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼ⁿⁱʳ]+)/gu, (match) => {
+    const content = Array.from(match).map((c) => fullSupMap[c] || c).join('');
+    return `^{${content}}`;
+  });
+
+  // Summation, product, and integral operators before limits/subscripts
+  res = res.replace(/(?:\\Sigma|Σ|∑)\s*(?=_[{0-9a-zA-Z]|\^)/g, '\\sum ');
+  res = res.replace(/(?:\\Pi|∏)\s*(?=_[{0-9a-zA-Z]|\^)/g, '\\prod ');
+  res = res.replace(/∫\s*(?=_[{0-9a-zA-Z]|\^)/g, '\\int ');
 
   // Superscript numbers: ², ³, ⁴, ⁿ
   const superMap: Record<string, string> = {
@@ -590,7 +683,29 @@ export function convertLiteralCurlyBraces(latex: string): string {
 
   let result = '';
   let i = 0;
-  const stack: Array<{ kind: 'syntax' | 'literal'; macro?: string; argIndex?: number }> = [];
+  const pendingMacros: Array<{ name: string; remainingArgs: number; activeDepth?: number }> = [];
+  const braceStack: Array<{ kind: 'syntax' | 'literal'; macroOwner?: { name: string; remainingArgs: number; activeDepth?: number } }> = [];
+
+  function findMatchingBrace(str: string, startIdx: number): number {
+    let d = 1;
+    for (let k = startIdx + 1; k < str.length; k++) {
+      if (str[k] === '\\') { k++; continue; }
+      if (str[k] === '{') d++;
+      else if (str[k] === '}') {
+        d--;
+        if (d === 0) return k;
+      }
+    }
+    return -1;
+  }
+
+  function isSetContent(inner: string, prevStr: string): boolean {
+    if (/,/.test(inner)) return true;
+    if (/(?:^|\s)[x-z0-9]\s*[:|]\s*[a-zA-Z0-9]/.test(inner)) return true;
+    if (/\\in|\\notin|\\subset|\\subseteq|\\cup|\\cap/.test(inner)) return true;
+    if (/(?:\\in|\\notin|\\subset|\\subseteq|\\cup|\\cap|=|\\setminus)\s*$/.test(prevStr.trim())) return true;
+    return false;
+  }
 
   while (i < latex.length) {
     const ch = latex[i];
@@ -614,44 +729,35 @@ export function convertLiteralCurlyBraces(latex: string): string {
         result += macroMatch[0];
         i += macroMatch[0].length;
 
-        while (i < latex.length && /\s/.test(latex[i])) {
-          result += latex[i];
-          i++;
-        }
+        let expected = 0;
+        if (twoArgMacros.has(macroName)) expected = 2;
+        else if (oneArgMacros.has(macroName)) expected = 1;
 
-        if (macroName === 'sqrt' && latex[i] === '[') {
-          let opt = '[';
-          i++;
-          while (i < latex.length && latex[i] !== ']') {
-            opt += latex[i];
-            i++;
-          }
-          if (i < latex.length) {
-            opt += ']';
-            i++;
-          }
-          result += opt;
+        if (expected > 0) {
           while (i < latex.length && /\s/.test(latex[i])) {
             result += latex[i];
             i++;
           }
-        }
-
-        if (latex[i] === '{') {
-          if (twoArgMacros.has(macroName)) {
-            stack.push({ kind: 'syntax', macro: macroName, argIndex: 1 });
-            result += '{';
+          if (macroName === 'sqrt' && latex[i] === '[') {
+            let opt = '[';
             i++;
-          } else if (oneArgMacros.has(macroName)) {
-            stack.push({ kind: 'syntax', macro: macroName, argIndex: 1 });
-            result += '{';
-            i++;
-          } else {
-            stack.push({ kind: 'literal' });
-            result += '\\{';
-            i++;
+            while (i < latex.length && latex[i] !== ']') {
+              opt += latex[i];
+              i++;
+            }
+            if (i < latex.length) {
+              opt += ']';
+              i++;
+            }
+            result += opt;
+            while (i < latex.length && /\s/.test(latex[i])) {
+              result += latex[i];
+              i++;
+            }
           }
-          continue;
+          if (latex[i] === '{') {
+            pendingMacros.push({ name: macroName, remainingArgs: expected });
+          }
         }
         continue;
       }
@@ -669,60 +775,75 @@ export function convertLiteralCurlyBraces(latex: string): string {
         i++;
       }
       if (latex[i] === '{') {
-        stack.push({ kind: 'syntax' });
-        result += '{';
-        i++;
-        continue;
+        pendingMacros.push({ name: ch, remainingArgs: 1 });
       }
       continue;
     }
 
     if (ch === '{') {
-      const top = stack[stack.length - 1];
-      if (top && top.kind === 'syntax' && top.macro && twoArgMacros.has(top.macro) && top.argIndex === 2) {
+      const topPending = pendingMacros[pendingMacros.length - 1];
+      if (topPending && topPending.remainingArgs > 0 && (!topPending.activeDepth || topPending.activeDepth === 0)) {
+        topPending.remainingArgs--;
+        topPending.activeDepth = 1;
+        braceStack.push({ kind: 'syntax', macroOwner: topPending });
         result += '{';
         i++;
         continue;
       }
 
-      stack.push({ kind: 'literal' });
-      result += '\\{';
-      i++;
-      continue;
-    }
-
-    if (ch === '}') {
-      const top = stack.pop();
-      if (top && top.kind === 'literal') {
-        result += '\\}';
+      if (braceStack.length === 0) {
+        braceStack.push({ kind: 'literal' });
+        result += '\\{';
         i++;
         continue;
       }
 
-      result += '}';
-      i++;
-
-      if (top && top.macro && twoArgMacros.has(top.macro) && top.argIndex === 1) {
-        let peek = i;
-        while (peek < latex.length && /\s/.test(latex[peek])) peek++;
-        if (peek < latex.length && latex[peek] === '{') {
-          stack.push({ kind: 'syntax', macro: top.macro, argIndex: 2 });
-        }
+      const closeIdx = findMatchingBrace(latex, i);
+      const inner = closeIdx > i ? latex.slice(i + 1, closeIdx) : '';
+      const prev = result;
+      if (isSetContent(inner, prev)) {
+        braceStack.push({ kind: 'literal' });
+        result += '\\{';
+        i++;
+      } else {
+        braceStack.push({ kind: 'syntax' });
+        result += '{';
+        i++;
       }
       continue;
+    }
+
+    if (ch === '}') {
+      const top = braceStack.pop();
+      if (top && top.kind === 'literal') {
+        result += '\\}';
+      } else {
+        result += '}';
+      }
+      if (top && top.macroOwner) {
+        top.macroOwner.activeDepth = 0;
+        if (top.macroOwner.remainingArgs === 0) {
+          pendingMacros.pop();
+        }
+      }
+      i++;
+      continue;
+    }
+
+    if (pendingMacros.length > 0 && !/\s/.test(ch)) {
+      const topPending = pendingMacros[pendingMacros.length - 1];
+      if (topPending && topPending.remainingArgs > 0 && (!topPending.activeDepth || topPending.activeDepth === 0)) {
+        pendingMacros.pop();
+      }
     }
 
     result += ch;
     i++;
   }
 
-  while (stack.length > 0) {
-    const top = stack.pop();
-    if (top && top.kind === 'literal') {
-      result += '\\}';
-    } else {
-      result += '}';
-    }
+  while (braceStack.length > 0) {
+    const top = braceStack.pop();
+    result += top && top.kind === 'literal' ? '\\}' : '}';
   }
 
   return result;
@@ -750,6 +871,20 @@ export function repairLinearMathResidues(text: string): string {
        .replace(/([a-zA-Z\\]+)\s*\^\s*\{?\s*['′]\s*\}?/g, "$1'")
        .replace(/\^\s*\{?\s*['′]\s*\}?/g, "'");
 
+  // PDF / Word clipboard circumflex and hat accent artifacts:
+  // e.g. x ^\in [0,3] -> \hat{x} \in [0,3], x `\in -> \hat{x} \in, x ˆ\in -> \hat{x} \in, x ̂ -> \hat{x}
+  s = s.replace(/([a-zA-Z])\s*[\^ˆ`\u0302]\s*(?=\\in\b|\\notin\b|[∈∉⊆⊂]|<=|>=|<|>|=|!=|≠)/g, '\\hat{$1} ');
+  s = s.replace(/([a-zA-Z])\u0302/g, '\\hat{$1}');
+
+  // Extra spaces inside function call parens: f'(x ) -> f'(x), g'(x ) -> g'(x)
+  s = s.replace(/([a-zA-Z]['′]?)\s*\(\s*([a-zA-Z0-9_\\]+)\s+\)/g, '$1($2)');
+
+  // Glued min / max operators before functions or delimiters:
+  // e.g. minf'(x) -> \min f'(x), maxg'(x) -> \max g'(x), maxf(x) -> \max f(x), min(a,b) -> \min(a,b)
+  s = s.replace(/(?<![a-zA-Z\\])(min|max)(?=[fghxyzuvwFGHXYZUVW](?:'|\(|\b))/gi, (_m, op) => `\\${op.toLowerCase()} `);
+  s = s.replace(/(?<![a-zA-Z\\])(min|max)(?=\s*[({_\\|])/gi, (_m, op) => `\\${op.toLowerCase()} `);
+  s = s.replace(/(?<![a-zA-Z\\])\b(min|max)\b(?!\s*(?:imum|imal|imize|or|ors|ority|ute|us)\b)(?=\s+[a-zA-Z0-9])/gi, (_m, op) => `\\${op.toLowerCase()}`);
+
   // Word linear limits: (lim)┬(h→0) or (lim)┬(h->0) or lim┬(x→0) or (lim)_(h→0) or lim_(x→0)
   s = s.replace(/(?:\(?\\?lim\)?)\s*[┬┴]\s*\(([^()]+)\)/gi, (_m, cond) => {
     const c = cond.trim().replace(/[→⟶]|->|(?<!\\)to\b/g, '\\to ').replace(/\\infty|\u221E|\binf\b/gi, '\\infty');
@@ -774,6 +909,46 @@ export function repairLinearMathResidues(text: string): string {
 
   // Function dot multiplication: f(x).f(y) -> f(x) \cdot f(y)
   s = s.replace(/([a-zA-Z]\s*\([^()]+\))\s*\.\s*([a-zA-Z]\s*\([^()]+\))/g, '$1 \\cdot $2');
+
+  // Semicolon determinants inside | ... |: | 1 a a²; 1 b b²; 1 c c² | or | a1 a2 a3; b1 b2 b3; c1 c2 c3 |
+  s = s.replace(/(?<![a-zA-Z0-9_\\|])\|\s*([^;|]+(?:;[^;|]+)+)\s*\|(?![a-zA-Z0-9_\\|])/g, (_m, body) => {
+    const rows = body.split(';').map((row: string) => {
+      const trimmed = row.trim();
+      const cells = trimmed.includes(',')
+        ? trimmed.split(',').map((c: string) => c.trim())
+        : trimmed.split(/\s+/).map((c: string) => c.trim());
+      return cells.join(' & ');
+    });
+    return `\\begin{vmatrix} ${rows.join(' \\\\ ')} \\end{vmatrix}`;
+  });
+
+  // Nested bracket matrices: [[1,2,3],[0,-1,4],[2,1,0]]
+  s = s.replace(/\[\s*(\[[^\[\]]+\](?:\s*,\s*\[[^\[\]]+\])+)\s*\]/g, (_m, body) => {
+    const rowMatches = body.match(/\[([^\[\]]+)\]/g);
+    if (!rowMatches) return _m;
+    const rows = rowMatches.map((r: string) => {
+      const inner = r.replace(/^\[\s*/, '').replace(/\s*\]$/, '');
+      const cells = inner.split(',').map((c: string) => c.trim());
+      return cells.join(' & ');
+    });
+    return `\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}`;
+  });
+
+  // Piecewise / cases with semicolons: f(x) = { x²+2x+1, x<0 ; sin(x), 0≤x≤π ; e^(-x), x>π }
+  s = s.replace(/(?:([a-zA-Z]\s*\([a-zA-Z0-9_,\s]+\)\s*=\s*))?\{\s*([^;{}]+(?:;[^;{}]+)+)\s*\}/g, (_m, lhs, body) => {
+    const branches = body.split(';').map((br: string) => {
+      const trimmed = br.trim();
+      const commaIdx = trimmed.indexOf(',');
+      if (commaIdx !== -1) {
+        const val = trimmed.slice(0, commaIdx).trim();
+        const cond = trimmed.slice(commaIdx + 1).trim();
+        return `${val}, & ${cond}`;
+      }
+      return trimmed;
+    });
+    const env = `\\begin{cases} ${branches.join(' \\\\ ')} \\end{cases}`;
+    return lhs ? `${lhs}${env}` : env;
+  });
 
   // Domain & codomain: Let f,g:R→R or f:R->R
   s = s.replace(/\b([a-zA-Z](?:\s*,\s*[a-zA-Z])*)\s*:\s*([RNZQ])\s*(?:[→⟶]|->|\\to)\s*([RNZQ])\b/g, (_m, funcs, d, cd) => {
@@ -808,7 +983,9 @@ export function repairLinearMathResidues(text: string): string {
 
   // Differentials: dy/(" "\, dx) -> \dfrac{dy}{dx}, d^n/dx^n -> \dfrac{d^n}{dx^n}
   s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*\(\s*(?:["'][^"']*["'])?\s*(?:\\,)?\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\)/g, '\\dfrac{$1}{$2}');
-  s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\b/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\b(d(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?[a-zA-Z]?)\s*\/\s*(d[a-zA-Z](?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)(?![a-zA-Z0-9_^{])/g, '\\dfrac{$1}{$2}');
+  s = s.replace(/\bd\/dx\s*\[/g, '\\dfrac{d}{dx}\\left[');
+  s = s.replace(/(?<!\\)\b(det)\b(?!\s*[\\])/g, '\\$1');
   s = s.replace(/\(\s*["'][^"']*["']\s*(?:\\,)?\s*(d[a-zA-Z])\s*\)/g, '\\,$1');
 
   // Repair corrupted differential residues:
@@ -1111,7 +1288,7 @@ export function wrapBareLatexInDollars(text: string): string {
 
   // 8. General equations with LaTeX operators / functions: A^{-1} = ..., E = E^\circ - ...
   s = s.replace(
-    new RegExp(`(${proseLead})?([-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]\\s.]+=([-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\]\\s.]|\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\})+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'),
+    new RegExp(`(${proseLead})?([-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\],\\s.]+=([-a-zA-Z0-9_^{}()'|\\\\+*/\\[\\],\\s.]|\\\\(?:d?frac)\\{[^{}]+\\}\\{[^{}]+\\})+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'),
     (fullMatch, lead, eq) => {
       let activeLead = lead || '';
       let activeEq = eq;
@@ -1171,19 +1348,20 @@ export function wrapBareLatexInDollars(text: string): string {
     return m.replace(/\(\s*[^,()\n]+\s*,\s*[^,()\n]+(?:\s*,\s*[^,()\n]+)?\s*\)/g, (pt) => protect(pt));
   });
 
-  // 12a. Chain inequalities: e.g. 0 < x < \dfrac{\pi}{2} or -1 \le x \le 1
+  // 12a. Chain inequalities: e.g. 0 < x < \dfrac{\pi}{2} or 0 < x_1 < x_2 < 3 or -1 \le x \le 1
   s = s.replace(
-    /(?<![$\w])([-+]?[0-9a-zA-Z_^{}()\\]+(?:\/[-+]?[0-9a-zA-Z_^{}()\\]+)?\s*(?:<|>|<=|>=|≤|≥|\\le\b|\\ge\b|\\leq\b|\\geq\b)\s*[-+]?[0-9a-zA-Z_^{}()\\]+\s*(?:<|>|<=|>=|≤|≥|\\le\b|\\ge\b|\\leq\b|\\geq\b)\s*[-+]?(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[0-9a-zA-Z_^{}()\\]+))(?![$\w])/gi,
+    /(?<![$\w])([-+]?[0-9a-zA-Z_^{}()'′\\]+(?:\/[-+]?[0-9a-zA-Z_^{}()'′\\]+)?(?:\s*(?:<|>|<=|>=|≤|≥|\\le\b|\\ge\b|\\leq\b|\\geq\b)\s*[-+]?(?:\\(?:d?frac)\{[^{}]+\}\{[^{}]+\}|[0-9a-zA-Z_^{}()'′\\]+)){2,})(?![$\w])/gi,
     (_, m) => protect(m)
   );
 
-  // 12. Inequalities & non-equalities: x > 1, \alpha, \beta > 0, f(x) \ne 0, \det A \neq 0
+  // 12. Inequalities & non-equalities: x > 1, f'(x) < g'(x), \alpha, \beta > 0, f(x) \ne 0, \det A \neq 0
   s = s.replace(
-    new RegExp(`(?<![$\\w])((?:\\\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+)(?:\\s*,\\s*(?:\\\\[a-zA-Z]+|[a-zA-Z0-9_^{}()]+))*\\s*(?:[><=≤≥≠]|\\\\(?:ne\\b|neq\\b|le\\b|ge\\b|leq\\b|geq\\b))\\s*[-+]?[0-9a-zA-Z_\\\\]+)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'g'),
+    new RegExp(`(?<![$\\w])([-+*/0-9a-zA-Z_\\\\^{}()'′]+(?:\\s*[-+*/]\\s*[-+*/0-9a-zA-Z_\\\\^{}()'′]+)*\\s*(?:[><≤≥≠]|<=|>=|\\\\(?:ne\\b|neq\\b|le\\b|ge\\b|leq\\b|geq\\b))\\s*[-+*/0-9a-zA-Z_\\\\^{}()'′]+(?:\\s*[-+*/]\\s*[-+*/0-9a-zA-Z_\\\\^{}()'′]+)*)(?=\\s*[,;.]|\\s+${proseStops}|$)`, 'gi'),
     (fullMatch, eq) => {
       const nonLatex = eq.replace(/\\[a-zA-Z]+/g, ' ');
-      if (/\b(?:if|then|and|where|when|for|let)\b/i.test(nonLatex)) return fullMatch;
-      return protect(eq);
+      if (/\b(?:if|then|and|where|when|for|let|is|are|the|statement|statements)\b/i.test(nonLatex)) return fullMatch;
+      if (!/[0-9a-zA-Z]/.test(eq)) return fullMatch;
+      return protect(eq.trim());
     }
   );
 
@@ -1398,12 +1576,39 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/\s*\.$/, '');
   s = s.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
+  // PDF / Word clipboard circumflex and hat accent artifacts:
+  // e.g. x ^\in [0,3] -> \hat{x} \in [0,3], x `\in -> \hat{x} \in, x ˆ\in -> \hat{x} \in, x ̂ -> \hat{x}
+  s = s.replace(/([a-zA-Z])\s*[\^ˆ`\u0302]\s*(?=\\in\b|\\notin\b|[∈∉⊆⊂]|<=|>=|<|>|=|!=|≠)/g, '\\hat{$1} ');
+  s = s.replace(/([a-zA-Z])\u0302/g, '\\hat{$1}');
+  s = s.replace(/([a-zA-Z])\s*[\^ˆ`]\s+(?=[0-9a-zA-Z_\\([{])/g, '\\hat{$1} ');
+
+  // Extra spaces inside function call parens: f'(x ) -> f'(x), g'(x ) -> g'(x)
+  s = s.replace(/([a-zA-Z]['′]?)\s*\(\s*([a-zA-Z0-9_\\]+)\s+\)/g, '$1($2)');
+
+  // Glued min / max operators before functions or delimiters:
+  // e.g. minf'(x) -> \min f'(x), maxg'(x) -> \max g'(x), maxf(x) -> \max f(x), min(a,b) -> \min(a,b)
+  s = s.replace(/(?<![a-zA-Z\\])(min|max)(?=[fghxyzuvwFGHXYZUVW](?:'|\(|\b))/gi, (_m, op) => `\\${op.toLowerCase()} `);
+  s = s.replace(/(?<![a-zA-Z\\])(min|max)(?=\s*[({_\\|])/gi, (_m, op) => `\\${op.toLowerCase()} `);
+  s = s.replace(/(?<![a-zA-Z\\])\b(min|max)\b(?!\s*(?:imum|imal|imize|or|ors|ority|ute|us)\b)(?=\s+[a-zA-Z0-9])/gi, (_m, op) => `\\${op.toLowerCase()}`);
+
   if (
     (s.startsWith('$') && s.endsWith('$') && !s.slice(1, -1).includes('$')) ||
     (s.startsWith('\\(') && s.endsWith('\\)')) ||
     (s.startsWith('\\[') && s.endsWith('\\]'))
   ) {
     return s.replace(/\\frac\b/g, '\\dfrac');
+  }
+
+  // Check if option contains English prose (e.g. "there exists \hat{x} \in [0,3] such that...", "Both A and B")
+  const PROSE_PATTERN = /\b(?:there\s+exists?|there\s+exist|such\s+that|where|when|for\s+all|for\s+every|for\s+some|which|is|are|was|were|be|been|has|have|strictly|increasing|decreasing|monotonic|continuous|differentiable|roots?|solutions?|real|distinct|at\s+least|at\s+most|exactly|none|both|neither|either|cannot|can|not|true|false|correct|incorrect|statement|above|below)\b/i;
+  const hasProse = PROSE_PATTERN.test(s);
+  const hasMath = /[\\^_\d+*/=><≤≥≠∈∉∀∃]/.test(s) || /[a-zA-Z]\s*\([^()]+\)/.test(s);
+
+  if (hasProse) {
+    if (hasMath) {
+      return normalizeCanonicalMath(s);
+    }
+    return s;
   }
 
   // 1. Plain text fraction and exponential tokens in options
@@ -1429,7 +1634,7 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/e\s*\\pi\s*\/\s*([0-9]+)/gi, 'e^{\\dfrac{\\pi}{$1}}');
 
   // 1b. Logarithm conversions: log_e 2 -> \log_e 2, ln x -> \ln x
-  s = s.replace(/\blog_([a-zA-Z0-9]+|\{[^{}]+\})/g, '\\log_{$1}');
+  s = s.replace(/(?<!\\)\blog_([a-zA-Z0-9]+|\{[^{}]+\})/g, '\\log_{$1}');
   s = s.replace(/(?<!\\)\b(log|ln)\b/g, '\\$1');
 
   // Exponents with nested parens e.g. (8)^(1/4) -> (8)^{1/4} and prime derivatives
@@ -1475,13 +1680,85 @@ export function normalizeOptionMath(raw: string): string {
   s = s.replace(/\\frac\b/g, '\\dfrac');
   s = s.replace(/(\\(?:pi|alpha|beta|gamma|theta|lambda|mu|omega)(?:\^[0-9a-zA-Z]+|\^\{[^{}]+\})?)\s*\/\s*([a-zA-Z0-9]+)/g, '\\dfrac{$1}{$2}');
 
-  // 5. English prose check vs mathematical expression
-  const isEnglishProse = /\b(?:none|both|all|neither|either|cannot|can|not|be|determined|true|false|correct|incorrect|statement|above|below)\b/i.test(s);
-  const isMathExpr = /[\^_\\]|\b\d+\b|[+\-*/=><≤≥≠]/.test(s);
+  s = sanitizeDelimiters(s);
 
-  if (!isEnglishProse && isMathExpr) {
+  // Pure math option: wrap in $ ... $
+  const isMathExpr = /[\^_\\]|\b\d+\b|[+\-*/=><≤≥≠]/.test(s);
+  if (isMathExpr) {
     return `$${s}$`;
   }
+  return s;
+}
+
+/**
+ * Sanitizes and repairs unclosed, missing, or mismatched \left and \right delimiters.
+ * Handles recurring real-world JEE copy-paste and Word/OCR corruptions:
+ * - \right\tan or \right \tan -> \right) \tan
+ * - \right\cos, \right\sin, \right\sqrt, \right\dfrac, etc.
+ * - \left( ... \right. -> \left( ... \right)
+ * - \left[ ... \right. -> \left[ ... \right]
+ * - Stray orphan $\right.$ or \right. with no \left
+ * - Preserves legitimate piecewise cases \left\{ \begin{cases} ... \end{cases} \right.
+ */
+export function sanitizeDelimiters(text: string): string {
+  if (!text) return '';
+  let s = text;
+
+  // 1. Strip orphan $\right.$ or $\left.$ with no paired delimiter across the whole string
+  s = s.replace(/\$\s*\\right\s*\.\s*\$/g, '');
+  s = s.replace(/\$\s*\\left\s*\.\s*\$/g, '');
+  s = s.replace(/(^|[\s.,;:!?])\\right\s*\.(?=\s*[\s.,;:!?]|$)/g, '$1');
+
+  // Valid right delimiter commands in LaTeX:
+  const validRightDelimCmds = '(?:[}\\\\|]|rangle|rceil|rfloor|rgroup|rmoustache|vert|Vert|uparrow|downarrow|updownarrow|Uparrow|Downarrow|Updownarrow)\\b';
+
+  // 2a. Fix \right followed immediately (or with spaces) by a non-delimiter LaTeX command:
+  const nonDelimCmdRegex = new RegExp(`\\\\right\\s*(\\\\(?!(?:${validRightDelimCmds}))[a-zA-Z]+)`, 'g');
+  s = s.replace(nonDelimCmdRegex, (_m, cmd) => `\\right) ${cmd}`);
+
+  // 2b. Fix \right followed by whitespace and non-delimiter characters:
+  const validSingleRightDelims = '[\\]\\)\\}\\/\\|.]';
+  s = s.replace(new RegExp(`\\\\right\\s+(?!${validSingleRightDelims}|\\\\(?:${validRightDelimCmds}))`, 'g'), '\\right) ');
+
+  // 2c. Fix \right followed immediately by closing curly brace, dollar sign, or end of string:
+  s = s.replace(/\\right\s*(?=\}|\$|$)/g, '\\right) ');
+
+  // 2d. Fix \left followed by non-delimiter LaTeX command:
+  const validLeftDelimCmds = '(?:[{\\\\|]|langle|lceil|lfloor|lgroup|lmoustache|vert|Vert|uparrow|downarrow|updownarrow|Uparrow|Downarrow|Updownarrow)\\b';
+  const nonDelimLeftCmdRegex = new RegExp(`\\\\left\\s*(\\\\(?!(?:${validLeftDelimCmds}))[a-zA-Z]+)`, 'g');
+  s = s.replace(nonDelimLeftCmdRegex, (_m, cmd) => `\\left( ${cmd}`);
+
+  // 3. Fix \left( ... \right. where opening is '(' but closing is dummy dot '.'
+  s = s.replace(/(\\left\s*\(\s*(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*?)\\right\s*\./g, '$1\\right)');
+  s = s.replace(/(\\left\s*\[\s*(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*?)\\right\s*\./g, '$1\\right]');
+
+  // For \left\{ ... \right., only change to \right\} if NOT enclosing an environment (cases, matrix, aligned, array)
+  s = s.replace(/(\\left\s*\\\{\s*(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*?)\\right\s*\./g, (full, inner) => {
+    if (/\\begin\{(?:cases|matrix|pmatrix|bmatrix|vmatrix|aligned|array)\}/.test(inner)) {
+      return full;
+    }
+    return `${inner}\\right\\}`;
+  });
+
+  // 4. Clean orphan \right. or \right) inside formulas where there is NO corresponding \left
+  const leftMatches = s.match(/\\left(?:[\[\(\{\|.]|\\\{)/g) || [];
+  const rightMatches = s.match(/\\right(?:[\]\)\}\|.]|\\\})/g) || [];
+  if (rightMatches.length > leftMatches.length) {
+    s = s.replace(/\\right\s*\./g, (m) => {
+      const curL = (s.match(/\\left(?:[\[\(\{\|.]|\\\{)/g) || []).length;
+      const curR = (s.match(/\\right(?:[\]\)\}\|.]|\\\})/g) || []).length;
+      if (curR > curL) return '';
+      return m;
+    });
+  }
+
+  // 5. Final balance: if more \left than \right, balance with \right.
+  const finalL = (s.match(/\\left(?:[\[\(\{\|.]|\\\{)/g) || []).length;
+  const finalR = (s.match(/\\right(?:[\]\)\}\|.]|\\\})/g) || []).length;
+  if (finalL > finalR) {
+    s += '\\right.'.repeat(finalL - finalR);
+  }
+
   return s;
 }
 
@@ -1509,6 +1786,9 @@ export function normalizeCanonicalMath(raw: string): string {
 
   // 6. Wrap bare LaTeX in $...$ leaving plain English outside
   text = wrapBareLatexInDollars(text);
+
+  // 7. Sanitize & balance unclosed/corrupted delimiters (\right \tan, \left( ... \right., etc.)
+  text = sanitizeDelimiters(text);
 
   return text;
 }

@@ -106,10 +106,14 @@ function nodeText(node: DomNode): string {
 
 function convertText(value: string): string {
   const withFn = (value || '').replace(
-    /(?<![\\a-zA-Z])(arcsin|arccos|arctan|sinh|cosh|tanh|limsup|liminf|sin|cos|tan|cot|sec|csc|ln|log|exp|lim|max|min|sup|inf|det|gcd|lcm)(?=\s*\u2061)/g,
-    '\\$1 '
+    /(?<![\\a-zA-Z])(arcsin|arccos|arctan|sinh|cosh|tanh|limsup|liminf|sin|cos|tan|cot|sec|csc|ln|log|exp|lim|max|min|sup|inf|det|gcd|lcm)(?!\w)/g,
+    '\\$1'
   );
-  return reconstructUnicodeMath(withFn);
+  let res = reconstructUnicodeMath(withFn);
+  if (/^\{[^{}]+\}$/.test(res.trim())) {
+    res = `\\{${res.trim().slice(1, -1)}\\}`;
+  }
+  return res;
 }
 
 function hasMeaningfulContent(value: string): boolean {
@@ -128,11 +132,11 @@ function escapeLatexDelimiter(value: string, side: 'left' | 'right'): string {
     '}': side === 'left' ? '\\left\\{' : '\\right\\}',
     '|': side === 'left' ? '\\left|' : '\\right|',
     '‖': side === 'left' ? '\\left\\|' : '\\right\\|',
-    '⌈': side === 'left' ? '\\left\\lceil' : '\\right\\lceil',
+    '⌈': side === 'left' ? '\\left\\lceil ' : '\\right\\lceil',
     '⌉': side === 'left' ? '\\left\\rceil' : '\\right\\rceil',
-    '⌊': side === 'left' ? '\\left\\lfloor' : '\\right\\lfloor',
+    '⌊': side === 'left' ? '\\left\\lfloor ' : '\\right\\rfloor',
     '⌋': side === 'left' ? '\\left\\rfloor' : '\\right\\rfloor',
-    '⟨': side === 'left' ? '\\left\\langle' : '\\right\\langle',
+    '⟨': side === 'left' ? '\\left\\langle ' : '\\right\\langle',
     '⟩': side === 'left' ? '\\left\\rangle' : '\\right\\rangle',
     '.': side === 'left' ? '\\left.' : '\\right.'
   };
@@ -198,12 +202,18 @@ export function ommlNodeToLatex(node: any): string {
     }
 
     case 'f': {
+      const properties = childByTag(node, 'fpr');
+      const typeNode = properties ? childByTag(properties, 'type') : null;
+      const fType = typeNode ? (attr(typeNode, 'val', OMML_NS) || nodeText(typeNode)).trim() : 'bar';
       const numerator = childByTag(node, 'num');
       const denominator = childByTag(node, 'den');
       const num = numerator ? ommlNodeToLatex(numerator).trim() : '';
       const den = denominator ? ommlNodeToLatex(denominator).trim() : '';
-      if (!num || !den) return num || den || '';
-      return `\\frac{${num}}{${den}}`;
+      if (fType === 'noBar') {
+        return `\\binom{${num}}{${den}}`;
+      }
+      if (!num && !den) return '';
+      return `\\frac{${num || '1'}}{${den || '1'}}`;
     }
 
     case 'ssup': {
@@ -249,10 +259,13 @@ export function ommlNodeToLatex(node: any): string {
     }
 
     case 'rad': {
+      const properties = childByTag(node, 'radpr');
+      const degHideNode = properties ? childByTag(properties, 'deghide') : null;
+      const isDegHidden = degHideNode ? (attr(degHideNode, 'val', OMML_NS) === 'on' || attr(degHideNode, 'val', OMML_NS) === '1') : false;
+      const degreeNode = isDegHidden ? null : childByTag(node, 'deg');
       const radicandNode = childByTag(node, 'e');
-      const degreeNode = childByTag(node, 'deg');
-      const radicand = radicandNode ? ommlNodeToLatex(radicandNode).trim() : '';
       const degree = degreeNode ? ommlNodeToLatex(degreeNode).trim() : '';
+      const radicand = radicandNode ? ommlNodeToLatex(radicandNode).trim() : '';
       if (!radicand) return '';
       return degree ? `\\sqrt[${degree}]{${radicand}}` : `\\sqrt{${radicand}}`;
     }
@@ -274,7 +287,7 @@ export function ommlNodeToLatex(node: any): string {
       else if (character === '∰') operator = '\\oiiint';
       else if (character === '⋃') operator = '\\bigcup';
       else if (character === '⋂') operator = '\\bigcap';
-      else return ommlChildrenToLatex(node);
+      else operator = character.startsWith('\\') ? character : `\\${character}`;
 
       const subNode = childByTag(node, 'sub');
       const supNode = childByTag(node, 'sup');
@@ -290,18 +303,50 @@ export function ommlNodeToLatex(node: any): string {
       const properties = childByTag(node, 'dpr');
       const beginNode = properties ? childByTag(properties, 'begchr') : null;
       const endNode = properties ? childByTag(properties, 'endchr') : null;
-      const begin = beginNode ? (attr(beginNode, 'val', OMML_NS) ?? nodeText(beginNode)) : '(';
-      const end = endNode ? (attr(endNode, 'val', OMML_NS) ?? nodeText(endNode)) : ')';
+      const sepNode = properties ? childByTag(properties, 'sepchr') : null;
+
+      const rawBegin = beginNode ? (attr(beginNode, 'val', OMML_NS) ?? nodeText(beginNode)) : null;
+      const rawEnd = endNode ? (attr(endNode, 'val', OMML_NS) ?? nodeText(endNode)) : null;
+      const rawSep = sepNode ? (attr(sepNode, 'val', OMML_NS) ?? nodeText(sepNode)) : null;
+
+      // When begin is explicitly set (e.g. '{') and end is omitted, end is empty (invisible '\right.'), NOT ')'
+      const begin = rawBegin !== null ? rawBegin : '(';
+      let end = rawEnd !== null ? rawEnd : '';
+
       const expressions = childrenByTag(node, 'e');
 
-      // Check if expression contains an inner matrix element <m:m>
-      const matrixChild = expressions.length === 1 ? childByTag(expressions[0], 'm') : null;
+      // If end is missing, dot, or null, resolve matching closing delimiter:
+      if (!end || end === '∅' || end === '.' || !end.trim()) {
+        if (begin === '(') end = ')';
+        else if (begin === '[') end = ']';
+        else if (begin === '{') {
+          // If it is NOT a cases environment and expressions <= 1, resolve to matching '}'
+          // (prevents set curly braces from disappearing into '\right.')
+          const matrixChild = expressions.length === 1 ? (childByTag(expressions[0], 'm') || childByTag(expressions[0], 'eqarr')) : null;
+          if (expressions.length <= 1 && !matrixChild) {
+            end = '}';
+          } else {
+            end = ''; // Keep empty for piecewise cases
+          }
+        }
+      }
+      const sep = rawSep !== null ? rawSep : ',';
+
+      // Check if expression contains an inner matrix element <m:m> or equation array <m:eqArr>
+      const matrixChild = expressions.length === 1 ? (childByTag(expressions[0], 'm') || childByTag(expressions[0], 'eqarr')) : null;
       if (matrixChild) {
-        const rowNodes = childrenByTag(matrixChild, 'mr');
-        const rows = rowNodes.map(row => {
-          const cells = childrenByTag(row, 'e').map(cell => ommlNodeToLatex(cell).trim());
-          return cells.join(' & ');
-        });
+        const isEqArr = localNameOf(matrixChild) === 'eqarr';
+        let rows: string[] = [];
+        if (isEqArr) {
+          const rowNodes = childrenByTag(matrixChild, 'e');
+          rows = rowNodes.map(r => ommlNodeToLatex(r).trim());
+        } else {
+          const rowNodes = childrenByTag(matrixChild, 'mr');
+          rows = rowNodes.map(row => {
+            const cells = childrenByTag(row, 'e').map(cell => ommlNodeToLatex(cell).trim());
+            return cells.join(' & ');
+          });
+        }
 
         if (begin === '{' && (!end || end === '∅' || end === '.' || end === ' ' || !end.trim())) {
           return `\\begin{cases}${rows.join(' \\\\[6pt] ')}\\end{cases}`;
@@ -321,15 +366,53 @@ export function ommlNodeToLatex(node: any): string {
       }
 
       // Only classify as cases when the source has multiple explicit entries
-      // and an invisible closing delimiter. A single grouped expression is not cases.
-      const isCases = begin === '{' && (!end || end === '∅' || end === '.' || end === ' ' || !end.trim()) && expressions.length > 1 &&
-        expressions.every(item => childElements(item).length > 0);
+      // and an invisible closing delimiter.
+      const isCases = begin === '{' && (!end || end === '∅' || end === '.' || end === ' ' || !end.trim()) && expressions.length > 1;
       if (isCases) {
         return `\\begin{cases}${expressions.map(item => ommlNodeToLatex(item).trim()).filter(Boolean).join(' \\\\[6pt] ')}\\end{cases}`;
       }
 
-      const content = expressions.map(item => ommlNodeToLatex(item).trim()).filter(Boolean).join(' ');
+      const separator = sep ? (sep === ',' ? ', ' : sep === ';' ? '; ' : sep === '|' ? ' \\mid ' : ` ${sep} `) : ', ';
+      const content = expressions.map(item => ommlNodeToLatex(item).trim()).filter(Boolean).join(separator);
       return `${escapeLatexDelimiter(begin, 'left')}${content}${escapeLatexDelimiter(end, 'right')}`;
+    }
+
+    case 'eqarr': {
+      const expressions = childrenByTag(node, 'e');
+      if (!expressions.length) return ommlChildrenToLatex(node);
+      const rows = expressions.map(e => ommlNodeToLatex(e).trim());
+      const body = rows.join(' \\\\ ');
+      if (body.includes('&') || rows.length > 1) {
+        return `\\begin{aligned} ${body} \\end{aligned}`;
+      }
+      return body;
+    }
+
+    case 'bar': {
+      const properties = childByTag(node, 'barpr');
+      const posNode = properties ? childByTag(properties, 'pos') : null;
+      const pos = posNode ? (attr(posNode, 'val', OMML_NS) || nodeText(posNode)).trim() : 'top';
+      const expression = childByTag(node, 'e');
+      const base = expression ? ommlNodeToLatex(expression).trim() : '';
+      if (!base) return '';
+      return pos === 'bot' ? `\\underline{${base}}` : `\\overline{${base}}`;
+    }
+
+    case 'borderbox': {
+      const expression = childByTag(node, 'e');
+      const base = expression ? ommlNodeToLatex(expression).trim() : '';
+      return base ? `\\boxed{${base}}` : '';
+    }
+
+    case 'spre': {
+      const baseNode = childByTag(node, 'e');
+      const subNode = childByTag(node, 'sub');
+      const supNode = childByTag(node, 'sup');
+      const base = baseNode ? ommlNodeToLatex(baseNode).trim() : '';
+      const sub = subNode ? ommlNodeToLatex(subNode).trim() : '';
+      const sup = supNode ? ommlNodeToLatex(supNode).trim() : '';
+      const bounds = `${sub ? `_{${sub}}` : ''}${sup ? `^{${sup}}` : ''}`;
+      return `{}${bounds}${base ? `{${base}}` : ''}`;
     }
 
     case 'm': {
@@ -359,7 +442,20 @@ export function ommlNodeToLatex(node: any): string {
       const functionName = functionNode ? ommlNodeToLatex(functionNode).trim() : '';
       const argument = argumentNode ? ommlNodeToLatex(argumentNode).trim() : '';
       if (!functionName) return argument;
-      const command = functionName.startsWith('\\') ? functionName : `\\${functionName}`;
+      const cleanName = functionName.replace(/^\\/, '');
+      const STANDARD_MATH_FUNCS = new Set([
+        'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
+        'arcsin', 'arccos', 'arctan', 'arccot', 'arcsec', 'arccsc',
+        'sinh', 'cosh', 'tanh', 'coth', 'sech', 'csch',
+        'ln', 'log', 'exp', 'lg',
+        'lim', 'limsup', 'liminf', 'max', 'min', 'sup', 'inf',
+        'det', 'dim', 'ker', 'hom', 'arg', 'deg', 'gcd', 'lcm', 'Pr'
+      ]);
+      const command = functionName.startsWith('\\')
+        ? functionName
+        : STANDARD_MATH_FUNCS.has(cleanName)
+        ? `\\${cleanName}`
+        : functionName;
       const noParentheses = new Set(['\\lim', '\\max', '\\min', '\\sup', '\\inf', '\\limsup', '\\liminf']);
       if (!argument) return command;
       if (noParentheses.has(command) || argument.startsWith('\\left') || argument.startsWith('{') || argument.startsWith('(') || argument.startsWith('[')) {
@@ -380,7 +476,13 @@ export function ommlNodeToLatex(node: any): string {
       if (character === '̅' || character === '¯' || character === '-') return `\\bar{${base}}`;
       if (character === '̇' || character === '.') return `\\dot{${base}}`;
       if (character === '̈' || character === '..') return `\\ddot{${base}}`;
+      if (character === '⃛' || character === '...') return `\\dddot{${base}}`;
       if (character === '̃' || character === '~') return `\\tilde{${base}}`;
+      if (character === '⃡' || character === '↔') return `\\overleftrightarrow{${base}}`;
+      if (character === '̆') return `\\breve{${base}}`;
+      if (character === '̌') return `\\check{${base}}`;
+      if (character === '́') return `\\acute{${base}}`;
+      if (character === '̀') return `\\grave{${base}}`;
       return `\\overset{${convertText(character)}}{${base}}`;
     }
 
@@ -589,11 +691,23 @@ export function mathMLNodeToLatex(node: any): string {
 
     case 'mi':
     case 'mn':
-    case 'mo':
-      return mathText(node);
+    case 'mo': {
+      const txt = mathText(node);
+      if (tag === 'mo') {
+        if (txt === '{') return '\\{';
+        if (txt === '}') return '\\}';
+      }
+      return txt;
+    }
 
-    case 'mtext':
-      return `\\text{${mathText(node).replace(/[{}]/g, '')}}`;
+    case 'mtext': {
+      const txt = mathText(node).trim();
+      if (/^\\?\{[^{}]+\\?\}$/.test(txt)) {
+        const inner = txt.replace(/^\\?\{/, '').replace(/\\?\}$/, '').trim();
+        return `\\{${inner}\\} `;
+      }
+      return `\\text{${txt}}`;
+    }
 
     case 'mspace':
       return mathSpace(node);
@@ -757,9 +871,15 @@ function convertRawOmmlSnippetToLatex(snippet: string): string {
   const doc = parseMarkupToDoc(withNs, 'xml');
   if (!doc) return '';
   let latex = ommlNodeToLatex(doc.documentElement || doc).trim();
-  // Post-clean: number sets like \in R -> \in \mathbb{R} and \to R -> \to \mathbb{R}
-  latex = latex.replace(/\\(in|notin|subseteq|subset|to|rightarrow|mapsto)(?![A-Za-z])\s*(Z|R|N|Q|C)\b/g, '\\$1 \\mathbb{$2}');
+  // Post-clean: number sets like \in R -> \in \mathbb{R} and \to R -> \to \mathbb{R} (except tuples (a,b) \in R in relation R)
+  latex = latex.replace(/(?<!\)\s*)\\(in|notin|subseteq|subset|to|rightarrow|mapsto)(?![A-Za-z])\s*(Z|R|N|Q|C)\b/g, '\\$1 \\mathbb{$2}');
+  latex = latex.replace(/(\(\s*[-+0-9a-zA-Z_\\^'′]+\s*,\s*[-+0-9a-zA-Z_\\^'′]+\s*\)\s*\\(?:in|notin)\s*)\\mathbb\{R\}/g, '$1R');
   latex = latex.replace(/:\s*(Z|R|N|Q|C)\s*\\(to|rightarrow|mapsto)\b/g, ': \\mathbb{$1} \\$2');
+  // Escape unescaped finite set curly braces: e.g. {-2,-1,0,1,2} -> \{-2,-1,0,1,2\}
+  latex = latex.replace(/(?<!\\)\{([-+0-9a-zA-Z_\\^'′\s.,\-/*]+?)(?<!\\)\}/g, (m, inner) => {
+    if (/,/.test(inner)) return `\\{${inner.trim().replace(/\s*,\s*/g, ', ')}\\}`;
+    return m;
+  });
   // Ensure space between big operator with subscript/superscript and following alphanumeric token
   latex = latex.replace(/(\\(?:sum|prod|int|lim)_(?:\{[^{}]*\}|[a-zA-Z0-9])(?:\^(?:\{[^{}]*\}|[a-zA-Z0-9]))?)(?=[a-zA-Z0-9])/g, '$1 ');
   // Corrupted floor bracket paired with closing brace: e.g. \lfloor f(t)} -> \{f(t)\}
@@ -840,33 +960,44 @@ function replaceOneEquation(
   markReview: (flag: boolean) => void,
   forceDisplay?: boolean
 ): string {
-  const snippet = container.match(/<(?:m:)?(oMathPara|oMath)\b[\s\S]*?<\/(?:m:)?\1>/i);
-  const isDisplay = forceDisplay ?? /<(?:m:)?oMathPara\b/i.test(container);
-  const latex = snippet ? convertRawOmmlSnippetToLatex(snippet[0]) : '';
-  if (!latex.trim()) {
-    const rawTextContent = (snippet ? snippet[0] : container)
-      .replace(/<[^>]+>/g, '')
-      .replace(/&nbsp;|&#160;/gi, '')
-      .replace(/[□▒\s\u2000-\u200F\u2060-\u2064\u00A0()]/g, '')
-      .trim();
-    const fallbackContent = fallbackPlainText(rawFallback)
-      .replace(/&nbsp;|&#160;/gi, '')
-      .replace(/[□▒\s\u2000-\u200F\u2060-\u2064\u00A0()]/g, '')
-      .trim();
-    const hasBrokenStructure = /<(?:m:)?(?:f|rad|nary|limLow|limUpp)\b/i.test(snippet ? snippet[0] : container);
-    if (!rawTextContent && !fallbackContent && !hasBrokenStructure) {
-      return ' ';
+  const eqRe = /<(?:m:)?(oMathPara|oMath)\b[\s\S]*?<\/(?:m:)?\1>/gi;
+  const snippets = [...container.matchAll(eqRe)];
+  if (!snippets.length) {
+    const fallback = fallbackPlainText(rawFallback);
+    return fallback ? ` ${fallback} ` : ' ';
+  }
+
+  let convertedCount = 0;
+  const replaced = container.replace(eqRe, (fullSnippet, tag: string) => {
+    const isDisplay = forceDisplay ?? /oMathPara/i.test(tag);
+    const latex = convertRawOmmlSnippetToLatex(fullSnippet);
+    if (!latex.trim()) {
+      const rawTextContent = fullSnippet
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;|&#160;/gi, '')
+        .replace(/[□▒\s\u2000-\u200F\u2060-\u2064\u00A0()]/g, '')
+        .trim();
+      const hasBrokenStructure = /<(?:m:)?(?:f|rad|nary|limLow|limUpp)\b/i.test(fullSnippet);
+      if (!rawTextContent && !hasBrokenStructure) {
+        return ' ';
+      }
     }
+    const validation = validateWithKaTeX(latex);
+    if (latex && validation.isValid) {
+      convertedCount++;
+      return isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `;
+    }
+    markReview(true);
+    warnings.push(`[KaTeX Validation Warning]: Failed to validate equation "${latex}": ${validation.error || 'conversion failed'}.`);
+    return latex ? (isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `) : ' ';
+  });
+
+  if (convertedCount === 0 && rawFallback) {
+    const fallback = fallbackPlainText(rawFallback);
+    if (fallback) return ` ${fallback} `;
   }
-  const validation = validateWithKaTeX(latex);
-  if (latex && validation.isValid) {
-    return isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `;
-  }
-  markReview(true);
-  warnings.push(`[KaTeX Validation Warning]: Failed to validate equation "${latex}": ${validation.error || 'conversion failed'}. Retained Word fallback text.`);
-  const fallback = fallbackPlainText(rawFallback);
-  if (fallback) return ` ${fallback} `;
-  return latex ? (isDisplay ? ` $$${latex}$$ ` : ` $${latex}$ `) : ' ';
+
+  return replaced.replace(/<\/?xml\b[^>]*>/gi, '');
 }
 
 export interface HtmlMathPreprocessResult {
@@ -1044,8 +1175,9 @@ export function convertHtmlWithMath(htmlString: string): string {
   const doc = parseHtmlDocument(protectedHtml);
   if (!doc) {
     const rawResult = fallbackRegexHtmlToLatex(protectedHtml);
-    const restored = rawResult.replace(/___HTML_MATH_STASH_(\d+)___/g, (_, idx) => stashedMath[Number(idx)] || '');
-    return reconstructUnicodeMath(restored)
+    const normalizedText = reconstructUnicodeMath(rawResult);
+    const restored = normalizedText.replace(/___HTML_MATH_STASH_(\d+)___/g, (_, idx) => stashedMath[Number(idx)] || '');
+    return restored
       .replace(/\u00A0/g, ' ')
       .replace(/[ \t]+/g, ' ')
       .replace(/[ \t]*\n[ \t]*/g, '\n')
@@ -1066,8 +1198,9 @@ export function convertHtmlWithMath(htmlString: string): string {
   }
 
   const extracted = htmlDomToText(doc);
-  const restored = extracted.replace(/___HTML_MATH_STASH_(\d+)___/g, (_, idx) => stashedMath[Number(idx)] || '');
-  return reconstructUnicodeMath(restored)
+  const normalizedText = reconstructUnicodeMath(extracted);
+  const restored = normalizedText.replace(/___HTML_MATH_STASH_(\d+)___/g, (_, idx) => stashedMath[Number(idx)] || '');
+  return restored
     .replace(/\u00A0/g, ' ')
     .replace(/[ \t]+/g, ' ')
     .replace(/[ \t]*\n[ \t]*/g, '\n')

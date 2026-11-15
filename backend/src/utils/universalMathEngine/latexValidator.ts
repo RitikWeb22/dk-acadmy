@@ -3,7 +3,8 @@
  * Production-ready validation, diagnostics, and confidence scoring.
  */
 
-import type { ValidationReport } from './types.js';
+import katex from 'katex';
+import type { ValidationReport, ConversionFailureDiagnosis } from './types.js';
 
 // ============================================================================
 // Helper Utilities & Scanning Primitives
@@ -747,6 +748,334 @@ function detectArtifacts(
   }
 }
 
+/**
+ * Detects incomplete or truncated LaTeX commands (trailing backslashes, cutoffs).
+ */
+function validateIncompleteCommands(
+  maskedText: string,
+  rawText: string,
+  errors: string[],
+  uncertainRegions: string[]
+): void {
+  // Check for trailing backslash at end of expression
+  if (/(?:^|[^\\])\\[\s]*$/.test(maskedText)) {
+    errors.push('Incomplete LaTeX command: trailing backslash at end of expression');
+    uncertainRegions.push(rawText.slice(Math.max(0, rawText.length - 10)).trim());
+  }
+
+  // Detect cutoffs / incomplete command tokens (e.g. \sqr , \fra , \dfra , \tbeg )
+  const incompleteCmdRegex = /\\(sqr|fra|dfra|tbeg|inft|lims)(?![a-zA-Z])/g;
+  let m: RegExpExecArray | null;
+  while ((m = incompleteCmdRegex.exec(maskedText)) !== null) {
+    if (!isEscaped(maskedText, m.index)) {
+      errors.push(`Incomplete or truncated LaTeX command: \\${m[1]}`);
+      uncertainRegions.push(rawText.slice(m.index, Math.min(rawText.length, m.index + 10)).trim());
+    }
+  }
+}
+
+/**
+ * Commands that require mandatory arguments.
+ */
+function validateMissingArguments(
+  maskedText: string,
+  rawText: string,
+  errors: string[],
+  uncertainRegions: string[]
+): void {
+  // Two mandatory braced arguments: \binom, \overset, \underset, \stackrel, \cfrac
+  const twoArgRegex = /\\(binom|overset|underset|stackrel|cfrac)(?![a-zA-Z])/g;
+  let m: RegExpExecArray | null;
+  while ((m = twoArgRegex.exec(maskedText)) !== null) {
+    if (isEscaped(maskedText, m.index)) continue;
+    const startPos = m.index + m[0].length;
+    const arg1 = scanBracedGroup(maskedText, startPos);
+    if (!arg1) {
+      errors.push(`Missing first argument for \\${m[1]}`);
+      uncertainRegions.push(rawText.slice(m.index, Math.min(rawText.length, startPos + 10)).trim());
+      continue;
+    }
+    const arg2 = scanBracedGroup(maskedText, arg1.end);
+    if (!arg2) {
+      errors.push(`Missing second argument for \\${m[1]}`);
+      uncertainRegions.push(rawText.slice(m.index, Math.min(rawText.length, arg1.end + 10)).trim());
+    }
+  }
+
+  // One mandatory braced argument: \mathbf, \mathrm, \mathit, \mathbb, \mathcal, \operatorname, \text
+  const oneArgRegex = /\\(mathbf|mathrm|mathit|mathbb|mathcal|operatorname|text)(?![a-zA-Z])/g;
+  while ((m = oneArgRegex.exec(maskedText)) !== null) {
+    if (isEscaped(maskedText, m.index)) continue;
+    const startPos = m.index + m[0].length;
+    const arg = scanBracedGroup(maskedText, startPos);
+    if (!arg) {
+      errors.push(`Missing argument for \\${m[1]}`);
+      uncertainRegions.push(rawText.slice(m.index, Math.min(rawText.length, startPos + 10)).trim());
+    }
+  }
+}
+
+/**
+ * Commands that are unsupported in KaTeX.
+ */
+const UNSUPPORTED_KATEX_COMMANDS = new Set([
+  'label', 'ref', 'cite', 'pageref', 'footnote', 'footnotetext',
+  'usepackage', 'documentclass', 'input', 'include',
+  'newcommand', 'renewcommand', 'providecommand', 'def', 'let',
+  'tabular', 'minipage', 'parbox', 'makebox', 'framebox',
+  'xymatrix', 'tikz', 'tikzpicture', 'pstree', 'pstricks',
+  'eqnarray', 'eqnarray*', 'table', 'figure',
+  'selectfont', 'fontsize', 'chapter', 'section', 'subsection'
+]);
+
+function validateUnsupportedCommands(
+  maskedText: string,
+  rawText: string,
+  errors: string[],
+  uncertainRegions: string[]
+): void {
+  const cmdRegex = /\\([a-zA-Z*]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = cmdRegex.exec(maskedText)) !== null) {
+    if (isEscaped(maskedText, m.index)) continue;
+    const cmdName = m[1];
+    if (UNSUPPORTED_KATEX_COMMANDS.has(cmdName)) {
+      errors.push(`Unsupported LaTeX command in KaTeX: \\${cmdName}`);
+      uncertainRegions.push(rawText.slice(m.index, m.index + m[0].length));
+    }
+  }
+}
+
+/**
+ * Validates LaTeX expression with KaTeX without throwing.
+ */
+export function validateWithKaTeX(
+  latex: string,
+  isDisplay: boolean = false
+): { isValid: boolean; error?: string } {
+  if (!latex || !latex.trim()) return { isValid: false, error: 'Empty formula' };
+  try {
+    let katexModule: any = (katex as any)?.default || katex;
+    if (!katexModule || typeof katexModule.renderToString !== 'function') {
+      const g: any = typeof globalThis !== 'undefined' ? globalThis : {};
+      katexModule = g.katex || (typeof (globalThis as any).window !== 'undefined' ? (globalThis as any).window.katex : null);
+    }
+
+    if (katexModule && typeof katexModule.renderToString === 'function') {
+      katexModule.renderToString(latex, {
+        displayMode: isDisplay,
+        throwOnError: true,
+        strict: false
+      });
+    }
+    return { isValid: true };
+  } catch (err: any) {
+    return { isValid: false, error: err?.message || 'KaTeX validation error' };
+  }
+}
+
+export function isFormulaValidKaTeX(latex: string, isDisplay: boolean = false): boolean {
+  return validateWithKaTeX(latex, isDisplay).isValid;
+}
+
+/**
+ * Detects and repairs accidental double-escaping (e.g. \\frac -> \frac).
+ */
+export function detectAndRepairDoubleEscaping(latex: string): {
+  hasDoubleEscaping: boolean;
+  repaired: string;
+  issues: string[];
+} {
+  if (!latex) return { hasDoubleEscaping: false, repaired: '', issues: [] };
+  const issues: string[] = [];
+
+  const mathCmds = new Set([
+    'frac', 'dfrac', 'tfrac', 'cfrac', 'sqrt', 'alpha', 'beta', 'gamma', 'delta', 'theta', 'lambda',
+    'pi', 'sigma', 'phi', 'omega', 'in', 'notin', 'subset', 'cap', 'cup', 'times', 'div',
+    'pm', 'mp', 'le', 'ge', 'ne', 'neq', 'infty', 'to', 'leftarrow', 'rightarrow',
+    'sum', 'prod', 'int', 'lim', 'sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'log', 'ln',
+    'exp', 'left', 'right', 'mathbf', 'mathrm', 'text', 'mathbb', 'binom'
+  ]);
+
+  let hasDoubleEscaping = false;
+  const repaired = latex.replace(/(?<!\\)\\\\([a-zA-Z]+)(?![a-zA-Z])/g, (match, cmd) => {
+    if (mathCmds.has(cmd.toLowerCase())) {
+      hasDoubleEscaping = true;
+      issues.push(`Accidental double escaping: \\\\${cmd} replaced with \\${cmd}`);
+      return `\\${cmd}`;
+    }
+    return match;
+  });
+
+  return { hasDoubleEscaping, repaired, issues };
+}
+
+export interface MathSegment {
+  type: 'inline' | 'block' | 'text';
+  content: string;
+  raw: string;
+  start: number;
+  end: number;
+}
+
+/**
+ * Extracts inline math ($...$, \(...\)) and block math ($$...$$, \[...\], \begin{...}) separately.
+ */
+export function extractMathSegments(text: string): MathSegment[] {
+  if (!text) return [];
+  const segments: MathSegment[] = [];
+
+  const mathRegex = /(\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\]|\\begin\{(equation\*?|align\*?|gather\*?|multline\*?|aligned|cases|matrix|bmatrix|pmatrix|vmatrix)\}([\s\S]*?)\\end\{\4\}|\$([^\$\n]+?)\$|\\\(([\s\S]*?)\\\))/g;
+
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = mathRegex.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      const textSlice = text.slice(lastIdx, match.index);
+      if (textSlice.trim().length > 0) {
+        segments.push({
+          type: 'text',
+          content: textSlice,
+          raw: textSlice,
+          start: lastIdx,
+          end: match.index
+        });
+      }
+    }
+
+    const fullMatch = match[0];
+    const isBlock = fullMatch.startsWith('$$') || fullMatch.startsWith('\\[') || fullMatch.startsWith('\\begin{');
+    const content = match[2] ?? match[3] ?? match[5] ?? match[6] ?? match[7] ?? '';
+
+    segments.push({
+      type: isBlock ? 'block' : 'inline',
+      content: content.trim(),
+      raw: fullMatch,
+      start: match.index,
+      end: match.index + fullMatch.length
+    });
+
+    lastIdx = match.index + fullMatch.length;
+  }
+
+  if (lastIdx < text.length) {
+    const tail = text.slice(lastIdx);
+    if (tail.trim().length > 0) {
+      segments.push({
+        type: 'text',
+        content: tail,
+        raw: tail,
+        start: lastIdx,
+        end: text.length
+      });
+    }
+  }
+
+  return segments;
+}
+
+/**
+ * Returns true if text is purely a LaTeX formula with minimal or no English prose words.
+ */
+function isPureLatexFormula(text: string): boolean {
+  if (!text || text.includes('$')) return false;
+  const hasLatexCmd = /\\(?:frac|dfrac|lim|int|sum|prod|sqrt|vec|hat|left|right|begin|binom|matrix|cases|alpha|beta|gamma|delta|theta|lambda|pi|sigma|phi|omega|infty|to|cdot|times|leq|geq|neq|in|mathbb|text)\b/.test(text);
+  if (!hasLatexCmd) return false;
+  const stripped = text.replace(/\\[a-zA-Z]+/g, ' ');
+  const words = stripped.match(/\b[a-zA-Z]{4,}\b/g) || [];
+  const mathKeywords = new Set(['sqrt','frac','dfrac','left','right','lim','int','sum','prod','infty','cdot','times','leq','geq','neq','text','mathbb','begin','cases','binom','matrix','alpha','beta','gamma','delta','theta','lambda','sigma','omega','phi','quad','qquad']);
+  const proseWords = words.filter(w => !mathKeywords.has(w.toLowerCase()));
+  return proseWords.length < 2;
+}
+
+/**
+ * Separately validates inline and block math segments within a document or question string.
+ */
+export function validateMathExpressionsSeparately(text: string): {
+  inlineSegments: MathSegment[];
+  blockSegments: MathSegment[];
+  textSegments: MathSegment[];
+  allValid: boolean;
+  reports: ValidationReport[];
+} {
+  const segments = extractMathSegments(text);
+  const inlineSegments = segments.filter(s => s.type === 'inline');
+  const blockSegments = segments.filter(s => s.type === 'block');
+  const textSegments = segments.filter(s => s.type === 'text');
+
+  const reports: ValidationReport[] = [];
+  let allValid = true;
+
+  for (const seg of [...inlineSegments, ...blockSegments]) {
+    const rep = validateLatex(seg.content);
+    const kv = validateWithKaTeX(seg.content, seg.type === 'block');
+    if (!kv.isValid && kv.error) {
+      rep.isValid = false;
+      rep.errors.push(`KaTeX syntax error: ${kv.error}`);
+    }
+    if (!rep.isValid) allValid = false;
+    reports.push(rep);
+  }
+
+  return {
+    inlineSegments,
+    blockSegments,
+    textSegments,
+    allValid,
+    reports
+  };
+}
+
+/**
+ * Diagnoses a mathematical conversion failure while preserving original equation data.
+ */
+export function diagnoseMathematicalConversionFailure(
+  rawEquation: string,
+  convertedLatex?: string,
+  context?: {
+    questionId?: string;
+    qNum?: number;
+    expressionIndex?: number;
+  }
+): ConversionFailureDiagnosis {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  let canRetry = true;
+  let retrySuggestedFix: string | undefined;
+
+  if (!rawEquation || !rawEquation.trim()) {
+    errors.push('No mathematical equation data available');
+    canRetry = false;
+  } else {
+    const report = validateLatex(convertedLatex || rawEquation);
+    errors.push(...report.errors);
+    warnings.push(...report.warnings);
+
+    if (errors.some(e => e.includes('delimiter') || e.includes('\\right') || e.includes('\\left'))) {
+      retrySuggestedFix = 'Sanitize and balance delimiters with \\left( ... \\right)';
+    } else if (errors.some(e => e.includes('brace') || e.includes('{'))) {
+      retrySuggestedFix = 'Re-balance grouping curly braces';
+    } else if (errors.some(e => e.includes('fraction') || e.includes('\\frac'))) {
+      retrySuggestedFix = 'Reconstruct missing fraction numerator or denominator';
+    } else if (errors.some(e => e.includes('radical') || e.includes('\\sqrt'))) {
+      retrySuggestedFix = 'Wrap radicand in explicit braces \\sqrt{...}';
+    }
+  }
+
+  return {
+    questionId: context?.questionId,
+    qNum: context?.qNum,
+    expressionIndex: context?.expressionIndex,
+    rawEquation: rawEquation || '',
+    convertedLatex,
+    errors: Array.from(new Set(errors)),
+    warnings: Array.from(new Set(warnings)),
+    canRetry,
+    retrySuggestedFix
+  };
+}
+
 // ============================================================================
 // Deterministic Confidence Scoring
 // ============================================================================
@@ -833,6 +1162,44 @@ export function validateLatex(input: string): ValidationReport {
   // 6. Word Linear & transcription artifact detection
   detectArtifacts(rawText, warnings, uncertainRegions);
 
+  // 7. Missing arguments detection
+  validateMissingArguments(maskedText, rawText, errors, uncertainRegions);
+
+  // 8. Incomplete commands detection
+  validateIncompleteCommands(maskedText, rawText, errors, uncertainRegions);
+
+  // 9. Unsupported commands detection
+  validateUnsupportedCommands(maskedText, rawText, errors, uncertainRegions);
+
+  // 10. Accidental double escaping detection
+  const doubleEscapeInfo = detectAndRepairDoubleEscaping(rawText);
+  if (doubleEscapeInfo.hasDoubleEscaping) {
+    warnings.push(...doubleEscapeInfo.issues);
+  }
+
+  // 11. Mathematical KaTeX engine validation
+  let katexValid = true;
+  const segments = extractMathSegments(rawText);
+  const mathSegments = segments.filter(s => s.type !== 'text');
+
+  if (mathSegments.length > 0) {
+    for (const seg of mathSegments) {
+      const kv = validateWithKaTeX(seg.content, seg.type === 'block');
+      if (!kv.isValid && kv.error) {
+        katexValid = false;
+        errors.push(`KaTeX syntax error: ${kv.error}`);
+        uncertainRegions.push(seg.content);
+      }
+    }
+  } else if (isPureLatexFormula(rawText)) {
+    const kv = validateWithKaTeX(rawText, false);
+    if (!kv.isValid && kv.error) {
+      katexValid = false;
+      errors.push(`KaTeX syntax error: ${kv.error}`);
+      uncertainRegions.push(rawText);
+    }
+  }
+
   const confidence = computeConfidence(errors, warnings, uncertainRegions);
   const isValid = errors.length === 0;
   const needsReview = !isValid || confidence < 0.90 || warnings.length > 0 || uncertainRegions.length > 0;
@@ -843,7 +1210,8 @@ export function validateLatex(input: string): ValidationReport {
     needsReview,
     errors: Array.from(new Set(errors)),
     warnings: Array.from(new Set(warnings)),
-    uncertainRegions: Array.from(new Set(uncertainRegions))
+    uncertainRegions: Array.from(new Set(uncertainRegions)),
+    katexValid
   };
 }
 

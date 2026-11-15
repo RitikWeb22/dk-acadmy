@@ -240,5 +240,156 @@ describe('DOCX Math Extractor — Step B', () => {
     assert.ok(result.warnings.length === 0, 'No warnings for plain text');
   });
 
+  // --- Phase 2: Standalone OMML block and Delimiter Resolution ---
+
+  test('Extracts standalone <m:oMathPara> at body level outside <w:p>', async () => {
+    const body = `
+      <w:p><w:r><w:t>Question statement with standalone equation:</w:t></w:r></w:p>
+      <m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+        <m:oMath>
+          <m:f>
+            <m:num><m:r><m:t>1</m:t></m:r></m:num>
+            <m:den><m:r><m:t>1+x^2</m:t></m:r></m:den>
+          </m:f>
+        </m:oMath>
+      </m:oMathPara>
+    `;
+    const docx = await buildDocxBuffer(body);
+    const result = await extractDocxMath(docx);
+    assert.strictEqual(result.success, true);
+    assert.ok(result.paragraphs.some(p => p.hasMath), 'Must extract standalone omathpara as math paragraph');
+    const mathP = result.paragraphs.find(p => p.hasMath);
+    assert.ok(mathP!.text.includes('\\frac{1}{1+x^2}') || mathP!.text.includes('1+x^2'), 'Must contain fraction');
+  });
+
+  test('Resolves OMML <m:d> delimiters with omitted or dot endChr to matching closing delimiter', async () => {
+    const body = `
+      <w:p>
+        <m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+          <m:d>
+            <m:dPr>
+              <m:begChr m:val="("/>
+              <m:endChr m:val="."/>
+            </m:dPr>
+            <m:e>
+              <m:r><m:t>2^x+2^-x</m:t></m:r>
+            </m:e>
+          </m:d>
+          <m:r><m:t>tan x</m:t></m:r>
+        </m:oMath>
+      </w:p>
+    `;
+    const docx = await buildDocxBuffer(body);
+    const result = await extractDocxMath(docx);
+    assert.strictEqual(result.success, true);
+    const mathP = result.paragraphs.find(p => p.hasMath);
+    assert.ok(mathP, 'Must extract math paragraph');
+    assert.ok(mathP!.text.includes('\\right)'), 'Must resolve dot endChr to \\right)');
+    assert.ok(!mathP!.text.includes('\\right.'), 'Must not leave dummy \\right.');
+    assert.ok(mathP!.text.includes('\\tan'), 'Must convert trig function tan to \\tan');
+  });
+
+  // --- Section 3: Robust Mathematical Extraction Engine Extensions ---
+
+  test('Extracts top-level <w:tbl> as structured Markdown table with math equations preserved', async () => {
+    const body = `
+      <w:p><w:r><w:t>Match List I with List II:</w:t></w:r></w:p>
+      <w:tbl>
+        <w:tr>
+          <w:tc><w:p><w:r><w:t>List I</w:t></w:r></w:p></w:tc>
+          <w:tc><w:p><w:r><w:t>List II</w:t></w:r></w:p></w:tc>
+        </w:tr>
+        <w:tr>
+          <w:tc><w:p><w:r><w:t>(P)</w:t></w:r><m:oMath><m:sSup><m:e><m:r><m:t>x</m:t></m:r></m:e><m:sup><m:r><m:t>2</m:t></m:r></m:sup></m:sSup></m:oMath></w:p></w:tc>
+          <w:tc><w:p><w:r><w:t>(1)</w:t></w:r><m:oMath><m:rad><m:e><m:r><m:t>x</m:t></m:r></m:e></m:rad></m:oMath></w:p></w:tc>
+        </w:tr>
+      </w:tbl>
+    `;
+    const docx = await buildDocxBuffer(body);
+    const result = await extractDocxMath(docx);
+    assert.strictEqual(result.success, true);
+    assert.ok(result.blocks?.some(b => b.type === 'table'), 'Must extract table as a table block');
+    const tblBlock = result.blocks?.find(b => b.type === 'table');
+    assert.ok(tblBlock!.text.includes('List I'), 'Must include header List I');
+    assert.ok(tblBlock!.text.includes('x^{2}') || tblBlock!.text.includes('x^2'), 'Must include cell equation x^2');
+    assert.ok(tblBlock!.text.includes('\\sqrt{x}'), 'Must include cell radical \\sqrt{x}');
+  });
+
+  test('Converts <m:func> with arbitrary function name f(x) without invalid control sequence \\f', async () => {
+    const body = `
+      <w:p>
+        <m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+          <m:func>
+            <m:fName><m:r><m:t>f</m:t></m:r></m:fName>
+            <m:e><m:r><m:t>x</m:t></m:r></m:e>
+          </m:func>
+          <m:r><m:t>=</m:t></m:r>
+          <m:func>
+            <m:fName><m:r><m:t>sin</m:t></m:r></m:fName>
+            <m:e><m:r><m:t>x</m:t></m:r></m:e>
+          </m:func>
+        </m:oMath>
+      </w:p>
+    `;
+    const docx = await buildDocxBuffer(body);
+    const result = await extractDocxMath(docx);
+    assert.strictEqual(result.success, true);
+    const mathP = result.paragraphs.find(p => p.hasMath);
+    assert.ok(mathP, 'Must extract math paragraph');
+    assert.ok(!mathP!.text.includes('\\f('), 'Must NEVER generate invalid \\f(');
+    assert.ok(mathP!.text.includes('f\\left(x\\right)') || mathP!.text.includes('f(x)'), 'Must preserve f(x)');
+    assert.ok(mathP!.text.includes('\\sin'), 'Must convert standard function sin to \\sin');
+  });
+
+  test('Resolves single set braces { 1, 2, 3 } to \\left\\{ ... \\right\\} without losing closing brace', async () => {
+    const body = `
+      <w:p>
+        <m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+          <m:d>
+            <m:dPr>
+              <m:begChr m:val="{"/>
+              <m:endChr m:val="."/>
+            </m:dPr>
+            <m:e>
+              <m:r><m:t>1, 2, 3</m:t></m:r>
+            </m:e>
+          </m:d>
+        </m:oMath>
+      </w:p>
+    `;
+    const docx = await buildDocxBuffer(body);
+    const result = await extractDocxMath(docx);
+    assert.strictEqual(result.success, true);
+    const mathP = result.paragraphs.find(p => p.hasMath);
+    assert.ok(mathP, 'Must extract math paragraph');
+    assert.ok(mathP!.text.includes('\\left\\{'), 'Must have opening \\left\\{');
+    assert.ok(mathP!.text.includes('\\right\\}'), 'Must resolve closing delimiter to \\right\\}');
+  });
+
+  test('Converts <m:acc> accents for vectors \\vec and derivatives \\ddot', async () => {
+    const body = `
+      <w:p>
+        <m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+          <m:acc>
+            <m:accPr><m:chr m:val="→"/></m:accPr>
+            <m:e><m:r><m:t>v</m:t></m:r></m:e>
+          </m:acc>
+          <m:r><m:t>+</m:t></m:r>
+          <m:acc>
+            <m:accPr><m:chr m:val=".."/></m:accPr>
+            <m:e><m:r><m:t>x</m:t></m:r></m:e>
+          </m:acc>
+        </m:oMath>
+      </w:p>
+    `;
+    const docx = await buildDocxBuffer(body);
+    const result = await extractDocxMath(docx);
+    assert.strictEqual(result.success, true);
+    const mathP = result.paragraphs.find(p => p.hasMath);
+    assert.ok(mathP, 'Must extract math paragraph');
+    assert.ok(mathP!.text.includes('\\vec{v}'), 'Must convert accent to \\vec{v}');
+    assert.ok(mathP!.text.includes('\\ddot{x}'), 'Must convert accent to \\ddot{x}');
+  });
+
 });
 

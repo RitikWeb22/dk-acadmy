@@ -3,11 +3,14 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IQuestionBankOption {
   key: 'A' | 'B' | 'C' | 'D';
   text: string;
+  imageUrl?: string;
 }
 
 export interface IQuestionBankItem extends Document {
   id: string;
   statement: string;
+  statementBlocks?: any[];
+  imageUrl?: string;
   subject: 'Mathematics' | 'Physics' | 'Chemistry' | 'Mixed';
   exam: string;
   year: number | string;
@@ -43,7 +46,8 @@ export interface IQuestionBankItem extends Document {
 const optionSchema = new Schema<IQuestionBankOption>(
   {
     key: { type: String, enum: ['A', 'B', 'C', 'D'], required: true },
-    text: { type: String, required: true }
+    text: { type: String, required: true },
+    imageUrl: { type: String }
   },
   { _id: false }
 );
@@ -52,6 +56,7 @@ const questionBankSchema = new Schema<IQuestionBankItem>(
   {
     id: { type: String, required: true, unique: true, index: true },
     statement: { type: String, required: true },
+    statementBlocks: { type: [Schema.Types.Mixed], default: undefined },
     subject: {
       type: String,
       enum: ['Mathematics', 'Physics', 'Chemistry', 'Mixed'],
@@ -89,6 +94,7 @@ const questionBankSchema = new Schema<IQuestionBankItem>(
     dkSirShortcut: { type: String, default: '' },
     videoUrl: { type: String, default: '' },
     pdfUrl: { type: String, default: '' },
+    imageUrl: { type: String, default: '' },
     diagramUrl: { type: String, default: '' },
     accessOverride: { type: String, enum: ['inherit', 'free', 'paid'], default: 'inherit' },
     usageCount: { type: Number, default: 0 },

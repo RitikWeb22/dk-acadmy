@@ -15,6 +15,7 @@ const questionSchema = new Schema({
     statement: { type: String, default: '' },
     statementBlocks: { type: [Schema.Types.Mixed], default: undefined },
     imageUrl: { type: String },
+    diagramUrl: { type: String },
     options: { type: [optionSchema], default: [] },
     correctAnswer: { type: String, default: 'A' },
     marks: { type: Number, default: 4 },

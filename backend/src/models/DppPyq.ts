@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IProblemOption {
   key: 'A' | 'B' | 'C' | 'D';
   text: string;
+  imageUrl?: string;
 }
 
 export interface IProblemQuestion {
@@ -10,6 +11,8 @@ export interface IProblemQuestion {
   qNum: number;
   statement: string;
   statementBlocks?: any[];
+  imageUrl?: string;
+  diagramUrl?: string;
   topic: string;
   options: IProblemOption[];
   correctKey: 'A' | 'B' | 'C' | 'D';
@@ -56,7 +59,8 @@ export interface IDppPyq extends Document {
 const optionSchema = new Schema<IProblemOption>(
   {
     key: { type: String, enum: ['A', 'B', 'C', 'D'], required: true },
-    text: { type: String, required: true }
+    text: { type: String, required: true },
+    imageUrl: { type: String }
   },
   { _id: false }
 );
@@ -66,6 +70,8 @@ const questionSchema = new Schema<IProblemQuestion>(
     id: { type: String, required: true },
     qNum: { type: Number, required: true },
     statement: { type: String, required: true },
+    imageUrl: { type: String },
+    diagramUrl: { type: String },
     topic: { type: String, required: true, default: 'General' },
     options: { type: [optionSchema], default: [] },
     correctKey: { type: String, enum: ['A', 'B', 'C', 'D'], required: true, default: 'A' },

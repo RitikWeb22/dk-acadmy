@@ -6,7 +6,8 @@ import {
   preprocessRawHtmlMathDetailed
 } from '../src/utils/universalMathEngine/ommlMathMLConverter.js';
 import {
-  normalizePastedQuestion
+  normalizePastedQuestion,
+  validateMathLatex
 } from '../src/utils/universalMathEngine/index.js';
 
 describe('Word Clipboard HTML OMML Ingestion Regression Suite (Step A)', () => {
@@ -43,7 +44,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
 
     // 1. Verify preprocessor extracts OMML and strips non-math fallback
     const preprocessed = preprocessRawHtmlMath(rawWordClipboardHtml);
-    assert.ok(preprocessed.includes('\\lim_{x \\to 0}\\frac{sin x}{x}') || preprocessed.includes('\\lim_{x\\to 0}\\frac{sin x}{x}'), 'Should convert limit & fraction OMML');
+    assert.ok(preprocessed.includes('\\lim_{x \\to 0}\\frac{sin x}{x}') || preprocessed.includes('\\lim_{x\\to 0}\\frac{sin x}{x}') || preprocessed.includes('\\lim_{x\\to 0}\\frac{\\sin x}{x}'), 'Should convert limit & fraction OMML');
     assert.ok(!preprocessed.includes('lim_(x->0)'), 'Should strip !msEquation plain-text fallback');
     assert.ok(!preprocessed.includes('!msEquation'), 'Should remove conditional comment syntax');
 
@@ -160,6 +161,25 @@ xmlns="http://www.w3.org/TR/REC-html40">
     assert.ok(res5.statement.includes('e^{\\frac{f(r)}{r}}'), 'Should reconstruct nested parenthesized fraction exponent');
     assert.ok(res5.statement.includes('e^{a}'), 'Should repair ea OCR artifact');
     assert.ok(!res5.statement.includes('□'), 'Should strip empty answer box placeholder');
+  });
+
+  test('Repairs corrupt delimiters: \\right\\tan, \\right\\cos, dummy dots \\left( ... \\right., and orphan \\right.', () => {
+    // Formula 1 from real-world JEE: \right\tan x or \right \tan x missing closing paren, dummy dot in radicals, and orphan $\right.$
+    const rawF1 = "Suppose $f(x)=\\dfrac{\\left(2^{x}+2^{-x}\\right\\tan x\\sqrt{\\tan^{-1}\\left(x^{2}-x + 1\\right.}}{{\\left(7x^{2}+3x + 1\\right.}^{3}}$. Then the value of $f'(0)$ is equal to$\\right.$";
+    const res1 = normalizePastedQuestion(rawF1);
+    assert.ok(!res1.statement.includes('\\right\\tan'), 'Must not leave \\right\\tan without closing delimiter');
+    assert.ok(res1.statement.includes('\\right) \\tan') || res1.statement.includes('\\right)\\tan'), 'Must repair to \\right) \\tan');
+    assert.ok(!res1.statement.includes('\\right.'), 'Must replace dummy dot delimiters in algebraic groups');
+    assert.ok(!res1.statement.endsWith('\\right.'), 'Must strip orphan trailing \\right.');
+    assert.ok(validateMathLatex(res1.statement).isValid, 'Formula 1 must pass KaTeX validation with 0 errors');
+
+    // Formula 2: \right\cos or \right \cos missing closing paren and dummy dot in \left(\frac{\pi}{6}\right.
+    const rawF2 = "If $y=\\frac{(\\sqrt{x}+1)\\left(x^{2}-\\sqrt{x}\\right.}{x\\sqrt{x}+x+\\sqrt{x}}+\\frac{1}{15}\\left(3\\cos^{2}x-5\\right\\cos^{3}x$ , then $96y'\\left(\\frac{\\pi}{6}\\right.$ is equal to :";
+    const res2 = normalizePastedQuestion(rawF2);
+    assert.ok(!res2.statement.includes('\\right\\cos'), 'Must not leave \\right\\cos without closing delimiter');
+    assert.ok(res2.statement.includes('\\right) \\cos') || res2.statement.includes('\\right)\\cos'), 'Must repair to \\right) \\cos');
+    assert.ok(res2.statement.includes('\\left(\\frac{\\pi}{6}\\right)'), 'Must repair dummy dot to closing paren in \\left(\\frac{\\pi}{6}\\right)');
+    assert.ok(validateMathLatex(res2.statement).isValid, 'Formula 2 must pass KaTeX validation with 0 errors');
   });
 });
 

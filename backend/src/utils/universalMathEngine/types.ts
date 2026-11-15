@@ -24,6 +24,18 @@ export interface NormalizationOptions {
   strictSyntaxCheck?: boolean;
 }
 
+export interface ConversionFailureDiagnosis {
+  questionId?: string;
+  qNum?: number;
+  expressionIndex?: number;
+  rawEquation: string;
+  convertedLatex?: string;
+  errors: string[];
+  warnings: string[];
+  canRetry: boolean;
+  retrySuggestedFix?: string;
+}
+
 export interface ValidationReport {
   isValid: boolean;
   confidence: number;
@@ -31,6 +43,8 @@ export interface ValidationReport {
   errors: string[];
   warnings: string[];
   uncertainRegions: string[]; // Exactly string[] as expected
+  katexValid?: boolean;
+  diagnoses?: ConversionFailureDiagnosis[];
 }
 
 export interface NormalizationResult {
