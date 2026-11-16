@@ -863,6 +863,8 @@ export function repairLinearMathResidues(text) {
     // e.g. x ^\in [0,3] -> \hat{x} \in [0,3], x `\in -> \hat{x} \in, x ˆ\in -> \hat{x} \in, x ̂ -> \hat{x}
     s = s.replace(/([a-zA-Z])\s*[\^ˆ`\u0302]\s*(?=\\in\b|\\notin\b|[∈∉⊆⊂]|<=|>=|<|>|=|!=|≠)/g, '\\hat{$1} ');
     s = s.replace(/([a-zA-Z])\u0302/g, '\\hat{$1}');
+    s = s.replace(/\b([fghxyzuvwFGHXYZUVW]['′]?)\s*\(\s*([a-zA-Z])\s*[\^ˆ`\u0302]\s*\)/g, '$1(\\hat{$2})');
+    s = s.replace(/(?<=[(\[{])\s*([a-zA-Z])\s*[\^ˆ`\u0302]\s*(?=[)\]}])/g, '\\hat{$1}');
     // Extra spaces inside function call parens: f'(x ) -> f'(x), g'(x ) -> g'(x)
     s = s.replace(/([a-zA-Z]['′]?)\s*\(\s*([a-zA-Z0-9_\\]+)\s+\)/g, '$1($2)');
     // Glued min / max operators before functions or delimiters:
@@ -1412,6 +1414,8 @@ export function normalizeOptionMath(raw) {
     // e.g. x ^\in [0,3] -> \hat{x} \in [0,3], x `\in -> \hat{x} \in, x ˆ\in -> \hat{x} \in, x ̂ -> \hat{x}
     s = s.replace(/([a-zA-Z])\s*[\^ˆ`\u0302]\s*(?=\\in\b|\\notin\b|[∈∉⊆⊂]|<=|>=|<|>|=|!=|≠)/g, '\\hat{$1} ');
     s = s.replace(/([a-zA-Z])\u0302/g, '\\hat{$1}');
+    s = s.replace(/\b([fghxyzuvwFGHXYZUVW]['′]?)\s*\(\s*([a-zA-Z])\s*[\^ˆ`\u0302]\s*\)/g, '$1(\\hat{$2})');
+    s = s.replace(/(?<=[(\[{])\s*([a-zA-Z])\s*[\^ˆ`\u0302]\s*(?=[)\]}])/g, '\\hat{$1}');
     s = s.replace(/([a-zA-Z])\s*[\^ˆ`]\s+(?=[0-9a-zA-Z_\\([{])/g, '\\hat{$1} ');
     // Extra spaces inside function call parens: f'(x ) -> f'(x), g'(x ) -> g'(x)
     s = s.replace(/([a-zA-Z]['′]?)\s*\(\s*([a-zA-Z0-9_\\]+)\s+\)/g, '$1($2)');

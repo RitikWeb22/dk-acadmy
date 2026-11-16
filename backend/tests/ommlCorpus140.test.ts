@@ -107,7 +107,7 @@ Ans: A`;
     const res = parseWordQuestions(raw);
     assert.strictEqual(res.length, 1);
     assert.strictEqual(res[0].correctKey, 'A');
-    assert.strictEqual(res[0].options[0].text, '5');
+    assert.strictEqual(res[0].options[0].text.replace(/\$/g, ''), '5');
   });
 
   it('identifies bare letter options A, B, C, D on separate lines', () => {
@@ -120,7 +120,7 @@ Ans: B`;
     const res = parseWordQuestions(raw);
     assert.strictEqual(res.length, 1);
     assert.strictEqual(res[0].correctKey, 'B');
-    assert.strictEqual(res[0].options[1].text, '20');
+    assert.strictEqual(res[0].options[1].text.replace(/\$/g, ''), '20');
   });
 
   it('identifies numbered options (1), (2), (3), (4) mapped to A, B, C, D', () => {
@@ -133,8 +133,8 @@ Ans: (2)`;
     const res = parseWordQuestions(raw);
     assert.strictEqual(res.length, 1);
     assert.strictEqual(res[0].correctKey, 'B');
-    assert.strictEqual(res[0].options[0].text, '0');
-    assert.strictEqual(res[0].options[1].text, '1');
+    assert.strictEqual(res[0].options[0].text.replace(/\$/g, ''), '0');
+    assert.strictEqual(res[0].options[1].text.replace(/\$/g, ''), '1');
   });
 
   it('identifies exam name, year, and shift metadata cleanly', () => {
@@ -218,5 +218,43 @@ Ans: A`;
     assert.strictEqual(res[1].correctKey, 'A');
     assert.strictEqual(res[0].options.length, 4);
     assert.strictEqual(res[1].options.length, 4);
+  });
+
+  it('correctly handles circumflex artifacts, connecting prose, and glued min/max without KaTeX errors', () => {
+    const raw = `Let f(x)=2x + tan^(-1) x and g(x)=\\log_e (\\sqrt{1 + x^2}+x),x \\in [0,3]. Then
+A there exists x ^\\in [0,3] such that f'(x )<g'(x )
+B there exist 0<x_1<x_2<3 such that f(x)<g(x),\\forall \\in (x_1,x_2 )
+C minf'(x)=1 + maxg'(x)
+D maxf(x)>maxg(x)
+Ans: A`;
+    const res = parseWordQuestions(raw);
+    assert.strictEqual(res.length, 1);
+    const q = res[0];
+    assert.strictEqual(q.correctKey, 'A');
+    assert.strictEqual(q.options.length, 4);
+
+    // Option A: circumflex repaired to \hat{x}, prose kept readable
+    assert.ok(q.options[0].text.includes('\\hat{x}'), 'Option A must convert x ^ to \\hat{x}');
+    assert.ok(q.options[0].text.includes('there exists'), 'Option A must preserve prose "there exists"');
+
+    // Option B: words not fused into thereexist0
+    assert.ok(!q.options[1].text.includes('thereexist0'), 'Option B must not fuse "there exist 0"');
+
+    // Option C: min / max properly converted to LaTeX operators
+    assert.ok(q.options[2].text.includes('\\min') && q.options[2].text.includes('\\max'), 'Option C must format \\min and \\max');
+
+    // Option D: max properly converted
+    assert.ok(q.options[3].text.includes('\\max'), 'Option D must format \\max');
+
+    // Every formula block in statement and options must pass KaTeX cleanly without throwing
+    const fullText = [q.statement, ...q.options.map((o) => o.text)].join(' ');
+    const mathMatches = fullText.match(/\$([^$]+)\$/g) || [];
+    assert.ok(mathMatches.length > 0, 'Must contain math blocks');
+    for (const m of mathMatches) {
+      const inner = m.slice(1, -1).trim();
+      assert.doesNotThrow(() => {
+        katex.renderToString(inner, { throwOnError: true });
+      }, `KaTeX failed on formula: "${inner}"`);
+    }
   });
 });
