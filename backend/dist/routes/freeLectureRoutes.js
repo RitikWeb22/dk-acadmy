@@ -28,7 +28,7 @@ const createFreeLectureSchema = z
     badge: z.string().optional(),
     status: z.string().optional()
 })
-    .strict();
+    .passthrough();
 router.get('/', getFreeLectures);
 router.get('/:id', getFreeLectureById);
 router.post('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ body: createFreeLectureSchema }), createFreeLecture);

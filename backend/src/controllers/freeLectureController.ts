@@ -622,8 +622,8 @@ export const createFreeLecture = async (req: Request, res: Response): Promise<vo
       isFree,
       price = 0,
       discountPrice = 0,
-      videoUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      thumbnailUrl = '/img/dk-sir.jpg',
+      videoUrl,
+      thumbnailUrl,
       dppName,
       dppUrl,
       notesPdfUrl,
@@ -636,51 +636,73 @@ export const createFreeLecture = async (req: Request, res: Response): Promise<vo
       status = 'Published'
     } = req.body;
 
-    if (!title || !title.trim()) {
-      res.status(400).json({ success: false, error: 'Lecture title is required' });
-      return;
-    }
+    const safeTitle = (title && typeof title === 'string' && title.trim()) ? title.trim() : 'Free Masterclass Lecture';
+
+    // Normalize subject to allowed enum values
+    let safeSubject: 'Mathematics' | 'Physics' | 'Chemistry' | 'Mixed' = 'Mathematics';
+    const subStr = String(subject || '').toLowerCase();
+    if (subStr.includes('physic')) safeSubject = 'Physics';
+    else if (subStr.includes('chem')) safeSubject = 'Chemistry';
+    else if (subStr.includes('mix')) safeSubject = 'Mixed';
+    else safeSubject = 'Mathematics';
+
+    const safeTrackId = (trackId && typeof trackId === 'string' && trackId.trim())
+      ? trackId.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+      : 'free-course';
 
     // Determine order if not specified
     let lectureOrder = Number(order);
-    if (!lectureOrder || isNaN(lectureOrder)) {
-      const highestOrder = await FreeLecture.findOne({ trackId }).sort({ order: -1 });
+    if (!lectureOrder || isNaN(lectureOrder) || lectureOrder < 1) {
+      const highestOrder = await FreeLecture.findOne({ trackId: safeTrackId }).sort({ order: -1 });
       lectureOrder = highestOrder ? highestOrder.order + 1 : 1;
     }
 
-    // Free vs Paid policy: If order <= 5 and isFree not explicitly set false, default to free
     const finalIsFree = isFree !== undefined ? Boolean(isFree) : lectureOrder <= 5;
     const finalPrice = finalIsFree ? 0 : Number(price) || 499;
 
-    const generatedId = `lec-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const generatedId = (req.body.id && typeof req.body.id === 'string' && req.body.id.trim())
+      ? req.body.id.trim()
+      : `lec-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    const safeVideoUrl = (typeof videoUrl === 'string' && videoUrl.trim())
+      ? videoUrl.trim()
+      : 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
+    const safeThumbnailUrl = (typeof thumbnailUrl === 'string' && thumbnailUrl.trim())
+      ? thumbnailUrl.trim()
+      : '/img/dk-sir.jpg';
 
     const newLecture = new FreeLecture({
       id: generatedId,
-      title: title.trim(),
-      subject,
-      trackId,
-      trackTitle,
+      title: safeTitle,
+      subject: safeSubject,
+      trackId: safeTrackId,
+      trackTitle: trackTitle ? String(trackTitle).trim() : 'Free Lecture Series',
       order: lectureOrder,
-      duration,
+      duration: duration ? String(duration).trim() : '45 min',
       isFree: finalIsFree,
       price: finalPrice,
       discountPrice: Number(discountPrice) || (finalIsFree ? 0 : 999),
-      videoUrl,
-      thumbnailUrl,
-      dppName: dppName || `DPP-0${lectureOrder}: Practice Sheet`,
-      dppUrl: dppUrl || '/sample-dpp.pdf',
-      notesPdfUrl: notesPdfUrl || '/sample-notes.pdf',
-      facultyName,
-      targetExam,
-      targetClass,
-      description: description || '',
+      videoUrl: safeVideoUrl,
+      thumbnailUrl: safeThumbnailUrl,
+      dppName: dppName ? String(dppName).trim() : `DPP-0${lectureOrder}: Practice Sheet`,
+      dppUrl: (dppUrl && typeof dppUrl === 'string' && dppUrl.trim()) ? dppUrl.trim() : '/sample-dpp.pdf',
+      notesPdfUrl: (notesPdfUrl && typeof notesPdfUrl === 'string' && notesPdfUrl.trim()) ? notesPdfUrl.trim() : '/sample-notes.pdf',
+      facultyName: facultyName ? String(facultyName).trim() : 'Dharmendra Kumar (DK Sir)',
+      targetExam: targetExam ? String(targetExam).trim() : 'JEE Main & Advanced 2026/27',
+      targetClass: targetClass ? String(targetClass).trim() : 'Class 11 & 12',
+      description: description ? String(description).trim() : '',
       tags: Array.isArray(tags) ? tags : typeof tags === 'string' ? tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
-      badge: badge || '',
-      status
+      badge: badge ? String(badge).trim() : '',
+      status: status === 'Draft' ? 'Draft' : 'Published'
     });
 
     const saved = await newLecture.save();
-    broadcastFreeLectureCreated(saved);
+    try {
+      broadcastFreeLectureCreated(saved);
+    } catch (sockErr) {
+      console.warn('[Socket Broadcast Warning]:', sockErr);
+    }
 
     res.status(201).json({ success: true, message: 'Lecture created successfully', data: saved });
   } catch (error: any) {

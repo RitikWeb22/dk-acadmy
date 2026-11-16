@@ -19,20 +19,49 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password, phone, targetExam, targetClass, targetYear } = req.body;
 
+    const rawPhone = phone ? phone.toString().replace(/\D/g, '').slice(-10) : '';
     const cleanEmail = email?.trim().toLowerCase();
-    const userExists = await User.findOne({ email: cleanEmail });
-    if (userExists) {
-      res.status(400).json({ success: false, message: 'User already exists with this email' });
+
+    if (!rawPhone && !cleanEmail) {
+      res.status(400).json({ success: false, message: 'Please provide either a phone number or email address.' });
       return;
+    }
+
+    // Check if user already exists with this phone number
+    if (rawPhone) {
+      const phoneExists = await User.findOne({ phone: rawPhone });
+      if (phoneExists) {
+        res.status(400).json({ success: false, message: 'An account is already registered with this phone number.' });
+        return;
+      }
+    }
+
+    // Check if user already exists with this email address
+    if (cleanEmail) {
+      const userExists = await User.findOne({ email: cleanEmail });
+      if (userExists) {
+        res.status(400).json({ success: false, message: 'An account is already registered with this email address.' });
+        return;
+      }
+    }
+
+    // If student signs up with phone number without an email, assign a deterministic unique handle email
+    const finalEmail = cleanEmail || `${rawPhone}@student.dkacademy.in`;
+    if (!cleanEmail) {
+      const fallbackExists = await User.findOne({ email: finalEmail });
+      if (fallbackExists) {
+        res.status(400).json({ success: false, message: 'An account is already registered with this phone number.' });
+        return;
+      }
     }
 
     const studentId = generateStudentId();
 
     const user = await User.create({
       name: name?.trim(),
-      email: cleanEmail,
+      email: finalEmail,
       password: password || 'password123',
-      phone: phone?.trim(),
+      phone: rawPhone || undefined,
       role: 'STUDENT',
       studentId,
       targetExam: targetExam || 'JEE Main & Advanced',
@@ -212,16 +241,26 @@ const LOCK_TIME_MS = 15 * 60 * 1000; // 15 minutes
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
-    const genericErrorMessage = 'Invalid email or password';
+    const { email, phone, identifier, password } = req.body;
+    const rawLookup = (identifier || phone || email || '').toString().trim();
+    const genericErrorMessage = 'Invalid mobile number/email or password';
 
-    if (!email || !password) {
+    if (!rawLookup || !password) {
       res.status(400).json({ success: false, message: genericErrorMessage });
       return;
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    const user = await User.findOne({ email: cleanEmail }).select('+password');
+    const cleanDigits = rawLookup.replace(/\D/g, '').slice(-10);
+    const cleanEmail = rawLookup.toLowerCase();
+
+    // Query by either phone number OR email address
+    const queryConditions: any[] = [{ email: cleanEmail }];
+    if (cleanDigits && cleanDigits.length === 10) {
+      queryConditions.push({ phone: cleanDigits });
+      queryConditions.push({ email: `${cleanDigits}@student.dkacademy.in` });
+    }
+
+    const user = await User.findOne({ $or: queryConditions }).select('+password');
 
     if (!user) {
       res.status(401).json({ success: false, message: genericErrorMessage });
@@ -371,6 +410,34 @@ export const adminLogin = async (req: Request, res: Response): Promise<void> => 
           department: user.department
         }
       }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const logout = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const isProd = process.env.NODE_ENV === 'production';
+    const cookieOptions: {
+      httpOnly: boolean;
+      secure: boolean;
+      sameSite: 'strict' | 'lax';
+      path: string;
+    } = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'strict' : 'lax',
+      path: '/'
+    };
+
+    res.clearCookie('token', cookieOptions);
+    res.clearCookie('adminToken', cookieOptions);
+    res.clearCookie('refreshToken', cookieOptions);
+
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully'
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

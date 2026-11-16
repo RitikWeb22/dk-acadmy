@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { register, login, googleAuth, adminLogin, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, unlockStaffByAdmin, deleteUserByAdmin } from '../controllers/authController.js';
+import { register, login, googleAuth, adminLogin, logout, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, unlockStaffByAdmin, deleteUserByAdmin } from '../controllers/authController.js';
 import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
@@ -17,20 +17,26 @@ const authLimiter = rateLimit({
 const registerSchema = z
     .object({
     name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
-    email: z.string().trim().email('Valid email address required'),
+    email: z.string().trim().email('Valid email address required').optional().or(z.literal('')),
     password: z.string().min(6, 'Password must be at least 6 characters'),
-    phone: z.string().trim().optional(),
+    phone: z.string().trim().optional().or(z.literal('')),
     targetExam: z.string().trim().optional(),
     targetClass: z.string().trim().optional(),
     targetYear: z.string().trim().optional()
 })
-    .strict();
+    .refine((data) => (data.phone && data.phone.trim().length >= 10) || (data.email && data.email.trim().length > 0), {
+    message: 'Please provide either a valid 10-digit mobile number or email address'
+});
 const loginSchema = z
     .object({
-    email: z.string().trim().email('Valid email address required'),
+    email: z.string().trim().optional().or(z.literal('')),
+    phone: z.string().trim().optional().or(z.literal('')),
+    identifier: z.string().trim().optional().or(z.literal('')),
     password: z.string().min(1, 'Password is required')
 })
-    .strict();
+    .refine((data) => (data.identifier && data.identifier.trim().length > 0) || (data.phone && data.phone.trim().length > 0) || (data.email && data.email.trim().length > 0), {
+    message: 'Please provide phone number or email address'
+});
 const googleAuthSchema = z
     .object({
     token: z.string().optional(),
@@ -77,6 +83,7 @@ router.post('/register', authLimiter, validate({ body: registerSchema }), regist
 router.post('/login', authLimiter, validate({ body: loginSchema }), login);
 router.post('/google', authLimiter, validate({ body: googleAuthSchema }), googleAuth);
 router.post('/admin-login', authLimiter, validate({ body: loginSchema }), adminLogin);
+router.post('/logout', logout);
 // Protected Student / User Endpoints
 router.get('/me', protect, getMe);
 router.put('/profile', protect, validate({ body: updateProfileSchema }), updateProfile);

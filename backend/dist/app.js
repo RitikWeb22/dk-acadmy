@@ -42,6 +42,7 @@ app.use(helmet({
             scriptSrc: [
                 "'self'",
                 "'unsafe-inline'",
+                "'unsafe-eval'",
                 'https://cdn.jsdelivr.net',
                 'https://checkout.razorpay.com',
                 'https://*.razorpay.com',
@@ -50,6 +51,7 @@ app.use(helmet({
                 'https://*.google.com',
                 'https://apis.google.com'
             ],
+            scriptSrcAttr: ["'unsafe-inline'"],
             styleSrc: [
                 "'self'",
                 "'unsafe-inline'",
@@ -57,27 +59,13 @@ app.use(helmet({
                 'https://cdn.jsdelivr.net',
                 'https://fonts.cdnfonts.com',
                 'https://cdnfonts.com',
-                'https://*.cdnfonts.com'
-            ],
-            styleSrcElem: [
-                "'self'",
-                "'unsafe-inline'",
-                'https://fonts.googleapis.com',
-                'https://cdn.jsdelivr.net',
-                'https://fonts.cdnfonts.com',
-                'https://cdnfonts.com',
-                'https://*.cdnfonts.com'
-            ],
-            fontSrc: [
-                "'self'",
-                'https://fonts.gstatic.com',
-                'https://cdn.jsdelivr.net',
-                'https://fonts.cdnfonts.com',
-                'https://cdnfonts.com',
                 'https://*.cdnfonts.com',
-                'data:'
+                'https://accounts.google.com',
+                'https://*.google.com',
+                'https://*.gstatic.com'
             ],
-            fontSrcElem: [
+            styleSrcAttr: ["'unsafe-inline'"],
+            fontSrc: [
                 "'self'",
                 'https://fonts.gstatic.com',
                 'https://cdn.jsdelivr.net',

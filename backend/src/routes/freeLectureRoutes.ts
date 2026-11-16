@@ -37,7 +37,7 @@ const createFreeLectureSchema = z
     badge: z.string().optional(),
     status: z.string().optional()
   })
-  .strict();
+  .passthrough();
 
 router.get('/', getFreeLectures);
 router.get('/:id', getFreeLectureById);
