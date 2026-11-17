@@ -4,6 +4,7 @@ import { TestSeries } from '../models/TestSeries.js';
 import { TestSubmission } from '../models/TestSubmission.js';
 import { Order } from '../models/Order.js';
 import { User } from '../models/User.js';
+import { CMSConfig } from '../models/CMS.js';
 import { PART_TESTS_DATA } from '../data/partTestsData.js';
 import { normalizeMathematicalText } from '../utils/universalMathEngine/index.js';
 import {
@@ -907,7 +908,25 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
       totalCount = items.length;
     }
 
-    if (items.length === 0) {
+    // Exclude permanently deleted test series
+    const deletedConfig = await CMSConfig.findOne({ key: 'deleted_test_series_ids' }).lean().catch(() => null);
+    const deletedIds: string[] = Array.isArray(deletedConfig?.data) ? deletedConfig.data : [];
+
+    // Filter DB items against deletedIds
+    if (deletedIds.length > 0) {
+      items = items.filter((it: any) =>
+        !deletedIds.includes(it.id) &&
+        !deletedIds.includes(it.slug) &&
+        !deletedIds.includes(String(it._id)) &&
+        !deletedIds.includes(it.title)
+      );
+      totalCount = items.length;
+    }
+
+    const isInitialized = await CMSConfig.findOne({ key: 'test_series_initialized' }).lean().catch(() => null);
+
+    // Only inject starter seed dataset if collection has NEVER been initialized and no tests were ever deleted
+    if (!isInitialized && items.length === 0 && deletedIds.length === 0) {
       let seedFiltered = SEED_TEST_SERIES;
       if (examType && examType !== 'ALL' && examType !== 'All') {
         const normExam = String(examType).toLowerCase();
@@ -922,14 +941,6 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
       if (seedFiltered.length > 0) {
         items = seedFiltered;
         totalCount = seedFiltered.length;
-      }
-    } else {
-      // If DB has tests but lacks Class 8/9/10 foundation tests, merge them from SEED_TEST_SERIES
-      const hasClass8 = items.some((it: any) => it.examType === 'Class 8' || it.badgeCode === 'CLASS 8');
-      if (!hasClass8) {
-        const foundationSeeds = SEED_TEST_SERIES.filter((s: any) => s.examType === 'Class 8' || s.examType === 'Class 9' || s.examType === 'Class 10');
-        items = [...items, ...foundationSeeds];
-        totalCount = items.length;
       }
     }
 
@@ -1022,15 +1033,24 @@ export const getTestSeriesByIdOrSlug = async (req: Request, res: Response): Prom
     const requesterRole = String(requester?.role || '').toUpperCase();
     const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRole);
 
+    const deletedConfig = await CMSConfig.findOne({ key: 'deleted_test_series_ids' }).lean().catch(() => null);
+    const deletedIds: string[] = Array.isArray(deletedConfig?.data) ? deletedConfig.data : [];
+    if (deletedIds.includes(param) || (item && (deletedIds.includes(item.id) || deletedIds.includes(item.slug) || deletedIds.includes(String(item._id)) || deletedIds.includes(item.title)))) {
+      res.status(404).json({ success: false, message: 'Test Series not found' });
+      return;
+    }
+
     if (!item) {
-      const fallbackItem = SEED_TEST_SERIES.find((s) => s.id === param || s.slug === param);
-      if (fallbackItem) {
-        const safeFallback = { ...fallbackItem };
-        if (!isAdmin) {
-          safeFallback.questions = sanitizeQuestionsForStudent(safeFallback.questions);
+      if (!deletedIds.includes(param)) {
+        const fallbackItem = SEED_TEST_SERIES.find((s) => (s.id === param || s.slug === param) && !deletedIds.includes(s.id) && !deletedIds.includes(s.slug) && !deletedIds.includes(s.title));
+        if (fallbackItem) {
+          const safeFallback = { ...fallbackItem };
+          if (!isAdmin) {
+            safeFallback.questions = sanitizeQuestionsForStudent(safeFallback.questions);
+          }
+          res.status(200).json({ success: true, data: safeFallback });
+          return;
         }
-        res.status(200).json({ success: true, data: safeFallback });
-        return;
       }
       res.status(404).json({ success: false, message: 'Test Series not found' });
       return;
@@ -1429,18 +1449,61 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
 export const deleteTestSeries = async (req: Request, res: Response): Promise<void> => {
   try {
     const param = String(req.params.id);
+    const cleanParam = param.replace(/^\//, '');
 
-    const deleted = await TestSeries.findOneAndDelete({
-      $or: [
-        { id: param },
-        { slug: param },
-        { _id: param.match(/^[0-9a-fA-F]{24}$/) ? param : null }
-      ]
-    });
+    const queryConditions: any[] = [
+      { id: param },
+      { id: cleanParam },
+      { slug: param },
+      { slug: cleanParam },
+      { slug: `/${cleanParam}` },
+      { title: param },
+      { title: cleanParam }
+    ];
+    if (/^[0-9a-fA-F]{24}$/.test(cleanParam)) {
+      queryConditions.push({ _id: cleanParam });
+    }
+    const slugified = cleanParam.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    if (slugified) {
+      queryConditions.push({ slug: slugified });
+      queryConditions.push({ slug: `/${slugified}` });
+    }
+
+    const deleted = await TestSeries.findOneAndDelete({ $or: queryConditions });
+
+    // Blacklist permanently in CMSConfig so seeds or cache never resurrect it
+    const toBlacklist = [param, cleanParam];
+    if (deleted?.id) toBlacklist.push(deleted.id);
+    if (deleted?._id) toBlacklist.push(String(deleted._id));
+    if (deleted?.slug) {
+      toBlacklist.push(deleted.slug);
+      toBlacklist.push(deleted.slug.replace(/^\//, ''));
+    }
+    if (deleted?.title) toBlacklist.push(deleted.title);
+    if (slugified) toBlacklist.push(slugified);
+
+    try {
+      const existingDeleted = await CMSConfig.findOne({ key: 'deleted_test_series_ids' });
+      if (!existingDeleted) {
+        await CMSConfig.create({
+          key: 'deleted_test_series_ids',
+          data: toBlacklist,
+          updatedBy: (req as any).user?.email || 'Admin'
+        });
+      } else {
+        const merged = Array.from(new Set([...(existingDeleted.data || []), ...toBlacklist]));
+        existingDeleted.data = merged;
+        await existingDeleted.save();
+      }
+    } catch (cmsErr) {
+      console.warn('[deleteTestSeries] CMSConfig blacklist warning:', cmsErr);
+    }
 
     const deletedId = deleted?.id || param;
     invalidateTestSeriesCache();
     broadcastTestSeriesDeleted(deletedId);
+    if (deleted?._id && String(deleted._id) !== deletedId) broadcastTestSeriesDeleted(String(deleted._id));
+    if (deleted?.slug && deleted.slug !== deletedId) broadcastTestSeriesDeleted(deleted.slug);
 
     res.status(200).json({
       success: true,

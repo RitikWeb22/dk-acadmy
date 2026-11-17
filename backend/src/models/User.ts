@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
   name: string;
-  email: string;
+  email?: string;
   password?: string;
   phone?: string;
   studentId?: string;
@@ -42,8 +42,9 @@ const userSchema = new Schema<IUser>(
     },
     email: {
       type: String,
-      required: [true, 'Please provide email address'],
+      required: false,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true
     },

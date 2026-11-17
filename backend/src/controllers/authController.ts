@@ -20,10 +20,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const { name, email, password, phone, targetExam, targetClass, targetYear } = req.body;
 
     const rawPhone = phone ? phone.toString().replace(/\D/g, '').slice(-10) : '';
-    const cleanEmail = email?.trim().toLowerCase();
+    const cleanEmail = email && typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : undefined;
 
     if (!rawPhone && !cleanEmail) {
-      res.status(400).json({ success: false, message: 'Please provide either a phone number or email address.' });
+      res.status(400).json({ success: false, message: 'Please provide either a valid 10-digit phone number or email address.' });
       return;
     }
 
@@ -45,21 +45,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // If student signs up with phone number without an email, assign a deterministic unique handle email
-    const finalEmail = cleanEmail || `${rawPhone}@student.dkacademy.in`;
-    if (!cleanEmail) {
-      const fallbackExists = await User.findOne({ email: finalEmail });
-      if (fallbackExists) {
-        res.status(400).json({ success: false, message: 'An account is already registered with this phone number.' });
-        return;
-      }
-    }
-
     const studentId = generateStudentId();
 
-    const user = await User.create({
+    const userPayload: any = {
       name: name?.trim(),
-      email: finalEmail,
       password: password || 'password123',
       phone: rawPhone || undefined,
       role: 'STUDENT',
@@ -67,7 +56,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       targetExam: targetExam || 'JEE Main & Advanced',
       targetClass: targetClass || 'Class 11th',
       targetYear: targetYear || '2028'
-    });
+    };
+
+    // If student provided an email, store it; if not, do NOT create dummy email
+    if (cleanEmail) {
+      userPayload.email = cleanEmail;
+    }
+
+    const user = await User.create(userPayload);
 
     const token = generateToken(user._id.toString(), user.role);
 
@@ -253,11 +249,23 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const cleanDigits = rawLookup.replace(/\D/g, '').slice(-10);
     const cleanEmail = rawLookup.toLowerCase();
 
-    // Query by either phone number OR email address
-    const queryConditions: any[] = [{ email: cleanEmail }];
+    // Query by either email address, mobile number, or student ID
+    const queryConditions: any[] = [];
+    if (cleanEmail.includes('@')) {
+      queryConditions.push({ email: cleanEmail });
+    }
     if (cleanDigits && cleanDigits.length === 10) {
       queryConditions.push({ phone: cleanDigits });
       queryConditions.push({ email: `${cleanDigits}@student.dkacademy.in` });
+    }
+    if (rawLookup) {
+      queryConditions.push({ studentId: rawLookup });
+      queryConditions.push({ studentId: rawLookup.toUpperCase() });
+    }
+
+    if (queryConditions.length === 0) {
+      res.status(401).json({ success: false, message: genericErrorMessage });
+      return;
     }
 
     const user = await User.findOne({ $or: queryConditions }).select('+password');
@@ -462,9 +470,46 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    // 1. Email update handling
+    if (req.body.email !== undefined) {
+      const cleanEmail = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      if (cleanEmail) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+          res.status(400).json({ success: false, message: 'Please provide a valid email format (e.g. user@gmail.com).' });
+          return;
+        }
+        const emailExists = await User.findOne({ email: cleanEmail, _id: { $ne: req.user._id } });
+        if (emailExists) {
+          res.status(400).json({ success: false, message: 'An account is already registered with this email address.' });
+          return;
+        }
+        req.user.email = cleanEmail;
+      } else {
+        // User cleared email - remove it cleanly
+        req.user.email = undefined;
+        req.user.set('email', undefined);
+      }
+    }
+
+    // 2. Phone update handling
+    if (req.body.phone !== undefined) {
+      const cleanPhone = req.body.phone.toString().replace(/\D/g, '').slice(-10);
+      if (cleanPhone) {
+        if (cleanPhone.length !== 10) {
+          res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
+          return;
+        }
+        const phoneExists = await User.findOne({ phone: cleanPhone, _id: { $ne: req.user._id } });
+        if (phoneExists) {
+          res.status(400).json({ success: false, message: 'An account is already registered with this mobile number.' });
+          return;
+        }
+        req.user.phone = cleanPhone;
+      }
+    }
+
     const allowedUpdates = [
       'name',
-      'phone',
       'targetExam',
       'targetClass',
       'targetYear',
@@ -478,12 +523,13 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       'parentName',
       'parentPhone',
       'schoolName',
-      'board'
+      'board',
+      'bio'
     ];
 
     allowedUpdates.forEach((field) => {
       if (req.body[field] !== undefined) {
-        (req.user as any)[field] = req.body[field];
+        (req.user as any)[field] = typeof req.body[field] === 'string' ? req.body[field].trim() : req.body[field];
       }
     });
 
@@ -495,10 +541,11 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
 
     res.status(200).json({
       success: true,
-      message: 'Profile updated successfully',
+      message: 'Profile updated successfully in database',
       data: req.user
     });
   } catch (error: any) {
+    console.error('[UpdateProfile Error]:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

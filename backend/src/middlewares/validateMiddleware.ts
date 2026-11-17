@@ -21,7 +21,7 @@ export const idParamSchema = z
 
 export const idOrSlugParamSchema = z
   .object({
-    id: z.string().trim().min(1).max(128).regex(/^[a-zA-Z0-9_\-\.]+$/, 'Invalid identifier format')
+    id: z.string().trim().min(1).max(256)
   })
   .strict();
 

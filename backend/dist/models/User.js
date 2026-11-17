@@ -8,8 +8,9 @@ const userSchema = new Schema({
     },
     email: {
         type: String,
-        required: [true, 'Please provide email address'],
+        required: false,
         unique: true,
+        sparse: true,
         lowercase: true,
         trim: true
     },

@@ -1,6 +1,7 @@
 import { Course } from '../models/Course.js';
 import { User } from '../models/User.js';
 import { Order } from '../models/Order.js';
+import { CMSConfig } from '../models/CMS.js';
 
 export const seedInitialDatabase = async (): Promise<void> => {
   try {
@@ -68,10 +69,12 @@ export const seedInitialDatabase = async (): Promise<void> => {
       ]
     });
 
-    // 2. Seed Default Courses if collection is empty
-    const coursesCount = await Course.countDocuments();
-    if (coursesCount === 0) {
-      const defaultCourses = [
+    // 2. Seed Default Courses ONCE only if collection has never been initialized
+    const coursesInit = await CMSConfig.findOne({ key: 'courses_initialized' });
+    if (!coursesInit) {
+      const coursesCount = await Course.countDocuments();
+      if (coursesCount === 0) {
+        const defaultCourses = [
         {
           title: '2-Year Ultimate JEE Main & Advanced Mastery Program',
           slug: 'jee-main-advanced-2yr-ultimate',
@@ -218,8 +221,10 @@ export const seedInitialDatabase = async (): Promise<void> => {
         }
       ];
 
-      await Course.insertMany(defaultCourses);
-      console.log(`[Seed] Seeded ${defaultCourses.length} default courses into MongoDB successfully!`);
+        await Course.insertMany(defaultCourses);
+        console.log(`[Seed] Seeded ${defaultCourses.length} default courses into MongoDB successfully!`);
+      }
+      await CMSConfig.create({ key: 'courses_initialized', data: { initializedAt: new Date() } });
     }
 
     // 3. Clean up older seed demo/dummy invoices from database so deleted orders never reappear

@@ -86,8 +86,8 @@ export const createDoubt = async (req: AuthRequest, res: Response): Promise<void
     const doubt = await Doubt.create({
       studentId: req.user?._id,
       studentName: studentName || req.user?.name || 'JEE Aspirant',
-      studentEmail: studentEmail || req.user?.email || 'student@dkacademy.in',
-      studentPhone: studentPhone || req.user?.phone || '+91 98000 00000',
+      studentEmail: studentEmail || req.user?.email || '',
+      studentPhone: studentPhone || req.user?.phone || '',
       courseId,
       courseTitle: courseTitle || 'JEE Ultimate Pinnacle',
       subject: subject || 'Physics',

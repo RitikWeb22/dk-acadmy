@@ -18,7 +18,7 @@ export interface AuditReport {
   }>;
   userAccessDiscrepancies: Array<{
     userId: string;
-    studentEmail: string;
+    studentEmail?: string;
     missingCourses: string[];
     extraCourses: string[];
     fixed?: boolean;

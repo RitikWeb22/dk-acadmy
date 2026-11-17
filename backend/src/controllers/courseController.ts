@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { Course } from '../models/Course.js';
+import { CMSConfig } from '../models/CMS.js';
 import { escapeRegex, getPagination } from '../utils/sanitize.js';
 import {
   broadcastCMSUpdated,
@@ -14,13 +15,32 @@ export const getAllCourses = async (req: Request, res: Response): Promise<void> 
     const { category, targetClass, mode, search, page, limit } = req.query;
     const filter: any = {};
 
+    // Exclude permanently deleted courses
+    const deletedConfig = await CMSConfig.findOne({ key: 'deleted_course_ids' }).lean().catch(() => null);
+    const deletedIds: string[] = Array.isArray(deletedConfig?.data) ? deletedConfig.data : [];
+
     const isDefaultQuery = !category && !targetClass && !mode && !search && !page && !limit;
     if (isDefaultQuery) {
       const cachedCourses = await cacheGet<any[]>('courses:all');
-      if (cachedCourses) {
-        res.status(200).json({ success: true, count: cachedCourses.length, data: cachedCourses });
+      if (cachedCourses && Array.isArray(cachedCourses)) {
+        const filteredCached = deletedIds.length > 0
+          ? cachedCourses.filter((c: any) =>
+              !deletedIds.includes(String(c._id)) &&
+              !deletedIds.includes(c.slug) &&
+              !deletedIds.includes(c.id) &&
+              !deletedIds.includes(c.title)
+            )
+          : cachedCourses;
+        res.status(200).json({ success: true, count: filteredCached.length, data: filteredCached });
         return;
       }
+    }
+
+    if (deletedIds.length > 0) {
+      const objectIds = deletedIds.filter(id => /^[0-9a-fA-F]{24}$/.test(id));
+      filter._id = { $nin: objectIds };
+      filter.slug = { $nin: deletedIds };
+      filter.title = { $nin: deletedIds };
     }
 
     if (category && category !== 'All') filter.category = category;
@@ -285,12 +305,57 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
 export const deleteCourse = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = String(req.params.id);
-    const deleted = await Course.findOneAndDelete({
-      $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { slug: id }]
-    });
+    const cleanId = id.replace(/^\//, '');
+    const queryConditions: any[] = [
+      { slug: id },
+      { slug: cleanId },
+      { slug: `/${cleanId}` },
+      { title: id },
+      { title: cleanId }
+    ];
+    if (/^[0-9a-fA-F]{24}$/.test(cleanId)) {
+      queryConditions.push({ _id: cleanId });
+    }
+    const slugified = cleanId.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    if (slugified) {
+      queryConditions.push({ slug: slugified });
+      queryConditions.push({ slug: `/${slugified}` });
+    }
+
+    const deleted = await Course.findOneAndDelete({ $or: queryConditions });
+
+    // Store in CMSConfig blacklist so it is never re-seeded or returned
+    const toBlacklist = [id, cleanId];
+    if (deleted?._id) toBlacklist.push(String(deleted._id));
+    if (deleted?.slug) {
+      toBlacklist.push(deleted.slug);
+      toBlacklist.push(deleted.slug.replace(/^\//, ''));
+    }
+    if (deleted?.title) toBlacklist.push(deleted.title);
+    if (slugified) toBlacklist.push(slugified);
+
+    try {
+      const existingDeleted = await CMSConfig.findOne({ key: 'deleted_course_ids' });
+      if (!existingDeleted) {
+        await CMSConfig.create({
+          key: 'deleted_course_ids',
+          data: toBlacklist,
+          updatedBy: (req as any).user?.email || 'Admin'
+        });
+      } else {
+        const merged = Array.from(new Set([...(existingDeleted.data || []), ...toBlacklist]));
+        existingDeleted.data = merged;
+        await existingDeleted.save();
+      }
+    } catch (cmsErr) {
+      console.warn('[deleteCourse] CMSConfig blacklist warning:', cmsErr);
+    }
 
     await cacheDel('courses:all', `course:${id}`, `course:${deleted?._id}`, `course:${deleted?.slug}`);
     broadcastCourseDeleted(id);
+    if (deleted?._id && String(deleted._id) !== id) broadcastCourseDeleted(String(deleted._id));
+    if (deleted?.slug && deleted.slug !== id) broadcastCourseDeleted(deleted.slug);
+
     res.status(200).json({
       success: true,
       message: 'Course deleted successfully from MongoDB',

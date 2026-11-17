@@ -50,6 +50,7 @@ const googleAuthSchema = z
 const updateProfileSchema = z
     .object({
     name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().email('Invalid email address').optional().or(z.literal('')),
     phone: z.string().trim().optional(),
     avatarUrl: z.string().trim().optional(),
     targetExam: z.string().trim().optional(),
@@ -65,9 +66,10 @@ const updateProfileSchema = z
     dob: z.string().trim().optional(),
     bio: z.string().trim().optional(),
     designation: z.string().trim().optional(),
-    department: z.string().trim().optional()
+    department: z.string().trim().optional(),
+    password: z.string().min(6).optional()
 })
-    .strict();
+    .passthrough();
 const enrollCourseSchema = z
     .object({
     courseId: z.string().trim().min(1, 'courseId is required')
