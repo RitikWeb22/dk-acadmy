@@ -215,7 +215,10 @@ app.use(sanitizeInputs);
 app.use('/uploads', (_req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     next();
-}, express.static(path.join(process.cwd(), 'public', 'uploads'), {
+}, express.static(path.join(process.cwd(), 'backend', 'public', 'uploads'), {
+    dotfiles: 'ignore',
+    maxAge: '1d'
+}), express.static(path.join(process.cwd(), 'public', 'uploads'), {
     dotfiles: 'ignore',
     maxAge: '1d'
 }));

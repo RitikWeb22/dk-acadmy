@@ -74,9 +74,8 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
       } catch (cloudErr: any) {
         console.warn('[Cloudinary Notice]:', cloudErr.message, '- Falling back to local static storage.');
 
-        const host = req.get('host') || 'localhost:5000';
-        const protocol = req.protocol || 'http';
-        const fileUrl = `${protocol}://${host}/uploads/${uploadedFile.filename}`;
+        // Use root-relative URL so it works seamlessly over HTTP/HTTPS, localhost, and custom domains without Mixed Content blocks
+        const fileUrl = `/uploads/${uploadedFile.filename}`;
 
         res.status(200).json({
           success: true,
@@ -171,9 +170,8 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
             return;
           }
 
-          const host = req.get('host') || 'localhost:5000';
-          const protocol = req.protocol || 'http';
-          const fileUrl = `${protocol}://${host}/uploads/${filename}`;
+          // Use root-relative URL to prevent mixed content on HTTPS
+          const fileUrl = `/uploads/${filename}`;
 
           res.status(200).json({
             success: true,

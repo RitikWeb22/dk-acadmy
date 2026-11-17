@@ -16,10 +16,16 @@ const uploadRateLimiter = rateLimit({
     message: { success: false, message: 'Too many upload requests, please try again later.' }
 });
 // Setup disk storage for direct multipart file uploads (image and video)
-const uploadDir = path.resolve(process.cwd(), 'public', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+const candidateUploadDirs = [
+    path.resolve(process.cwd(), 'backend', 'public', 'uploads'),
+    path.resolve(process.cwd(), 'public', 'uploads')
+];
+for (const dir of candidateUploadDirs) {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
 }
+const uploadDir = fs.existsSync(candidateUploadDirs[0]) ? candidateUploadDirs[0] : candidateUploadDirs[1];
 // Strictly safe extensions whitelist (.svg and .doc removed for XSS/macro exploit defense)
 const ALLOWED_EXTENSIONS = new Set([
     '.jpg', '.jpeg', '.png', '.webp', '.gif',
