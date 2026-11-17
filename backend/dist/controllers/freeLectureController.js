@@ -708,7 +708,11 @@ export const deleteFreeLecture = async (req, res) => {
             res.status(404).json({ success: false, error: 'Lecture not found' });
             return;
         }
-        broadcastFreeLectureDeleted(deleted.id || String(id));
+        broadcastFreeLectureDeleted(deleted.id || String(id), {
+            _id: deleted._id,
+            title: deleted.title,
+            trackId: deleted.trackId
+        });
         res.status(200).json({ success: true, message: 'Lecture deleted successfully' });
     }
     catch (error) {

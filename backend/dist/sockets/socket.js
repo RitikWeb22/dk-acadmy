@@ -271,11 +271,12 @@ export const broadcastFreeLectureUpdated = (item) => {
         io.emit('cms_updated', { type: 'free_lecture', action: 'update', data: item, timestamp: Date.now() });
     }
 };
-export const broadcastFreeLectureDeleted = (itemId) => {
+export const broadcastFreeLectureDeleted = (itemId, extra) => {
     if (io) {
         console.log(`[Socket.IO] Emitting free_lecture:deleted for: ${itemId}`);
-        io.emit('free_lecture:deleted', { id: itemId });
-        io.emit('cms_updated', { type: 'free_lecture', action: 'delete', id: itemId, timestamp: Date.now() });
+        const payload = { id: itemId, ...extra };
+        io.emit('free_lecture:deleted', payload);
+        io.emit('cms_updated', { type: 'free_lecture', action: 'delete', ...payload, timestamp: Date.now() });
     }
 };
 export const broadcastDoubtAnswered = (doubt) => {

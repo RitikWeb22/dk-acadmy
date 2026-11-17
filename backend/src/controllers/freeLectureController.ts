@@ -765,7 +765,11 @@ export const deleteFreeLecture = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    broadcastFreeLectureDeleted(deleted.id || String(id));
+    broadcastFreeLectureDeleted(deleted.id || String(id), {
+      _id: deleted._id,
+      title: deleted.title,
+      trackId: deleted.trackId
+    });
     res.status(200).json({ success: true, message: 'Lecture deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting free lecture:', error);
