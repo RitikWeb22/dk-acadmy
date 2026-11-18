@@ -536,7 +536,14 @@ export const enrollCourse = async (req, res) => {
 export const getStudentsList = async (req, res) => {
     try {
         const students = await User.find({ role: 'STUDENT' }).select('-password').sort({ createdAt: -1 });
-        res.status(200).json({ success: true, count: students.length, data: students });
+        const formattedStudents = students.map((s) => {
+            const obj = s.toObject();
+            if (!obj.studentId) {
+                obj.studentId = `STU-${s._id.toString().slice(-8).toUpperCase()}`;
+            }
+            return obj;
+        });
+        res.status(200).json({ success: true, count: formattedStudents.length, data: formattedStudents });
     }
     catch (error) {
         res.status(500).json({ success: false, message: error.message });
