@@ -5,7 +5,9 @@ import {
   getFreeLectureById,
   createFreeLecture,
   updateFreeLecture,
+  updateCourseTrack,
   deleteFreeLecture,
+  deleteCourseTrack,
   enforce5FreeRule
 } from '../controllers/freeLectureController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
@@ -48,7 +50,9 @@ router.post(
   validate({ body: createFreeLectureSchema }),
   createFreeLecture
 );
+router.put('/track/:trackId', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateCourseTrack);
 router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateFreeLecture);
+router.delete('/track/:trackId', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), deleteCourseTrack);
 router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), deleteFreeLecture);
 router.post('/enforce-5-free', protect, authorize('SUPER_ADMIN', 'ADMIN'), enforce5FreeRule);
 

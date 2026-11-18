@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getFreeLectures, getFreeLectureById, createFreeLecture, updateFreeLecture, deleteFreeLecture, enforce5FreeRule } from '../controllers/freeLectureController.js';
+import { getFreeLectures, getFreeLectureById, createFreeLecture, updateFreeLecture, updateCourseTrack, deleteFreeLecture, deleteCourseTrack, enforce5FreeRule } from '../controllers/freeLectureController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validateMiddleware.js';
 const router = Router();
@@ -32,7 +32,9 @@ const createFreeLectureSchema = z
 router.get('/', getFreeLectures);
 router.get('/:id', getFreeLectureById);
 router.post('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ body: createFreeLectureSchema }), createFreeLecture);
+router.put('/track/:trackId', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateCourseTrack);
 router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), updateFreeLecture);
+router.delete('/track/:trackId', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), deleteCourseTrack);
 router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), deleteFreeLecture);
 router.post('/enforce-5-free', protect, authorize('SUPER_ADMIN', 'ADMIN'), enforce5FreeRule);
 export default router;

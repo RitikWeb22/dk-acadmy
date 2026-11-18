@@ -479,12 +479,21 @@ const SEED_FREE_LECTURES = [
         status: 'Published'
     }
 ];
-// Helper to seed default lectures if collection is empty
+// Helper to seed default lectures if collection is empty (only once on startup if enabled)
+let hasAttemptedSeed = false;
 const ensureSeedData = async () => {
-    const count = await FreeLecture.countDocuments({});
-    if (count === 0) {
-        console.log('[FreeLecture] Seeding initial 17 Kota demo masterclasses with 5-free rule...');
-        await FreeLecture.insertMany(SEED_FREE_LECTURES);
+    if (hasAttemptedSeed)
+        return;
+    hasAttemptedSeed = true;
+    try {
+        const count = await FreeLecture.countDocuments({});
+        if (count === 0 && process.env.AUTO_SEED_DEMO === 'true') {
+            console.log('[FreeLecture] Seeding initial Kota demo masterclasses...');
+            await FreeLecture.insertMany(SEED_FREE_LECTURES);
+        }
+    }
+    catch (err) {
+        console.warn('[FreeLecture] ensureSeedData notice:', err?.message || err);
     }
 };
 /**
@@ -692,6 +701,90 @@ export const updateFreeLecture = async (req, res) => {
     catch (error) {
         console.error('Error updating free lecture:', error);
         res.status(500).json({ success: false, error: 'Failed to update lecture', details: error.message });
+    }
+};
+/**
+ * PUT /api/v1/free-lectures/track/:trackId
+ * Update an entire course track's details across all its associated lectures
+ */
+export const updateCourseTrack = async (req, res) => {
+    try {
+        const { trackId } = req.params;
+        const cleanTrackId = String(trackId || '').trim();
+        const { trackTitle, subject, facultyName, targetExam, targetClass, description, thumbnailUrl, tags, badge } = req.body;
+        const payload = {};
+        if (trackTitle !== undefined)
+            payload.trackTitle = String(trackTitle).trim();
+        if (subject !== undefined)
+            payload.subject = subject;
+        if (facultyName !== undefined)
+            payload.facultyName = String(facultyName).trim();
+        if (targetExam !== undefined)
+            payload.targetExam = String(targetExam).trim();
+        if (targetClass !== undefined)
+            payload.targetClass = String(targetClass).trim();
+        if (description !== undefined)
+            payload.description = String(description).trim();
+        if (thumbnailUrl !== undefined)
+            payload.thumbnailUrl = String(thumbnailUrl).trim();
+        if (tags !== undefined)
+            payload.tags = tags;
+        if (badge !== undefined)
+            payload.badge = badge;
+        const result = await FreeLecture.updateMany({ $or: [{ trackId: cleanTrackId }, { trackTitle: cleanTrackId }] }, { $set: payload });
+        const updatedLectures = await FreeLecture.find({
+            $or: [{ trackId: cleanTrackId }, { trackTitle: cleanTrackId }]
+        });
+        for (const lec of updatedLectures) {
+            broadcastFreeLectureUpdated(lec);
+        }
+        res.status(200).json({
+            success: true,
+            message: `Course track updated across ${result.modifiedCount} lectures.`,
+            modifiedCount: result.modifiedCount,
+            data: updatedLectures
+        });
+    }
+    catch (error) {
+        console.error('Error updating course track:', error);
+        res.status(500).json({ success: false, error: 'Failed to update course track', details: error.message });
+    }
+};
+/**
+ * DELETE /api/v1/free-lectures/track/:trackId
+ * Delete an entire course track and all its associated lectures
+ */
+export const deleteCourseTrack = async (req, res) => {
+    try {
+        const { trackId } = req.params;
+        const cleanTrackId = String(trackId || '').trim();
+        // Find lectures by trackId or trackTitle
+        let lectures = await FreeLecture.find({ trackId: cleanTrackId });
+        if (!lectures || lectures.length === 0) {
+            lectures = await FreeLecture.find({ trackTitle: cleanTrackId });
+        }
+        if (!lectures || lectures.length === 0) {
+            res.status(404).json({ success: false, error: 'Course track not found' });
+            return;
+        }
+        const idsToDelete = lectures.map(l => l._id);
+        await FreeLecture.deleteMany({ _id: { $in: idsToDelete } });
+        for (const lec of lectures) {
+            broadcastFreeLectureDeleted(lec.id || String(lec._id), {
+                _id: lec._id,
+                title: lec.title,
+                trackId: lec.trackId
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: `Course track and ${lectures.length} lectures deleted successfully.`,
+            deletedCount: lectures.length
+        });
+    }
+    catch (error) {
+        console.error('Error deleting course track:', error);
+        res.status(500).json({ success: false, error: 'Failed to delete course track', details: error.message });
     }
 };
 /**
