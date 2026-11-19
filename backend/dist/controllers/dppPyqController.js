@@ -322,34 +322,43 @@ export const createDppPyq = async (req, res) => {
             : (baseSlug || `drill-${Date.now()}`);
         const isPaperPaid = payload.isFree === false || payload.accessMode === 'paid';
         const sanitizedQuestions = Array.isArray(payload.questions) && payload.questions.length > 0
-            ? payload.questions.map((q, idx) => ({
-                id: q.id || `q-${Date.now()}-${idx + 1}`,
-                qNum: q.qNum || idx + 1,
-                statement: q.statement || `Question ${idx + 1}`,
-                topic: q.topic || payload.chapter || 'Practice Question',
-                options: Array.isArray(q.options) && q.options.length > 0
-                    ? q.options.map((opt, optIdx) => ({
-                        key: ['A', 'B', 'C', 'D'][optIdx] || opt.key || 'A',
-                        text: opt.text || `Option ${optIdx + 1}`
-                    }))
-                    : [
-                        { key: 'A', text: 'Option A' },
-                        { key: 'B', text: 'Option B' },
-                        { key: 'C', text: 'Option C' },
-                        { key: 'D', text: 'Option D' }
-                    ],
-                correctKey: ['A', 'B', 'C', 'D'].includes(q.correctKey) ? q.correctKey : 'A',
-                dkSirShortcut: q.dkSirShortcut || '',
-                stepSolution: q.stepSolution || '',
-                difficulty: ['Easy', 'Moderate', 'Challenging'].includes(q.difficulty)
-                    ? q.difficulty
-                    : 'Moderate',
-                examYear: q.examYear || '',
-                // If paper is paid, question is locked (isFree = false) unless explicitly set as free preview
-                isFree: isPaperPaid ? Boolean(q.isFree === true) : (q.isFree !== false),
-                videoUrl: q.videoUrl || '',
-                pdfUrl: q.pdfUrl || ''
-            }))
+            ? payload.questions.map((q, idx) => {
+                const isNumerical = q.questionType === 'NUMERICAL' ||
+                    q.questionType === 'INTEGER' ||
+                    ((!Array.isArray(q.options) || q.options.length === 0) && Boolean(q.numericalAnswer));
+                return {
+                    id: q.id || `q-${Date.now()}-${idx + 1}`,
+                    qNum: q.qNum || idx + 1,
+                    statement: q.statement || `Question ${idx + 1}`,
+                    topic: q.topic || payload.chapter || 'Practice Question',
+                    questionType: isNumerical ? 'NUMERICAL' : (q.questionType || 'SINGLE_CORRECT'),
+                    options: isNumerical
+                        ? []
+                        : Array.isArray(q.options) && q.options.length > 0
+                            ? q.options.map((opt, optIdx) => ({
+                                key: ['A', 'B', 'C', 'D'][optIdx] || opt.key || 'A',
+                                text: opt.text || `Option ${optIdx + 1}`
+                            }))
+                            : [
+                                { key: 'A', text: 'Option A' },
+                                { key: 'B', text: 'Option B' },
+                                { key: 'C', text: 'Option C' },
+                                { key: 'D', text: 'Option D' }
+                            ],
+                    correctKey: ['A', 'B', 'C', 'D'].includes(q.correctKey) ? q.correctKey : 'A',
+                    numericalAnswer: isNumerical ? String(q.numericalAnswer ?? '') : '',
+                    dkSirShortcut: q.dkSirShortcut || '',
+                    stepSolution: q.stepSolution || '',
+                    difficulty: ['Easy', 'Moderate', 'Challenging'].includes(q.difficulty)
+                        ? q.difficulty
+                        : 'Moderate',
+                    examYear: q.examYear || '',
+                    // If paper is paid, question is locked (isFree = false) unless explicitly set as free preview
+                    isFree: isPaperPaid ? Boolean(q.isFree === true) : (q.isFree !== false),
+                    videoUrl: q.videoUrl || '',
+                    pdfUrl: q.pdfUrl || ''
+                };
+            })
             : SEED_QUESTIONS;
         const newItem = new DppPyq({
             ...payload,

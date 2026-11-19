@@ -14,8 +14,10 @@ export interface IProblemQuestion {
   imageUrl?: string;
   diagramUrl?: string;
   topic: string;
+  questionType?: string;
   options: IProblemOption[];
   correctKey: 'A' | 'B' | 'C' | 'D';
+  numericalAnswer?: string;
   dkSirShortcut?: string;
   stepSolution: string;
   stepSolutionBlocks?: any[];
@@ -73,8 +75,10 @@ const questionSchema = new Schema<IProblemQuestion>(
     imageUrl: { type: String },
     diagramUrl: { type: String },
     topic: { type: String, required: true, default: 'General' },
+    questionType: { type: String, default: 'SINGLE_CORRECT' },
     options: { type: [optionSchema], default: [] },
     correctKey: { type: String, enum: ['A', 'B', 'C', 'D'], required: true, default: 'A' },
+    numericalAnswer: { type: String, default: '' },
     dkSirShortcut: { type: String, default: '' },
     stepSolution: { type: String, default: '' },
     difficulty: { type: String, enum: ['Easy', 'Moderate', 'Challenging'], default: 'Moderate' },
