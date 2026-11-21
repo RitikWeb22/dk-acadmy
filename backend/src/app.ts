@@ -22,6 +22,24 @@ export const app = express();
 // 1. Assign correlation IDs and log structured requests with Pino
 app.use(requestLogger);
 
+// Fast-path favicon handler: serves immediately with immutable cache or 204 to prevent 408/404 timeouts
+app.get('/favicon.ico', (_req, res) => {
+  const faviconCandidates = [
+    path.join(process.cwd(), 'backend', 'public', 'favicon.ico'),
+    path.join(process.cwd(), 'public', 'favicon.ico'),
+    path.join(__dirname, '../public/favicon.ico'),
+    path.join(__dirname, '../../frontend/dist/favicon.ico')
+  ];
+  for (const candidate of faviconCandidates) {
+    if (fs.existsSync(candidate)) {
+      res.setHeader('Content-Type', 'image/x-icon');
+      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+      return res.sendFile(candidate);
+    }
+  }
+  return res.status(204).end();
+});
+
 // 2. Request Timeout Middleware (prevents hung socket/DB connections)
 app.use(requestTimeout({ defaultTimeoutMs: 30000, extendedTimeoutMs: 120000 }));
 
