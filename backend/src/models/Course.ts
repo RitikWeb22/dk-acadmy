@@ -30,6 +30,10 @@ export interface ILecture {
   duration?: string;
   videoUrl?: string;
   isFreePreview?: boolean;
+  isPreview?: boolean;
+  isFree?: boolean;
+  isLocked?: boolean;
+  price?: number;
   lessonType?: 'recorded_video' | 'live_class' | 'text' | 'pdf' | 'quiz';
   videoStatus?: 'uploading' | 'processing' | 'ready' | 'failed';
   notesPdfUrl?: string;
@@ -56,6 +60,8 @@ export interface ISection {
   id: string;
   title: string;
   description?: string;
+  isFreePreview?: boolean;
+  isLocked?: boolean;
   sortOrder?: number;
   lectures: ILecture[];
 }
@@ -113,6 +119,10 @@ const lectureSchema = new Schema<ILecture>(
     duration: { type: String },
     videoUrl: { type: String },
     isFreePreview: { type: Boolean, default: false },
+    isPreview: { type: Boolean, default: false },
+    isFree: { type: Boolean, default: false },
+    isLocked: { type: Boolean, default: false },
+    price: { type: Number, default: 0 },
     lessonType: {
       type: String,
       enum: ['recorded_video', 'live_class', 'text', 'pdf', 'quiz'],
@@ -187,6 +197,8 @@ const sectionSchema = new Schema<ISection>(
     id: { type: String, required: true },
     title: { type: String, required: true },
     description: { type: String },
+    isFreePreview: { type: Boolean, default: false },
+    isLocked: { type: Boolean, default: false },
     sortOrder: { type: Number, default: 0 },
     lectures: [lectureSchema]
   },

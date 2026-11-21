@@ -146,7 +146,11 @@ export const getAllCourses = async (req: Request, res: Response): Promise<void> 
               title: l.title,
               duration: l.duration || '45 min',
               videoUrl: l.videoUrl,
+              isFree: Boolean(l.isFree),
               isFreePreview: Boolean(l.isFree),
+              isPreview: Boolean(l.isFree),
+              isLocked: !l.isFree,
+              price: l.isFree ? 0 : (l.price || 499),
               notesPdfUrl: l.notesPdfUrl,
               dppPdfUrl: l.dppUrl,
               points: Number(l.points) || 40,
@@ -182,16 +186,113 @@ export const getCourseBySlug = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    const course = await Course.findOne({
+    let course: any = await Course.findOne({
       $or: [{ slug }, { _id: slug.match(/^[0-9a-fA-F]{24}$/) ? slug : null }]
-    });
+    }).lean();
 
+    // Query matching FreeLecture records for this course/track
+    const freeLectures = await FreeLecture.find({
+      $or: [{ trackId: slug }, { trackTitle: course?.title }]
+    })
+      .sort({ order: 1 })
+      .lean()
+      .catch(() => []);
+
+    // If not found in Course collection, try synthesizing from FreeLecture
     if (!course) {
-      res.status(404).json({ success: false, message: 'Course not found' });
-      return;
+      if (freeLectures && freeLectures.length > 0) {
+        const first = freeLectures[0];
+        const freeCount = freeLectures.filter((l) => l.isFree).length;
+        const paidPrice = freeLectures.find((l) => !l.isFree && l.price > 0)?.price || 0;
+        course = {
+          _id: first._id,
+          id: slug,
+          slug,
+          title: first.trackTitle || first.title,
+          description:
+            first.description ||
+            'Masterclass lecture series featuring structured video lessons, notes, and JEE Main/Advanced practice.',
+          category: first.subject || 'Mathematics',
+          targetClass: first.targetClass || 'Class 11 & 12',
+          targetYear: 'Target JEE 2026/27',
+          targetExam: first.targetExam || 'JEE Main & Advanced',
+          instructor: first.facultyName || 'Dharmendra Kumar (DK Sir)',
+          price: freeCount === freeLectures.length ? 0 : paidPrice,
+          originalPrice: freeCount === freeLectures.length ? 999 : paidPrice + 500,
+          tier: freeCount === freeLectures.length ? 'Free' : 'Paid',
+          deliveryMode: 'Structured Recorded',
+          mode: 'Structured Recorded',
+          courseType: 'recorded',
+          duration: `${freeLectures.length} Lectures`,
+          coverImage: first.thumbnailUrl || '/img/dk-sir.jpg',
+          demoVideoUrl: first.videoUrl || '',
+          tags: Array.isArray(first.tags) ? first.tags : [],
+          badge:
+            first.badge ||
+            (freeCount === freeLectures.length ? '100% Free Demo' : `${freeCount} Free Lectures`),
+          features: [
+            `${freeLectures.length} Structured Video Lectures`,
+            'Interactive Lesson MCQs & Instant Score Tracking',
+            'Downloadable Practice DPPs & Notes PDF'
+          ],
+          curriculumSections: [
+            {
+              id: `sec-${slug}`,
+              title: first.trackTitle || first.title,
+              description: first.description || '',
+              lectures: freeLectures.map((l, idx) => ({
+                id: l.id || String(l._id) || `lec-${idx + 1}`,
+                title: l.title,
+                duration: l.duration || '45 min',
+                videoUrl: l.videoUrl,
+                isFree: Boolean(l.isFree),
+                isFreePreview: Boolean(l.isFree),
+                isPreview: Boolean(l.isFree),
+                isLocked: !l.isFree,
+                price: l.isFree ? 0 : (l.price || 499),
+                notesPdfUrl: l.notesPdfUrl,
+                dppPdfUrl: l.dppUrl,
+                points: Number(l.points) || 40,
+                mcqs: Array.isArray(l.mcqs) ? l.mcqs : []
+              }))
+            }
+          ],
+          isPublished: true,
+          status: 'published',
+          enrolmentCount: 120,
+          rating: 4.9
+        };
+      } else {
+        res.status(404).json({ success: false, message: 'Course not found' });
+        return;
+      }
+    } else if (Array.isArray(course.curriculumSections) && freeLectures && freeLectures.length > 0) {
+      // Synchronize curriculumSections with FreeLecture collection so free/paid accurately reflects admin state
+      course.curriculumSections = course.curriculumSections.map((sec: any) => ({
+        ...sec,
+        lectures: (sec.lectures || []).map((lec: any, idx: number) => {
+          const fl = freeLectures.find(
+            (item: any) =>
+              item.id === lec.id ||
+              String(item._id) === String(lec._id) ||
+              (item.title && lec.title && item.title.trim().toLowerCase() === lec.title.trim().toLowerCase())
+          ) || freeLectures[idx];
+          if (fl) {
+            return {
+              ...lec,
+              isFree: Boolean(fl.isFree),
+              isFreePreview: Boolean(fl.isFree),
+              isPreview: Boolean(fl.isFree),
+              isLocked: !fl.isFree,
+              price: fl.isFree ? 0 : (fl.price || 499)
+            };
+          }
+          return lec;
+        })
+      }));
     }
 
-    await cacheSet(cacheKey, course, 300);
+    await cacheSet(cacheKey, course, 60);
     res.status(200).json({ success: true, data: course });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

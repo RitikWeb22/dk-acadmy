@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { FreeLecture } from '../models/FreeLecture.js';
+import { Course } from '../models/Course.js';
+import { cacheDel } from '../config/redis.js';
 import { broadcastFreeLectureCreated, broadcastFreeLectureUpdated, broadcastFreeLectureDeleted } from '../sockets/socket.js';
 import { escapeRegex, getPagination } from '../utils/sanitize.js';
 const SEED_FREE_LECTURES = [
@@ -684,13 +686,21 @@ export const updateFreeLecture = async (req, res) => {
     try {
         const { id } = req.params;
         const payload = { ...req.body };
-        // If toggling to free, reset price to 0
+        // If toggling to free, reset price to 0 and explicitly set free flags
         if (payload.isFree === true) {
             payload.price = 0;
             payload.discountPrice = 0;
+            payload.isLocked = false;
+            payload.isPreview = true;
+            payload.isFreePreview = true;
         }
-        else if (payload.isFree === false && (!payload.price || Number(payload.price) === 0)) {
-            payload.price = 499;
+        else if (payload.isFree === false) {
+            if (!payload.price || Number(payload.price) === 0) {
+                payload.price = 499;
+            }
+            payload.isLocked = true;
+            payload.isPreview = false;
+            payload.isFreePreview = false;
         }
         const idStr = String(id);
         const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
@@ -698,6 +708,42 @@ export const updateFreeLecture = async (req, res) => {
         if (!updated) {
             res.status(404).json({ success: false, error: 'Lecture not found' });
             return;
+        }
+        // Invalidate Redis caches
+        await cacheDel('courses:all').catch(() => { });
+        if (updated.trackId) {
+            await cacheDel(`course:${updated.trackId}`).catch(() => { });
+            try {
+                const courseDoc = await Course.findOne({
+                    $or: [{ slug: updated.trackId }, { id: updated.trackId }]
+                });
+                if (courseDoc && Array.isArray(courseDoc.curriculumSections)) {
+                    let modified = false;
+                    courseDoc.curriculumSections.forEach((sec) => {
+                        if (Array.isArray(sec.lectures)) {
+                            sec.lectures.forEach((lec) => {
+                                if (lec.id === updated.id ||
+                                    String(lec._id) === String(updated._id) ||
+                                    (lec.title && updated.title && lec.title.trim().toLowerCase() === updated.title.trim().toLowerCase())) {
+                                    lec.isFree = updated.isFree;
+                                    lec.isFreePreview = updated.isFree;
+                                    lec.isPreview = updated.isFree;
+                                    lec.isLocked = !updated.isFree;
+                                    lec.price = updated.price;
+                                    modified = true;
+                                }
+                            });
+                        }
+                    });
+                    if (modified) {
+                        courseDoc.markModified('curriculumSections');
+                        await courseDoc.save();
+                    }
+                }
+            }
+            catch (syncErr) {
+                console.error('Error syncing free lecture to course:', syncErr);
+            }
         }
         broadcastFreeLectureUpdated(updated);
         res.status(200).json({ success: true, message: 'Lecture updated successfully', data: updated });
