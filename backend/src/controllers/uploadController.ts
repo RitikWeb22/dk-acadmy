@@ -35,17 +35,30 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
       }
 
       const mime = uploadedFile.mimetype || '';
+      const isPdf = ext === '.pdf' || mime === 'application/pdf' || Boolean(uploadedFile.originalname?.toLowerCase().endsWith('.pdf'));
       const isVideo = mime.startsWith('video/') || /\.(mp4|mkv|mov|webm)$/i.test(uploadedFile.filename);
       const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(uploadedFile.filename);
-      const mediaType = isVideo ? 'video' : isImage ? 'image' : 'raw';
+      const mediaType = isPdf ? 'raw' : isVideo ? 'video' : isImage ? 'image' : 'raw';
 
       const uploadOptions: any = {
         folder: folder || 'dk-academy',
-        resource_type: resource_type || (isVideo ? 'video' : isImage ? 'image' : 'auto')
+        resource_type: resource_type || (isPdf ? 'raw' : isVideo ? 'video' : isImage ? 'image' : 'auto')
       };
+
+      if (isPdf) {
+        uploadOptions.resource_type = 'raw';
+        uploadOptions.use_filename = true;
+        uploadOptions.unique_filename = true;
+      }
 
       try {
         const result = await cloudinary.uploader.upload(uploadedFile.path, uploadOptions);
+
+        // Ensure safe deliverable URL for PDF files
+        let finalUrl = result.secure_url || result.url;
+        if (isPdf && finalUrl && finalUrl.includes('/image/upload/') && !finalUrl.includes('fl_attachment')) {
+          finalUrl = finalUrl.replace('/image/upload/', '/image/upload/fl_attachment/');
+        }
 
         // Clean up temporary local disk file after successful Cloudinary upload
         try {
@@ -58,10 +71,10 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
 
         res.status(200).json({
           success: true,
-          message: `${isVideo ? 'Video' : 'Image'} uploaded successfully to Cloudinary Media Vault`,
-          url: result.secure_url,
+          message: `${isPdf ? 'PDF Document' : isVideo ? 'Video' : 'Image'} uploaded successfully to Cloudinary Media Vault`,
+          url: finalUrl,
           public_id: result.public_id,
-          format: result.format,
+          format: result.format || (isPdf ? 'pdf' : undefined),
           resourceType: result.resource_type || mediaType,
           width: result.width,
           height: result.height,

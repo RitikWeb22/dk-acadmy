@@ -29,7 +29,9 @@ const questionSchema = new Schema({
     pdfSolutionUrl: { type: String, default: '' },
     structuredContent: { type: [Schema.Types.Mixed], default: undefined },
     originalSource: { type: Schema.Types.Mixed, default: undefined },
-    mathValidation: { type: Schema.Types.Mixed, default: undefined }
+    mathValidation: { type: Schema.Types.Mixed, default: undefined },
+    isBonus: { type: Boolean, default: false },
+    isCorrection: { type: Boolean, default: false }
 }, { _id: false });
 const markingSchemeSchema = new Schema({
     correct: { type: Number, default: 4 },

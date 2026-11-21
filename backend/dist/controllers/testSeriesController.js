@@ -921,13 +921,24 @@ export const getAllTestSeries = async (req, res) => {
         const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRole);
         const sanitizedItems = items.map((it) => {
             const obj = { ...it };
-            if (!isAdmin && Array.isArray(obj.questions)) {
+            const isScheduled = Boolean(obj.solutionRelease?.enabled &&
+                Number(obj.solutionRelease?.releaseDelayHours) > 0);
+            const allowSolutions = Boolean(isAdmin ||
+                (!isScheduled && (req.query.includeSolutions === 'true' ||
+                    req.query.view === 'review' ||
+                    req.query.view === 'solutions' ||
+                    req.query.view === 'results' ||
+                    obj.schedule?.scheduleMode !== 'SCHEDULED_WINDOW')) ||
+                obj.solutionRelease?.enabled === false ||
+                !obj.solutionRelease ||
+                Number(obj.solutionRelease?.releaseDelayHours) === 0);
+            if (!allowSolutions && Array.isArray(obj.questions)) {
                 obj.questions = sanitizeQuestionsForStudent(obj.questions);
             }
             if (!obj.markingScheme || typeof obj.markingScheme.correct !== 'number') {
                 obj.markingScheme = { correct: 4, incorrect: 1, unattempted: 0 };
             }
-            if (obj.solutionRelease) {
+            if (obj.solutionRelease && !allowSolutions) {
                 obj.solutionRelease = {
                     enabled: Boolean(obj.solutionRelease.enabled),
                     releaseDelayHours: obj.solutionRelease.releaseDelayHours || 24,
@@ -998,7 +1009,18 @@ export const getTestSeriesByIdOrSlug = async (req, res) => {
                 const fallbackItem = SEED_TEST_SERIES.find((s) => (s.id === param || s.slug === param) && !deletedIds.includes(s.id) && !deletedIds.includes(s.slug) && !deletedIds.includes(s.title));
                 if (fallbackItem) {
                     const safeFallback = { ...fallbackItem };
-                    if (!isAdmin) {
+                    const isScheduledFallback = Boolean(safeFallback.solutionRelease?.enabled &&
+                        Number(safeFallback.solutionRelease?.releaseDelayHours) > 0);
+                    const allowSolutions = Boolean(isAdmin ||
+                        (!isScheduledFallback && (req.query.includeSolutions === 'true' ||
+                            req.query.view === 'review' ||
+                            req.query.view === 'solutions' ||
+                            req.query.view === 'results' ||
+                            safeFallback.schedule?.scheduleMode !== 'SCHEDULED_WINDOW')) ||
+                        safeFallback.solutionRelease?.enabled === false ||
+                        !safeFallback.solutionRelease ||
+                        Number(safeFallback.solutionRelease?.releaseDelayHours) === 0);
+                    if (!allowSolutions && Array.isArray(safeFallback.questions)) {
                         safeFallback.questions = sanitizeQuestionsForStudent(safeFallback.questions);
                     }
                     res.status(200).json({ success: true, data: safeFallback });
@@ -1031,7 +1053,18 @@ export const getTestSeriesByIdOrSlug = async (req, res) => {
                 return;
             }
         }
-        if (!isAdmin) {
+        const isScheduledRaw = Boolean(raw.solutionRelease?.enabled &&
+            Number(raw.solutionRelease?.releaseDelayHours) > 0);
+        const allowSolutions = Boolean(isAdmin ||
+            (!isScheduledRaw && (req.query.includeSolutions === 'true' ||
+                req.query.view === 'review' ||
+                req.query.view === 'solutions' ||
+                req.query.view === 'results' ||
+                raw.schedule?.scheduleMode !== 'SCHEDULED_WINDOW')) ||
+            raw.solutionRelease?.enabled === false ||
+            !raw.solutionRelease ||
+            Number(raw.solutionRelease?.releaseDelayHours) === 0);
+        if (!allowSolutions && Array.isArray(raw.questions)) {
             raw.questions = sanitizeQuestionsForStudent(raw.questions);
             if (raw.solutionRelease) {
                 raw.solutionRelease = {
@@ -1051,7 +1084,14 @@ export const getTestSeriesByIdOrSlug = async (req, res) => {
             const requesterRole = String(req.user?.role || '').toUpperCase();
             const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRole);
             const safeFallback = { ...fallbackItem };
-            if (!isAdmin) {
+            const allowSolutions = Boolean(isAdmin ||
+                req.query.includeSolutions === 'true' ||
+                req.query.view === 'review' ||
+                req.query.view === 'solutions' ||
+                safeFallback.schedule?.scheduleMode !== 'SCHEDULED_WINDOW' ||
+                safeFallback.solutionRelease?.enabled === false ||
+                !safeFallback.solutionRelease);
+            if (!allowSolutions && Array.isArray(safeFallback.questions)) {
                 safeFallback.questions = sanitizeQuestionsForStudent(safeFallback.questions);
             }
             res.status(200).json({ success: true, data: safeFallback, isFallback: true });
@@ -1531,15 +1571,20 @@ export const submitTestSeries = async (req, res) => {
             const qId = q.id || q._id;
             const resp = responses?.[qId];
             const isAnswered = Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
-            if (!resp || !isAnswered) {
+            if (q.isBonus) {
+                correctCount += 1;
+                totalScore += (q.marks || markingCorrect);
+            }
+            else if (!resp || !isAnswered) {
                 unattemptedCount += 1;
             }
             else {
                 let isCorrect = false;
+                const normalizeStr = (val) => String(val ?? '').trim().toUpperCase();
                 const isNum = q.type === 'NUMERICAL' || q.section === 'B' || (!q.options || q.options.length === 0);
                 if (isNum) {
-                    const studentVal = (resp.numericalValue ?? resp.selectedOption ?? '').trim();
-                    const correctVal = String(q.numericalAnswer ?? q.correctAnswer ?? '').trim();
+                    const studentVal = String(resp.numericalValue ?? resp.selectedOption ?? '').trim();
+                    const correctVal = String(q.numericalAnswer ?? q.correctAnswer ?? q.correctKey ?? '').trim();
                     if (studentVal && correctVal && !isNaN(Number(studentVal)) && !isNaN(Number(correctVal))) {
                         isCorrect = Math.abs(Number(studentVal) - Number(correctVal)) < 0.001;
                     }
@@ -1548,7 +1593,9 @@ export const submitTestSeries = async (req, res) => {
                     }
                 }
                 else {
-                    isCorrect = resp.selectedOption === q.correctAnswer;
+                    const studentChoice = normalizeStr(resp.selectedOption || resp.numericalValue);
+                    const officialCorrect = normalizeStr(q.correctAnswer ?? q.correctKey ?? q.correctOption);
+                    isCorrect = Boolean(studentChoice && officialCorrect && studentChoice === officialCorrect);
                 }
                 if (isCorrect) {
                     correctCount += 1;
@@ -1923,15 +1970,19 @@ export const getTestSeriesSubmissionSolution = async (req, res) => {
             submission.solutionSchedule.releaseStatus = 'UNLOCKED';
             await submission.save().catch(() => { });
         }
-        // Collect question-level solutions for difficult questions
+        // Collect question-level solutions
         const questionSolutions = (test?.questions || [])
             .map((q) => ({
             questionId: q.id || q._id,
             questionNumber: q.questionNumber,
+            explanation: q.explanation || '',
+            shortcutTrick: q.shortcutTrick || '',
+            formulaKey: q.formulaKey || '',
+            correctAnswer: q.correctAnswer || '',
+            numericalAnswer: q.numericalAnswer || '',
             videoSolutionUrl: q.videoSolutionUrl || undefined,
             pdfSolutionUrl: q.pdfSolutionUrl || undefined
-        }))
-            .filter((q) => q.videoSolutionUrl || q.pdfSolutionUrl);
+        }));
         res.status(200).json({
             success: true,
             isUnlocked: true,
@@ -1942,7 +1993,8 @@ export const getTestSeriesSubmissionSolution = async (req, res) => {
                 solutionUnlockAt: submission.solutionSchedule.solutionUnlockAt,
                 pdfSolutionUrl: pdfUrl || undefined,
                 videoSolutionUrl: videoUrl || undefined,
-                questionSolutions: questionSolutions.length > 0 ? questionSolutions : undefined
+                questionSolutions: questionSolutions.length > 0 ? questionSolutions : undefined,
+                questions: test?.questions || []
             }
         });
     }

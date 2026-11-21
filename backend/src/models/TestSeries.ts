@@ -32,6 +32,8 @@ export interface ITestQuestion {
   structuredContent?: Array<{ type: string; text?: string; latex?: string }>;
   originalSource?: { type?: string; rawText?: string; preserved?: boolean };
   mathValidation?: { status?: string; failedExpressions?: string[]; uncertainExpressions?: string[] };
+  isBonus?: boolean;
+  isCorrection?: boolean;
 }
 
 export interface IMarkingScheme {
@@ -135,7 +137,9 @@ const questionSchema = new Schema<ITestQuestion>(
     pdfSolutionUrl: { type: String, default: '' },
     structuredContent: { type: [Schema.Types.Mixed], default: undefined },
     originalSource: { type: Schema.Types.Mixed, default: undefined },
-    mathValidation: { type: Schema.Types.Mixed, default: undefined }
+    mathValidation: { type: Schema.Types.Mixed, default: undefined },
+    isBonus: { type: Boolean, default: false },
+    isCorrection: { type: Boolean, default: false }
   },
   { _id: false }
 );
