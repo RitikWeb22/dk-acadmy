@@ -78,7 +78,7 @@ export const seedInitialDatabase = async (): Promise<void> => {
         {
           title: '2-Year Ultimate JEE Main & Advanced Mastery Program',
           slug: 'jee-main-advanced-2yr-ultimate',
-          description: 'Comprehensive 2-year classroom coaching program covering entire Class 11th & 12th syllabus with Kota pedagogy and DK Sir 20s speed techniques.',
+          description: 'Comprehensive 2-year classroom coaching program covering entire Class 11th & 12th syllabus with IIT-JEE pedagogy and DK Sir 20s speed techniques.',
           category: 'JEE Main & Advanced',
           targetClass: 'Class 11th',
           targetYear: 'Target JEE 2028',
@@ -91,7 +91,7 @@ export const seedInitialDatabase = async (): Promise<void> => {
           features: [
             'DK Sir 20-30s Speed Solving Algorithms',
             'Live Audio Doubt Counter 6 Days/Week',
-            'Printed Kota Theory Modules & Daily DPPs',
+            'Printed Theory Modules & Daily DPPs',
             'NTA CBT Simulation Mock Test Series'
           ],
           isPublished: true,
@@ -138,7 +138,7 @@ export const seedInitialDatabase = async (): Promise<void> => {
           features: [
             '1000+ Past JEE Advanced Questions Solved',
             'Zero Multi-step Calculations Method',
-            'Handwritten Kota Pedagogy Notes PDF',
+            'Handwritten IIT-JEE Pedagogy Notes PDF',
             'Chapter-wise Daily Practice Problem Sets'
           ],
           isPublished: true,
@@ -168,7 +168,7 @@ export const seedInitialDatabase = async (): Promise<void> => {
         {
           title: 'DK Sir Masterclass: Straight Lines & Parabola Conic Sections (PYQs + Shortcuts)',
           slug: 'dk-sir-straight-lines-parabola-masterclass',
-          description: "Complete high-yield masterclass covering Straight Lines and Parabola Conic Sections for JEE Main & Advanced. Learn DK Sir's signature 20-30 second inspection shortcuts to solve complex coordinate geometry questions without lengthy calculations.",
+          description: "Complete masterclass covering Straight Lines and Parabola Conic Sections for JEE Main & Advanced. Learn DK Sir's signature 20-30 second inspection shortcuts to solve complex coordinate geometry questions without lengthy calculations.",
           category: 'JEE Main & Advanced',
           targetClass: 'Class 11th & 12th',
           targetYear: 'Target JEE 2026-2027',
@@ -182,7 +182,7 @@ export const seedInitialDatabase = async (): Promise<void> => {
             'DK Sir 20-30s Coordinate Geometry Shortcuts',
             'Full High-Definition Video Masterclasses (Lectures 1 & 2)',
             'Straight Lines 15-Year Solved PYQ Handout PDF',
-            'Parabola Conic Sections High-Yield Practice Sheet PDF',
+            'Parabola Conic Sections Practice Sheet PDF',
             'Live Audio Doubt Support & CBT Test Integration'
           ],
           curriculumSections: [

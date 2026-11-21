@@ -19,6 +19,10 @@ export interface IDoubt extends Document {
   subject: 'Physics' | 'Chemistry' | 'Mathematics' | 'General';
   chapter?: string;
   topic?: string;
+  doubtTitle?: string;
+  lessonId?: string;
+  lessonTitle?: string;
+  lessonType?: string;
   question: string;
   questionImage?: string;
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
@@ -59,6 +63,10 @@ const doubtSchema = new Schema<IDoubt>(
     },
     chapter: { type: String, default: 'General' },
     topic: { type: String, default: 'Concept Query' },
+    doubtTitle: { type: String, default: '' },
+    lessonId: { type: String, default: '' },
+    lessonTitle: { type: String, default: '' },
+    lessonType: { type: String, default: 'video' },
     question: { type: String, required: true, trim: true },
     questionImage: { type: String },
     priority: {

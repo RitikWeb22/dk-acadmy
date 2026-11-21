@@ -8,6 +8,7 @@ const questionSchema = new Schema({
     id: { type: String, default: () => `q-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` },
     questionNumber: { type: Number, default: 1 },
     subject: { type: String, default: 'General' },
+    difficulty: { type: String, default: 'Medium' },
     section: { type: String, enum: ['A', 'B'], default: 'A' },
     type: { type: String, default: 'SINGLE_CORRECT' },
     numericalAnswer: { type: String },

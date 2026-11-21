@@ -72,7 +72,7 @@ async function cleanCourses() {
         title: 'DK Sir Masterclass: Straight Lines & Parabola Conic Sections (PYQs + Shortcuts)',
         slug: 'dk-sir-straight-lines-parabola-masterclass',
         shortDescription:
-          "Master Straight Lines and Parabola for JEE Main & Advanced with DK Sir's 20-30s speed inspection algorithms, handwritten Kota notes, and 15-year PYQ solutions.",
+          "Master Straight Lines and Parabola for JEE Main & Advanced with DK Sir's 20-30s speed inspection algorithms, handwritten notes, and 15-year PYQ solutions.",
         description:
           "Complete high-yield masterclass covering Straight Lines and Parabola Conic Sections for JEE Main & Advanced. Learn DK Sir's signature 20-30 second inspection shortcuts to solve complex coordinate geometry questions without lengthy calculations.",
         category: 'JEE Main & Advanced',

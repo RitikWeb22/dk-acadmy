@@ -71,12 +71,32 @@ export const getAllReviews = async (req: Request, res: Response): Promise<void> 
  */
 export const createReview = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { courseId, courseTitle, rating, title, content, studentName, studentEmail } = req.body;
+    const {
+      courseId,
+      courseTitle,
+      lectureId,
+      lectureTitle,
+      rating,
+      confidenceLevel,
+      satisfiedWithDepth,
+      title,
+      content,
+      studentName,
+      studentEmail
+    } = req.body;
 
-    if (!courseId || !rating || !title || !content) {
-      res.status(400).json({ success: false, message: 'All review fields are required' });
+    if (!courseId || !rating) {
+      res.status(400).json({ success: false, message: 'Course ID and rating are required' });
       return;
     }
+
+    const safeContent = (content && String(content).trim())
+      ? String(content).trim()
+      : `Confidence: ${confidenceLevel || 'Quite confident'} | Satisfied with depth: ${satisfiedWithDepth || 'Yes'}`;
+
+    const safeTitle = (title && String(title).trim())
+      ? String(title).trim()
+      : (lectureTitle ? `Feedback on ${lectureTitle}` : safeContent.slice(0, 60));
 
     const review = await Review.create({
       studentId: req.user?._id,
@@ -84,9 +104,13 @@ export const createReview = async (req: AuthRequest, res: Response): Promise<voi
       studentEmail: studentEmail || req.user?.email || 'student@dkacademy.com',
       courseId,
       courseTitle: courseTitle || 'JEE Course',
+      lectureId: lectureId || '',
+      lectureTitle: lectureTitle || '',
       rating: Number(rating),
-      title: title.trim(),
-      content: content.trim(),
+      confidenceLevel: confidenceLevel || '',
+      satisfiedWithDepth: satisfiedWithDepth || '',
+      title: safeTitle,
+      content: safeContent,
       status: 'APPROVED',
       isVerifiedPurchase: true
     });

@@ -14,7 +14,7 @@ const SEED_FREE_LECTURES = [
         duration: '54 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/1.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-01: Limits & L-Hopital Shortcuts',
         dppUrl: '/sample-dpp.pdf',
@@ -35,7 +35,7 @@ const SEED_FREE_LECTURES = [
         duration: '58 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/2.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-02: Non-Differentiable Cusps & Corners',
         dppUrl: '/sample-dpp.pdf',
@@ -56,7 +56,7 @@ const SEED_FREE_LECTURES = [
         duration: '62 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/dk-sir-lecture-calculus.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-03: Definite Integral Symmetry Drills',
         dppUrl: '/sample-dpp.pdf',
@@ -77,7 +77,7 @@ const SEED_FREE_LECTURES = [
         duration: '51 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/story-aarav.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-04: Variable Separable & Integrating Factors',
         dppUrl: '/sample-dpp.pdf',
@@ -98,7 +98,7 @@ const SEED_FREE_LECTURES = [
         duration: '59 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/story-priya.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-05: Optimization & Tangent Constraints',
         dppUrl: '/sample-dpp.pdf',
@@ -121,7 +121,7 @@ const SEED_FREE_LECTURES = [
         isFree: false,
         price: 499,
         discountPrice: 999,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/1.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-06: Parabola-Line Intersections',
         dppUrl: '/sample-dpp.pdf',
@@ -143,7 +143,7 @@ const SEED_FREE_LECTURES = [
         isFree: false,
         price: 499,
         discountPrice: 999,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/2.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-07: Coplanarity & Shortest Distance',
         dppUrl: '/sample-dpp.pdf',
@@ -165,7 +165,7 @@ const SEED_FREE_LECTURES = [
         isFree: false,
         price: 499,
         discountPrice: 999,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/dk-sir-lecture-calculus.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-08: Argand Planes & Rotation Theorem',
         dppUrl: '/sample-dpp.pdf',
@@ -187,7 +187,7 @@ const SEED_FREE_LECTURES = [
         isFree: false,
         price: 499,
         discountPrice: 999,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/story-aarav.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-09: Conditional Probability Matrices',
         dppUrl: '/sample-dpp.pdf',
@@ -209,7 +209,7 @@ const SEED_FREE_LECTURES = [
         isFree: false,
         price: 599,
         discountPrice: 1199,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/story-priya.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-10: Advanced Mixed Problems Master Sheet',
         dppUrl: '/sample-dpp.pdf',
@@ -231,7 +231,7 @@ const SEED_FREE_LECTURES = [
         duration: '56 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/1.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-01: Pulley Constraints & Virtual Work',
         dppUrl: '/sample-dpp.pdf',
@@ -252,7 +252,7 @@ const SEED_FREE_LECTURES = [
         duration: '52 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/2.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-02: Two-Block Friction & Wedges',
         dppUrl: '/sample-dpp.pdf',
@@ -273,7 +273,7 @@ const SEED_FREE_LECTURES = [
         duration: '60 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/dk-sir-lecture-calculus.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-03: Variable Force Work & Springs',
         dppUrl: '/sample-dpp.pdf',
@@ -294,7 +294,7 @@ const SEED_FREE_LECTURES = [
         duration: '57 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/story-aarav.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-04: Explosion & Collision Kinetics',
         dppUrl: '/sample-dpp.pdf',
@@ -315,7 +315,7 @@ const SEED_FREE_LECTURES = [
         duration: '64 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/story-priya.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-05: Pure Rolling & Slipping Transitions',
         dppUrl: '/sample-dpp.pdf',
@@ -338,7 +338,7 @@ const SEED_FREE_LECTURES = [
         isFree: false,
         price: 499,
         discountPrice: 999,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/1.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-06: Composite Bodies MOI',
         dppUrl: '/sample-dpp.pdf',
@@ -360,7 +360,7 @@ const SEED_FREE_LECTURES = [
         duration: '53 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/2.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-01: Carbocation & Free Radical Stabilities',
         dppUrl: '/sample-dpp.pdf',
@@ -381,7 +381,7 @@ const SEED_FREE_LECTURES = [
         duration: '49 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/dk-sir-lecture-calculus.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-02: Heterocyclic Ring Aromaticity',
         dppUrl: '/sample-dpp.pdf',
@@ -402,7 +402,7 @@ const SEED_FREE_LECTURES = [
         duration: '57 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/story-aarav.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-03: pKa Comparison & Basicity Orders',
         dppUrl: '/sample-dpp.pdf',
@@ -423,7 +423,7 @@ const SEED_FREE_LECTURES = [
         duration: '63 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/story-priya.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-04: Stereochemical Inversion & Retention',
         dppUrl: '/sample-dpp.pdf',
@@ -444,7 +444,7 @@ const SEED_FREE_LECTURES = [
         duration: '55 min',
         isFree: true,
         price: 0,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/1.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-05: Dehydrohalogenation Substrates',
         dppUrl: '/sample-dpp.pdf',
@@ -467,7 +467,7 @@ const SEED_FREE_LECTURES = [
         isFree: false,
         price: 499,
         discountPrice: 999,
-        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        videoUrl: '/videos/2.mp4',
         thumbnailUrl: '/img/dk-sir.jpg',
         dppName: 'DPP-06: Friedel-Crafts Alkylation & Acylation',
         dppUrl: '/sample-dpp.pdf',
@@ -488,7 +488,7 @@ const ensureSeedData = async () => {
     try {
         const count = await FreeLecture.countDocuments({});
         if (count === 0 && process.env.AUTO_SEED_DEMO === 'true') {
-            console.log('[FreeLecture] Seeding initial Kota demo masterclasses...');
+            console.log('[FreeLecture] Seeding initial demo masterclasses...');
             await FreeLecture.insertMany(SEED_FREE_LECTURES);
         }
     }
@@ -601,7 +601,7 @@ export const getFreeLectureById = async (req, res) => {
  */
 export const createFreeLecture = async (req, res) => {
     try {
-        const { title, subject = 'Mathematics', trackId = 'free-math-calculus-shortcuts', trackTitle = 'Differential Calculus Shortcuts', order, duration = '45 min', isFree, price = 0, discountPrice = 0, videoUrl, thumbnailUrl, dppName, dppUrl, notesPdfUrl, facultyName = 'Dharmendra Kumar (DK Sir)', targetExam = 'JEE Main & Advanced 2026/27', targetClass = 'Class 11 & 12', description, tags, badge, status = 'Published' } = req.body;
+        const { title, subject = 'Mathematics', trackId = 'free-math-calculus-shortcuts', trackTitle = 'Differential Calculus Shortcuts', order, duration = '45 min', isFree, price = 0, discountPrice = 0, videoUrl, thumbnailUrl, dppName, dppUrl, notesPdfUrl, facultyName = 'Dharmendra Kumar (DK Sir)', targetExam = 'JEE Main & Advanced 2026/27', targetClass = 'Class 11 & 12', description, tags, badge, points, dueDate, penaltyText, mcqs, status = 'Published' } = req.body;
         const safeTitle = (title && typeof title === 'string' && title.trim()) ? title.trim() : 'Free Masterclass Lecture';
         // Normalize subject to allowed enum values
         let safeSubject = 'Mathematics';
@@ -630,7 +630,7 @@ export const createFreeLecture = async (req, res) => {
             : `lec-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
         const safeVideoUrl = (typeof videoUrl === 'string' && videoUrl.trim())
             ? videoUrl.trim()
-            : 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+            : '/videos/1.mp4';
         const safeThumbnailUrl = (typeof thumbnailUrl === 'string' && thumbnailUrl.trim())
             ? thumbnailUrl.trim()
             : '/img/dk-sir.jpg';
@@ -656,6 +656,10 @@ export const createFreeLecture = async (req, res) => {
             description: description ? String(description).trim() : '',
             tags: Array.isArray(tags) ? tags : typeof tags === 'string' ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
             badge: badge ? String(badge).trim() : '',
+            points: Number(points) || 40,
+            dueDate: dueDate ? String(dueDate).trim() : '',
+            penaltyText: penaltyText ? String(penaltyText).trim() : '',
+            mcqs: Array.isArray(mcqs) ? mcqs : [],
             status: status === 'Draft' ? 'Draft' : 'Published'
         });
         const saved = await newLecture.save();

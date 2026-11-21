@@ -8,17 +8,21 @@ const createDoubtSchema = z
     .object({
     courseId: z.string().trim().min(1, 'Course ID is required'),
     courseTitle: z.string().trim().optional(),
-    subject: z.string().trim().min(1, 'Subject is required'),
+    subject: z.string().trim().optional(),
     chapter: z.string().trim().optional(),
     topic: z.string().trim().optional(),
-    question: z.string().trim().min(3, 'Question must be at least 3 characters'),
+    doubtTitle: z.string().trim().optional(),
+    lessonId: z.string().trim().optional(),
+    lessonTitle: z.string().trim().optional(),
+    lessonType: z.string().trim().optional(),
+    question: z.string().trim().min(2, 'Question must be at least 2 characters'),
     questionImage: z.string().optional(),
     studentName: z.string().optional(),
-    studentEmail: z.string().email().optional(),
+    studentEmail: z.string().optional(),
     studentPhone: z.string().optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional()
 })
-    .strict();
+    .passthrough();
 const answerDoubtSchema = z
     .object({
     answer: z.string().trim().optional(),

@@ -593,7 +593,7 @@ def process_pdf(pdf_path: str, subject: str = "Mathematics", target_exam: str = 
                 "topic": shift_tag,
                 "suggestedAnswer": suggested_ans,
                 "stepSolution": f"Step-by-step mathematical derivation for Question {q_num} ({shift_tag}).",
-                "dkSirShortcut": "Kota 20-30s speed inspection shortcut: evaluate boundary conditions and eliminate incorrect options.",
+                "dkSirShortcut": "IIT-JEE 20-30s speed inspection shortcut: evaluate boundary conditions and eliminate incorrect options.",
                 "difficulty": difficulty,
                 "status": "EXTRACTED",
                 "reviewReason": "Extracted with High-Precision Math Pipeline",

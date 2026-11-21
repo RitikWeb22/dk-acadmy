@@ -16,26 +16,31 @@ const createReviewSchema = z
   .object({
     courseId: z.string().trim().min(1, 'courseId is required'),
     courseTitle: z.string().trim().optional(),
-    rating: z.union([z.number().min(1).max(5), z.string().regex(/^[1-5]$/).transform(Number)]),
-    title: z.string().trim().min(2, 'Review title must be at least 2 characters'),
-    content: z.string().trim().min(5, 'Review content must be at least 5 characters'),
+    lectureId: z.string().optional(),
+    lectureTitle: z.string().optional(),
+    rating: z.union([z.number().min(1).max(5), z.string().regex(/^[1-5](\.\d+)?$/).transform(Number)]),
+    confidenceLevel: z.string().optional(),
+    satisfiedWithDepth: z.string().optional(),
+    title: z.string().trim().optional(),
+    content: z.string().trim().optional(),
     studentName: z.string().optional(),
-    studentEmail: z.string().email().optional()
+    studentEmail: z.string().optional()
   })
-  .strict();
+  .passthrough();
 
 const updateReviewStatusSchema = z
   .object({
-    status: z.enum(['PENDING', 'APPROVED', 'REJECTED'])
+    status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'HIDDEN', 'FLAGGED'])
   })
-  .strict();
+  .passthrough();
 
 const replyToReviewSchema = z
   .object({
-    replyContent: z.string().trim().min(1, 'Reply content cannot be empty'),
+    content: z.string().trim().optional(),
+    replyContent: z.string().trim().optional(),
     responderName: z.string().optional()
   })
-  .strict();
+  .passthrough();
 
 // Public review retrieval (for courses page) & review submission
 router.get('/', getAllReviews);

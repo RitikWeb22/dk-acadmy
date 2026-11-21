@@ -1,10 +1,10 @@
 import { Coupon } from '../models/Coupon.js';
 const SEED_COUPONS = [
     {
-        code: 'KOTA10',
+        code: 'DKSIR10',
         discountType: 'percent',
         discountValue: 10,
-        label: '10% OFF Kota Welcome Discount',
+        label: '10% OFF Welcome Discount',
         description: 'Welcome discount for new admissions at DK Academy',
         usageLimit: 100,
         usedCount: 14,

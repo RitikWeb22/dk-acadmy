@@ -56,11 +56,12 @@ export const getDoubts = async (req, res) => {
  */
 export const createDoubt = async (req, res) => {
     try {
-        const { courseId, courseTitle, subject, chapter, topic, question, questionImage, studentName, studentEmail, studentPhone, priority } = req.body;
-        if (!courseId || !subject || !question) {
-            res.status(400).json({ success: false, message: 'Course, subject, and question are required' });
+        const { courseId, courseTitle, subject, chapter, topic, doubtTitle, lessonId, lessonTitle, lessonType, question, questionImage, studentName, studentEmail, studentPhone, priority } = req.body;
+        if (!courseId || !question) {
+            res.status(400).json({ success: false, message: 'Course and question are required' });
             return;
         }
+        const resolvedTopic = (doubtTitle || topic || 'Concept Query').trim();
         const doubt = await Doubt.create({
             studentId: req.user?._id,
             studentName: studentName || req.user?.name || 'JEE Aspirant',
@@ -68,12 +69,16 @@ export const createDoubt = async (req, res) => {
             studentPhone: studentPhone || req.user?.phone || '',
             courseId,
             courseTitle: courseTitle || 'JEE Ultimate Pinnacle',
-            subject: subject || 'Physics',
-            chapter: chapter || 'General',
-            topic: topic || 'Concept Query',
+            subject: ['Physics', 'Chemistry', 'Mathematics', 'General'].includes(subject) ? subject : 'Mathematics',
+            chapter: chapter || lessonTitle || 'General',
+            topic: resolvedTopic,
+            doubtTitle: resolvedTopic,
+            lessonId: lessonId || '',
+            lessonTitle: lessonTitle || chapter || '',
+            lessonType: lessonType || 'video',
             question: question.trim(),
             questionImage: questionImage || '',
-            priority: priority || 'MEDIUM',
+            priority: ['HIGH', 'MEDIUM', 'LOW'].includes(priority) ? priority : 'MEDIUM',
             status: 'PENDING'
         });
         broadcastNewDoubt(doubt);

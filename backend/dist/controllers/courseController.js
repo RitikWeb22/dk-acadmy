@@ -1,4 +1,5 @@
 import { Course } from '../models/Course.js';
+import { FreeLecture } from '../models/FreeLecture.js';
 import { CMSConfig } from '../models/CMS.js';
 import { escapeRegex, getPagination } from '../utils/sanitize.js';
 import { broadcastCourseCreated, broadcastCourseUpdated, broadcastCourseDeleted } from '../sockets/socket.js';
@@ -65,9 +66,85 @@ export const getAllCourses = async (req, res) => {
             });
             return;
         }
-        const courses = await Course.find(filter).sort({ createdAt: -1 });
+        const rawCourses = await Course.find(filter).sort({ createdAt: -1 }).lean();
+        // Also synthesize course tracks from FreeLecture collection that are not already in Course collection
+        const existingSlugs = new Set(rawCourses.map((c) => String(c.slug || '').toLowerCase()));
+        const freeLectures = await FreeLecture.find(deletedIds.length > 0 ? { trackId: { $nin: deletedIds }, title: { $nin: deletedIds } } : {})
+            .sort({ trackId: 1, order: 1 })
+            .lean()
+            .catch(() => []);
+        const trackMap = new Map();
+        for (const lec of freeLectures) {
+            const tid = String(lec.trackId || '').trim().toLowerCase();
+            if (!tid || existingSlugs.has(tid) || deletedIds.includes(tid))
+                continue;
+            if (!trackMap.has(tid))
+                trackMap.set(tid, []);
+            trackMap.get(tid).push(lec);
+        }
+        const synthesizedTrackCourses = [];
+        trackMap.forEach((trackLecs, tid) => {
+            if (trackLecs.length === 0)
+                return;
+            const first = trackLecs[0];
+            const freeCount = trackLecs.filter((l) => l.isFree).length;
+            const paidPrice = trackLecs.find((l) => !l.isFree && l.price > 0)?.price || 0;
+            synthesizedTrackCourses.push({
+                _id: first._id,
+                id: tid,
+                slug: tid,
+                title: first.trackTitle || first.title,
+                description: first.description ||
+                    'Masterclass lecture series featuring structured video lessons, notes, and JEE Main/Advanced practice.',
+                category: first.subject || 'Mathematics',
+                targetClass: first.targetClass || 'Class 11 & 12',
+                targetYear: 'Target JEE 2026/27',
+                targetExam: first.targetExam || 'JEE Main & Advanced',
+                instructor: first.facultyName || 'Dharmendra Kumar (DK Sir)',
+                price: freeCount === trackLecs.length ? 0 : paidPrice,
+                originalPrice: freeCount === trackLecs.length ? 999 : paidPrice + 500,
+                tier: freeCount === trackLecs.length ? 'Free' : 'Paid',
+                deliveryMode: 'Structured Recorded',
+                mode: 'Structured Recorded',
+                courseType: 'recorded',
+                duration: `${trackLecs.length} Lectures`,
+                coverImage: first.thumbnailUrl || '/img/dk-sir.jpg',
+                demoVideoUrl: first.videoUrl || '',
+                tags: Array.isArray(first.tags) ? first.tags : [],
+                badge: first.badge ||
+                    (freeCount === trackLecs.length ? '100% Free Demo' : `${freeCount} Free Lectures`),
+                features: [
+                    `${trackLecs.length} Structured Video Lectures`,
+                    'Interactive Lesson MCQs & Instant Score Tracking',
+                    'Downloadable Practice DPPs & Notes PDF'
+                ],
+                curriculumSections: [
+                    {
+                        id: `sec-${tid}`,
+                        title: first.trackTitle || first.title,
+                        description: first.description || '',
+                        lectures: trackLecs.map((l, idx) => ({
+                            id: l.id || String(l._id) || `lec-${idx + 1}`,
+                            title: l.title,
+                            duration: l.duration || '45 min',
+                            videoUrl: l.videoUrl,
+                            isFreePreview: Boolean(l.isFree),
+                            notesPdfUrl: l.notesPdfUrl,
+                            dppPdfUrl: l.dppUrl,
+                            points: Number(l.points) || 40,
+                            mcqs: Array.isArray(l.mcqs) ? l.mcqs : []
+                        }))
+                    }
+                ],
+                isPublished: true,
+                status: 'published',
+                enrolmentCount: 120,
+                rating: 4.9
+            });
+        });
+        const courses = [...rawCourses, ...synthesizedTrackCourses];
         if (isDefaultQuery) {
-            await cacheSet('courses:all', courses, 300);
+            await cacheSet('courses:all', courses, 60);
         }
         res.status(200).json({ success: true, count: courses.length, data: courses });
     }
@@ -152,6 +229,9 @@ export const createCourse = async (req, res) => {
         else {
             courseData.tags = [];
         }
+        if (courseData.status && typeof courseData.status === 'string') {
+            courseData.status = courseData.status.toLowerCase();
+        }
         // Check if course with this slug exists
         const existing = await Course.findOne({ slug: courseData.slug });
         if (existing) {
@@ -214,42 +294,91 @@ export const updateCourse = async (req, res) => {
         if (updates.features && typeof updates.features === 'string') {
             updates.features = [updates.features];
         }
-        // Try finding by _id, slug, or title
-        const searchFilter = {
-            $or: [
-                { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null },
-                { slug: id }
-            ]
-        };
-        if (updates.title) {
-            searchFilter.$or.push({ title: updates.title });
+        // Try finding by _id, slug, or title across all provided identifiers
+        const cleanId = id.trim().replace(/^["']|["']$/g, '');
+        const orClauses = [];
+        // 1. Check ID as 24-hex ObjectId
+        if (/^[0-9a-fA-F]{24}$/.test(cleanId)) {
+            orClauses.push({ _id: cleanId });
         }
-        let updated = await Course.findOneAndUpdate(searchFilter, updates, { new: true, runValidators: false });
+        // 2. Check cleanId as slug
+        if (cleanId) {
+            orClauses.push({ slug: cleanId });
+        }
+        // 3. Check updates._id or updates.id
+        const payloadId = updates._id || updates.id;
+        if (payloadId && /^[0-9a-fA-F]{24}$/.test(String(payloadId).trim())) {
+            orClauses.push({ _id: String(payloadId).trim() });
+        }
+        // 4. Check updates.slug
+        if (updates.slug && updates.slug !== cleanId) {
+            orClauses.push({ slug: updates.slug });
+        }
+        // 5. Check original title if provided
+        if (updates.originalTitle && typeof updates.originalTitle === 'string' && updates.originalTitle.trim()) {
+            const origEscaped = updates.originalTitle.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            orClauses.push({ title: updates.originalTitle.trim() });
+            orClauses.push({ title: { $regex: new RegExp(`^${origEscaped}$`, 'i') } });
+        }
+        // 6. Check title
+        if (updates.title && typeof updates.title === 'string' && updates.title.trim()) {
+            const titleEscaped = updates.title.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            orClauses.push({ title: updates.title.trim() });
+            orClauses.push({ title: { $regex: new RegExp(`^${titleEscaped}$`, 'i') } });
+        }
+        // Never modify immutable _id field in MongoDB document updates
+        delete updates._id;
+        // Ensure published courses remain published
+        if (updates.status && typeof updates.status === 'string') {
+            if (updates.status.toLowerCase() === 'published' && updates.isPublished === undefined) {
+                updates.isPublished = true;
+            }
+        }
+        let updated = null;
+        if (orClauses.length > 0) {
+            updated = await Course.findOneAndUpdate({ $or: orClauses }, updates, { new: true, runValidators: false });
+        }
+        // Fuzzy title match fallback
+        if (!updated && updates.title && typeof updates.title === 'string' && updates.title.trim()) {
+            const escaped = updates.title.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            updated = await Course.findOneAndUpdate({ title: { $regex: new RegExp(escaped, 'i') } }, updates, { new: true, runValidators: false });
+        }
         // If not found in MongoDB (e.g. was a catalog course not yet saved to DB), UPSERT it!
         if (!updated) {
             const courseSlug = updates.slug || (updates.title ? updates.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : `course-${Date.now()}`);
-            const newCourseDoc = {
-                ...updates,
-                title: updates.title || 'Untitled Course',
-                slug: courseSlug,
-                category: updates.category || 'JEE Main & Advanced',
-                targetClass: updates.targetClass || 'Class 11th',
-                targetYear: updates.targetYear || 'Target JEE 2028',
-                price: typeof updates.price === 'number' ? updates.price : 0,
-                originalPrice: typeof updates.originalPrice === 'number' ? updates.originalPrice : undefined,
-                deliveryMode: updates.deliveryMode || updates.mode || 'Online Live',
-                mode: updates.mode || updates.deliveryMode || 'Online Live',
-                isPublished: updates.isPublished !== false,
-                status: updates.status || 'published'
-            };
-            updated = await Course.create(newCourseDoc);
-            await cacheDel('courses:all', `course:${courseSlug}`, `course:${updated._id}`);
-            broadcastCourseCreated(updated);
-            res.status(200).json({
-                success: true,
-                message: 'Course created and persisted to MongoDB successfully',
-                data: updated
-            });
+            // Safety check: ensure slug doesn't already exist to prevent duplicate creation
+            const existingBySlug = await Course.findOne({ slug: courseSlug });
+            if (existingBySlug) {
+                updated = await Course.findByIdAndUpdate(existingBySlug._id, updates, { new: true, runValidators: false });
+            }
+            else {
+                const newCourseDoc = {
+                    ...updates,
+                    title: updates.title || 'Untitled Course',
+                    slug: courseSlug,
+                    category: updates.category || 'JEE Main & Advanced',
+                    targetClass: updates.targetClass || 'Class 11th',
+                    targetYear: updates.targetYear || 'Target JEE 2028',
+                    price: typeof updates.price === 'number' ? updates.price : 0,
+                    originalPrice: typeof updates.originalPrice === 'number' ? updates.originalPrice : undefined,
+                    deliveryMode: updates.deliveryMode || updates.mode || 'Online Live',
+                    mode: updates.mode || updates.deliveryMode || 'Online Live',
+                    isPublished: updates.isPublished !== false,
+                    status: (typeof updates.status === 'string' ? updates.status.toLowerCase() : 'published')
+                };
+                updated = await Course.create(newCourseDoc);
+                await cacheDel('courses:all', `course:${courseSlug}`, `course:${updated._id}`);
+                broadcastCourseCreated(updated);
+                res.status(200).json({
+                    success: true,
+                    message: 'Course created and persisted to MongoDB successfully',
+                    data: updated
+                });
+                return;
+            }
+        }
+        if (!updated) {
+            res.status(404).json({ success: false, message: 'Course not found to update' });
             return;
         }
         await cacheDel('courses:all', `course:${id}`, `course:${updated.slug}`, `course:${updated._id}`);

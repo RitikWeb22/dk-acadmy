@@ -7,7 +7,7 @@ const SEED_OFFERS: Array<Partial<IOffer>> = [
     offerType: 'banner',
     title: 'Top Announcement Banner',
     tagText: 'SPECIAL ADMISSION ALERT',
-    message: 'JEE Main & Advanced 2026-27 Batches Open! Avail up to 90% Merit Scholarship + Kota Study Material.',
+    message: 'JEE Main & Advanced 2026-27 Batches Open! Avail up to 90% Merit Scholarship + Comprehensive Study Material.',
     linkText: 'Explore Batches',
     linkUrl: '/courses',
     isActive: false,
@@ -15,7 +15,7 @@ const SEED_OFFERS: Array<Partial<IOffer>> = [
   },
   {
     offerType: 'popup',
-    title: 'Kota Flagship Batch - Limited Admission Offer!',
+    title: 'DK Sir Flagship Batch - Limited Admission Offer!',
     tagText: 'EXCLUSIVE SCHOLARSHIP',
     message: 'Get direct mentorship under Dharmendra Kumar (DK Sir) with 20-30s math inspection shortcuts, daily DPPs & CBT test series.',
     imageUrl: '/img/dk-results-banner.jpeg',

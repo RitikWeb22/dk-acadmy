@@ -15,7 +15,11 @@ export interface IReview extends Document {
   studentAvatar?: string;
   courseId: string;
   courseTitle: string;
+  lectureId?: string;
+  lectureTitle?: string;
   rating: number; // 1 to 5
+  confidenceLevel?: string;
+  satisfiedWithDepth?: string;
   title: string;
   content: string;
   status: 'APPROVED' | 'PENDING' | 'HIDDEN' | 'FLAGGED';
@@ -44,7 +48,11 @@ const reviewSchema = new Schema<IReview>(
     studentAvatar: { type: String },
     courseId: { type: String, required: true, index: true },
     courseTitle: { type: String, required: true },
+    lectureId: { type: String, default: '' },
+    lectureTitle: { type: String, default: '' },
     rating: { type: Number, required: true, min: 1, max: 5 },
+    confidenceLevel: { type: String, default: '' },
+    satisfiedWithDepth: { type: String, default: '' },
     title: { type: String, required: true, trim: true },
     content: { type: String, required: true },
     status: {

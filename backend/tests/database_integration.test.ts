@@ -310,7 +310,7 @@ describe('DK Academy Backend — Phase 3 Database Integration & Concurrency Test
 
     test('Valid Coupon discounts verified price legitimately', async () => {
       const coupon = await Coupon.create({
-        code: `TEST_KOTA20_${Date.now()}`,
+        code: `TEST_DKSIR20_${Date.now()}`,
         discountType: 'percent',
         discountValue: 20, // 20% off 4999 = 3999
         label: '20% OFF Early Bird',

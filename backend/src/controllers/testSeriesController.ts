@@ -59,7 +59,7 @@ const BASE_SEED_TEST_SERIES = [
         negativeMarks: 1,
         formulaKey: 'Line through (x₁, y₁, z₁) along vector <a, b, c>: (x - x₁)/a = (y - y₁)/b = (z - z₁)/c = λ',
         explanation: 'Any point on the line passing through P(1, -2, 3) parallel to the given line has coordinates Q(1 + 2λ, -2 + 3λ, 3 - 6λ). Since Q lies on the plane x - y + z = 5, substituting gives: (1 + 2λ) - (-2 + 3λ) + (3 - 6λ) = 5 ⇒ 6 - 7λ = 5 ⇒ 7λ = 1 ⇒ λ = 1/7. The distance PQ = |λ| √(2² + 3² + (-6)²) = (1/7) √(4 + 9 + 36) = (1/7) × 7 = 1 unit.',
-        shortcutTrick: 'DK Sir Kota Inspection Trick: Distance = |Plane(P)| / |a·l + b·m + c·n| × √(l²+m²+n²) = 1 unit in 15 seconds!',
+        shortcutTrick: 'DK Sir Inspection Trick: Distance = |Plane(P)| / |a·l + b·m + c·n| × √(l²+m²+n²) = 1 unit in 15 seconds!',
         videoSolutionUrl: 'https://dkacademy.in/lms/lectures/3d-geometry-parallel-distance'
       },
       {
@@ -152,9 +152,9 @@ const BASE_SEED_TEST_SERIES = [
   },
   {
     id: 'ts_jee_adv_02',
-    title: 'Kota Advanced Rank Accelerator (Paper 1 & 2)',
-    subtitle: 'Multi-correct, paragraph and numerical questions with Kota pedagogy',
-    slug: 'kota-advanced-rank-accelerator',
+    title: 'JEE Advanced Rank Accelerator (Paper 1 & 2)',
+    subtitle: 'Multi-correct, paragraph and numerical questions with IIT-JEE pedagogy',
+    slug: 'jee-advanced-rank-accelerator',
     badgeCode: 'JEE ADVANCED',
     examType: 'JEE Advanced',
     format: 'Full Mock',
@@ -283,8 +283,8 @@ const BASE_SEED_TEST_SERIES = [
     totalQuestions: 25,
     totalMarks: 100,
     subjects: ['Physics', 'Chemistry'],
-    targetBatches: ['Kota Foundation Math Drill (Class 11)'],
-    batch: 'Kota Foundation Math Drill (Class 11)',
+    targetBatches: ['Foundation Math Drill (Class 11)'],
+    batch: 'Foundation Math Drill (Class 11)',
     status: 'Draft',
     attemptsCount: 0,
     totalTests: 2,
@@ -495,7 +495,7 @@ const BASE_SEED_TEST_SERIES = [
   {
     id: 'test-class8-science-math-02',
     title: 'Class 8 Foundation Science & Math Diagnostic CBT',
-    subtitle: 'Force & Pressure, Sound, Light, Rational Numbers & Kota 20-30s speed techniques.',
+    subtitle: 'Force & Pressure, Sound, Light, Rational Numbers & DK Sir 20-30s speed techniques.',
     slug: 'class-8-foundation-science-math-diagnostic-cbt',
     badgeCode: 'CLASS 8',
     examType: 'Class 8',
@@ -613,7 +613,7 @@ const BASE_SEED_TEST_SERIES = [
   {
     id: 'test-class9-foundation-math-01',
     title: 'Class 9 Foundation & IIT Bridge: Number Systems & Polynomials',
-    subtitle: 'Coordinate geometry, polynomials, Heron formula & Kota inspection rules for Class 9 students.',
+    subtitle: 'Coordinate geometry, polynomials, Heron formula & inspection rules for Class 9 students.',
     slug: 'class-9-foundation-iit-bridge-number-systems-polynomials',
     badgeCode: 'CLASS 9',
     examType: 'Class 9',
@@ -730,7 +730,7 @@ const BASE_SEED_TEST_SERIES = [
   {
     id: 'test-class10-ntse-boards-01',
     title: 'Class 10 NTSE & Board Accelerator: Quadratic Equations & Trigonometry',
-    subtitle: 'High-yield quadratic equations, arithmetic progressions, trigonometry & NTSE Stage 1 simulation.',
+    subtitle: 'Core quadratic equations, arithmetic progressions, trigonometry & NTSE Stage 1 simulation.',
     slug: 'class-10-ntse-board-accelerator-quadratic-equations-trigonometry',
     badgeCode: 'CLASS 10',
     examType: 'Class 10',
@@ -1207,10 +1207,14 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
         const cleanSection: 'A' | 'B' = rawSec.includes('B') || idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A';
         const cleanType = q.type || (cleanSection === 'B' ? 'NUMERICAL' : 'SINGLE_CORRECT');
 
+        const rawDiff = String(q.difficulty || 'Medium').toLowerCase();
+        const normDiff = rawDiff.includes('easy') ? 'Easy' : rawDiff.includes('hard') ? 'Hard' : 'Medium';
+
         return {
           id: q.id || `q-${idx + 1}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           questionNumber: q.questionNumber || q.index || idx + 1,
           subject: q.subject || 'Mathematics',
+          difficulty: normDiff,
           chapter: q.chapter || q.topicTag || 'General',
           section: cleanSection,
           type: cleanType,
@@ -1382,10 +1386,14 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
         const cleanSection: 'A' | 'B' = rawSec.includes('B') || idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A';
         const cleanType = q.type || (cleanSection === 'B' ? 'NUMERICAL' : 'SINGLE_CORRECT');
 
+        const rawDiff = String(q.difficulty || 'Medium').toLowerCase();
+        const normDiff = rawDiff.includes('easy') ? 'Easy' : rawDiff.includes('hard') ? 'Hard' : 'Medium';
+
         return {
           id: q.id || `q-${idx + 1}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           questionNumber: q.questionNumber || q.index || idx + 1,
           subject: q.subject || 'Mathematics',
+          difficulty: normDiff,
           chapter: q.chapter || q.topicTag || 'General',
           section: cleanSection,
           type: cleanType,
@@ -1615,12 +1623,14 @@ export const submitTestSeries = async (req: AuthRequest, res: Response): Promise
 
     // Calculate strict server timestamps for student-specific unlock
     const submittedAt = new Date(); // SERVER TIMESTAMP (Never test start or test creation time)
-    const delayHours = [12, 24, 48, 72].includes(Number(test.solutionRelease?.releaseDelayHours))
-      ? Number(test.solutionRelease?.releaseDelayHours)
-      : 24;
-    const solutionUnlockAt = new Date(submittedAt.getTime() + delayHours * 60 * 60 * 1000);
-    const hasAnySolutionUrl = Boolean(test.solutionRelease?.pdfUrl || test.solutionRelease?.videoUrl);
-    const isReleaseEnabled = Boolean(test.solutionRelease?.enabled && hasAnySolutionUrl);
+    const isReleaseScheduleEnabled = Boolean(test.solutionRelease?.enabled);
+    const configuredDelay = Number(test.solutionRelease?.releaseDelayHours);
+    const delayHours = isReleaseScheduleEnabled ? (!isNaN(configuredDelay) ? configuredDelay : 24) : 0;
+    const solutionUnlockAt = (isReleaseScheduleEnabled && delayHours > 0)
+      ? new Date(submittedAt.getTime() + delayHours * 60 * 60 * 1000)
+      : submittedAt;
+    const isUnlockedNow = !isReleaseScheduleEnabled || delayHours === 0 || submittedAt.getTime() >= solutionUnlockAt.getTime();
+    const releaseStatus = isUnlockedNow ? 'UNLOCKED' : 'SCHEDULED';
 
     const submissionId = clientSubmissionId || `sub-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
@@ -1643,12 +1653,12 @@ export const submitTestSeries = async (req: AuthRequest, res: Response): Promise
         responses: responses || {},
         status: 'SUBMITTED',
         solutionSchedule: {
-          enabled: isReleaseEnabled,
+          enabled: isReleaseScheduleEnabled,
           pdfSolutionUrl: test.solutionRelease?.pdfUrl || '',
           videoSolutionUrl: test.solutionRelease?.videoUrl || '',
           releaseDelayHours: delayHours,
           solutionUnlockAt,
-          releaseStatus: isReleaseEnabled ? 'SCHEDULED' : 'DISABLED'
+          releaseStatus
         }
       });
 
@@ -1707,12 +1717,12 @@ export const submitTestSeries = async (req: AuthRequest, res: Response): Promise
         unattemptedCount: newSubmission.unattemptedCount,
         submittedAt: newSubmission.submittedAt,
         solutionSchedule: {
-          enabled: isReleaseEnabled,
+          enabled: isReleaseScheduleEnabled,
           releaseDelayHours: delayHours,
           solutionUnlockAt: newSubmission.solutionSchedule.solutionUnlockAt,
-          isUnlocked: false,
-          hasPdf: Boolean(test.solutionRelease?.pdfUrl),
-          hasVideo: Boolean(test.solutionRelease?.videoUrl)
+          isUnlocked: isUnlockedNow,
+          hasPdf: Boolean(test.solutionRelease?.pdfUrl || newSubmission.solutionSchedule.pdfSolutionUrl),
+          hasVideo: Boolean(test.solutionRelease?.videoUrl || newSubmission.solutionSchedule.videoSolutionUrl)
         }
       }
     });
@@ -1960,36 +1970,37 @@ export const getTestSeriesSubmissionSolution = async (req: AuthRequest, res: Res
       return;
     }
 
-    if (!submission.solutionSchedule.enabled) {
-      res.status(400).json({
-        success: false,
-        message: 'Scheduled solution release is disabled for this test.'
-      });
-      return;
-    }
-
-    // Strict Server-Side Time Enforcement
+    // If schedule release is disabled or delay is 0, solutions are immediately unlocked
+    const isReleaseScheduleEnabled = Boolean(submission.solutionSchedule?.enabled);
+    const unlockTime = submission.solutionSchedule?.solutionUnlockAt
+      ? new Date(submission.solutionSchedule.solutionUnlockAt)
+      : new Date(submission.submittedAt);
     const now = new Date();
-    const unlockTime = new Date(submission.solutionSchedule.solutionUnlockAt);
 
-    if (now.getTime() < unlockTime.getTime()) {
+    if (isReleaseScheduleEnabled && now.getTime() < unlockTime.getTime()) {
       res.status(403).json({
         success: false,
         isUnlocked: false,
-        message: `Solutions are locked. They will automatically unlock on ${unlockTime.toLocaleString('en-IN')}`,
+        message: `Solutions are scheduled to unlock on ${unlockTime.toLocaleString('en-IN')}`,
         solutionUnlockAt: unlockTime,
         submittedAt: submission.submittedAt,
-        releaseDelayHours: submission.solutionSchedule.releaseDelayHours,
-        hasPdf: Boolean(submission.solutionSchedule.pdfSolutionUrl),
-        hasVideo: Boolean(submission.solutionSchedule.videoSolutionUrl)
+        releaseDelayHours: submission.solutionSchedule?.releaseDelayHours || 0,
+        hasPdf: Boolean(submission.solutionSchedule?.pdfSolutionUrl),
+        hasVideo: Boolean(submission.solutionSchedule?.videoSolutionUrl)
       });
       return;
     }
 
-    // Unlocked! Always use configured URLs (fallback to submission snapshot if test changed)
-    const test = await TestSeries.findOne({ id: submission.testId });
-    const pdfUrl = test?.solutionRelease?.pdfUrl || submission.solutionSchedule.pdfSolutionUrl || '';
-    const videoUrl = test?.solutionRelease?.videoUrl || submission.solutionSchedule.videoSolutionUrl || '';
+    // Unlocked! Always use configured URLs (fallback to test catalog snapshot)
+    const test = await TestSeries.findOne({
+      $or: [
+        { id: submission.testId },
+        { slug: submission.testId },
+        { _id: String(submission.testId).match(/^[0-9a-fA-F]{24}$/) ? submission.testId : null }
+      ].filter(Boolean)
+    });
+    const pdfUrl = test?.solutionRelease?.pdfUrl || submission.solutionSchedule?.pdfSolutionUrl || '';
+    const videoUrl = test?.solutionRelease?.videoUrl || submission.solutionSchedule?.videoSolutionUrl || '';
 
     // Mark as UNLOCKED in DB
     if (submission.solutionSchedule.releaseStatus !== 'UNLOCKED') {

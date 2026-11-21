@@ -39,7 +39,7 @@ export const PART_TESTS_DATA = [
                 negativeMarks: 1,
                 formulaKey: 'R = 4H cot θ',
                 explanation: 'We know R = (u² sin 2θ)/g and H = (u² sin² θ)/(2g). The standard relation gives R = 4H cot θ. Given R = 4H, we get cot θ = 1, which means θ = 45°.',
-                shortcutTrick: 'DK Sir Kota Rule: Range equals 4 times Maximum Height if and only if launch angle is exactly 45°.'
+                shortcutTrick: 'DK Sir Shortcut Rule: Range equals 4 times Maximum Height if and only if launch angle is exactly 45°.'
             },
             {
                 id: 'pt01-p2',
@@ -115,7 +115,7 @@ export const PART_TESTS_DATA = [
                 negativeMarks: 1,
                 formulaKey: 'Newton’s Sum Formula: aₙ₊₂ - 6aₙ₊₁ - 2aₙ = 0',
                 explanation: 'Since α and β satisfy x² - 6x - 2 = 0, multiplying by x⁸ gives α¹⁰ - 6α⁹ - 2α⁸ = 0 and β¹⁰ - 6β⁹ - 2β⁸ = 0. Subtracting yields a₁₀ - 6a₉ - 2a₈ = 0 ⇒ a₁₀ - 2a₈ = 6a₉. Hence (a₁₀ - 2a₈) / (2a₉) = 6a₉ / (2a₉) = 3.',
-                shortcutTrick: 'DK Sir Kota Newton Formula Trick: a₁₀ - 2a₈ = 6a₉ directly from polynomial coefficients! Ratio = 6/2 = 3 in 5 seconds flat!'
+                shortcutTrick: 'DK Sir Newton Formula Trick: a₁₀ - 2a₈ = 6a₉ directly from polynomial coefficients! Ratio = 6/2 = 3 in 5 seconds flat!'
             },
             {
                 id: 'pt01-m2',
@@ -175,7 +175,7 @@ export const PART_TESTS_DATA = [
                 negativeMarks: 1,
                 formulaKey: 'f_static ≤ μₛ N; static friction is self-adjusting',
                 explanation: 'Max static friction f_max = μₛ mg = 0.5 × 2 × 10 = 10 N. Since applied force F = 8 N < f_max, the block does not move. The static friction adjusts exactly to match the applied force: f = 8 N.',
-                shortcutTrick: 'Kota Trap Alert: Friction is NOT always μN! If body is at rest, friction = applied force = 8 N.'
+                shortcutTrick: 'Exam Trap Alert: Friction is NOT always μN! If body is at rest, friction = applied force = 8 N.'
             },
             {
                 id: 'pt02-p2',
@@ -550,7 +550,7 @@ export const PART_TESTS_DATA = [
     {
         id: 'part-test-05',
         title: 'JEE Main Part Test 05: Rotational Motion, Thermodynamics & Straight Lines',
-        subtitle: 'High-Yield Class 11: Torque & Angular Momentum, First Law, 2D Geometry',
+        subtitle: 'Class 11 Core: Torque & Angular Momentum, First Law, 2D Geometry',
         slug: 'jee-main-part-test-05-rotational-motion-thermodynamics-straight-lines',
         badgeCode: 'PART TEST',
         examType: 'JEE Main',
@@ -1774,7 +1774,7 @@ export const PART_TESTS_DATA = [
     {
         id: 'part-test-14',
         title: 'JEE Main Part Test 14: Moving Charges & Magnetism, Surface Chemistry & Differentiation (MOD)',
-        subtitle: 'Magnetic Forces, Biot-Savart, Adsorption & Kota Inspection Differentiation',
+        subtitle: 'Magnetic Forces, Biot-Savart, Adsorption & Inspection Differentiation',
         slug: 'jee-main-part-test-14-moving-charges-surface-chemistry-mod',
         badgeCode: 'PART TEST',
         examType: 'JEE Main',
@@ -2495,7 +2495,7 @@ export const PART_TESTS_DATA = [
                 negativeMarks: 1,
                 formulaKey: '1/f_air = (1.5 - 1)(1/R₁ - 1/R₂); 1/f_water = [(1.5 / 1.333) - 1](1/R₁ - 1/R₂)',
                 explanation: 'In air: 1/f = 0.5 K. In water: 1/f_w = (1.5 / (4/3) - 1) K = (9/8 - 1) K = (1/8) K. Ratio: f_w / f = 0.5 / (1/8) = 4 ⇒ f_w = 4f.',
-                shortcutTrick: 'Kota Standard Shortcut: Glass lens in water has focal length 4× its air value.'
+                shortcutTrick: 'Standard Shortcut: Glass lens in water has focal length 4× its air value.'
             },
             {
                 id: 'pt19-p2',
@@ -2696,7 +2696,7 @@ export const PART_TESTS_DATA = [
                 negativeMarks: 1,
                 formulaKey: 'Aqueous basicity balances inductive (+I), solvation, and steric hindrance',
                 explanation: 'For methyl-substituted amines in aqueous medium, the combined balance of inductive effect, hydration enthalpy of conjugate cations, and steric factors yields the order: 2° (213) > 1° > 3° > NH₃.',
-                shortcutTrick: 'Kota Rule: Methyl series code is "213" (2° > 1° > 3° > NH₃).'
+                shortcutTrick: 'Standard Rule: Methyl series code is "213" (2° > 1° > 3° > NH₃).'
             },
             {
                 id: 'pt20-m1',

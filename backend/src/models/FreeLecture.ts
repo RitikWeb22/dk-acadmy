@@ -1,5 +1,23 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IFreeLectureMcqOption {
+  id: string;
+  text: string;
+}
+
+export interface IFreeLectureMcq {
+  id: string;
+  title: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  question: string;
+  options: IFreeLectureMcqOption[];
+  correctOptionId: string;
+  explanation?: string;
+  points?: number;
+  maxAttempts?: number;
+  videoSolutionUrl?: string;
+}
+
 export interface IFreeLecture extends Document {
   id: string;
   title: string;
@@ -22,6 +40,10 @@ export interface IFreeLecture extends Document {
   description?: string;
   tags?: string[];
   badge?: string;
+  points?: number;
+  dueDate?: string;
+  penaltyText?: string;
+  mcqs?: IFreeLectureMcq[];
   status: 'Published' | 'Draft';
   viewsCount: number;
   createdAt: Date;
@@ -47,7 +69,7 @@ const freeLectureSchema = new Schema<IFreeLecture>(
     discountPrice: { type: Number, default: 0 },
     videoUrl: { type: String, required: true, default: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
     thumbnailUrl: { type: String, default: '/img/founder.jpeg' },
-    dppName: { type: String, default: 'DPP-01: Kota Practice Sheet' },
+    dppName: { type: String, default: 'DPP-01: Standard Practice Sheet' },
     dppUrl: { type: String, default: '/sample-dpp.pdf' },
     notesPdfUrl: { type: String, default: '/sample-notes.pdf' },
     facultyName: { type: String, default: 'Dharmendra Kumar (DK Sir)' },
@@ -56,6 +78,32 @@ const freeLectureSchema = new Schema<IFreeLecture>(
     description: { type: String, default: '' },
     tags: [{ type: String, trim: true }],
     badge: { type: String, trim: true },
+    points: { type: Number, default: 40 },
+    dueDate: { type: String, default: '' },
+    penaltyText: { type: String, default: '' },
+    mcqs: [
+      {
+        id: { type: String, default: () => `mcq-${Date.now()}` },
+        title: { type: String, default: 'Concept MCQ' },
+        difficulty: {
+          type: String,
+          enum: ['easy', 'medium', 'hard', 'Easy', 'Medium', 'Hard', 'Moderate', 'Challenging'],
+          default: 'medium'
+        },
+        question: { type: String, default: '' },
+        options: [
+          {
+            id: { type: String, default: 'A' },
+            text: { type: String, default: '' }
+          }
+        ],
+        correctOptionId: { type: String, default: 'A' },
+        explanation: { type: String, default: '' },
+        videoSolutionUrl: { type: String, default: '' },
+        points: { type: Number, default: 10 },
+        maxAttempts: { type: Number, default: 3 }
+      }
+    ],
     status: {
       type: String,
       enum: ['Published', 'Draft'],

@@ -13,7 +13,11 @@ const reviewSchema = new Schema({
     studentAvatar: { type: String },
     courseId: { type: String, required: true, index: true },
     courseTitle: { type: String, required: true },
+    lectureId: { type: String, default: '' },
+    lectureTitle: { type: String, default: '' },
     rating: { type: Number, required: true, min: 1, max: 5 },
+    confidenceLevel: { type: String, default: '' },
+    satisfiedWithDepth: { type: String, default: '' },
     title: { type: String, required: true, trim: true },
     content: { type: String, required: true },
     status: {

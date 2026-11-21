@@ -43,9 +43,9 @@ const createCourseSchema = z
     features: z.array(z.string()).optional(),
     demoVideoUrl: z.string().optional(),
     isPublished: z.boolean().optional(),
-    status: z.enum(['draft', 'published', 'archived']).optional()
+    status: z.enum(['draft', 'published', 'archived', 'Published', 'Draft', 'Archived']).optional()
 })
-    .strict();
+    .passthrough();
 // Public routes
 router.get('/', getAllCourses);
 router.get('/:slug', getCourseBySlug);

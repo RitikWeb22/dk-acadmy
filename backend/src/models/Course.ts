@@ -6,6 +6,24 @@ export interface ILectureResource {
   url: string;
 }
 
+export interface ILectureMcqOption {
+  id: string;
+  text: string;
+}
+
+export interface ILectureMcq {
+  id: string;
+  title: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  question: string;
+  options: ILectureMcqOption[];
+  correctOptionId: string;
+  explanation?: string;
+  points?: number;
+  maxAttempts?: number;
+  videoSolutionUrl?: string;
+}
+
 export interface ILecture {
   id: string;
   title: string;
@@ -20,6 +38,17 @@ export interface ILecture {
   worksheetPdfUrl?: string;
   externalDocLink?: string;
   sortOrder?: number;
+  points?: number;
+  dueDate?: string;
+  penaltyText?: string;
+  penaltyPercent?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  mcqQuestion?: string;
+  mcqOptions?: ILectureMcqOption[];
+  mcqCorrectOptionId?: string;
+  mcqExplanation?: string;
+  maxAttempts?: number;
+  mcqs?: ILectureMcq[];
   resources?: ILectureResource[];
 }
 
@@ -100,11 +129,53 @@ const lectureSchema = new Schema<ILecture>(
     worksheetPdfUrl: { type: String },
     externalDocLink: { type: String },
     sortOrder: { type: Number, default: 0 },
+    points: { type: Number, default: 40 },
+    dueDate: { type: String },
+    penaltyText: { type: String },
+    penaltyPercent: { type: Number, default: 0 },
+    difficulty: {
+      type: String,
+      enum: ['easy', 'medium', 'hard', 'Easy', 'Medium', 'Hard', 'Moderate', 'Challenging'],
+      default: 'medium'
+    },
+    mcqQuestion: { type: String },
+    mcqOptions: [
+      {
+        id: { type: String, default: 'A' },
+        text: { type: String, default: '' }
+      }
+    ],
+    mcqCorrectOptionId: { type: String },
+    mcqExplanation: { type: String },
+    maxAttempts: { type: Number, default: 3 },
+    mcqs: [
+      {
+        id: { type: String, default: () => `mcq-${Date.now()}` },
+        title: { type: String, default: 'Concept MCQ' },
+        difficulty: {
+          type: String,
+          enum: ['easy', 'medium', 'hard', 'Easy', 'Medium', 'Hard', 'Moderate', 'Challenging'],
+          default: 'medium'
+        },
+        question: { type: String, default: '' },
+        options: [
+          {
+            id: { type: String, default: 'A' },
+            text: { type: String, default: '' }
+          }
+        ],
+        correctOptionId: { type: String, default: 'A' },
+        explanation: { type: String, default: '' },
+        videoSolutionUrl: { type: String, default: '' },
+        points: { type: Number, default: 10 },
+        maxAttempts: { type: Number, default: 3 }
+      }
+    ],
     resources: [
       {
         id: { type: String },
-        title: { type: String, required: true },
-        url: { type: String, required: true }
+        title: { type: String, default: 'Study Resource' },
+        url: { type: String, default: '' }
       }
     ]
   },
@@ -166,7 +237,7 @@ const courseSchema = new Schema<ICourse>(
     isPublished: { type: Boolean, default: true },
     status: {
       type: String,
-      enum: ['draft', 'published', 'archived'],
+      enum: ['draft', 'published', 'archived', 'Draft', 'Published', 'Archived'],
       default: 'published'
     },
     enrolmentCount: { type: Number, default: 0, min: 0 },

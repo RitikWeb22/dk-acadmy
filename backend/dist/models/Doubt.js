@@ -22,6 +22,10 @@ const doubtSchema = new Schema({
     },
     chapter: { type: String, default: 'General' },
     topic: { type: String, default: 'Concept Query' },
+    doubtTitle: { type: String, default: '' },
+    lessonId: { type: String, default: '' },
+    lessonTitle: { type: String, default: '' },
+    lessonType: { type: String, default: 'video' },
     question: { type: String, required: true, trim: true },
     questionImage: { type: String },
     priority: {
