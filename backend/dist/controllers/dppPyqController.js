@@ -43,6 +43,8 @@ const SEED_DPP_PYQ_ITEMS = [
         slug: 'pyq-maths-definite-integration',
         moduleType: 'PYQ',
         subject: 'Mathematics',
+        chapter: 'Definite Integration',
+        targetClass: 'Class 12th',
         categoryLabel: 'Maths PYQ',
         questionsCount: 25,
         solutionNote: '25 with DK Sir 20s tricks',
@@ -100,6 +102,8 @@ const SEED_DPP_PYQ_ITEMS = [
         slug: 'pyq-physics-jee-advanced-mechanics',
         moduleType: 'PYQ',
         subject: 'Physics',
+        chapter: 'Rigid Body Dynamics',
+        targetClass: 'Class 11th',
         categoryLabel: 'Physics PYQ',
         questionsCount: 35,
         solutionNote: '35 published',
@@ -128,11 +132,45 @@ const SEED_DPP_PYQ_ITEMS = [
         slug: 'pyq-chem-thermodynamics',
         moduleType: 'PYQ',
         subject: 'Chemistry',
+        chapter: 'Chemical Thermodynamics',
+        targetClass: 'Class 11th',
         categoryLabel: 'Chemistry PYQ',
         questionsCount: 22,
         solutionNote: '22 with enthalpy shortcuts',
         status: 'Published',
         attemptsCount: 1120,
+        questions: SEED_QUESTIONS
+    },
+    {
+        id: 'dpp-pyq-13',
+        badgeCode: 'PYQ • MTH',
+        title: 'JEE Main 2020–2025: Straight Lines & Conic Sections Archive',
+        slug: 'pyq-maths-straight-lines-conics',
+        moduleType: 'PYQ',
+        subject: 'Mathematics',
+        chapter: 'Straight Lines',
+        targetClass: 'Class 11th',
+        categoryLabel: 'Maths PYQ',
+        questionsCount: 20,
+        solutionNote: '20 with DK Sir inspection tricks',
+        status: 'Published',
+        attemptsCount: 1850,
+        questions: SEED_QUESTIONS
+    },
+    {
+        id: 'dpp-pyq-14',
+        badgeCode: 'PYQ • PHY',
+        title: 'JEE Main 2019–2025: Electrostatics & Current Electricity Archive',
+        slug: 'pyq-physics-electrostatics',
+        moduleType: 'PYQ',
+        subject: 'Physics',
+        chapter: 'Electrostatics',
+        targetClass: 'Class 12th',
+        categoryLabel: 'Physics PYQ',
+        questionsCount: 24,
+        solutionNote: '24 with full KaTeX step solutions',
+        status: 'Published',
+        attemptsCount: 2110,
         questions: SEED_QUESTIONS
     },
     {
@@ -189,7 +227,7 @@ export const invalidateDppPyqCache = () => {
 };
 export const getAllDppPyq = async (req, res) => {
     try {
-        const { moduleType, subject, status, search, force, page, limit } = req.query;
+        const { moduleType, subject, status, search, targetClass, class: classQuery, force, page, limit } = req.query;
         const isForce = force === 'true' || force === '1';
         const filter = {};
         if (moduleType && moduleType !== 'ALL') {
@@ -200,6 +238,11 @@ export const getAllDppPyq = async (req, res) => {
         }
         if (status && status !== 'ALL') {
             filter.status = status;
+        }
+        const reqClass = targetClass || classQuery;
+        if (reqClass && reqClass !== 'ALL') {
+            const classStr = String(reqClass).trim();
+            filter.targetClass = { $regex: new RegExp(escapeRegex(classStr), 'i') };
         }
         if (search && typeof search === 'string' && search.trim()) {
             const safeSearch = escapeRegex(search.trim());

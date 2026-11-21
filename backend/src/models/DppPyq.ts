@@ -42,6 +42,7 @@ export interface IDppPyq extends Document {
   categoryLabel: string;
   chapter?: string;
   examTarget?: string;
+  targetClass?: string;
   isFree?: boolean;
   price?: number;
   pdfUrl?: string;
@@ -110,6 +111,7 @@ const dppPyqSchema = new Schema<IDppPyq>(
     categoryLabel: { type: String, required: true, default: 'Practice Drill' },
     chapter: { type: String, default: '' },
     examTarget: { type: String, default: '' },
+    targetClass: { type: String, default: '' },
     isFree: { type: Boolean, default: true },
     price: { type: Number, default: 0 },
     pdfUrl: { type: String, default: '' },

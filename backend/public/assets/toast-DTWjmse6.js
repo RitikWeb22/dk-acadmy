@@ -1,0 +1,1 @@
+import{f as e}from"./vendor-common-CD1PDrND.js";var t={success:(t,n)=>{e.success(t,{description:n})},error:(t,n)=>{e.error(t,{description:n})},info:(t,n)=>{e.info(t,{description:n})},warning:(t,n)=>{e.warning(t,{description:n})},loading:t=>e.loading(t),dismiss:t=>{e.dismiss(t)},promise:(t,n)=>e.promise(t,n)};export{t};

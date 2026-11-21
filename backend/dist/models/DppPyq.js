@@ -42,6 +42,7 @@ const dppPyqSchema = new Schema({
     categoryLabel: { type: String, required: true, default: 'Practice Drill' },
     chapter: { type: String, default: '' },
     examTarget: { type: String, default: '' },
+    targetClass: { type: String, default: '' },
     isFree: { type: Boolean, default: true },
     price: { type: Number, default: 0 },
     pdfUrl: { type: String, default: '' },
