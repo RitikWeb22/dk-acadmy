@@ -105,6 +105,10 @@ const userSchema = new Schema({
             type: Schema.Types.Mixed
         }
     ],
+    isSuspended: {
+        type: Boolean,
+        default: false
+    },
     failedLoginAttempts: {
         type: Number,
         default: 0

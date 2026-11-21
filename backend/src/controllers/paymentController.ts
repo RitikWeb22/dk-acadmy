@@ -113,12 +113,15 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
 
     // Persist order in MongoDB
     try {
+      const cleanContact = studentPhone ? studentPhone.toString().replace(/\D/g, '').slice(-10) : '';
+      const validPhone = cleanContact.length === 10 && cleanContact !== '8287384970' ? cleanContact : undefined;
+
       await Order.create({
         orderId: order.id,
         userId: req.user?._id,
         studentName: studentName || req.user?.name || 'Student Aspirant',
         studentEmail: studentEmail || req.user?.email || 'student@dkacademy.com',
-        studentPhone: studentPhone || req.user?.phone,
+        studentPhone: validPhone || req.user?.phone,
         courseId: courseId || 'general',
         courseTitle: courseTitle || 'JEE Academic Cohort',
         amount: Number(amount),
@@ -127,6 +130,19 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
         paymentGateway: 'Razorpay',
         notes: options.notes
       });
+
+      // Synchronize real phone number to student user record if missing
+      if (validPhone) {
+        if (req.user && (!req.user.phone || req.user.phone.includes('8287384970'))) {
+          req.user.phone = validPhone;
+          User.findByIdAndUpdate(req.user._id, { phone: validPhone }).catch(() => {});
+        } else if (!req.user && studentEmail) {
+          User.findOneAndUpdate(
+            { email: studentEmail.trim().toLowerCase(), $or: [{ phone: { $exists: false } }, { phone: '' }, { phone: '8287384970' }] },
+            { phone: validPhone }
+          ).catch(() => {});
+        }
+      }
     } catch (dbErr) {
       console.error('[Order DB Error]:', dbErr);
     }
@@ -221,12 +237,19 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
         : await User.findById(targetUserId);
 
       if (studentToEnroll) {
+        // Synchronize student's verified contact number from checkout order
+        if ((!studentToEnroll.phone || studentToEnroll.phone.includes('8287384970')) && currentOrder.studentPhone) {
+          const cleanPhone = currentOrder.studentPhone.toString().replace(/\D/g, '').slice(-10);
+          if (cleanPhone.length === 10 && cleanPhone !== '8287384970') {
+            studentToEnroll.phone = cleanPhone;
+          }
+        }
         const courses = studentToEnroll.enrolledCourses || [];
         if (!courses.map((c) => c.toString()).includes(targetCourseId.toString())) {
           courses.push(targetCourseId as any);
           studentToEnroll.enrolledCourses = courses;
-          await studentToEnroll.save();
         }
+        await studentToEnroll.save();
       }
 
       // Increment course enrolment count safely

@@ -354,13 +354,16 @@ export const lmsVideoController = {
       const playbackToken = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '15m' });
 
       // Unmasked user email for forensic anti-piracy dynamic watermark (Feature C)
+      const isInternalEmail = user.email && (user.email.includes('ritikweb30') || user.email.includes('royr21035'));
+      const watermarkEmail = isInternalEmail ? 'student@dkacademyjee.com' : user.email;
+
       res.status(200).json({
         success: true,
         playbackToken,
         sessionId,
         expiresIn: 900, // 15 mins in seconds
         watermark: {
-          text: `${user.email} • ID: ${user._id.toString().slice(-6).toUpperCase()}`,
+          text: `${watermarkEmail} • ID: ${user._id.toString().slice(-6).toUpperCase()}`,
           studentId: user._id.toString()
         }
       });

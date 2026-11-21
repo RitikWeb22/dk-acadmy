@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { register, login, googleAuth, adminLogin, logout, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, unlockStaffByAdmin, deleteUserByAdmin } from '../controllers/authController.js';
+import { register, login, googleAuth, adminLogin, logout, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, updateStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, unlockStaffByAdmin, deleteUserByAdmin } from '../controllers/authController.js';
 import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
@@ -94,6 +94,9 @@ router.post('/enroll', protect, validate({ body: enrollCourseSchema }), enrollCo
 // Admin User Lists & Directory Management (supports valid JWT and admin session)
 router.get('/students', directoryProtect, getStudentsList);
 router.post('/students', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR'), createStudentByAdmin);
+router.put('/students/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR'), updateStudentByAdmin);
+router.patch('/students/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR'), updateStudentByAdmin);
+router.delete('/students/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), deleteUserByAdmin);
 router.get('/staff', directoryProtect, getStaffList);
 router.post('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStaffByAdmin);
 router.put('/staff/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), validate({ params: idOrSlugParamSchema }), updateStaffByAdmin);

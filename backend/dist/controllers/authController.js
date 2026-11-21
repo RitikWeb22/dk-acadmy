@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { env } from '../config/env.js';
 import { User } from '../models/User.js';
 import { Course } from '../models/Course.js';
+import { Order } from '../models/Order.js';
 import { broadcastStudentRegistered } from '../sockets/socket.js';
 import { generateStudentId, generateTeacherId } from '../utils/uuid.js';
 const generateToken = (id, role) => {
@@ -536,13 +537,36 @@ export const enrollCourse = async (req, res) => {
 export const getStudentsList = async (req, res) => {
     try {
         const students = await User.find({ role: 'STUDENT' }).select('-password').sort({ createdAt: -1 });
-        const formattedStudents = students.map((s) => {
+        const formattedStudents = await Promise.all(students.map(async (s) => {
             const obj = s.toObject();
             if (!obj.studentId) {
                 obj.studentId = `STU-${s._id.toString().slice(-8).toUpperCase()}`;
             }
+            // If phone is missing or contains developer test phone, find real student phone from purchase Orders
+            if (!obj.phone || obj.phone.includes('8287384970')) {
+                const pastOrder = await Order.findOne({
+                    $or: [{ userId: s._id }, { studentEmail: s.email }],
+                    studentPhone: { $exists: true, $nin: ['', null, '8287384970', '+91 82873 84970'] }
+                }).sort({ createdAt: -1 });
+                if (pastOrder && pastOrder.studentPhone) {
+                    const clean = pastOrder.studentPhone.replace(/\D/g, '').slice(-10);
+                    if (clean.length === 10 && clean !== '8287384970') {
+                        obj.phone = clean;
+                        User.findByIdAndUpdate(s._id, { phone: clean }).catch(() => { });
+                    }
+                    else {
+                        obj.phone = undefined;
+                    }
+                }
+                else {
+                    obj.phone = undefined;
+                    if (s.phone && s.phone.includes('8287384970')) {
+                        User.findByIdAndUpdate(s._id, { $unset: { phone: 1 } }).catch(() => { });
+                    }
+                }
+            }
             return obj;
-        });
+        }));
         res.status(200).json({ success: true, count: formattedStudents.length, data: formattedStudents });
     }
     catch (error) {
@@ -579,11 +603,12 @@ export const createStudentByAdmin = async (req, res) => {
             res.status(400).json({ success: false, message: 'A student with this email already exists' });
             return;
         }
+        const cleanPhone = phone && phone.trim() ? phone.trim().replace(/\D/g, '').slice(-10) : '';
         const student = await User.create({
-            name,
+            name: name.trim(),
             email: email.trim().toLowerCase(),
             password: 'studentpassword123',
-            phone: phone || '+91 98765 43210',
+            phone: cleanPhone.length === 10 ? cleanPhone : undefined,
             targetClass: targetClass || 'Class 11',
             targetYear: targetYear || 'Target JEE 2028',
             targetExam: targetExam || 'JEE Main & Advanced',
@@ -598,6 +623,52 @@ export const createStudentByAdmin = async (req, res) => {
     }
     catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const updateStudentByAdmin = async (req, res) => {
+    try {
+        const id = String(req.params.id || '').trim();
+        const { name, email, phone, targetGrade, targetClass, status, targetExam, targetYear } = req.body;
+        let student = null;
+        if (mongoose.Types.ObjectId.isValid(id)) {
+            student = await User.findById(id);
+        }
+        if (!student) {
+            student = await User.findOne({ studentId: id });
+        }
+        if (!student) {
+            student = await User.findOne({ email: id.toLowerCase() });
+        }
+        if (!student) {
+            res.status(404).json({ success: false, message: 'Student account not found' });
+            return;
+        }
+        if (name && name.trim())
+            student.name = name.trim();
+        if (email && email.trim())
+            student.email = email.trim().toLowerCase();
+        if (phone !== undefined) {
+            const cleanPhone = phone ? phone.toString().replace(/\D/g, '').slice(-10) : '';
+            student.phone = cleanPhone.length === 10 ? cleanPhone : undefined;
+        }
+        if (targetGrade || targetClass)
+            student.targetClass = targetGrade || targetClass;
+        if (targetExam)
+            student.targetExam = targetExam;
+        if (targetYear)
+            student.targetYear = targetYear;
+        if (status !== undefined) {
+            student.isSuspended = (status === 'SUSPENDED');
+        }
+        await student.save();
+        res.status(200).json({
+            success: true,
+            message: 'Student updated successfully',
+            data: student
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message || 'Failed to update student' });
     }
 };
 export const createStaffByAdmin = async (req, res) => {
@@ -818,8 +889,8 @@ export const deleteUserByAdmin = async (req, res) => {
         }
         const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
         const targetUser = await User.findOne(isObjectId
-            ? { $or: [{ _id: idStr }, { teacherId: idStr }, { email: idStr.toLowerCase() }] }
-            : { $or: [{ teacherId: idStr }, { email: idStr.toLowerCase() }] });
+            ? { $or: [{ _id: idStr }, { teacherId: idStr }, { studentId: idStr }, { email: idStr.toLowerCase() }] }
+            : { $or: [{ teacherId: idStr }, { studentId: idStr }, { email: idStr.toLowerCase() }] });
         if (!targetUser) {
             res.status(404).json({ success: false, message: 'User not found' });
             return;

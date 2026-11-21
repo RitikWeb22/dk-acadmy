@@ -26,6 +26,7 @@ export interface IUser extends Document {
   googleId?: string;
   authProvider?: 'local' | 'google';
   enrolledCourses?: any[];
+  isSuspended?: boolean;
   failedLoginAttempts?: number;
   lockUntil?: Date;
   comparePassword(enteredPassword: string): Promise<boolean>;
@@ -139,6 +140,10 @@ const userSchema = new Schema<IUser>(
         type: Schema.Types.Mixed
       }
     ],
+    isSuspended: {
+      type: Boolean,
+      default: false
+    },
     failedLoginAttempts: {
       type: Number,
       default: 0

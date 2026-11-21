@@ -66,7 +66,7 @@ export const createDoubt = async (req, res) => {
             studentId: req.user?._id,
             studentName: studentName || req.user?.name || 'JEE Aspirant',
             studentEmail: studentEmail || req.user?.email || '',
-            studentPhone: studentPhone || req.user?.phone || '',
+            studentPhone: (studentPhone && !studentPhone.includes('8287384970')) ? studentPhone : (req.user?.phone && !req.user.phone.includes('8287384970') ? req.user.phone : ''),
             courseId,
             courseTitle: courseTitle || 'JEE Ultimate Pinnacle',
             subject: ['Physics', 'Chemistry', 'Mathematics', 'General'].includes(subject) ? subject : 'Mathematics',

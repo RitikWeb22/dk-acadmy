@@ -12,6 +12,7 @@ import {
   getStudentsList,
   getStaffList,
   createStudentByAdmin,
+  updateStudentByAdmin,
   createStaffByAdmin,
   updateStaffByAdmin,
   updateStaffPasswordByAdmin,
@@ -122,6 +123,9 @@ router.post('/enroll', protect, validate({ body: enrollCourseSchema }), enrollCo
 // Admin User Lists & Directory Management (supports valid JWT and admin session)
 router.get('/students', directoryProtect, getStudentsList);
 router.post('/students', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR'), createStudentByAdmin);
+router.put('/students/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR'), updateStudentByAdmin);
+router.patch('/students/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'COUNSELOR'), updateStudentByAdmin);
+router.delete('/students/:id', protect, authorize('SUPER_ADMIN', 'ADMIN'), deleteUserByAdmin);
 router.get('/staff', directoryProtect, getStaffList);
 router.post('/staff', protect, authorize('SUPER_ADMIN', 'ADMIN'), createStaffByAdmin);
 router.put(
