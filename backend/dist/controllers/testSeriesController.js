@@ -844,7 +844,37 @@ export const getAllTestSeries = async (req, res) => {
         const { examType, format, status, search, page, limit } = req.query;
         const filter = {};
         if (examType && examType !== 'ALL' && examType !== 'All') {
-            filter.examType = examType;
+            const etStr = String(examType).trim();
+            if (etStr === 'Class 8') {
+                filter.$or = [
+                    { examType: 'Class 8' },
+                    { badgeCode: 'CLASS 8' },
+                    { targetClass: 'Class 8' },
+                    { title: { $regex: /class\s*8|foundation\s*8/i } },
+                    { subtitle: { $regex: /class\s*8|foundation\s*8/i } }
+                ];
+            }
+            else if (etStr === 'Class 9') {
+                filter.$or = [
+                    { examType: 'Class 9' },
+                    { badgeCode: 'CLASS 9' },
+                    { targetClass: 'Class 9' },
+                    { title: { $regex: /class\s*9|foundation\s*9/i } },
+                    { subtitle: { $regex: /class\s*9|foundation\s*9/i } }
+                ];
+            }
+            else if (etStr === 'Class 10') {
+                filter.$or = [
+                    { examType: 'Class 10' },
+                    { badgeCode: 'CLASS 10' },
+                    { targetClass: 'Class 10' },
+                    { title: { $regex: /class\s*10|foundation\s*10/i } },
+                    { subtitle: { $regex: /class\s*10|foundation\s*10/i } }
+                ];
+            }
+            else {
+                filter.examType = examType;
+            }
         }
         if (format && format !== 'ALL' && format !== 'All') {
             filter.format = format;
@@ -921,6 +951,27 @@ export const getAllTestSeries = async (req, res) => {
         const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'TEACHER', 'CMS_MANAGER', 'AUTHOR', 'FACULTY'].includes(requesterRole);
         const sanitizedItems = items.map((it) => {
             const obj = { ...it };
+            const mainText = `${obj.title || ''} ${obj.subtitle || ''} ${obj.badgeCode || ''}`.toLowerCase();
+            if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(mainText)) {
+                obj.examType = 'Class 10';
+                obj.targetClass = 'Class 10';
+            }
+            else if (/\b(class\s*9|9th\s*class|class\s*9th|foundation\s*9|grade\s*9)\b/i.test(mainText)) {
+                obj.examType = 'Class 9';
+                obj.targetClass = 'Class 9';
+            }
+            else if (/\b(class\s*8|8th\s*class|class\s*8th|foundation\s*8|grade\s*8)\b/i.test(mainText)) {
+                obj.examType = 'Class 8';
+                obj.targetClass = 'Class 8';
+            }
+            else if (/\b(class\s*11|11th\s*class|class\s*11th|grade\s*11)\b/i.test(mainText)) {
+                obj.examType = 'Class 11';
+                obj.targetClass = 'Class 11';
+            }
+            else if (/\b(class\s*12|12th\s*class|class\s*12th|grade\s*12)\b/i.test(mainText)) {
+                obj.examType = 'Class 12';
+                obj.targetClass = 'Class 12';
+            }
             const isScheduled = Boolean(obj.solutionRelease?.enabled &&
                 Number(obj.solutionRelease?.releaseDelayHours) > 0);
             const allowSolutions = Boolean(isAdmin ||
@@ -1136,39 +1187,53 @@ export const createTestSeries = async (req, res) => {
             payload.status = 'Published';
         }
         // Normalize format enum ('Full Mock' | 'Part Test' | 'Chapter Test')
-        if (payload.format) {
-            const f = String(payload.format).toLowerCase();
-            if (f.includes('part'))
-                payload.format = 'Part Test';
-            else if (f.includes('chapter'))
-                payload.format = 'Chapter Test';
-            else
-                payload.format = 'Full Mock';
+        const rawFormatStr = String(payload.format || '').toLowerCase();
+        const rawExamTypeStr = String(payload.examType || '').toLowerCase();
+        if (rawFormatStr.includes('part') || rawExamTypeStr.includes('part')) {
+            payload.format = 'Part Test';
+        }
+        else if (rawFormatStr.includes('chapter') || rawExamTypeStr.includes('chapter')) {
+            payload.format = 'Chapter Test';
         }
         else {
             payload.format = 'Full Mock';
         }
-        // Normalize examType & format if PartTest / MathSpeed
-        if (payload.examType === 'PartTest' || payload.format === 'Part Test') {
-            payload.format = 'Part Test';
-            if (payload.examType === 'PartTest')
-                payload.examType = 'JEE Main';
-            payload.badgeCode = 'PART TEST';
+        // Normalize examType (Class 8, 9, 10, 11, 12, Dropper, JEE Advanced, BITSAT, MathSpeed, JEE Main)
+        const textCtx = `${payload.title || ''} ${payload.subtitle || ''} ${payload.badgeCode || ''}`.toLowerCase();
+        if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(textCtx) || rawExamTypeStr.includes('class 10') || rawExamTypeStr === 'class10') {
+            payload.examType = 'Class 10';
+            payload.targetClass = 'Class 10';
         }
-        else if (payload.examType === 'MathSpeed') {
-            payload.badgeCode = 'MATH SPEED';
-            payload.examType = 'JEE Main';
+        else if (/\b(class\s*9|9th\s*class|class\s*9th|foundation\s*9|grade\s*9)\b/i.test(textCtx) || rawExamTypeStr.includes('class 9') || rawExamTypeStr === 'class9') {
+            payload.examType = 'Class 9';
+            payload.targetClass = 'Class 9';
         }
-        else if (payload.examType) {
-            const et = String(payload.examType);
-            if (et.toLowerCase().includes('adv'))
-                payload.examType = 'JEE Advanced';
-            else if (et.toLowerCase().includes('bits'))
-                payload.examType = 'BITSAT';
-            else
-                payload.examType = 'JEE Main';
+        else if (/\b(class\s*8|8th\s*class|class\s*8th|foundation\s*8|grade\s*8)\b/i.test(textCtx) || rawExamTypeStr.includes('class 8') || rawExamTypeStr === 'class8') {
+            payload.examType = 'Class 8';
+            payload.targetClass = 'Class 8';
         }
-        else {
+        else if (rawExamTypeStr.includes('class 11') || rawExamTypeStr === 'class11') {
+            payload.examType = 'Class 11';
+            payload.targetClass = 'Class 11';
+        }
+        else if (rawExamTypeStr.includes('class 12') || rawExamTypeStr === 'class12') {
+            payload.examType = 'Class 12';
+            payload.targetClass = 'Class 12';
+        }
+        else if (rawExamTypeStr.includes('dropper')) {
+            payload.examType = 'Dropper';
+            payload.targetClass = 'Dropper';
+        }
+        else if (rawExamTypeStr.includes('adv')) {
+            payload.examType = 'JEE Advanced';
+        }
+        else if (rawExamTypeStr.includes('bits')) {
+            payload.examType = 'BITSAT';
+        }
+        else if (rawExamTypeStr.includes('mathspeed') || rawExamTypeStr.includes('speed')) {
+            payload.examType = 'MathSpeed';
+        }
+        else if (payload.examType === 'PartTest' || !payload.examType) {
             payload.examType = 'JEE Main';
         }
         // Normalize accessMode & accessLevel
@@ -1181,15 +1246,21 @@ export const createTestSeries = async (req, res) => {
         // Set badge code
         if (!payload.badgeCode) {
             payload.badgeCode =
-                payload.format === 'Part Test'
-                    ? 'PART TEST'
-                    : payload.examType === 'JEE Advanced'
-                        ? 'JEE ADVANCED'
-                        : payload.examType === 'BITSAT'
-                            ? 'BITSAT'
-                            : payload.examType === 'MathSpeed'
-                                ? 'MATH SPEED'
-                                : 'JEE MAIN';
+                payload.examType === 'Class 8'
+                    ? (payload.format === 'Part Test' ? 'PART TEST' : 'CLASS 8')
+                    : payload.examType === 'Class 9'
+                        ? (payload.format === 'Part Test' ? 'PART TEST' : 'CLASS 9')
+                        : payload.examType === 'Class 10'
+                            ? (payload.format === 'Part Test' ? 'PART TEST' : 'CLASS 10')
+                            : payload.format === 'Part Test'
+                                ? 'PART TEST'
+                                : payload.examType === 'JEE Advanced'
+                                    ? 'JEE ADVANCED'
+                                    : payload.examType === 'BITSAT'
+                                        ? 'BITSAT'
+                                        : payload.examType === 'MathSpeed'
+                                            ? 'MATH SPEED'
+                                            : 'JEE MAIN';
         }
         // Normalize questions array with Canonical KaTeX Math
         if (Array.isArray(payload.questions)) {
@@ -1334,34 +1405,75 @@ export const updateTestSeries = async (req, res) => {
                 updates.status = 'Published';
         }
         // Normalize format enum ('Full Mock' | 'Part Test' | 'Chapter Test')
-        if (updates.format) {
-            const f = String(updates.format).toLowerCase();
-            if (f.includes('part'))
-                updates.format = 'Part Test';
-            else if (f.includes('chapter'))
-                updates.format = 'Chapter Test';
-            else
-                updates.format = 'Full Mock';
-        }
-        // Normalize examType & format if PartTest / MathSpeed
-        if (updates.examType === 'PartTest' || updates.format === 'Part Test') {
+        const rawUpF = updates.format ? String(updates.format).toLowerCase() : '';
+        const rawUpEt = updates.examType ? String(updates.examType).toLowerCase() : '';
+        if (rawUpF.includes('part') || rawUpEt.includes('part')) {
             updates.format = 'Part Test';
-            if (updates.examType === 'PartTest')
-                updates.examType = 'JEE Main';
-            updates.badgeCode = 'PART TEST';
         }
-        else if (updates.examType === 'MathSpeed') {
-            updates.badgeCode = 'MATH SPEED';
-            updates.examType = 'JEE Main';
+        else if (rawUpF.includes('chapter') || rawUpEt.includes('chapter')) {
+            updates.format = 'Chapter Test';
         }
-        else if (updates.examType) {
-            const et = String(updates.examType);
-            if (et.toLowerCase().includes('adv'))
+        else if (updates.format) {
+            updates.format = 'Full Mock';
+        }
+        // Normalize examType (Class 8, 9, 10, 11, 12, Dropper, JEE Advanced, BITSAT, MathSpeed, JEE Main)
+        if (updates.examType || updates.title || updates.subtitle || updates.targetClass) {
+            const upCtx = `${updates.title || ''} ${updates.subtitle || ''} ${updates.badgeCode || ''}`.toLowerCase();
+            if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(upCtx) || rawUpEt.includes('class 10') || rawUpEt === 'class10') {
+                updates.examType = 'Class 10';
+                updates.targetClass = 'Class 10';
+            }
+            else if (/\b(class\s*9|9th\s*class|class\s*9th|foundation\s*9|grade\s*9)\b/i.test(upCtx) || rawUpEt.includes('class 9') || rawUpEt === 'class9') {
+                updates.examType = 'Class 9';
+                updates.targetClass = 'Class 9';
+            }
+            else if (/\b(class\s*8|8th\s*class|class\s*8th|foundation\s*8|grade\s*8)\b/i.test(upCtx) || rawUpEt.includes('class 8') || rawUpEt === 'class8') {
+                updates.examType = 'Class 8';
+                updates.targetClass = 'Class 8';
+            }
+            else if (rawUpEt.includes('class 11') || rawUpEt === 'class11') {
+                updates.examType = 'Class 11';
+                updates.targetClass = 'Class 11';
+            }
+            else if (rawUpEt.includes('class 12') || rawUpEt === 'class12') {
+                updates.examType = 'Class 12';
+                updates.targetClass = 'Class 12';
+            }
+            else if (rawUpEt.includes('dropper')) {
+                updates.examType = 'Dropper';
+                updates.targetClass = 'Dropper';
+            }
+            else if (rawUpEt.includes('adv')) {
                 updates.examType = 'JEE Advanced';
-            else if (et.toLowerCase().includes('bits'))
+            }
+            else if (rawUpEt.includes('bits')) {
                 updates.examType = 'BITSAT';
-            else
+            }
+            else if (rawUpEt.includes('mathspeed') || rawUpEt.includes('speed')) {
+                updates.examType = 'MathSpeed';
+            }
+            else if (updates.examType === 'PartTest') {
                 updates.examType = 'JEE Main';
+            }
+        }
+        // Badge code
+        if (!updates.badgeCode && (updates.examType || updates.format)) {
+            updates.badgeCode =
+                updates.examType === 'Class 8'
+                    ? (updates.format === 'Part Test' ? 'PART TEST' : 'CLASS 8')
+                    : updates.examType === 'Class 9'
+                        ? (updates.format === 'Part Test' ? 'PART TEST' : 'CLASS 9')
+                        : updates.examType === 'Class 10'
+                            ? (updates.format === 'Part Test' ? 'PART TEST' : 'CLASS 10')
+                            : updates.format === 'Part Test'
+                                ? 'PART TEST'
+                                : updates.examType === 'JEE Advanced'
+                                    ? 'JEE ADVANCED'
+                                    : updates.examType === 'BITSAT'
+                                        ? 'BITSAT'
+                                        : updates.examType === 'MathSpeed'
+                                            ? 'MATH SPEED'
+                                            : 'JEE MAIN';
         }
         // Normalize accessMode & accessLevel
         if (updates.accessMode) {
