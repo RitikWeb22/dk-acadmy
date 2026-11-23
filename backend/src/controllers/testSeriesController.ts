@@ -358,17 +358,21 @@ const BASE_SEED_TEST_SERIES = [
   },
   {
     id: 'test-class8-olympiad-math-01',
-    title: 'Class 8 Foundation & Olympiad Math Speed Mastery',
-    subtitle: 'Algebraic expressions, linear equations, squares & square roots, geometry basics & mental shortcuts.',
+    title: 'REVIEW TEST (DLP) - Paper 1',
+    subtitle: 'Class 8 Foundation & Olympiad Math Speed Mastery',
     slug: 'class-8-foundation-olympiad-math-speed-mastery',
     badgeCode: 'CLASS 8',
     examType: 'Class 8',
     format: 'Full Mock',
     difficulty: 'Moderate',
-    durationMinutes: 60,
+    durationMinutes: 180,
     totalQuestions: 6,
     totalMarks: 24,
     subjects: ['Mathematics'],
+    schedule: {
+      startWindow: '2026-11-25T09:00:00.000Z',
+      endWindow: '2026-11-25T23:59:59.000Z'
+    },
     markingScheme: { correct: 4, incorrect: 1, unattempted: 0 },
     instructions: [
       'Foundation mock designed specifically for Class 8 school excellence and Olympiad readiness.',
@@ -493,18 +497,144 @@ const BASE_SEED_TEST_SERIES = [
     ]
   },
   {
+    id: 'test-class8-review-test-dlp-02',
+    title: 'REVIEW TEST (DLP) - Paper 2',
+    subtitle: 'Class 8 Term 1 Physics & Chemistry Diagnostic CBT Mock',
+    slug: 'class-8-review-test-dlp-paper-2',
+    badgeCode: 'MISSED TEST',
+    examType: 'Class 8',
+    format: 'Full Mock',
+    difficulty: 'Moderate',
+    durationMinutes: 180,
+    totalQuestions: 5,
+    totalMarks: 20,
+    subjects: ['Physics', 'Chemistry'],
+    schedule: {
+      startWindow: '2026-11-21T09:00:00.000Z',
+      endWindow: '2026-11-22T23:59:59.000Z'
+    },
+    markingScheme: { correct: 4, incorrect: 1, unattempted: 0 },
+    instructions: [
+      'Term 1 diagnostic test evaluating fundamental science principles and concepts.',
+      'Marking Scheme: +4 marks for correct choice, -1 mark penalty for incorrect choice.',
+      'Solve with DK Sir shortcut inspection methods.'
+    ],
+    status: 'Published',
+    isFree: true,
+    targetClass: 'Class 8',
+    targetCohort: 'Class 8',
+    batch: 'Class 8 Foundation & Olympiad Batch',
+    targetBatches: ['Class 8 Foundation & Olympiad Batch'],
+    questions: [
+      {
+        id: 'c8-p2-q1',
+        questionNumber: 1,
+        subject: 'Physics',
+        chapter: 'Force and Pressure',
+        statement: 'A rectangular brick of weight 50 N has dimensions 20 cm × 10 cm × 5 cm. The maximum pressure it can exert on a flat table is:',
+        options: [
+          { id: 'A', text: '10,000 Pa' },
+          { id: 'B', text: '5,000 Pa' },
+          { id: 'C', text: '2,500 Pa' },
+          { id: 'D', text: '1,000 Pa' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Maximum Pressure = Force / Minimum Area',
+        explanation: 'Min area = 10 cm × 5 cm = 50 cm² = 0.005 m². Max Pressure = 50 N / 0.005 m² = 10,000 Pa.'
+      },
+      {
+        id: 'c8-p2-q2',
+        questionNumber: 2,
+        subject: 'Physics',
+        chapter: 'Light',
+        statement: 'Two plane mirrors are placed at an angle of 60° to each other. The number of images of a point object formed between them is:',
+        options: [
+          { id: 'A', text: '5' },
+          { id: 'B', text: '6' },
+          { id: 'C', text: '7' },
+          { id: 'D', text: '4' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Number of images = (360° / θ) - 1',
+        explanation: '360° / 60° = 6 (even integer). Number of images = 6 - 1 = 5.'
+      },
+      {
+        id: 'c8-p2-q3',
+        questionNumber: 3,
+        subject: 'Chemistry',
+        chapter: 'Metals and Non-Metals',
+        statement: 'Which of the following non-metals is liquid at room temperature?',
+        options: [
+          { id: 'A', text: 'Bromine' },
+          { id: 'B', text: 'Mercury' },
+          { id: 'C', text: 'Chlorine' },
+          { id: 'D', text: 'Iodine' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Liquid non-metal at RT is Bromine (Br₂)',
+        explanation: 'Bromine is the only non-metal that exists as a liquid at standard room temperature. Mercury is a metal.'
+      },
+      {
+        id: 'c8-p2-q4',
+        questionNumber: 4,
+        subject: 'Chemistry',
+        chapter: 'Combustion and Flame',
+        statement: 'Calorific value of LPG is approximately 55,000 kJ/kg. If 2 kg of LPG is burned completely, the heat produced is:',
+        options: [
+          { id: 'A', text: '110,000 kJ' },
+          { id: 'B', text: '55,000 kJ' },
+          { id: 'C', text: '27,500 kJ' },
+          { id: 'D', text: '220,000 kJ' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'Heat = Mass × Calorific value',
+        explanation: 'Heat produced = 2 kg × 55,000 kJ/kg = 110,000 kJ.'
+      },
+      {
+        id: 'c8-p2-q5',
+        questionNumber: 5,
+        subject: 'Physics',
+        chapter: 'Sound',
+        statement: 'An ultrasound wave travels in water at 1500 m/s. If its frequency is 30 kHz, what is its wavelength?',
+        options: [
+          { id: 'A', text: '0.05 m' },
+          { id: 'B', text: '0.5 m' },
+          { id: 'C', text: '5 m' },
+          { id: 'D', text: '0.005 m' }
+        ],
+        correctAnswer: 'A',
+        marks: 4,
+        negativeMarks: 1,
+        formulaKey: 'λ = v / f',
+        explanation: 'λ = 1500 m/s / 30,000 Hz = 0.05 m = 5 cm.'
+      }
+    ]
+  },
+  {
     id: 'test-class8-science-math-02',
-    title: 'Class 8 Foundation Science & Math Diagnostic CBT',
-    subtitle: 'Force & Pressure, Sound, Light, Rational Numbers & DK Sir 20-30s speed techniques.',
+    title: 'MINOR TEST (OLTS)',
+    subtitle: 'Class 8 Foundation Science & Math Diagnostic CBT',
     slug: 'class-8-foundation-science-math-diagnostic-cbt',
     badgeCode: 'CLASS 8',
     examType: 'Class 8',
     format: 'Part Test',
     difficulty: 'Moderate',
-    durationMinutes: 45,
+    durationMinutes: 180,
     totalQuestions: 5,
     totalMarks: 20,
     subjects: ['Physics', 'Chemistry', 'Mathematics'],
+    schedule: {
+      startWindow: '2026-11-22T09:00:00.000Z',
+      endWindow: '2026-11-28T23:59:59.000Z'
+    },
     markingScheme: { correct: 4, incorrect: 1, unattempted: 0 },
     instructions: [
       'Multi-subject diagnostic test evaluating fundamental science and quantitative logic.',
@@ -851,8 +981,53 @@ const SEED_TEST_SERIES = [...BASE_SEED_TEST_SERIES, ...PART_TESTS_DATA];
 // High-speed in-memory cache for live test series listing (TTL: 30 seconds)
 export const invalidateTestSeriesCache = () => {};
 
+/**
+ * Automatically publishes any tests that were Scheduled and whose scheduled startWindow has arrived.
+ * Updates MongoDB in real-time, invalidates cache, and notifies via WebSocket.
+ */
+export const publishDueScheduledTests = async (): Promise<number> => {
+  try {
+    const now = new Date();
+    // Query scheduled tests that have reached or passed their opening window
+    const dueTests = await TestSeries.find({
+      status: 'Scheduled',
+      'schedule.startWindow': { $exists: true, $lte: now }
+    });
+
+    if (!dueTests || dueTests.length === 0) return 0;
+
+    const dueIds = dueTests.map((t) => t._id);
+    await TestSeries.updateMany(
+      { _id: { $in: dueIds } },
+      { $set: { status: 'Published' } }
+    );
+
+    invalidateTestSeriesCache();
+
+    dueTests.forEach((t) => {
+      const plain = t.toObject ? t.toObject() : { ...t };
+      plain.status = 'Published';
+      broadcastTestSeriesUpdated(plain);
+    });
+
+    console.log(`[Auto-Publisher] Automatically published ${dueTests.length} scheduled test(s) to live: ${dueTests.map((t) => t.title).join(', ')}`);
+    return dueTests.length;
+  } catch (err: any) {
+    console.error('[publishDueScheduledTests Error]:', err?.message || err);
+    return 0;
+  }
+};
+
+// Check every 30 seconds for scheduled tests reaching publication window
+setInterval(() => {
+  publishDueScheduledTests().catch(() => {});
+}, 30000);
+
 export const getAllTestSeries = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Reconcile and auto-publish any scheduled tests that have reached or passed their opening window
+    await publishDueScheduledTests();
+
     // Prevent browser & CDN caching so newly published tests appear instantly
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -944,8 +1119,7 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
       items = items.filter((it: any) =>
         !deletedIds.includes(it.id) &&
         !deletedIds.includes(it.slug) &&
-        !deletedIds.includes(String(it._id)) &&
-        !deletedIds.includes(it.title)
+        !deletedIds.includes(String(it._id))
       );
       totalCount = items.length;
     }
@@ -977,22 +1151,24 @@ export const getAllTestSeries = async (req: Request, res: Response): Promise<voi
 
     const sanitizedItems = items.map((it: any) => {
       const obj = { ...it };
-      const mainText = `${obj.title || ''} ${obj.subtitle || ''} ${obj.badgeCode || ''}`.toLowerCase();
-      if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(mainText)) {
-        obj.examType = 'Class 10';
-        obj.targetClass = 'Class 10';
-      } else if (/\b(class\s*9|9th\s*class|class\s*9th|foundation\s*9|grade\s*9)\b/i.test(mainText)) {
-        obj.examType = 'Class 9';
-        obj.targetClass = 'Class 9';
-      } else if (/\b(class\s*8|8th\s*class|class\s*8th|foundation\s*8|grade\s*8)\b/i.test(mainText)) {
-        obj.examType = 'Class 8';
-        obj.targetClass = 'Class 8';
-      } else if (/\b(class\s*11|11th\s*class|class\s*11th|grade\s*11)\b/i.test(mainText)) {
-        obj.examType = 'Class 11';
-        obj.targetClass = 'Class 11';
-      } else if (/\b(class\s*12|12th\s*class|class\s*12th|grade\s*12)\b/i.test(mainText)) {
-        obj.examType = 'Class 12';
-        obj.targetClass = 'Class 12';
+      if (!obj.examType || obj.examType === 'JEE Main') {
+        const mainText = `${obj.title || ''} ${obj.badgeCode || ''}`.toLowerCase();
+        if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(mainText)) {
+          obj.examType = 'Class 10';
+          obj.targetClass = 'Class 10';
+        } else if (/\b(class\s*9|9th\s*class|class\s*9th|foundation\s*9|grade\s*9)\b/i.test(mainText)) {
+          obj.examType = 'Class 9';
+          obj.targetClass = 'Class 9';
+        } else if (/\b(class\s*8|8th\s*class|class\s*8th|foundation\s*8|grade\s*8)\b/i.test(mainText)) {
+          obj.examType = 'Class 8';
+          obj.targetClass = 'Class 8';
+        } else if (/\b(class\s*11|11th\s*class|class\s*11th|grade\s*11)\b/i.test(mainText)) {
+          obj.examType = 'Class 11';
+          obj.targetClass = 'Class 11';
+        } else if (/\b(class\s*12|12th\s*class|class\s*12th|grade\s*12)\b/i.test(mainText)) {
+          obj.examType = 'Class 12';
+          obj.targetClass = 'Class 12';
+        }
       }
       const isScheduled = Boolean(
         obj.solutionRelease?.enabled &&
@@ -1260,6 +1436,17 @@ export const createTestSeries = async (req: Request, res: Response): Promise<voi
       payload.format = 'Full Mock';
     }
 
+    // Normalize mode ('Online' | 'Offline' | 'Hybrid' | 'CBT')
+    if (payload.mode) {
+      const m = String(payload.mode).toLowerCase();
+      if (m === 'cbt') payload.mode = 'CBT';
+      else if (m === 'offline') payload.mode = 'Offline';
+      else if (m === 'hybrid') payload.mode = 'Hybrid';
+      else payload.mode = 'Online';
+    } else {
+      payload.mode = 'Online';
+    }
+
     // Normalize examType (Class 8, 9, 10, 11, 12, Dropper, JEE Advanced, BITSAT, MathSpeed, JEE Main)
     const textCtx = `${payload.title || ''} ${payload.subtitle || ''} ${payload.badgeCode || ''}`.toLowerCase();
     if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(textCtx) || rawExamTypeStr.includes('class 10') || rawExamTypeStr === 'class10') {
@@ -1475,6 +1662,15 @@ export const updateTestSeries = async (req: Request, res: Response): Promise<voi
       updates.format = 'Chapter Test';
     } else if (updates.format) {
       updates.format = 'Full Mock';
+    }
+
+    // Normalize mode ('Online' | 'Offline' | 'Hybrid' | 'CBT')
+    if (updates.mode) {
+      const m = String(updates.mode).toLowerCase();
+      if (m === 'cbt') updates.mode = 'CBT';
+      else if (m === 'offline') updates.mode = 'Offline';
+      else if (m === 'hybrid') updates.mode = 'Hybrid';
+      else updates.mode = 'Online';
     }
 
     // Normalize examType (Class 8, 9, 10, 11, 12, Dropper, JEE Advanced, BITSAT, MathSpeed, JEE Main)

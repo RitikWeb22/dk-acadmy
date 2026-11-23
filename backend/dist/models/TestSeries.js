@@ -77,6 +77,14 @@ const testSeriesSchema = new Schema({
         default: 'Medium'
     },
     durationMinutes: { type: Number, default: 180 },
+    mode: {
+        type: String,
+        enum: ['Online', 'Offline', 'Hybrid', 'CBT'],
+        default: 'Online'
+    },
+    courseName: { type: String, trim: true },
+    pattern: { type: String, trim: true },
+    syllabusPdfUrl: { type: String, trim: true },
     totalQuestions: { type: Number, default: 0 },
     totalMarks: { type: Number, default: 300 },
     subjects: { type: [String], default: ['Mathematics'] },

@@ -40,16 +40,54 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
       const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(uploadedFile.filename);
       const mediaType = isPdf ? 'raw' : isVideo ? 'video' : isImage ? 'image' : 'raw';
 
+      // -------------------------------------------------------------
+      // PDF DOCUMENTS: Store locally on server to avoid Cloudinary PDF policy blocks
+      // Cloudinary accounts block direct delivery of raw/image PDF files by default (403 Forbidden).
+      // Storing in public/uploads guarantees 100% reliable viewing & downloading in all browsers.
+      // -------------------------------------------------------------
+      if (isPdf) {
+        const backendUploadsDir = path.join(process.cwd(), 'backend', 'public', 'uploads');
+        const rootUploadsDir = path.join(process.cwd(), 'public', 'uploads');
+        if (!fs.existsSync(backendUploadsDir)) fs.mkdirSync(backendUploadsDir, { recursive: true });
+        if (!fs.existsSync(rootUploadsDir)) fs.mkdirSync(rootUploadsDir, { recursive: true });
+
+        const safeOriginalName = (uploadedFile.originalname || 'document.pdf').replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `syllabus-${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${safeOriginalName}`;
+
+        const destPath1 = path.join(backendUploadsDir, filename);
+        const destPath2 = path.join(rootUploadsDir, filename);
+
+        fs.copyFileSync(uploadedFile.path, destPath1);
+        try {
+          fs.copyFileSync(uploadedFile.path, destPath2);
+        } catch {}
+
+        try {
+          if (fs.existsSync(uploadedFile.path)) {
+            fs.unlinkSync(uploadedFile.path);
+          }
+        } catch {}
+
+        const finalUrl = `/uploads/${filename}`;
+
+        res.status(200).json({
+          success: true,
+          message: 'PDF Document uploaded and stored successfully in Media Vault',
+          url: finalUrl,
+          public_id: filename,
+          format: 'pdf',
+          resourceType: 'raw',
+          bytes: uploadedFile.size,
+          originalName: uploadedFile.originalname,
+          storage: 'local'
+        });
+        return;
+      }
+
       const uploadOptions: any = {
         folder: folder || 'dk-academy',
-        resource_type: resource_type || (isPdf ? 'raw' : isVideo ? 'video' : isImage ? 'image' : 'auto')
+        resource_type: resource_type || (isVideo ? 'video' : isImage ? 'image' : 'auto')
       };
-
-      if (isPdf) {
-        uploadOptions.resource_type = 'raw';
-        uploadOptions.use_filename = true;
-        uploadOptions.unique_filename = true;
-      }
 
       try {
         const result = await cloudinary.uploader.upload(uploadedFile.path, uploadOptions);
