@@ -65,45 +65,34 @@ export const sendPasswordResetOtpEmail = async (
     const fromEmail = env.SMTP_FROM || env.SMTP_USER || 'info@dkacademyjee.com';
 
     const currentYear = new Date().getFullYear();
-    const portalUrl = 'https://dkacademyjee.com';
 
     await mailer.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: cleanEmail,
-      subject: `${otp} is your DK Academy JEE Verification Code`,
-      text: `Hello ${displayName},\n\nYour 6-digit verification code to reset your DK Academy student account password is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this code, please ignore this email. Your account remains secure.\n\nDK Academy JEE — Premier Engineering Entrance Institute\nSupport: info@dkacademyjee.com`,
+      subject: `${otp} is your DK Academy verification code`,
+      text: `Hello ${displayName},\n\nYour 6-digit verification code to reset your DK Academy password is: ${otp}\n\nThis code will expire in 10 minutes.\n\nFor security reasons, never share this OTP with anyone. If you did not request this, please ignore this email.\n\nDK Academy JEE\nSupport: info@dkacademyjee.com`,
       html: `
         <!DOCTYPE html>
         <html lang="en">
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${otp} — DK Academy Verification Code</title>
+          <title>${otp} — Verification Code</title>
         </head>
-        <body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #1e293b;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #0b0f19; padding: 40px 16px;">
+        <body style="margin: 0; padding: 0; background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f6f9; padding: 40px 16px;">
             <tr>
               <td align="center">
-                <!-- Main Container Card -->
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); border: 1px solid #1e293b;">
+                <!-- Main Clean Light Card -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; border-top: 4px solid #1e3a8a; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04); overflow: hidden;">
                   
-                  <!-- Premium Header -->
+                  <!-- Clean Header -->
                   <tr>
-                    <td style="background: linear-gradient(135deg, #090d16 0%, #0f172a 40%, #1e3a8a 100%); padding: 40px 32px 36px; text-align: center; border-bottom: 3px solid #3b82f6;">
-                      <!-- Security Badge Pill -->
-                      <div style="display: inline-block; padding: 6px 16px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(147, 197, 253, 0.35); border-radius: 9999px; margin-bottom: 16px;">
-                        <span style="font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #93c5fd;">
-                          &#128274; Security Verification
-                        </span>
-                      </div>
-                      
-                      <!-- Brand Title -->
-                      <h1 style="margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff; text-transform: uppercase;">
+                    <td style="padding: 28px 32px 20px; border-bottom: 1px solid #f1f5f9;">
+                      <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px;">
                         DK ACADEMY
                       </h1>
-                      
-                      <!-- Brand Subtitle / Specialties -->
-                      <div style="margin-top: 8px; font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #fbbf24;">
+                      <div style="margin-top: 4px; font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 1.5px; text-transform: uppercase;">
                         JEE MAIN &bull; ADVANCED &bull; BITSAT
                       </div>
                     </td>
@@ -111,83 +100,44 @@ export const sendPasswordResetOtpEmail = async (
 
                   <!-- Main Content Area -->
                   <tr>
-                    <td style="padding: 36px 36px 28px; background-color: #ffffff;">
-                      <h2 style="margin: 0 0 12px; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px;">
-                        Password Reset Verification
-                      </h2>
-
-                      <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.65; color: #475569;">
-                        Hello <strong style="color: #0f172a;">${displayName}</strong>,
+                    <td style="padding: 28px 32px 24px;">
+                      <p style="margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: #334155;">
+                        Hello <strong>${displayName}</strong>,
                       </p>
 
-                      <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.65; color: #475569;">
-                        We received a request to reset the password for your DK Academy student account associated with <strong style="color: #1e3a8a; text-decoration: underline;">${cleanEmail}</strong>.
+                      <p style="margin: 0 0 20px; font-size: 14px; line-height: 1.6; color: #334155;">
+                        We received a request to reset your password. Use the verification code below on the portal to proceed:
                       </p>
 
-                      <p style="margin: 0 0 16px; font-size: 13px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">
-                        Enter the 6-digit one-time password (OTP) below:
-                      </p>
-
-                      <!-- High-Impact OTP Box -->
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 24px; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); border: 2px dashed #2563eb; border-radius: 14px;">
+                      <!-- Clean Light OTP Box -->
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 22px;">
                         <tr>
-                          <td style="padding: 24px 16px; text-align: center;">
-                            <div style="font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 40px; font-weight: 900; letter-spacing: 12px; color: #1e3a8a; margin-left: 12px;">
+                          <td style="padding: 22px 16px; text-align: center;">
+                            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 8px;">
+                              One-Time Password (OTP)
+                            </div>
+                            <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', Consolas, Monaco, monospace; font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #1e3a8a; margin: 4px 0 8px; margin-left: 8px;">
                               ${otp}
                             </div>
-                            <div style="margin-top: 12px;">
-                              <span style="display: inline-block; background-color: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 9999px; border: 1px solid #fde68a;">
-                                &#9201; Valid for 10 minutes only
-                              </span>
+                            <div style="font-size: 12px; color: #64748b;">
+                              ⏱ Valid for <strong>10 minutes</strong>
                             </div>
                           </td>
                         </tr>
                       </table>
 
-                      <!-- Action Button -->
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 28px;">
-                        <tr>
-                          <td align="center">
-                            <a href="${portalUrl}/forgot-password" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 700; padding: 13px 32px; border-radius: 10px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);">
-                              Complete Password Reset &rarr;
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
-
-                      <!-- Security Shield Notice -->
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 8px; margin: 0 0 16px;">
-                        <tr>
-                          <td style="padding: 14px 16px;">
-                            <div style="font-size: 12px; font-weight: 700; color: #15803d; margin-bottom: 4px;">
-                              &#128737; Security Guarantee
-                            </div>
-                            <div style="font-size: 12px; line-height: 1.55; color: #166534;">
-                              Never share this OTP with anyone. DK Academy educators and staff will <strong>never</strong> contact you asking for your password or verification code.
-                            </div>
-                          </td>
-                        </tr>
-                      </table>
-
-                      <!-- Disclaimer -->
-                      <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #94a3b8;">
-                        If you did not initiate this request, you can safely ignore this email. Your account password remains strictly confidential and secure.
-                      </p>
+                      <!-- Security Advisory Notice -->
+                      <div style="background-color: #f8fafc; border-left: 3px solid #94a3b8; padding: 12px 14px; border-radius: 4px; font-size: 12px; line-height: 1.55; color: #475569; margin: 0 0 16px;">
+                        <strong>Security Notice:</strong> Never share this code with anyone. DK Academy will never ask for your verification code. If you did not make this request, you can safely ignore this email.
+                      </div>
                     </td>
                   </tr>
 
-                  <!-- Footer -->
+                  <!-- Clean Minimal Footer -->
                   <tr>
-                    <td style="padding: 24px 36px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
-                      <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; color: #475569;">
-                        DK ACADEMY JEE &bull; BITSAT PREPARATION
-                      </p>
-                      <p style="margin: 0 0 12px; font-size: 12px; color: #64748b; line-height: 1.5;">
-                        Need assistance? Contact our student helpline at <a href="mailto:info@dkacademyjee.com" style="color: #2563eb; text-decoration: none; font-weight: 600;">info@dkacademyjee.com</a>
-                      </p>
-                      <p style="margin: 0; font-size: 11px; color: #94a3b8;">
-                        &copy; ${currentYear} DK Academy JEE. All rights reserved. &bull; This is an automated security notification.
-                      </p>
+                    <td style="padding: 18px 32px; background-color: #fafbfc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.5;">
+                      <div>DK Academy JEE &bull; Support: <a href="mailto:info@dkacademyjee.com" style="color: #64748b; text-decoration: underline;">info@dkacademyjee.com</a></div>
+                      <div style="margin-top: 4px;">&copy; ${currentYear} DK Academy. All rights reserved.</div>
                     </td>
                   </tr>
 
