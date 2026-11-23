@@ -11,6 +11,7 @@ import type { AuthRequest } from '../middlewares/authMiddleware.js';
 import { broadcastStudentRegistered } from '../sockets/socket.js';
 import { generateStudentId, generateTeacherId } from '../utils/uuid.js';
 import { sendPasswordResetOtpEmail } from '../services/emailService.js';
+import { logger } from '../config/logger.js';
 
 const generateToken = (id: string, role: string): string => {
   return jwt.sign({ id, role, jti: uuidv4() }, env.JWT_SECRET, {
@@ -1086,7 +1087,10 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     const targetEmail = user.email || cleanEmail;
 
     // Send email via Nodemailer
-    await sendPasswordResetOtpEmail(targetEmail, user.name, rawOtp);
+    const emailResult = await sendPasswordResetOtpEmail(targetEmail, user.name, rawOtp);
+    if (!emailResult.success) {
+      logger.error({ err: emailResult.error, to: targetEmail }, '[Auth] OTP email dispatch warning: check Hostinger SMTP configuration');
+    }
 
     // Masked email for UI display e.g. "stu***@gmail.com"
     const maskedEmail = targetEmail.replace(/^(.)(.*)(@.*)$/, (_m: string, a: string, b: string, c: string) => `${a}${'*'.repeat(Math.min(b.length, 5))}${c}`);
