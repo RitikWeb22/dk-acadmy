@@ -278,7 +278,7 @@ export const getAllDppPyq = async (req: Request, res: Response): Promise<void> =
       const pagination = getPagination(page, limit, 20, 100);
       const [items, total] = await Promise.all([
         DppPyq.find(filter)
-          .sort({ createdAt: -1 })
+          .sort({ order: 1, createdAt: -1 })
           .skip(pagination.skip)
           .limit(pagination.limit)
           .select('-questions') // Exclude heavy questions array in listing for fast throughput
@@ -287,19 +287,28 @@ export const getAllDppPyq = async (req: Request, res: Response): Promise<void> =
         DppPyq.countDocuments(filter)
       ]);
 
+      const sortedPageItems = items.sort((a: any, b: any) => {
+        const ordA = typeof a.order === 'number' && a.order > 0 ? a.order : 999999;
+        const ordB = typeof b.order === 'number' && b.order > 0 ? b.order : 999999;
+        if (ordA !== ordB) return ordA - ordB;
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      });
+
       res.status(200).json({
         success: true,
-        count: items.length,
+        count: sortedPageItems.length,
         total,
         page: pagination.page,
         totalPages: Math.ceil(total / pagination.limit),
         hasMore: pagination.page * pagination.limit < total,
-        data: items
+        data: sortedPageItems
       });
       return;
     }
 
-    const items = await DppPyq.find(filter).sort({ createdAt: -1 }).lean().maxTimeMS(4000);
+    const items = await DppPyq.find(filter).sort({ order: 1, createdAt: -1 }).lean().maxTimeMS(4000);
     const sanitizedItems = items.map((item: any) => {
       const doc = { ...item };
       if (
@@ -311,6 +320,15 @@ export const getAllDppPyq = async (req: Request, res: Response): Promise<void> =
         doc.questionsCount = 0;
       }
       return doc;
+    });
+
+    sanitizedItems.sort((a: any, b: any) => {
+      const ordA = typeof a.order === 'number' && a.order > 0 ? a.order : 999999;
+      const ordB = typeof b.order === 'number' && b.order > 0 ? b.order : 999999;
+      if (ordA !== ordB) return ordA - ordB;
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
     });
 
     if (!hasFilters && !page && !limit) {
@@ -434,6 +452,33 @@ export const createDppPyq = async (req: Request, res: Response): Promise<void> =
           })
         : SEED_QUESTIONS;
 
+    // Determine class-scoped order: sequence starts from 1 per (moduleType, targetClass)
+    const resolvedClass = String(payload.targetClass || payload.classLevel || '').trim();
+    const classFilter = resolvedClass
+      ? { targetClass: { $regex: new RegExp(`^${escapeRegex(resolvedClass.replace(/\s+/g, '.*'))}`, 'i') } }
+      : {};
+
+    let itemOrder = typeof payload.order === 'number' && payload.order > 0 ? payload.order : null;
+    if (!itemOrder) {
+      const maxDoc = await DppPyq.findOne({
+        moduleType: validModuleType,
+        ...classFilter
+      })
+        .sort({ order: -1 })
+        .select('order');
+      itemOrder = maxDoc?.order && maxDoc.order > 0 ? maxDoc.order + 1 : 1;
+    } else {
+      // If admin specifies an explicit position (e.g. 1), shift existing items in that class with order >= itemOrder
+      await DppPyq.updateMany(
+        {
+          moduleType: validModuleType,
+          ...classFilter,
+          order: { $gte: itemOrder }
+        },
+        { $inc: { order: 1 } }
+      );
+    }
+
     const newItem = new DppPyq({
       ...payload,
       id: payload.id || `dpp-pyq-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -453,6 +498,7 @@ export const createDppPyq = async (req: Request, res: Response): Promise<void> =
       solutionNote: payload.solutionNote || `${sanitizedQuestions.length} with step solutions`,
       attemptsCount: payload.attemptsCount || 0,
       status: payload.status || 'Published',
+      order: itemOrder,
       questions: sanitizedQuestions
     });
 
@@ -503,6 +549,127 @@ export const updateDppPyq = async (req: Request, res: Response): Promise<void> =
   } catch (error: any) {
     console.error('Error updating DPP/PYQ item:', error);
     res.status(500).json({ error: 'Failed to update DPP/PYQ item', details: error.message });
+  }
+};
+
+export const reorderDppPyq = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ error: 'items array is required with { id, order }' });
+      return;
+    }
+
+    const bulkOps = items.map((item: { id: string; order: number }, idx: number) => {
+      const idStr = String(item.id);
+      const isObjectId = mongoose.Types.ObjectId.isValid(idStr);
+      const filter = isObjectId
+        ? { $or: [{ _id: new mongoose.Types.ObjectId(idStr) }, { id: idStr }] }
+        : { id: idStr };
+
+      const orderVal = typeof item.order === 'number' && item.order > 0 ? item.order : (idx + 1);
+      return {
+        updateOne: {
+          filter,
+          update: { $set: { order: orderVal } }
+        }
+      };
+    });
+
+    await DppPyq.bulkWrite(bulkOps);
+    invalidateDppPyqCache();
+    broadcastDppPyqUpdated({ reordered: true, count: items.length });
+
+    res.status(200).json({ success: true, message: `Successfully reordered ${items.length} items` });
+  } catch (error: any) {
+    console.error('Error reordering DPP/PYQ items:', error);
+    res.status(500).json({ error: 'Failed to reorder items', details: error.message });
+  }
+};
+
+/**
+ * Normalizes sequence orders cleanly starting from 1 for each class and module.
+ * Eliminates random numbering and gaps so Class 12, Class 11, etc. each start at 1, 2, 3...
+ */
+export const normalizeOrdersPerClass = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const allItems = await DppPyq.find({}).sort({ order: 1, createdAt: 1 }).lean();
+
+    // Group items by moduleType + normalized targetClass
+    const groups: Record<string, any[]> = {};
+    for (const it of allItems) {
+      const mod = it.moduleType || 'DPP';
+      let cls = String(it.targetClass || '').trim();
+      if (!cls || cls.toLowerCase() === 'undefined' || cls.toLowerCase() === 'both') {
+        const text = `${it.title || ''} ${it.chapter || ''}`.toLowerCase();
+        if (
+          text.includes('11') ||
+          text.includes('straight line') ||
+          text.includes('conic') ||
+          text.includes('circle') ||
+          text.includes('parabola') ||
+          text.includes('ellipse') ||
+          text.includes('hyperbola') ||
+          text.includes('trigonometr') ||
+          text.includes('sequence') ||
+          text.includes('complex') ||
+          text.includes('quadratic') ||
+          text.includes('binomial') ||
+          text.includes('permutation') ||
+          text.includes('statistics') ||
+          text.includes('sets') ||
+          text.includes('induction') ||
+          text.includes('reasoning') ||
+          text.includes('properties of triangle') ||
+          text.includes('height and distance')
+        ) {
+          cls = 'Class 11th';
+        } else if (text.includes('10')) cls = 'Class 10';
+        else if (text.includes('9')) cls = 'Class 9';
+        else if (text.includes('8')) cls = 'Class 8';
+        else cls = 'Class 12th';
+      }
+      const groupKey = `${mod}__${cls}`;
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push({ ...it, resolvedClass: cls });
+    }
+
+    const bulkOps: any[] = [];
+    for (const groupKey of Object.keys(groups)) {
+      const items = groups[groupKey];
+      // Sort: preserve existing relative order if > 0, else by createdAt
+      items.sort((a, b) => {
+        const ordA = typeof a.order === 'number' && a.order > 0 ? a.order : 999999;
+        const ordB = typeof b.order === 'number' && b.order > 0 ? b.order : 999999;
+        if (ordA !== ordB) return ordA - ordB;
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      });
+
+      items.forEach((item, idx) => {
+        const newOrder = idx + 1; // 1, 2, 3, 4... consecutively
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: item._id },
+            update: { $set: { order: newOrder, targetClass: item.resolvedClass } }
+          }
+        });
+      });
+    }
+
+    if (bulkOps.length > 0) {
+      await DppPyq.bulkWrite(bulkOps);
+    }
+    invalidateDppPyqCache();
+    broadcastDppPyqUpdated({ reordered: true, count: bulkOps.length });
+
+    res.status(200).json({
+      success: true,
+      message: `Normalized sequence orders cleanly from 1 for ${bulkOps.length} items across all classes`,
+      count: bulkOps.length
+    });
+  } catch (error: any) {
+    console.error('Error normalizing DPP/PYQ orders:', error);
+    res.status(500).json({ error: 'Failed to normalize sequence orders', details: error.message });
   }
 };
 

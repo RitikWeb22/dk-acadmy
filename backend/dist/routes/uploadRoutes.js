@@ -77,4 +77,46 @@ const upload = multer({
 router.post('/', protect, uploadRateLimiter, upload.single('file'), uploadMedia);
 // Delete media asset (Admin & Staff protected)
 router.post('/delete', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), deleteMedia);
+// Public view / download route for uploaded files (serves PDFs inline with zero 403 blocks)
+router.get('/file/:filename', (req, res) => {
+    const filename = path.basename(req.params.filename);
+    const possiblePaths = [
+        path.join(process.cwd(), 'backend', 'public', 'uploads', filename),
+        path.join(process.cwd(), 'public', 'uploads', filename),
+        path.join(process.cwd(), 'frontend', 'public', 'uploads', filename),
+        path.join(process.cwd(), 'frontend', 'dist', 'uploads', filename)
+    ];
+    for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+            if (filename.toLowerCase().endsWith('.pdf')) {
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', 'inline; filename="' + filename + '"');
+            }
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            return res.sendFile(p);
+        }
+    }
+    return res.status(404).json({ error: 'File not found' });
+});
+// Safe PDF proxy / relay (prevents Cloudinary 403 Forbidden or CORS blocks)
+router.get('/view-pdf', async (req, res) => {
+    const targetUrl = req.query.url;
+    if (!targetUrl || !/^https?:\/\//i.test(targetUrl)) {
+        return res.status(400).send('Invalid or missing PDF URL parameter');
+    }
+    try {
+        const fetchRes = await fetch(targetUrl);
+        if (!fetchRes.ok) {
+            return res.status(fetchRes.status).send(`Failed to fetch external PDF (HTTP ${fetchRes.status})`);
+        }
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        const buffer = await fetchRes.arrayBuffer();
+        return res.send(Buffer.from(buffer));
+    }
+    catch (err) {
+        return res.status(500).send('PDF Relay error: ' + err.message);
+    }
+});
 export default router;

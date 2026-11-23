@@ -42,17 +42,33 @@ export const uploadMedia = async (req, res) => {
             if (isPdf) {
                 const backendUploadsDir = path.join(process.cwd(), 'backend', 'public', 'uploads');
                 const rootUploadsDir = path.join(process.cwd(), 'public', 'uploads');
+                const frontendUploadsDir = path.join(process.cwd(), 'frontend', 'public', 'uploads');
+                const frontendDistUploadsDir = path.join(process.cwd(), 'frontend', 'dist', 'uploads');
                 if (!fs.existsSync(backendUploadsDir))
                     fs.mkdirSync(backendUploadsDir, { recursive: true });
                 if (!fs.existsSync(rootUploadsDir))
                     fs.mkdirSync(rootUploadsDir, { recursive: true });
+                if (!fs.existsSync(frontendUploadsDir))
+                    fs.mkdirSync(frontendUploadsDir, { recursive: true });
+                if (!fs.existsSync(frontendDistUploadsDir))
+                    fs.mkdirSync(frontendDistUploadsDir, { recursive: true });
                 const safeOriginalName = (uploadedFile.originalname || 'document.pdf').replace(/[^a-zA-Z0-9.-]/g, '_');
                 const filename = `syllabus-${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${safeOriginalName}`;
                 const destPath1 = path.join(backendUploadsDir, filename);
                 const destPath2 = path.join(rootUploadsDir, filename);
+                const destPath3 = path.join(frontendUploadsDir, filename);
+                const destPath4 = path.join(frontendDistUploadsDir, filename);
                 fs.copyFileSync(uploadedFile.path, destPath1);
                 try {
                     fs.copyFileSync(uploadedFile.path, destPath2);
+                }
+                catch { }
+                try {
+                    fs.copyFileSync(uploadedFile.path, destPath3);
+                }
+                catch { }
+                try {
+                    fs.copyFileSync(uploadedFile.path, destPath4);
                 }
                 catch { }
                 try {

@@ -5,6 +5,8 @@ import {
   getDppPyqByIdOrSlug,
   createDppPyq,
   updateDppPyq,
+  reorderDppPyq,
+  normalizeOrdersPerClass,
   deleteDppPyq,
   importPdfQuestions,
   bulkUploadDppPyqDocuments,
@@ -133,6 +135,18 @@ router.post(
   authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
   validate({ body: createDppPyqSchema }),
   createDppPyq
+);
+router.put(
+  '/reorder',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  reorderDppPyq
+);
+router.post(
+  '/normalize-orders',
+  protect,
+  authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'),
+  normalizeOrdersPerClass
 );
 router.put(
   '/:id',

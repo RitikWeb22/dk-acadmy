@@ -54,6 +54,7 @@ export interface IDppPyq extends Document {
   status: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
   scheduledDate?: string;
   attemptsCount: number;
+  order?: number;
   questions: IProblemQuestion[];
   createdAt: Date;
   updatedAt: Date;
@@ -126,6 +127,7 @@ const dppPyqSchema = new Schema<IDppPyq>(
     },
     scheduledDate: { type: String },
     attemptsCount: { type: Number, default: 0 },
+    order: { type: Number, default: 0, index: true },
     questions: { type: [questionSchema], default: [] }
   },
   {
@@ -141,6 +143,9 @@ const dppPyqSchema = new Schema<IDppPyq>(
     }
   }
 );
+
+dppPyqSchema.index({ order: 1, createdAt: -1 });
+dppPyqSchema.index({ moduleType: 1, order: 1, createdAt: -1 });
 
 dppPyqSchema.index({ status: 1, subject: 1 });
 dppPyqSchema.index({ status: 1, createdAt: -1 });

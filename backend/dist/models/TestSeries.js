@@ -119,7 +119,8 @@ const testSeriesSchema = new Schema({
         videoUrl: { type: String, default: '' },
         releaseDelayHours: { type: Number, default: 24 }
     },
-    attemptsCount: { type: Number, default: 0 }
+    attemptsCount: { type: Number, default: 0 },
+    order: { type: Number, default: 0, index: true }
 }, {
     timestamps: true
 });

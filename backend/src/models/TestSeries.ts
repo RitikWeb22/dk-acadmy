@@ -102,6 +102,7 @@ export interface ITestSeries extends Document {
   schedule?: ITestSeriesSchedule;
   solutionRelease?: ITestSeriesSolutionRelease;
   attemptsCount: number;
+  order?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -243,7 +244,8 @@ const testSeriesSchema = new Schema<ITestSeries>(
       videoUrl: { type: String, default: '' },
       releaseDelayHours: { type: Number, default: 24 }
     },
-    attemptsCount: { type: Number, default: 0 }
+    attemptsCount: { type: Number, default: 0 },
+    order: { type: Number, default: 0, index: true }
   },
   {
     timestamps: true

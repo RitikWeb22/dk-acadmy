@@ -57,6 +57,7 @@ const dppPyqSchema = new Schema({
     },
     scheduledDate: { type: String },
     attemptsCount: { type: Number, default: 0 },
+    order: { type: Number, default: 0, index: true },
     questions: { type: [questionSchema], default: [] }
 }, {
     timestamps: true,
@@ -70,6 +71,8 @@ const dppPyqSchema = new Schema({
         }
     }
 });
+dppPyqSchema.index({ order: 1, createdAt: -1 });
+dppPyqSchema.index({ moduleType: 1, order: 1, createdAt: -1 });
 dppPyqSchema.index({ status: 1, subject: 1 });
 dppPyqSchema.index({ status: 1, createdAt: -1 });
 dppPyqSchema.index({ moduleType: 1, subject: 1, status: 1, createdAt: -1 });

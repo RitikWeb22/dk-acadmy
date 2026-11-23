@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getAllDppPyq, getDppPyqByIdOrSlug, createDppPyq, updateDppPyq, deleteDppPyq, importPdfQuestions, bulkUploadDppPyqDocuments, getPdfImportHistory, getPdfImportById, updateExtractedQuestionInStaging, getQuestionBank, createOrUpdateQuestionBankItem, batchAddToQuestionBank, deleteQuestionBankItem } from '../controllers/dppPyqController.js';
+import { getAllDppPyq, getDppPyqByIdOrSlug, createDppPyq, updateDppPyq, reorderDppPyq, normalizeOrdersPerClass, deleteDppPyq, importPdfQuestions, bulkUploadDppPyqDocuments, getPdfImportHistory, getPdfImportById, updateExtractedQuestionInStaging, getQuestionBank, createOrUpdateQuestionBankItem, batchAddToQuestionBank, deleteQuestionBankItem } from '../controllers/dppPyqController.js';
 import { formatMathWithAi } from '../controllers/aiFormatController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
@@ -49,6 +49,8 @@ router.get('/', getAllDppPyq);
 router.get('/:id', getDppPyqByIdOrSlug);
 // 4. Admin & Faculty creation/management routes
 router.post('/', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ body: createDppPyqSchema }), createDppPyq);
+router.put('/reorder', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), reorderDppPyq);
+router.post('/normalize-orders', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), normalizeOrdersPerClass);
 router.put('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER', 'TEACHER'), validate({ params: idOrSlugParamSchema }), updateDppPyq);
 router.delete('/:id', protect, authorize('SUPER_ADMIN', 'ADMIN', 'CMS_MANAGER'), validate({ params: idOrSlugParamSchema }), deleteDppPyq);
 export default router;

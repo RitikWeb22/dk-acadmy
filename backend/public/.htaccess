@@ -1,31 +1,80 @@
 # ==============================================================================
-# DK Academy — LiteSpeed Web Server (Hostinger) Performance & Security Config
+# DK Academy — Production LiteSpeed & Apache Configuration (Hostinger)
+# Fixes 403 Forbidden, 408 Timeouts, Missing SPA Routes, and PDF/Asset Delivery
 # ==============================================================================
 
+# 1. Disable Directory Browsing but allow symlink following
+Options -Indexes +FollowSymLinks
+DirectoryIndex index.html index.php
+
+# 2. LiteSpeed Specific Optimizations (Hostinger)
 <IfModule LiteSpeed>
     RewriteEngine On
-
-    # 1. Disable LiteSpeed Bot Protection / Human Verification Checkbox (reCAPTCHA)
+    # Bypass LiteSpeed bot verification loop (fixes 403 / captcha loops on AJAX/SPA calls)
     RewriteRule .* - [E=verifycaptcha:off]
-
-    # 2. Prevent LiteSpeed from aborting backend connection on client lag or long response
+    # Prevent connection abort on client latency
     RewriteRule .* - [E=noabort:1]
-
-    # 3. Increase / Bypass LiteSpeed Connection Timeout (fixes 408 Request Time-out)
+    # Bypass connection timeouts (fixes 408 Request Time-out)
     RewriteRule .* - [E=noconntimeout:1]
 </IfModule>
 
-<IfModule mod_headers.c>
-    Header set Connection "keep-alive"
+# 3. Web Application Firewall / ModSecurity Exceptions
+<IfModule mod_security.c>
+    SecFilterEngine Off
+    SecFilterScanPOST Off
 </IfModule>
 
+# 4. Single Page Application (SPA) Routing & Reverse Proxying
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Ensure HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP_HOST} ^(www\.)?dkacademyjee\.com [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Serve existing physical files directly (CSS, JS, images, PDFs, fonts)
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # Serve existing physical directories directly
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Exclude /api and /uploads from SPA redirect if handled by backend
+    RewriteCond %{REQUEST_URI} ^/api/ [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/uploads/ [NC]
+    RewriteRule ^ - [L]
+
+    # All other requests redirect to React entry point index.html
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# 5. Cross-Origin Resource Sharing (CORS) & Browser Compatibility
+<IfModule mod_headers.c>
+    Header set Connection "keep-alive"
+    
+    # Allow web fonts, images, scripts and PDFs to be loaded without CORS/403 blocks
+    <FilesMatch "\.(ttf|ttc|otf|eot|woff|woff2|css|js|png|jpg|jpeg|gif|svg|webp|ico|pdf)$">
+        Header set Access-Control-Allow-Origin "*"
+        Header set Access-Control-Allow-Methods "GET, OPTIONS"
+        Header set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept"
+    </FilesMatch>
+</IfModule>
+
+# 6. High-Performance Static Asset Caching
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType image/x-icon "access plus 1 year"
     ExpiresByType image/vnd.microsoft.icon "access plus 1 year"
     ExpiresByType image/jpeg "access plus 1 year"
     ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
     ExpiresByType image/svg+xml "access plus 1 year"
     ExpiresByType text/css "access plus 1 year"
     ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType application/pdf "access plus 1 month"
 </IfModule>

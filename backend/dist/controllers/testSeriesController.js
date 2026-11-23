@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { TestSeries } from '../models/TestSeries.js';
 import { TestSubmission } from '../models/TestSubmission.js';
 import { Order } from '../models/Order.js';
@@ -1067,7 +1068,7 @@ export const getAllTestSeries = async (req, res) => {
             paginationMeta = pagination;
             const [fetchedItems, total] = await Promise.all([
                 TestSeries.find(filter, projection)
-                    .sort({ createdAt: -1 })
+                    .sort({ order: 1, createdAt: -1 })
                     .skip(pagination.skip)
                     .limit(pagination.limit)
                     .lean()
@@ -1079,7 +1080,7 @@ export const getAllTestSeries = async (req, res) => {
         }
         else {
             items = await TestSeries.find(filter, projection)
-                .sort({ createdAt: -1 })
+                .sort({ order: 1, createdAt: -1 })
                 .lean()
                 .maxTimeMS(4000);
             totalCount = items.length;
@@ -1165,6 +1166,13 @@ export const getAllTestSeries = async (req, res) => {
                 };
             }
             return obj;
+        });
+        sanitizedItems.sort((a, b) => {
+            const ordA = typeof a.order === 'number' && a.order > 0 ? a.order : 999999;
+            const ordB = typeof b.order === 'number' && b.order > 0 ? b.order : 999999;
+            if (ordA !== ordB)
+                return ordA - ordB;
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
         });
         if (paginationMeta) {
             res.status(200).json({
@@ -1546,6 +1554,16 @@ export const createTestSeries = async (req, res) => {
             uniqueSlug = `${baseSlug}-${counter++}`;
         }
         payload.slug = uniqueSlug;
+        // Sequence per exam/class starting cleanly from 1
+        if (typeof payload.order !== 'number' || payload.order <= 0) {
+            const classExamFilter = payload.targetClass
+                ? { targetClass: payload.targetClass }
+                : payload.examType
+                    ? { examType: payload.examType }
+                    : {};
+            const maxDoc = await TestSeries.findOne(classExamFilter).sort({ order: -1 }).select('order');
+            payload.order = maxDoc?.order && maxDoc.order > 0 ? maxDoc.order + 1 : 1;
+        }
         const newTestSeries = await TestSeries.create(payload);
         invalidateTestSeriesCache();
         broadcastTestSeriesCreated(newTestSeries);
@@ -1723,13 +1741,63 @@ export const updateTestSeries = async (req, res) => {
             });
             updates.totalQuestions = updates.questions.length;
         }
-        const updated = await TestSeries.findOneAndUpdate({
-            $or: [
-                { id: param },
-                { slug: param },
-                { _id: param.match(/^[0-9a-fA-F]{24}$/) ? param : null }
-            ]
-        }, updates, { returnDocument: 'after', runValidators: true });
+        // Strip reserved / immutable keys
+        delete updates._id;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+        const cleanParam = param.replace(/^\//, '');
+        const queryConditions = [
+            { id: param },
+            { id: cleanParam },
+            { id: `ts-${cleanParam}` },
+            { slug: param },
+            { slug: cleanParam },
+            { slug: `/${cleanParam}` },
+            { slug: `/${param}` },
+            { title: param },
+            { title: cleanParam }
+        ];
+        if (/^[0-9a-fA-F]{24}$/.test(param)) {
+            queryConditions.push({ _id: new mongoose.Types.ObjectId(param) });
+        }
+        if (updates.id && updates.id !== param) {
+            queryConditions.push({ id: updates.id });
+        }
+        let existing = await TestSeries.findOne({ $or: queryConditions });
+        // Ensure slug uniqueness
+        if (updates.slug || updates.title) {
+            let baseSlug = String(updates.slug || updates.title)
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)+/g, '');
+            if (!baseSlug)
+                baseSlug = `test-${Date.now().toString(36)}`;
+            let uniqueSlug = baseSlug;
+            let counter = 1;
+            const excludeFilter = existing ? { _id: { $ne: existing._id } } : {};
+            while (await TestSeries.exists({
+                $and: [{ $or: [{ slug: uniqueSlug }, { slug: `/${uniqueSlug}` }] }, excludeFilter]
+            })) {
+                uniqueSlug = `${baseSlug}-${counter++}`;
+            }
+            updates.slug = uniqueSlug;
+        }
+        let updated;
+        if (existing) {
+            updated = await TestSeries.findByIdAndUpdate(existing._id, { $set: updates }, { returnDocument: 'after', runValidators: false });
+        }
+        else {
+            // If document was not yet in MongoDB (e.g. from seed fallback), upsert/create it seamlessly
+            const fallbackItem = SEED_TEST_SERIES.find((s) => s.id === param || s.id === cleanParam || s.slug === param || s.slug === cleanParam || s.title === param);
+            const docPayload = {
+                ...(fallbackItem || {}),
+                ...updates,
+                id: updates.id || fallbackItem?.id || (param.startsWith('ts-') ? param : `ts-${cleanParam}`),
+                status: updates.status || 'Published'
+            };
+            delete docPayload._id;
+            updated = await TestSeries.create(docPayload);
+        }
         if (!updated) {
             res.status(404).json({ success: false, message: 'Test Series not found' });
             return;
