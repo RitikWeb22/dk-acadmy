@@ -26,7 +26,17 @@ export const envSchema = z.object({
   LIVEKIT_URL: z.string().optional().default(''),
   LIVEKIT_API_KEY: z.string().optional().default(''),
   LIVEKIT_API_SECRET: z.string().optional().default(''),
-  REDIS_URL: z.string().optional().default('')
+  REDIS_URL: z.string().optional().default(''),
+  SMTP_HOST: z.string().optional().default('smtp.hostinger.com'),
+  SMTP_PORT: z.coerce.number().optional().default(465),
+  SMTP_SECURE: z.preprocess((val) => val === true || val === 'true', z.boolean()).optional().default(true),
+  SMTP_USER: z.string().optional().default('info@dkacademyjee.com'),
+  SMTP_PASS: z.string().optional().default(''),
+  SMTP_FROM: z.string().optional().default('info@dkacademyjee.com'),
+  SMTP_FROM_NAME: z.string().optional().default('DK Academy JEE'),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(''),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional().default(''),
+  WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().default('')
 });
 
 export type EnvConfig = z.infer<typeof envSchema> & {

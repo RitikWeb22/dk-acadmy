@@ -29,8 +29,24 @@ const createCourseSchema = z
     language: z.string().optional(),
     seoTitle: z.string().optional(),
     seoDescription: z.string().optional(),
-    price: z.union([z.number(), z.string().regex(/^\d+(\.\d+)?$/)]).transform(Number),
-    originalPrice: z.union([z.number(), z.string().regex(/^\d+(\.\d+)?$/)]).transform(Number).optional(),
+    price: z
+      .union([
+        z.number(),
+        z.string().transform((val) => {
+          const num = Number(val.replace(/[^\d.]/g, ''));
+          return isNaN(num) ? 0 : num;
+        })
+      ])
+      .transform(Number),
+    originalPrice: z
+      .union([
+        z.number(),
+        z.string().transform((val) => {
+          const num = Number(val.replace(/[^\d.]/g, ''));
+          return isNaN(num) ? undefined : num;
+        })
+      ])
+      .optional(),
     level: z.string().optional(),
     tier: z.string().optional(),
     deliveryMode: z.string().optional(),

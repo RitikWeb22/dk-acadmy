@@ -48,6 +48,13 @@ const shutdown = async (signal) => {
         process.exit(1);
     }, 10000).unref();
 };
+// Global Crash Protection & Process Guards
+process.on('uncaughtException', (err) => {
+    console.error('[FATAL CRASH PREVENTED] Uncaught Exception:', err.message, err.stack);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[UNHANDLED PROMISE REJECTION PREVENTED]:', reason?.message || reason);
+});
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 startServer();

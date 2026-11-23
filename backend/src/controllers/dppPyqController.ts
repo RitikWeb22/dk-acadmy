@@ -374,7 +374,10 @@ export const createDppPyq = async (req: Request, res: Response): Promise<void> =
       if (lower.includes('math')) subject = 'Mathematics';
       else if (lower.includes('phys')) subject = 'Physics';
       else if (lower.includes('chem')) subject = 'Chemistry';
-      else if (!['Mathematics', 'Physics', 'Chemistry', 'Mixed'].includes(subject)) subject = 'Mathematics';
+      else if (lower.includes('reason') || lower.includes('logic')) subject = 'Logical Reasoning';
+      else if (lower.includes('eng')) subject = 'English Proficiency';
+      else if (lower.includes('mixed') || lower.includes('all')) subject = 'Mixed';
+      else subject = subject.trim() || 'Mathematics';
     } else {
       subject = 'Mathematics';
     }

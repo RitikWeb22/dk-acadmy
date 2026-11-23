@@ -38,7 +38,7 @@ export interface IDppPyq extends Document {
   title: string;
   slug: string;
   moduleType: 'DPP' | 'PYQ' | 'BITSAT';
-  subject: 'Mathematics' | 'Physics' | 'Chemistry' | 'Mixed';
+  subject: 'Mathematics' | 'Physics' | 'Chemistry' | 'Logical Reasoning' | 'English Proficiency' | 'Logical Reasoning & English' | 'Mixed' | 'General' | string;
   categoryLabel: string;
   chapter?: string;
   examTarget?: string;
@@ -104,7 +104,6 @@ const dppPyqSchema = new Schema<IDppPyq>(
     moduleType: { type: String, enum: ['DPP', 'PYQ', 'BITSAT'], required: true, default: 'DPP' },
     subject: {
       type: String,
-      enum: ['Mathematics', 'Physics', 'Chemistry', 'Mixed'],
       required: true,
       default: 'Mathematics'
     },

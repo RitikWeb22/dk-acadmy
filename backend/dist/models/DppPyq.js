@@ -35,7 +35,6 @@ const dppPyqSchema = new Schema({
     moduleType: { type: String, enum: ['DPP', 'PYQ', 'BITSAT'], required: true, default: 'DPP' },
     subject: {
         type: String,
-        enum: ['Mathematics', 'Physics', 'Chemistry', 'Mixed'],
         required: true,
         default: 'Mathematics'
     },

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../config/env.js';
 import { User } from '../models/User.js';
@@ -7,6 +8,7 @@ import { Course } from '../models/Course.js';
 import { Order } from '../models/Order.js';
 import { broadcastStudentRegistered } from '../sockets/socket.js';
 import { generateStudentId, generateTeacherId } from '../utils/uuid.js';
+import { sendPasswordResetOtpEmail } from '../services/emailService.js';
 const generateToken = (id, role) => {
     return jwt.sign({ id, role, jti: uuidv4() }, env.JWT_SECRET, {
         expiresIn: '7d'
@@ -916,6 +918,199 @@ export const deleteUserByAdmin = async (req, res) => {
             success: true,
             message: 'User deleted successfully',
             deleted: { id: targetUser._id, name: targetUser.name, email: targetUser.email }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * PASSWORD RECOVERY & OTP WORKFLOW (Hostinger SMTP / Nodemailer)
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email, identifier } = req.body;
+        const cleanEmail = (email || identifier || '').toString().trim().toLowerCase();
+        if (!cleanEmail || !cleanEmail.includes('@') || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+            res.status(400).json({
+                success: false,
+                message: 'Please provide a valid registered email address'
+            });
+            return;
+        }
+        const user = await User.findOne({ email: cleanEmail }).select('+resetPasswordOtp +resetPasswordExpires +resetPasswordAttempts');
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'No account is registered with this email address. Please check your spelling or sign up.'
+            });
+            return;
+        }
+        // Cooldown check: prevent requesting more than once every 45 seconds
+        if (user.resetPasswordExpires &&
+            user.resetPasswordExpires.getTime() - Date.now() > 9 * 60 * 1000 + 15 * 1000) {
+            res.status(429).json({
+                success: false,
+                message: 'Please wait 45 seconds before requesting another recovery code.'
+            });
+            return;
+        }
+        // Generate cryptographically secure 6-digit numeric OTP
+        const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        // Hash OTP before storing in database
+        const salt = await bcrypt.genSalt(10);
+        const hashedOtp = await bcrypt.hash(rawOtp, salt);
+        user.resetPasswordOtp = hashedOtp;
+        user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+        user.resetPasswordAttempts = 0;
+        await user.save();
+        const targetEmail = user.email || cleanEmail;
+        // Send email via Nodemailer
+        await sendPasswordResetOtpEmail(targetEmail, user.name, rawOtp);
+        // Masked email for UI display e.g. "stu***@gmail.com"
+        const maskedEmail = targetEmail.replace(/^(.)(.*)(@.*)$/, (_m, a, b, c) => `${a}${'*'.repeat(Math.min(b.length, 5))}${c}`);
+        res.status(200).json({
+            success: true,
+            message: `A 6-digit recovery OTP has been sent to your registered email (${maskedEmail}). Valid for 10 minutes.`,
+            data: {
+                maskedEmail,
+                expiresInSeconds: 600
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const verifyResetOtp = async (req, res) => {
+    try {
+        const { email, identifier, otp } = req.body;
+        const cleanOtp = (otp || '').toString().trim();
+        const cleanEmail = (email || identifier || '').toString().trim().toLowerCase();
+        if (!cleanOtp || cleanOtp.length !== 6) {
+            res.status(400).json({ success: false, message: 'Please enter the 6-digit recovery code.' });
+            return;
+        }
+        if (!cleanEmail) {
+            res.status(400).json({ success: false, message: 'Registered email address is required.' });
+            return;
+        }
+        const user = await User.findOne({ email: cleanEmail }).select('+resetPasswordOtp +resetPasswordExpires +resetPasswordAttempts');
+        if (!user || !user.resetPasswordOtp || !user.resetPasswordExpires) {
+            res.status(400).json({
+                success: false,
+                message: 'No active password recovery request found. Please request a new code.'
+            });
+            return;
+        }
+        // Check expiration
+        if (user.resetPasswordExpires.getTime() < Date.now()) {
+            res.status(400).json({
+                success: false,
+                message: 'The recovery code has expired. Please request a new code.'
+            });
+            return;
+        }
+        // Check attempt lockout
+        if ((user.resetPasswordAttempts || 0) >= 5) {
+            user.resetPasswordOtp = undefined;
+            user.resetPasswordExpires = undefined;
+            user.resetPasswordAttempts = 0;
+            await user.save();
+            res.status(429).json({
+                success: false,
+                message: 'Too many incorrect attempts. Recovery session cancelled. Please request a new code.'
+            });
+            return;
+        }
+        // Verify OTP
+        const isOtpValid = await bcrypt.compare(cleanOtp, user.resetPasswordOtp);
+        if (!isOtpValid) {
+            user.resetPasswordAttempts = (user.resetPasswordAttempts || 0) + 1;
+            await user.save();
+            const remainingAttempts = 5 - user.resetPasswordAttempts;
+            res.status(400).json({
+                success: false,
+                message: `Incorrect recovery code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`
+            });
+            return;
+        }
+        res.status(200).json({
+            success: true,
+            message: 'Recovery code verified successfully. Please enter your new password.'
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const resetPassword = async (req, res) => {
+    try {
+        const { email, identifier, otp, newPassword, password } = req.body;
+        const finalPassword = (newPassword || password || '').toString().trim();
+        const cleanOtp = (otp || '').toString().trim();
+        const cleanEmail = (email || identifier || '').toString().trim().toLowerCase();
+        if (!finalPassword || finalPassword.length < 6) {
+            res.status(400).json({
+                success: false,
+                message: 'New password must be at least 6 characters long.'
+            });
+            return;
+        }
+        if (!cleanOtp || cleanOtp.length !== 6) {
+            res.status(400).json({ success: false, message: 'Valid 6-digit recovery code is required.' });
+            return;
+        }
+        if (!cleanEmail) {
+            res.status(400).json({ success: false, message: 'Registered email address is required.' });
+            return;
+        }
+        const user = await User.findOne({ email: cleanEmail }).select('+password +resetPasswordOtp +resetPasswordExpires +resetPasswordAttempts');
+        if (!user || !user.resetPasswordOtp || !user.resetPasswordExpires) {
+            res.status(400).json({
+                success: false,
+                message: 'Recovery session expired or not found. Please request a new code.'
+            });
+            return;
+        }
+        if (user.resetPasswordExpires.getTime() < Date.now()) {
+            res.status(400).json({
+                success: false,
+                message: 'Recovery code has expired. Please request a new code.'
+            });
+            return;
+        }
+        // Verify OTP again
+        const isOtpValid = await bcrypt.compare(cleanOtp, user.resetPasswordOtp);
+        if (!isOtpValid) {
+            res.status(400).json({ success: false, message: 'Invalid recovery code.' });
+            return;
+        }
+        // Set new password
+        user.password = finalPassword;
+        // Reset recovery fields and unlock account if previously locked
+        user.resetPasswordOtp = undefined;
+        user.resetPasswordExpires = undefined;
+        user.resetPasswordAttempts = 0;
+        user.failedLoginAttempts = 0;
+        user.lockUntil = undefined;
+        await user.save();
+        // Generate fresh JWT token so student can immediately log in
+        const token = generateToken(user._id.toString(), user.role);
+        res.status(200).json({
+            success: true,
+            message: 'Password successfully updated! You can now log in with your new password.',
+            data: {
+                _id: user._id,
+                studentId: user.studentId,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+                token
+            }
         });
     }
     catch (error) {

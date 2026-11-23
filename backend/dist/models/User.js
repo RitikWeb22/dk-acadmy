@@ -34,7 +34,9 @@ const userSchema = new Schema({
     },
     phone: {
         type: String,
-        trim: true
+        trim: true,
+        index: true,
+        sparse: true
     },
     studentId: {
         type: String,
@@ -115,6 +117,19 @@ const userSchema = new Schema({
     },
     lockUntil: {
         type: Date
+    },
+    resetPasswordOtp: {
+        type: String,
+        select: false
+    },
+    resetPasswordExpires: {
+        type: Date,
+        select: false
+    },
+    resetPasswordAttempts: {
+        type: Number,
+        default: 0,
+        select: false
     }
 }, {
     timestamps: true

@@ -17,7 +17,10 @@ import {
   updateStaffByAdmin,
   updateStaffPasswordByAdmin,
   unlockStaffByAdmin,
-  deleteUserByAdmin
+  deleteUserByAdmin,
+  forgotPassword,
+  verifyResetOtp,
+  resetPassword
 } from '../controllers/authController.js';
 import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
@@ -33,6 +36,46 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: 'Too many login attempts from this network. Please wait 1 minute before trying again.' }
 });
+
+// Dedicated OTP limiter to prevent SMS/email bombardment
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many recovery requests from this IP. Please wait 15 minutes before requesting again.' }
+});
+
+// Zod Validation Schemas
+const forgotPasswordSchema = z
+  .object({
+    email: z.string().trim().optional(),
+    phone: z.string().trim().optional(),
+    identifier: z.string().trim().optional()
+  })
+  .refine((data) => data.email || data.phone || data.identifier, {
+    message: 'Please provide either registered email address or mobile number'
+  });
+
+const verifyOtpSchema = z.object({
+  email: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+  identifier: z.string().trim().optional(),
+  otp: z.string().trim().length(6, 'Recovery code must be exactly 6 digits')
+});
+
+const resetPasswordSchema = z
+  .object({
+    email: z.string().trim().optional(),
+    phone: z.string().trim().optional(),
+    identifier: z.string().trim().optional(),
+    otp: z.string().trim().length(6, 'Recovery code must be exactly 6 digits'),
+    password: z.string().min(6, 'New password must be at least 6 characters').optional(),
+    newPassword: z.string().min(6, 'New password must be at least 6 characters').optional()
+  })
+  .refine((data) => data.password || data.newPassword, {
+    message: 'New password is required'
+  });
 
 // Zod Validation Schemas
 const registerSchema = z
@@ -113,6 +156,11 @@ router.post('/login', authLimiter, validate({ body: loginSchema }), login);
 router.post('/google', authLimiter, validate({ body: googleAuthSchema }), googleAuth);
 router.post('/admin-login', authLimiter, validate({ body: loginSchema }), adminLogin);
 router.post('/logout', logout);
+
+// Password Recovery & OTP Endpoints
+router.post('/forgot-password', otpLimiter, validate({ body: forgotPasswordSchema }), forgotPassword);
+router.post('/verify-reset-otp', otpLimiter, validate({ body: verifyOtpSchema }), verifyResetOtp);
+router.post('/reset-password', authLimiter, validate({ body: resetPasswordSchema }), resetPassword);
 
 // Protected Student / User Endpoints
 router.get('/me', protect, getMe);

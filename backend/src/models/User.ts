@@ -29,6 +29,9 @@ export interface IUser extends Document {
   isSuspended?: boolean;
   failedLoginAttempts?: number;
   lockUntil?: Date;
+  resetPasswordOtp?: string;
+  resetPasswordExpires?: Date;
+  resetPasswordAttempts?: number;
   comparePassword(enteredPassword: string): Promise<boolean>;
   createdAt: Date;
   updatedAt: Date;
@@ -69,7 +72,9 @@ const userSchema = new Schema<IUser>(
     },
     phone: {
       type: String,
-      trim: true
+      trim: true,
+      index: true,
+      sparse: true
     },
     studentId: {
       type: String,
@@ -150,6 +155,19 @@ const userSchema = new Schema<IUser>(
     },
     lockUntil: {
       type: Date
+    },
+    resetPasswordOtp: {
+      type: String,
+      select: false
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false
+    },
+    resetPasswordAttempts: {
+      type: Number,
+      default: 0,
+      select: false
     }
   },
   {
