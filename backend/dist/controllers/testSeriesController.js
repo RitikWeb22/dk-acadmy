@@ -1039,6 +1039,54 @@ export const getAllTestSeries = async (req, res) => {
                     { subtitle: { $regex: /class\s*10|foundation\s*10/i } }
                 ];
             }
+            else if (etStr === 'Class 11 & 12') {
+                filter.$or = [
+                    { examType: { $in: ['Class 11', 'Class 12', 'Class 11 & 12', 'JEE Main', 'JEE Advanced', 'BITSAT'] } },
+                    { targetClass: { $regex: /11|12/i } },
+                    { title: { $regex: /class\s*11|class\s*12|11th|12th|jee|bitsat/i } }
+                ];
+            }
+            else if (etStr === 'Class 11') {
+                filter.$or = [
+                    { examType: 'Class 11' },
+                    { targetClass: { $regex: /class\s*11|11th/i } },
+                    { title: { $regex: /class\s*11|11th/i } },
+                    { subtitle: { $regex: /class\s*11|11th/i } }
+                ];
+            }
+            else if (etStr === 'Class 12') {
+                filter.$or = [
+                    { examType: 'Class 12' },
+                    { targetClass: { $regex: /class\s*12|12th/i } },
+                    { title: { $regex: /class\s*12|12th/i } },
+                    { subtitle: { $regex: /class\s*12|12th/i } }
+                ];
+            }
+            else if (etStr === 'CBT') {
+                filter.$or = [
+                    { mode: 'CBT' },
+                    { format: 'Full Mock' },
+                    { title: { $regex: /cbt/i } },
+                    { subtitle: { $regex: /cbt/i } },
+                    { badgeCode: { $regex: /cbt/i } }
+                ];
+            }
+            else if (etStr === 'JEE Advanced' || /jee\s*adv/i.test(etStr)) {
+                filter.$or = [
+                    { examType: 'JEE Advanced' },
+                    { title: { $regex: /jee\s*adv|advanced/i } },
+                    { subtitle: { $regex: /jee\s*adv|advanced/i } },
+                    { badgeCode: { $regex: /adv/i } }
+                ];
+            }
+            else if (etStr === 'BITSAT' || /bitsat/i.test(etStr)) {
+                filter.$or = [
+                    { examType: 'BITSAT' },
+                    { title: { $regex: /bitsat/i } },
+                    { subtitle: { $regex: /bitsat/i } },
+                    { badgeCode: { $regex: /bitsat/i } }
+                ];
+            }
             else {
                 filter.examType = examType;
             }

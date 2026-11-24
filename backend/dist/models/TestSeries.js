@@ -85,6 +85,8 @@ const testSeriesSchema = new Schema({
     courseName: { type: String, trim: true },
     pattern: { type: String, trim: true },
     syllabusPdfUrl: { type: String, trim: true },
+    syllabus: { type: Schema.Types.Mixed, default: () => ({}) },
+    syllabusText: { type: String, default: '' },
     totalQuestions: { type: Number, default: 0 },
     totalMarks: { type: Number, default: 300 },
     subjects: { type: [String], default: ['Mathematics'] },
