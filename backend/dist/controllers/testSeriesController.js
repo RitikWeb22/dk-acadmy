@@ -1188,14 +1188,14 @@ export const getAllTestSeries = async (req, res) => {
                     obj.targetClass = 'Class 12';
                 }
             }
-            const isScheduled = Boolean(obj.solutionRelease?.enabled &&
-                Number(obj.solutionRelease?.releaseDelayHours) > 0);
+            const isReviewOrResults = Boolean(req.query.includeSolutions === 'true' ||
+                req.query.view === 'review' ||
+                req.query.view === 'solutions' ||
+                req.query.view === 'results');
+            const isScheduledWindow = obj.schedule?.scheduleMode === 'SCHEDULED_WINDOW';
             const allowSolutions = Boolean(isAdmin ||
-                (!isScheduled && (req.query.includeSolutions === 'true' ||
-                    req.query.view === 'review' ||
-                    req.query.view === 'solutions' ||
-                    req.query.view === 'results' ||
-                    obj.schedule?.scheduleMode !== 'SCHEDULED_WINDOW')) ||
+                isReviewOrResults ||
+                !isScheduledWindow ||
                 obj.solutionRelease?.enabled === false ||
                 !obj.solutionRelease ||
                 Number(obj.solutionRelease?.releaseDelayHours) === 0);
@@ -1283,14 +1283,14 @@ export const getTestSeriesByIdOrSlug = async (req, res) => {
                 const fallbackItem = SEED_TEST_SERIES.find((s) => (s.id === param || s.slug === param) && !deletedIds.includes(s.id) && !deletedIds.includes(s.slug) && !deletedIds.includes(s.title));
                 if (fallbackItem) {
                     const safeFallback = { ...fallbackItem };
-                    const isScheduledFallback = Boolean(safeFallback.solutionRelease?.enabled &&
-                        Number(safeFallback.solutionRelease?.releaseDelayHours) > 0);
+                    const isReviewOrResults = Boolean(req.query.includeSolutions === 'true' ||
+                        req.query.view === 'review' ||
+                        req.query.view === 'solutions' ||
+                        req.query.view === 'results');
+                    const isScheduledWindow = safeFallback.schedule?.scheduleMode === 'SCHEDULED_WINDOW';
                     const allowSolutions = Boolean(isAdmin ||
-                        (!isScheduledFallback && (req.query.includeSolutions === 'true' ||
-                            req.query.view === 'review' ||
-                            req.query.view === 'solutions' ||
-                            req.query.view === 'results' ||
-                            safeFallback.schedule?.scheduleMode !== 'SCHEDULED_WINDOW')) ||
+                        isReviewOrResults ||
+                        !isScheduledWindow ||
                         safeFallback.solutionRelease?.enabled === false ||
                         !safeFallback.solutionRelease ||
                         Number(safeFallback.solutionRelease?.releaseDelayHours) === 0);
@@ -1327,14 +1327,14 @@ export const getTestSeriesByIdOrSlug = async (req, res) => {
                 return;
             }
         }
-        const isScheduledRaw = Boolean(raw.solutionRelease?.enabled &&
-            Number(raw.solutionRelease?.releaseDelayHours) > 0);
+        const isReviewOrResults = Boolean(req.query.includeSolutions === 'true' ||
+            req.query.view === 'review' ||
+            req.query.view === 'solutions' ||
+            req.query.view === 'results');
+        const isScheduledWindow = raw.schedule?.scheduleMode === 'SCHEDULED_WINDOW';
         const allowSolutions = Boolean(isAdmin ||
-            (!isScheduledRaw && (req.query.includeSolutions === 'true' ||
-                req.query.view === 'review' ||
-                req.query.view === 'solutions' ||
-                req.query.view === 'results' ||
-                raw.schedule?.scheduleMode !== 'SCHEDULED_WINDOW')) ||
+            isReviewOrResults ||
+            !isScheduledWindow ||
             raw.solutionRelease?.enabled === false ||
             !raw.solutionRelease ||
             Number(raw.solutionRelease?.releaseDelayHours) === 0);
