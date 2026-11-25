@@ -75,10 +75,12 @@ export interface ITestSeries extends Document {
   subtitle?: string;
   slug: string;
   badgeCode?: string;
-  examType: 'JEE Main' | 'JEE Advanced' | 'BITSAT' | 'PartTest' | 'MathSpeed' | 'Class 8' | 'Class 9' | 'Class 10' | 'Class 11' | 'Class 12' | 'Dropper' | string;
-  format: 'Full Mock' | 'Part Test' | 'Chapter Test';
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  mode?: 'Online' | 'Offline' | 'Hybrid' | 'CBT' | string;
+  examType: string;
+  targetClass?: string;
+  targetCohort?: string;
+  format: string;
+  difficulty: string;
+  mode?: string;
   courseName?: string;
   pattern?: string;
   syllabusPdfUrl?: string;
@@ -95,10 +97,10 @@ export interface ITestSeries extends Document {
   targetBatches?: string[];
   totalTests?: number;
   testsBreakdown?: any;
-  accessLevel?: 'BATCH_INCLUDED' | 'FREE_LEAD_MAGNET';
+  accessLevel?: string;
   isFree?: boolean;
   price?: number;
-  accessMode?: 'free' | 'paid';
+  accessMode?: string;
   unlockedStudents?: string[];
   status: 'Published' | 'Draft' | 'Scheduled' | 'Archived';
   schedule?: ITestSeriesSchedule;
@@ -190,23 +192,21 @@ const testSeriesSchema = new Schema<ITestSeries>(
     badgeCode: { type: String, default: 'JEE MAIN' },
     examType: {
       type: String,
-      enum: ['JEE Main', 'JEE Advanced', 'BITSAT', 'PartTest', 'MathSpeed', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Dropper'],
       default: 'JEE Main'
     },
+    targetClass: { type: String },
+    targetCohort: { type: String },
     format: {
       type: String,
-      enum: ['Full Mock', 'Part Test', 'Chapter Test'],
       default: 'Full Mock'
     },
     difficulty: {
       type: String,
-      enum: ['Easy', 'Medium', 'Hard', 'Moderate', 'Challenging', 'Advanced'],
       default: 'Medium'
     },
     durationMinutes: { type: Number, default: 180 },
     mode: {
       type: String,
-      enum: ['Online', 'Offline', 'Hybrid', 'CBT'],
       default: 'Online'
     },
     courseName: { type: String, trim: true },
@@ -229,12 +229,11 @@ const testSeriesSchema = new Schema<ITestSeries>(
     },
     accessLevel: {
       type: String,
-      enum: ['BATCH_INCLUDED', 'FREE_LEAD_MAGNET'],
       default: 'BATCH_INCLUDED'
     },
     isFree: { type: Boolean, default: true },
     price: { type: Number, default: 0 },
-    accessMode: { type: String, enum: ['free', 'paid'], default: 'free' },
+    accessMode: { type: String, default: 'free' },
     unlockedStudents: { type: [String], default: [] },
     status: {
       type: String,

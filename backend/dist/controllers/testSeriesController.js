@@ -1381,6 +1381,13 @@ export const createTestSeries = async (req, res) => {
             res.status(400).json({ success: false, message: 'Test Series title is required' });
             return;
         }
+        // Clean up empty or invalid _id so Mongoose doesn't fail on ObjectId casting
+        if (payload._id && !String(payload._id).match(/^[0-9a-fA-F]{24}$/)) {
+            delete payload._id;
+        }
+        if (!payload._id) {
+            delete payload._id;
+        }
         // Normalize difficulty
         if (payload.difficulty) {
             const d = String(payload.difficulty).toLowerCase();
@@ -1436,9 +1443,21 @@ export const createTestSeries = async (req, res) => {
         else {
             payload.mode = 'Online';
         }
-        // Normalize examType (Class 8, 9, 10, 11, 12, Dropper, JEE Advanced, BITSAT, MathSpeed, JEE Main)
+        // Normalize examType & targetClass (Class 8, 9, 10, 11, 12, Class 11 & 12, Full Length Paper, CBT, Dropper, JEE Advanced, BITSAT, MathSpeed, JEE Main)
         const textCtx = `${payload.title || ''} ${payload.subtitle || ''} ${payload.badgeCode || ''}`.toLowerCase();
-        if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(textCtx) || rawExamTypeStr.includes('class 10') || rawExamTypeStr === 'class10') {
+        if (rawExamTypeStr.includes('class 11 & 12') || rawExamTypeStr.includes('11&12') || rawExamTypeStr.includes('11 and 12') || textCtx.includes('class 11 & 12') || textCtx.includes('class 11 and 12')) {
+            payload.examType = 'Class 11 & 12';
+            payload.targetClass = 'Class 11 & 12';
+        }
+        else if (rawExamTypeStr.includes('full length') || textCtx.includes('full length')) {
+            payload.examType = 'Full Length Paper';
+            payload.targetClass = 'Full Length Paper';
+        }
+        else if (rawExamTypeStr === 'cbt' || textCtx.includes('all india cbt') || rawFormatStr === 'cbt') {
+            payload.examType = 'CBT';
+            payload.targetClass = 'CBT';
+        }
+        else if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(textCtx) || rawExamTypeStr.includes('class 10') || rawExamTypeStr === 'class10') {
             payload.examType = 'Class 10';
             payload.targetClass = 'Class 10';
         }
@@ -1471,7 +1490,10 @@ export const createTestSeries = async (req, res) => {
         else if (rawExamTypeStr.includes('mathspeed') || rawExamTypeStr.includes('speed')) {
             payload.examType = 'MathSpeed';
         }
-        else if (payload.examType === 'PartTest' || !payload.examType) {
+        else if (payload.examType === 'PartTest') {
+            payload.examType = 'PartTest';
+        }
+        else if (!payload.examType) {
             payload.examType = 'JEE Main';
         }
         // Normalize accessMode & accessLevel
@@ -1490,15 +1512,25 @@ export const createTestSeries = async (req, res) => {
                         ? (payload.format === 'Part Test' ? 'PART TEST' : 'CLASS 9')
                         : payload.examType === 'Class 10'
                             ? (payload.format === 'Part Test' ? 'PART TEST' : 'CLASS 10')
-                            : payload.format === 'Part Test'
-                                ? 'PART TEST'
-                                : payload.examType === 'JEE Advanced'
-                                    ? 'JEE ADVANCED'
-                                    : payload.examType === 'BITSAT'
-                                        ? 'BITSAT'
-                                        : payload.examType === 'MathSpeed'
-                                            ? 'MATH SPEED'
-                                            : 'JEE MAIN';
+                            : payload.examType === 'Class 11 & 12'
+                                ? 'CLASS 11 & 12'
+                                : payload.examType === 'Class 11'
+                                    ? (payload.format === 'Part Test' ? 'PART TEST' : 'CLASS 11')
+                                    : payload.examType === 'Class 12'
+                                        ? (payload.format === 'Part Test' ? 'PART TEST' : 'CLASS 12')
+                                        : payload.examType === 'Full Length Paper'
+                                            ? 'FULL LENGTH'
+                                            : payload.examType === 'CBT'
+                                                ? 'CBT'
+                                                : payload.format === 'Part Test'
+                                                    ? 'PART TEST'
+                                                    : payload.examType === 'JEE Advanced'
+                                                        ? 'JEE ADVANCED'
+                                                        : payload.examType === 'BITSAT'
+                                                            ? 'BITSAT'
+                                                            : payload.examType === 'MathSpeed'
+                                                                ? 'MATH SPEED'
+                                                                : 'JEE MAIN';
         }
         // Normalize questions array with Canonical KaTeX Math
         if (Array.isArray(payload.questions)) {
@@ -1676,10 +1708,22 @@ export const updateTestSeries = async (req, res) => {
             else
                 updates.mode = 'Online';
         }
-        // Normalize examType (Class 8, 9, 10, 11, 12, Dropper, JEE Advanced, BITSAT, MathSpeed, JEE Main)
+        // Normalize examType (Class 8, 9, 10, 11, 12, Class 11 & 12, Full Length Paper, CBT, Dropper, JEE Advanced, BITSAT, MathSpeed, JEE Main)
         if (updates.examType || updates.title || updates.subtitle || updates.targetClass) {
             const upCtx = `${updates.title || ''} ${updates.subtitle || ''} ${updates.badgeCode || ''}`.toLowerCase();
-            if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(upCtx) || rawUpEt.includes('class 10') || rawUpEt === 'class10') {
+            if (rawUpEt.includes('class 11 & 12') || rawUpEt.includes('11&12') || rawUpEt.includes('11 and 12') || upCtx.includes('class 11 & 12') || upCtx.includes('class 11 and 12')) {
+                updates.examType = 'Class 11 & 12';
+                updates.targetClass = 'Class 11 & 12';
+            }
+            else if (rawUpEt.includes('full length') || upCtx.includes('full length')) {
+                updates.examType = 'Full Length Paper';
+                updates.targetClass = 'Full Length Paper';
+            }
+            else if (rawUpEt === 'cbt' || upCtx.includes('all india cbt') || rawUpF === 'cbt') {
+                updates.examType = 'CBT';
+                updates.targetClass = 'CBT';
+            }
+            else if (/\b(class\s*10|10th\s*class|class\s*10th|foundation\s*10|grade\s*10)\b/i.test(upCtx) || rawUpEt.includes('class 10') || rawUpEt === 'class10') {
                 updates.examType = 'Class 10';
                 updates.targetClass = 'Class 10';
             }
@@ -1713,7 +1757,7 @@ export const updateTestSeries = async (req, res) => {
                 updates.examType = 'MathSpeed';
             }
             else if (updates.examType === 'PartTest') {
-                updates.examType = 'JEE Main';
+                updates.examType = 'PartTest';
             }
         }
         // Badge code
@@ -1725,15 +1769,25 @@ export const updateTestSeries = async (req, res) => {
                         ? (updates.format === 'Part Test' ? 'PART TEST' : 'CLASS 9')
                         : updates.examType === 'Class 10'
                             ? (updates.format === 'Part Test' ? 'PART TEST' : 'CLASS 10')
-                            : updates.format === 'Part Test'
-                                ? 'PART TEST'
-                                : updates.examType === 'JEE Advanced'
-                                    ? 'JEE ADVANCED'
-                                    : updates.examType === 'BITSAT'
-                                        ? 'BITSAT'
-                                        : updates.examType === 'MathSpeed'
-                                            ? 'MATH SPEED'
-                                            : 'JEE MAIN';
+                            : updates.examType === 'Class 11 & 12'
+                                ? 'CLASS 11 & 12'
+                                : updates.examType === 'Class 11'
+                                    ? (updates.format === 'Part Test' ? 'PART TEST' : 'CLASS 11')
+                                    : updates.examType === 'Class 12'
+                                        ? (updates.format === 'Part Test' ? 'PART TEST' : 'CLASS 12')
+                                        : updates.examType === 'Full Length Paper'
+                                            ? 'FULL LENGTH'
+                                            : updates.examType === 'CBT'
+                                                ? 'CBT'
+                                                : updates.format === 'Part Test'
+                                                    ? 'PART TEST'
+                                                    : updates.examType === 'JEE Advanced'
+                                                        ? 'JEE ADVANCED'
+                                                        : updates.examType === 'BITSAT'
+                                                            ? 'BITSAT'
+                                                            : updates.examType === 'MathSpeed'
+                                                                ? 'MATH SPEED'
+                                                                : 'JEE MAIN';
         }
         // Normalize accessMode & accessLevel
         if (updates.accessMode) {
@@ -1976,7 +2030,8 @@ export const submitTestSeries = async (req, res) => {
                             isUnlocked: new Date().getTime() >= new Date(existingSub.solutionSchedule.solutionUnlockAt).getTime(),
                             hasPdf: Boolean(existingSub.solutionSchedule.pdfSolutionUrl),
                             hasVideo: Boolean(existingSub.solutionSchedule.videoSolutionUrl)
-                        }
+                        },
+                        questions: test.questions
                     }
                 });
                 return;
@@ -2131,7 +2186,8 @@ export const submitTestSeries = async (req, res) => {
                     isUnlocked: isUnlockedNow,
                     hasPdf: Boolean(test.solutionRelease?.pdfUrl || newSubmission.solutionSchedule.pdfSolutionUrl),
                     hasVideo: Boolean(test.solutionRelease?.videoUrl || newSubmission.solutionSchedule.videoSolutionUrl)
-                }
+                },
+                questions: test.questions
             }
         });
     }
