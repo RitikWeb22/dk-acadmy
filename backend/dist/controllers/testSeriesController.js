@@ -1010,82 +1010,110 @@ export const getAllTestSeries = async (req, res) => {
         res.setHeader('Expires', '0');
         const { examType, format, status, search, page, limit } = req.query;
         const filter = {};
+        const andClauses = [];
         if (examType && examType !== 'ALL' && examType !== 'All') {
             const etStr = String(examType).trim();
             if (etStr === 'Class 8') {
-                filter.$or = [
-                    { examType: 'Class 8' },
-                    { badgeCode: 'CLASS 8' },
-                    { targetClass: 'Class 8' },
-                    { title: { $regex: /class\s*8|foundation\s*8/i } },
-                    { subtitle: { $regex: /class\s*8|foundation\s*8/i } }
-                ];
+                andClauses.push({
+                    $or: [
+                        { examType: 'Class 8' },
+                        { badgeCode: 'CLASS 8' },
+                        { targetClass: 'Class 8' },
+                        { title: { $regex: /clas{1,2}\s*8|foundation\s*8/i } },
+                        { subtitle: { $regex: /clas{1,2}\s*8|foundation\s*8/i } }
+                    ]
+                });
             }
             else if (etStr === 'Class 9') {
-                filter.$or = [
-                    { examType: 'Class 9' },
-                    { badgeCode: 'CLASS 9' },
-                    { targetClass: 'Class 9' },
-                    { title: { $regex: /class\s*9|foundation\s*9/i } },
-                    { subtitle: { $regex: /class\s*9|foundation\s*9/i } }
-                ];
+                andClauses.push({
+                    $or: [
+                        { examType: 'Class 9' },
+                        { badgeCode: 'CLASS 9' },
+                        { targetClass: 'Class 9' },
+                        { title: { $regex: /clas{1,2}\s*9|foundation\s*9/i } },
+                        { subtitle: { $regex: /clas{1,2}\s*9|foundation\s*9/i } }
+                    ]
+                });
             }
             else if (etStr === 'Class 10') {
-                filter.$or = [
-                    { examType: 'Class 10' },
-                    { badgeCode: 'CLASS 10' },
-                    { targetClass: 'Class 10' },
-                    { title: { $regex: /class\s*10|foundation\s*10/i } },
-                    { subtitle: { $regex: /class\s*10|foundation\s*10/i } }
-                ];
+                andClauses.push({
+                    $or: [
+                        { examType: 'Class 10' },
+                        { badgeCode: 'CLASS 10' },
+                        { targetClass: 'Class 10' },
+                        { title: { $regex: /clas{1,2}\s*10|foundation\s*10/i } },
+                        { subtitle: { $regex: /clas{1,2}\s*10|foundation\s*10/i } }
+                    ]
+                });
             }
             else if (etStr === 'Class 11 & 12') {
-                filter.$or = [
-                    { examType: { $in: ['Class 11', 'Class 12', 'Class 11 & 12', 'JEE Main', 'JEE Advanced', 'BITSAT'] } },
-                    { targetClass: { $regex: /11|12/i } },
-                    { title: { $regex: /class\s*11|class\s*12|11th|12th|jee|bitsat/i } }
-                ];
+                andClauses.push({
+                    $or: [
+                        { examType: { $in: ['Class 11', 'Class 12', 'Class 11 & 12'] } },
+                        { targetClass: { $regex: /11|12/i } },
+                        { title: { $regex: /clas{1,2}\s*11|clas{1,2}\s*12|11th|12th/i } }
+                    ]
+                });
             }
             else if (etStr === 'Class 11') {
-                filter.$or = [
-                    { examType: 'Class 11' },
-                    { targetClass: { $regex: /class\s*11|11th/i } },
-                    { title: { $regex: /class\s*11|11th/i } },
-                    { subtitle: { $regex: /class\s*11|11th/i } }
-                ];
+                andClauses.push({
+                    $or: [
+                        { examType: 'Class 11' },
+                        { targetClass: { $regex: /clas{1,2}\s*11|11th/i } },
+                        { title: { $regex: /clas{1,2}\s*11|11th/i } },
+                        { subtitle: { $regex: /clas{1,2}\s*11|11th/i } }
+                    ]
+                });
             }
             else if (etStr === 'Class 12') {
-                filter.$or = [
-                    { examType: 'Class 12' },
-                    { targetClass: { $regex: /class\s*12|12th/i } },
-                    { title: { $regex: /class\s*12|12th/i } },
-                    { subtitle: { $regex: /class\s*12|12th/i } }
-                ];
+                andClauses.push({
+                    $or: [
+                        { examType: 'Class 12' },
+                        { targetClass: { $regex: /clas{1,2}\s*12|12th/i } },
+                        { title: { $regex: /clas{1,2}\s*12|12th/i } },
+                        { subtitle: { $regex: /clas{1,2}\s*12|12th/i } }
+                    ]
+                });
+            }
+            else if (etStr === 'Full Length Paper') {
+                andClauses.push({
+                    $or: [
+                        { examType: 'Full Length Paper' },
+                        { targetClass: 'Full Length Paper' },
+                        { badgeCode: { $regex: /^full\s*length/i } },
+                        { title: { $regex: /full\s*length/i } }
+                    ]
+                });
             }
             else if (etStr === 'CBT') {
-                filter.$or = [
-                    { mode: 'CBT' },
-                    { format: 'Full Mock' },
-                    { title: { $regex: /cbt/i } },
-                    { subtitle: { $regex: /cbt/i } },
-                    { badgeCode: { $regex: /cbt/i } }
-                ];
+                andClauses.push({
+                    $or: [
+                        { examType: 'CBT' },
+                        { targetClass: 'CBT' },
+                        { badgeCode: { $regex: /cbt/i } },
+                        { title: { $regex: /cbt/i } }
+                    ]
+                });
             }
             else if (etStr === 'JEE Advanced' || /jee\s*adv/i.test(etStr)) {
-                filter.$or = [
-                    { examType: 'JEE Advanced' },
-                    { title: { $regex: /jee\s*adv|advanced/i } },
-                    { subtitle: { $regex: /jee\s*adv|advanced/i } },
-                    { badgeCode: { $regex: /adv/i } }
-                ];
+                andClauses.push({
+                    $or: [
+                        { examType: 'JEE Advanced' },
+                        { title: { $regex: /jee\s*adv|advanced/i } },
+                        { subtitle: { $regex: /jee\s*adv|advanced/i } },
+                        { badgeCode: { $regex: /adv/i } }
+                    ]
+                });
             }
             else if (etStr === 'BITSAT' || /bitsat/i.test(etStr)) {
-                filter.$or = [
-                    { examType: 'BITSAT' },
-                    { title: { $regex: /bitsat/i } },
-                    { subtitle: { $regex: /bitsat/i } },
-                    { badgeCode: { $regex: /bitsat/i } }
-                ];
+                andClauses.push({
+                    $or: [
+                        { examType: 'BITSAT' },
+                        { title: { $regex: /bitsat/i } },
+                        { subtitle: { $regex: /bitsat/i } },
+                        { badgeCode: { $regex: /bitsat/i } }
+                    ]
+                });
             }
             else {
                 filter.examType = examType;
@@ -1099,11 +1127,16 @@ export const getAllTestSeries = async (req, res) => {
         }
         if (search) {
             const q = escapeRegex(String(search).trim());
-            filter.$or = [
-                { title: { $regex: q, $options: 'i' } },
-                { subtitle: { $regex: q, $options: 'i' } },
-                { slug: { $regex: q, $options: 'i' } }
-            ];
+            andClauses.push({
+                $or: [
+                    { title: { $regex: q, $options: 'i' } },
+                    { subtitle: { $regex: q, $options: 'i' } },
+                    { slug: { $regex: q, $options: 'i' } }
+                ]
+            });
+        }
+        if (andClauses.length > 0) {
+            filter.$and = andClauses;
         }
         let items;
         let totalCount = 0;
@@ -1541,8 +1574,10 @@ export const createTestSeries = async (req, res) => {
                 const normExplanation = cleanExplanation ? normalizeCanonicalMath(cleanExplanation) : '';
                 const cleanShortcut = q.shortcutTrick || q.dkSirShortcut || '';
                 const normShortcut = cleanShortcut ? normalizeCanonicalMath(cleanShortcut) : '';
-                const rawSec = String(q.section || '').toUpperCase();
-                const cleanSection = rawSec.includes('B') || idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A';
+                const rawSec = String(q.section || '').toUpperCase().trim();
+                const cleanSection = rawSec === 'B' || rawSec.includes('SEC B') || rawSec.includes('SECTION B') || q.type === 'NUMERICAL'
+                    ? 'B'
+                    : 'A';
                 const cleanType = q.type || (cleanSection === 'B' ? 'NUMERICAL' : 'SINGLE_CORRECT');
                 const rawDiff = String(q.difficulty || 'Medium').toLowerCase();
                 const normDiff = rawDiff.includes('easy') ? 'Easy' : rawDiff.includes('hard') ? 'Hard' : 'Medium';
@@ -1566,9 +1601,9 @@ export const createTestSeries = async (req, res) => {
                             imageUrl: opt.imageUrl
                         }))
                         : [],
-                    correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || (cleanSection === 'B' ? '' : 'A'),
-                    numericalAnswer: q.numericalAnswer || (cleanSection === 'B' ? q.correctKey || q.correctAnswer : undefined),
-                    marks: q.marks || 4,
+                    correctAnswer: q.correctAnswer ?? q.correctOption ?? q.correctKey ?? (cleanSection === 'B' ? '' : 'A'),
+                    numericalAnswer: q.numericalAnswer ?? (cleanSection === 'B' ? q.correctKey ?? q.correctAnswer : undefined),
+                    marks: q.marks ?? 4,
                     negativeMarks: q.negativeMarks ?? (cleanSection === 'B' ? 0 : 1),
                     formulaKey: q.formulaKey || q.topicTag || '',
                     explanation: normExplanation,
@@ -1805,8 +1840,10 @@ export const updateTestSeries = async (req, res) => {
                 const normExplanation = cleanExplanation ? normalizeCanonicalMath(cleanExplanation) : '';
                 const cleanShortcut = q.shortcutTrick || q.dkSirShortcut || '';
                 const normShortcut = cleanShortcut ? normalizeCanonicalMath(cleanShortcut) : '';
-                const rawSec = String(q.section || '').toUpperCase();
-                const cleanSection = rawSec.includes('B') || idx >= 20 || q.type === 'NUMERICAL' ? 'B' : 'A';
+                const rawSec = String(q.section || '').toUpperCase().trim();
+                const cleanSection = rawSec === 'B' || rawSec.includes('SEC B') || rawSec.includes('SECTION B') || q.type === 'NUMERICAL'
+                    ? 'B'
+                    : 'A';
                 const cleanType = q.type || (cleanSection === 'B' ? 'NUMERICAL' : 'SINGLE_CORRECT');
                 const rawDiff = String(q.difficulty || 'Medium').toLowerCase();
                 const normDiff = rawDiff.includes('easy') ? 'Easy' : rawDiff.includes('hard') ? 'Hard' : 'Medium';
@@ -1830,9 +1867,9 @@ export const updateTestSeries = async (req, res) => {
                             imageUrl: opt.imageUrl
                         }))
                         : [],
-                    correctAnswer: q.correctAnswer || q.correctOption || q.correctKey || (cleanSection === 'B' ? '' : 'A'),
-                    numericalAnswer: q.numericalAnswer || (cleanSection === 'B' ? q.correctKey || q.correctAnswer : undefined),
-                    marks: q.marks || 4,
+                    correctAnswer: q.correctAnswer ?? q.correctOption ?? q.correctKey ?? (cleanSection === 'B' ? '' : 'A'),
+                    numericalAnswer: q.numericalAnswer ?? (cleanSection === 'B' ? q.correctKey ?? q.correctAnswer : undefined),
+                    marks: q.marks ?? 4,
                     negativeMarks: q.negativeMarks ?? (cleanSection === 'B' ? 0 : 1),
                     formulaKey: q.formulaKey || q.topicTag || '',
                     explanation: normExplanation,
@@ -2045,43 +2082,49 @@ export const submitTestSeries = async (req, res) => {
         let unattemptedCount = 0;
         let totalScore = 0;
         (test.questions || []).forEach((q) => {
-            const qId = q.id || q._id;
-            const resp = responses?.[qId];
-            const isAnswered = Boolean(resp?.numericalValue?.trim() || resp?.selectedOption);
+            const qId = q.id || String(q._id);
+            const resp = responses?.[qId] ?? responses?.[String(q._id)];
+            const numValStr = String(resp?.numericalValue ?? '').trim();
+            const selOptStr = String(resp?.selectedOption ?? '').trim();
+            const isAnswered = Boolean(numValStr || selOptStr);
+            const qMarks = typeof q.marks === 'number' ? q.marks : markingCorrect;
+            const isNum = q.type === 'NUMERICAL' || q.section === 'B' || (!q.options || q.options.length === 0);
+            const qPenalty = typeof q.negativeMarks === 'number' ? q.negativeMarks : (isNum ? 0 : markingIncorrect);
             if (q.isBonus) {
                 correctCount += 1;
-                totalScore += (q.marks || markingCorrect);
+                totalScore += qMarks;
             }
             else if (!resp || !isAnswered) {
                 unattemptedCount += 1;
             }
             else {
                 let isCorrect = false;
-                const normalizeStr = (val) => String(val ?? '').trim().toUpperCase();
-                const isNum = q.type === 'NUMERICAL' || q.section === 'B' || (!q.options || q.options.length === 0);
+                const normalizeStr = (val) => String(val ?? '')
+                    .trim()
+                    .toUpperCase()
+                    .replace(/^[(\[]?([A-D])[)\]\.\:]?$/, '$1');
                 if (isNum) {
-                    const studentVal = String(resp.numericalValue ?? resp.selectedOption ?? '').trim();
+                    const studentVal = numValStr || selOptStr;
                     const correctVal = String(q.numericalAnswer ?? q.correctAnswer ?? q.correctKey ?? '').trim();
                     if (studentVal && correctVal && !isNaN(Number(studentVal)) && !isNaN(Number(correctVal))) {
                         isCorrect = Math.abs(Number(studentVal) - Number(correctVal)) < 0.001;
                     }
                     else {
-                        isCorrect = studentVal.toLowerCase() === correctVal.toLowerCase();
+                        isCorrect = Boolean(studentVal && correctVal && studentVal.toLowerCase() === correctVal.toLowerCase());
                     }
                 }
                 else {
-                    const studentChoice = normalizeStr(resp.selectedOption || resp.numericalValue);
+                    const studentChoice = normalizeStr(selOptStr || numValStr);
                     const officialCorrect = normalizeStr(q.correctAnswer ?? q.correctKey ?? q.correctOption);
                     isCorrect = Boolean(studentChoice && officialCorrect && studentChoice === officialCorrect);
                 }
                 if (isCorrect) {
                     correctCount += 1;
-                    totalScore += markingCorrect;
+                    totalScore += qMarks;
                 }
                 else {
                     incorrectCount += 1;
-                    const penalty = isNum && q.negativeMarks === 0 ? 0 : markingIncorrect;
-                    totalScore -= penalty;
+                    totalScore -= qPenalty;
                 }
             }
         });
@@ -2242,23 +2285,23 @@ export const autosaveTestProgress = async (req, res) => {
             studentId = candidateGuestId;
         }
         const progressKey = `progress_${test.id}_${studentId}`;
-        // 1. Guard against autosaving if the exam has already been finalized
-        const finalizedExam = await TestSubmission.findOne({
-            testId: test.id,
-            studentId: String(studentId),
-            status: 'SUBMITTED',
-            submissionId: { $ne: progressKey }
-        });
-        if (finalizedExam) {
-            res.status(409).json({
-                success: false,
-                message: 'Exam has already been finalized and submitted. Autosave rejected.',
-                data: {
-                    submissionId: finalizedExam.submissionId,
-                    submittedAt: finalizedExam.submittedAt
-                }
+        // 1. Guard against autosaving only if this specific submissionId was already finalized
+        if (clientSubmissionId) {
+            const finalizedSameAttempt = await TestSubmission.findOne({
+                submissionId: clientSubmissionId,
+                status: 'SUBMITTED'
             });
-            return;
+            if (finalizedSameAttempt) {
+                res.status(409).json({
+                    success: false,
+                    message: 'Exam has already been finalized and submitted. Autosave rejected.',
+                    data: {
+                        submissionId: finalizedSameAttempt.submissionId,
+                        submittedAt: finalizedSameAttempt.submittedAt
+                    }
+                });
+                return;
+            }
         }
         // 2. Out-of-order jitter guard: Check if an existing draft has a newer client timestamp
         const incomingTimestamp = Number(clientTimestamp) || Date.now();
@@ -2359,15 +2402,22 @@ export const getTestProgress = async (req, res) => {
             studentId = candidateGuestId;
         }
         const progressKey = `progress_${test.id}_${studentId}`;
-        const progress = await TestSubmission.findOne({
-            $or: [
-                { submissionId: progressKey },
-                { testId: test.id, studentId: String(studentId) }
-            ]
+        // Only restore an active IN_PROGRESS draft (never restore old SUBMITTED answers on a re-attempt)
+        let progress = await TestSubmission.findOne({
+            submissionId: progressKey,
+            status: 'IN_PROGRESS'
         }).sort({ updatedAt: -1 });
         if (!progress) {
-            res.status(200).json({ success: true, data: null, message: 'No saved progress found' });
-            return;
+            const latestSubmitted = await TestSubmission.findOne({
+                testId: test.id,
+                studentId: String(studentId),
+                status: 'SUBMITTED'
+            }).sort({ updatedAt: -1 });
+            if (!latestSubmitted) {
+                res.status(200).json({ success: true, data: null, message: 'No saved progress found' });
+                return;
+            }
+            progress = latestSubmitted;
         }
         res.status(200).json({
             success: true,
