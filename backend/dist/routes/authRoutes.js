@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { register, login, googleAuth, adminLogin, logout, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, updateStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, unlockStaffByAdmin, deleteUserByAdmin, forgotPassword, verifyResetOtp, resetPassword } from '../controllers/authController.js';
+import { register, login, googleAuth, adminLogin, logout, getMe, updateProfile, enrollCourse, getStudentsList, getStaffList, createStudentByAdmin, updateStudentByAdmin, createStaffByAdmin, updateStaffByAdmin, updateStaffPasswordByAdmin, unlockStaffByAdmin, deleteUserByAdmin, forgotPassword, verifyResetOtp, resetPassword, checkRecoveryPhone, resetPasswordWithFirebase } from '../controllers/authController.js';
 import { protect, authorize, directoryProtect } from '../middlewares/authMiddleware.js';
 import { validate, idOrSlugParamSchema } from '../middlewares/validateMiddleware.js';
 import rateLimit from 'express-rate-limit';
@@ -48,6 +48,25 @@ const resetPasswordSchema = z
 })
     .refine((data) => data.password || data.newPassword, {
     message: 'New password is required'
+});
+const checkRecoveryPhoneSchema = z
+    .object({
+    phone: z.string().trim().optional(),
+    identifier: z.string().trim().optional()
+})
+    .refine((data) => data.phone || data.identifier, {
+    message: 'Mobile number is required'
+});
+const resetPasswordFirebaseSchema = z
+    .object({
+    phone: z.string().trim().optional(),
+    identifier: z.string().trim().optional(),
+    firebaseToken: z.string().trim().min(10, 'Firebase verification token is required'),
+    password: z.string().min(6, 'New password must be at least 6 characters').optional(),
+    newPassword: z.string().min(6, 'New password must be at least 6 characters').optional()
+})
+    .refine((data) => (data.phone || data.identifier) && (data.password || data.newPassword), {
+    message: 'Mobile number and new password are required'
 });
 // Zod Validation Schemas
 const registerSchema = z
@@ -126,6 +145,8 @@ router.post('/logout', logout);
 router.post('/forgot-password', otpLimiter, validate({ body: forgotPasswordSchema }), forgotPassword);
 router.post('/verify-reset-otp', otpLimiter, validate({ body: verifyOtpSchema }), verifyResetOtp);
 router.post('/reset-password', authLimiter, validate({ body: resetPasswordSchema }), resetPassword);
+router.post('/check-recovery-phone', otpLimiter, validate({ body: checkRecoveryPhoneSchema }), checkRecoveryPhone);
+router.post('/reset-password-firebase', authLimiter, validate({ body: resetPasswordFirebaseSchema }), resetPasswordWithFirebase);
 // Protected Student / User Endpoints
 router.get('/me', protect, getMe);
 router.put('/profile', protect, validate({ body: updateProfileSchema }), updateProfile);

@@ -4,11 +4,14 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../config/env.js';
 import { User } from '../models/User.js';
+import { PhoneOtp } from '../models/PhoneOtp.js';
 import { Course } from '../models/Course.js';
 import { Order } from '../models/Order.js';
 import { broadcastStudentRegistered } from '../sockets/socket.js';
 import { generateStudentId, generateTeacherId } from '../utils/uuid.js';
 import { sendPasswordResetOtpEmail } from '../services/emailService.js';
+import { sendFast2SmsOtp, normalizeIndianPhone, maskIndianPhone } from '../services/smsService.js';
+import { verifyFirebaseIdToken } from '../utils/firebaseVerify.js';
 import { logger } from '../config/logger.js';
 const generateToken = (id, role) => {
     return jwt.sign({ id, role, jti: uuidv4() }, env.JWT_SECRET, {
@@ -930,22 +933,53 @@ export const deleteUserByAdmin = async (req, res) => {
  * PASSWORD RECOVERY & OTP WORKFLOW (Hostinger SMTP / Nodemailer)
  * ─────────────────────────────────────────────────────────────────────────────
  */
+const resolveRecoveryTarget = (body) => {
+    const raw = (body?.phone || body?.email || body?.identifier || '').toString().trim();
+    if (!raw)
+        return { channel: null, value: '' };
+    if (raw.includes('@')) {
+        const cleanEmail = raw.toLowerCase();
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+            return { channel: 'email', value: cleanEmail };
+        }
+        return { channel: null, value: '' };
+    }
+    const cleanPhone = normalizeIndianPhone(raw);
+    if (cleanPhone) {
+        return { channel: 'sms', value: cleanPhone };
+    }
+    return { channel: null, value: '' };
+};
+const findUserForRecovery = async (channel, value, selectFields) => {
+    if (channel === 'email') {
+        return User.findOne({ email: value }).select(selectFields);
+    }
+    return User.findOne({
+        $or: [
+            { phone: value },
+            { phone: `+91${value}` },
+            { phone: `91${value}` },
+            { phone: `0${value}` }
+        ]
+    }).select(selectFields);
+};
 export const forgotPassword = async (req, res) => {
     try {
-        const { email, identifier } = req.body;
-        const cleanEmail = (email || identifier || '').toString().trim().toLowerCase();
-        if (!cleanEmail || !cleanEmail.includes('@') || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        const { channel, value } = resolveRecoveryTarget(req.body);
+        if (!channel || !value) {
             res.status(400).json({
                 success: false,
-                message: 'Please provide a valid registered email address'
+                message: 'Please provide a valid registered email address or 10-digit mobile number.'
             });
             return;
         }
-        const user = await User.findOne({ email: cleanEmail }).select('+resetPasswordOtp +resetPasswordExpires +resetPasswordAttempts');
+        const user = await findUserForRecovery(channel, value, '+resetPasswordOtp +resetPasswordExpires +resetPasswordAttempts');
         if (!user) {
             res.status(404).json({
                 success: false,
-                message: 'No account is registered with this email address. Please check your spelling or sign up.'
+                message: channel === 'sms'
+                    ? 'No account is registered with this mobile number. Please check your number or sign up.'
+                    : 'No account is registered with this email address. Please check your spelling or sign up.'
             });
             return;
         }
@@ -963,11 +997,43 @@ export const forgotPassword = async (req, res) => {
         // Hash OTP before storing in database
         const salt = await bcrypt.genSalt(10);
         const hashedOtp = await bcrypt.hash(rawOtp, salt);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
         user.resetPasswordOtp = hashedOtp;
-        user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+        user.resetPasswordExpires = expiresAt;
         user.resetPasswordAttempts = 0;
         await user.save();
-        const targetEmail = user.email || cleanEmail;
+        if (channel === 'sms') {
+            await PhoneOtp.findOneAndUpdate({ phone: value, purpose: 'FORGOT_PASSWORD' }, {
+                $set: {
+                    otpHash: hashedOtp,
+                    attempts: 0,
+                    verified: false,
+                    expiresAt
+                }
+            }, { upsert: true }).catch((e) => logger.warn({ err: e?.message }, '[PhoneOtp] Upsert warning'));
+            const smsResult = await sendFast2SmsOtp(value, rawOtp);
+            if (!smsResult.success) {
+                logger.error({ err: smsResult.error, phone: maskIndianPhone(value) }, '[Auth] Fast2SMS OTP dispatch failed');
+                res.status(502).json({
+                    success: false,
+                    message: smsResult.error || 'Failed to send SMS OTP via Fast2SMS. Please try again or use email recovery.'
+                });
+                return;
+            }
+            const maskedPhone = maskIndianPhone(value);
+            res.status(200).json({
+                success: true,
+                message: `A 6-digit recovery OTP has been sent via SMS to ${maskedPhone}. Valid for 10 minutes.`,
+                data: {
+                    channel: 'sms',
+                    maskedTarget: maskedPhone,
+                    maskedPhone,
+                    expiresInSeconds: 600
+                }
+            });
+            return;
+        }
+        const targetEmail = user.email || value;
         // Send email via Nodemailer
         const emailResult = await sendPasswordResetOtpEmail(targetEmail, user.name, rawOtp);
         if (!emailResult.success) {
@@ -979,6 +1045,8 @@ export const forgotPassword = async (req, res) => {
             success: true,
             message: `A 6-digit recovery OTP has been sent to your registered email (${maskedEmail}). Valid for 10 minutes.`,
             data: {
+                channel: 'email',
+                maskedTarget: maskedEmail,
                 maskedEmail,
                 expiresInSeconds: 600
             }
@@ -990,18 +1058,18 @@ export const forgotPassword = async (req, res) => {
 };
 export const verifyResetOtp = async (req, res) => {
     try {
-        const { email, identifier, otp } = req.body;
+        const { otp } = req.body;
         const cleanOtp = (otp || '').toString().trim();
-        const cleanEmail = (email || identifier || '').toString().trim().toLowerCase();
+        const { channel, value } = resolveRecoveryTarget(req.body);
         if (!cleanOtp || cleanOtp.length !== 6) {
             res.status(400).json({ success: false, message: 'Please enter the 6-digit recovery code.' });
             return;
         }
-        if (!cleanEmail) {
-            res.status(400).json({ success: false, message: 'Registered email address is required.' });
+        if (!channel || !value) {
+            res.status(400).json({ success: false, message: 'Registered email address or mobile number is required.' });
             return;
         }
-        const user = await User.findOne({ email: cleanEmail }).select('+resetPasswordOtp +resetPasswordExpires +resetPasswordAttempts');
+        const user = await findUserForRecovery(channel, value, '+resetPasswordOtp +resetPasswordExpires +resetPasswordAttempts');
         if (!user || !user.resetPasswordOtp || !user.resetPasswordExpires) {
             res.status(400).json({
                 success: false,
@@ -1052,10 +1120,10 @@ export const verifyResetOtp = async (req, res) => {
 };
 export const resetPassword = async (req, res) => {
     try {
-        const { email, identifier, otp, newPassword, password } = req.body;
+        const { otp, newPassword, password } = req.body;
         const finalPassword = (newPassword || password || '').toString().trim();
         const cleanOtp = (otp || '').toString().trim();
-        const cleanEmail = (email || identifier || '').toString().trim().toLowerCase();
+        const { channel, value } = resolveRecoveryTarget(req.body);
         if (!finalPassword || finalPassword.length < 6) {
             res.status(400).json({
                 success: false,
@@ -1067,11 +1135,11 @@ export const resetPassword = async (req, res) => {
             res.status(400).json({ success: false, message: 'Valid 6-digit recovery code is required.' });
             return;
         }
-        if (!cleanEmail) {
-            res.status(400).json({ success: false, message: 'Registered email address is required.' });
+        if (!channel || !value) {
+            res.status(400).json({ success: false, message: 'Registered email address or mobile number is required.' });
             return;
         }
-        const user = await User.findOne({ email: cleanEmail }).select('+password +resetPasswordOtp +resetPasswordExpires +resetPasswordAttempts');
+        const user = await findUserForRecovery(channel, value, '+password +resetPasswordOtp +resetPasswordExpires +resetPasswordAttempts');
         if (!user || !user.resetPasswordOtp || !user.resetPasswordExpires) {
             res.status(400).json({
                 success: false,
@@ -1102,6 +1170,117 @@ export const resetPassword = async (req, res) => {
         user.lockUntil = undefined;
         await user.save();
         // Generate fresh JWT token so student can immediately log in
+        const token = generateToken(user._id.toString(), user.role);
+        res.status(200).json({
+            success: true,
+            message: 'Password successfully updated! You can now log in with your new password.',
+            data: {
+                _id: user._id,
+                studentId: user.studentId,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+                token
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const checkRecoveryPhone = async (req, res) => {
+    try {
+        const rawPhone = (req.body.phone || req.body.identifier || '').toString().trim();
+        const tenDigits = normalizeIndianPhone(rawPhone);
+        if (!tenDigits) {
+            res.status(400).json({
+                success: false,
+                message: 'Please enter a valid 10-digit Indian mobile number.'
+            });
+            return;
+        }
+        const user = await findUserForRecovery('sms', tenDigits, '_id name phone');
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'No account is registered with this mobile number. Please check your number or sign up.'
+            });
+            return;
+        }
+        res.status(200).json({
+            success: true,
+            message: 'Registered mobile number verified.',
+            data: {
+                phone: tenDigits,
+                maskedPhone: maskIndianPhone(tenDigits)
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const resetPasswordWithFirebase = async (req, res) => {
+    try {
+        const rawPhone = (req.body.phone || req.body.identifier || '').toString().trim();
+        const firebaseToken = (req.body.firebaseToken || '').toString().trim();
+        const finalPassword = (req.body.newPassword || req.body.password || '').toString().trim();
+        const tenDigits = normalizeIndianPhone(rawPhone);
+        if (!tenDigits) {
+            res.status(400).json({ success: false, message: 'Valid 10-digit mobile number is required.' });
+            return;
+        }
+        if (!firebaseToken) {
+            res.status(400).json({ success: false, message: 'Firebase verification token is required.' });
+            return;
+        }
+        if (!finalPassword || finalPassword.length < 6) {
+            res.status(400).json({ success: false, message: 'New password must be at least 6 characters long.' });
+            return;
+        }
+        let verifiedFirebase;
+        try {
+            verifiedFirebase = await verifyFirebaseIdToken(firebaseToken);
+        }
+        catch (verifyErr) {
+            logger.warn({ err: verifyErr?.message }, '[Auth] Firebase token verification failed');
+            res.status(401).json({
+                success: false,
+                message: 'Mobile OTP verification expired or invalid. Please verify your OTP again.'
+            });
+            return;
+        }
+        if (!verifiedFirebase.phone_number) {
+            res.status(403).json({
+                success: false,
+                message: 'Verified Firebase token does not contain a phone number.'
+            });
+            return;
+        }
+        const firebaseTenDigits = normalizeIndianPhone(verifiedFirebase.phone_number);
+        if (!firebaseTenDigits || firebaseTenDigits !== tenDigits) {
+            res.status(403).json({
+                success: false,
+                message: 'Verified phone number does not match the recovery account.'
+            });
+            return;
+        }
+        const user = await findUserForRecovery('sms', tenDigits, '+password');
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'No account is registered with this mobile number.'
+            });
+            return;
+        }
+        user.password = finalPassword;
+        user.resetPasswordOtp = undefined;
+        user.resetPasswordExpires = undefined;
+        user.resetPasswordAttempts = 0;
+        user.failedLoginAttempts = 0;
+        user.lockUntil = undefined;
+        await user.save();
         const token = generateToken(user._id.toString(), user.role);
         res.status(200).json({
             success: true,

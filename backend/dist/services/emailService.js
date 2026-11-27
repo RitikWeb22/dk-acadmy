@@ -143,11 +143,11 @@ export const sendPasswordResetOtpEmail = async (toEmail, studentName, otp) => {
         return { success: false, deliveredVia: 'smtp', error: err.message };
     }
 };
+import { sendFast2SmsOtp } from './smsService.js';
 /**
- * Modular SMS OTP placeholder (ready for Fast2SMS / MSG91 / Twilio)
+ * Dispatches SMS OTP via Fast2SMS
  */
 export const sendSmsOtp = async (phone, otp) => {
-    // When SMS pack credentials are provided, integrate SMS provider API here
-    console.log(`[DEV SMS OTP] To: +91-${phone} | OTP: ${otp}`);
-    return true;
+    const res = await sendFast2SmsOtp(phone, otp);
+    return res.success;
 };
